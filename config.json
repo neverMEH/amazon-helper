@@ -1,0 +1,80 @@
+{
+  "profiles": {
+    "US": [
+      {
+        "profileId": 3810822089931808,
+        "name": "neverMEH: US",
+        "marketplaceId": "ATVPDKIKX0DER"
+      },
+      {
+        "profileId": 3335273396303954,
+        "name": "SparkX-US Clean Boss",
+        "marketplaceId": "ATVPDKIKX0DER"
+      },
+      {
+        "profileId": 149933231819265,
+        "name": "Dirty Labs",
+        "marketplaceId": "ATVPDKIKX0DER"
+      },
+      {
+        "profileId": 311236583763843,
+        "name": "Wise Essentials",
+        "marketplaceId": "ATVPDKIKX0DER"
+      },
+      {
+        "profileId": 2967029177627394,
+        "name": "Grow Green Industries",
+        "marketplaceId": "ATVPDKIKX0DER"
+      },
+      {
+        "profileId": 1595982706516623,
+        "name": "Planetary Design",
+        "marketplaceId": "ATVPDKIKX0DER"
+      },
+      {
+        "profileId": 3185537047762452,
+        "name": "Defender Operations LLC",
+        "marketplaceId": "ATVPDKIKX0DER"
+      }
+    ],
+    "CA": [
+      {
+        "profileId": 2859176666497025,
+        "name": "Planetary Design",
+        "marketplaceId": "A2EUQ1WTGCTBG2"
+      },
+      {
+        "profileId": 244409424429908,
+        "name": "Dirty Labs",
+        "marketplaceId": "A2EUQ1WTGCTBG2"
+      },
+      {
+        "profileId": 557459101084318,
+        "name": "Defender Operations LLC",
+        "marketplaceId": "A2EUQ1WTGCTBG2"
+      }
+    ],
+    "MX": [
+      {
+        "profileId": 3116595951604839,
+        "name": "Dirty Labs",
+        "marketplaceId": "A1AM78C64UM0Y8"
+      },
+      {
+        "profileId": 3115054841227637,
+        "name": "Defender Operations LLC",
+        "marketplaceId": "A1AM78C64UM0Y8"
+      },
+      {
+        "profileId": 3872108978852599,
+        "name": "Planetary Design",
+        "marketplaceId": "A1AM78C64UM0Y8"
+      }
+    ]
+  },
+  "defaultProfile": {
+    "profileId": 149933231819265,
+    "name": "Dirty Labs - US",
+    "marketplaceId": "ATVPDKIKX0DER"
+  }
+}

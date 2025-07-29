@@ -1,0 +1,624 @@
+{
+  "instances": [
+    {
+      "instanceId": "amcfo8abayq",
+      "instanceName": "nevermehamcsandbox",
+      "instanceType": "SANDBOX",
+      "customerCanonicalName": "Sandbox",
+      "creationStatus": "COMPLETED",
+      "creationDatetime": "2025-01-09T19:54:59.180654193Z",
+      "s3BucketName": "amc-nevermehamcsandbox-hjhaeqki",
+      "awsAccountId": "",
+      "entities": [
+        "NA"
+      ],
+      "dataUploadAwsAccountId": "811639200769",
+      "apiEndpoint": "https://advertising-api.amazon.com",
+      "acrCollaboration": null,
+      "optionalDatasets": [
+        {
+          "label": "CASPIAN_DIM_CUTOVER",
+          "activationTime": "2025-01-09T19:53:45.837Z"
+        },
+        {
+          "label": "CASPIAN_DIM_CUTOVER_CONVERSIONS",
+          "activationTime": "2025-01-09T19:53:45.837Z"
+        },
+        {
+          "label": "CASPIAN_FACT_CUTOVER",
+          "activationTime": "2025-01-09T19:53:45.837Z"
+        },
+        {
+          "label": "CASPIAN_ONLY",
+          "activationTime": "2025-01-09T19:53:45.837Z"
+        },
+        {
+          "label": "CONVERSIONS_EXPOSURE_V3",
+          "activationTime": "2025-01-09T19:53:45.837Z"
+        },
+        {
+          "label": "SNS_BROADCAST_JOIN_FIX",
+          "activationTime": "2025-01-21T23:43:06.590Z"
+        },
+        {
+          "label": "PRE_VALIDATED_SPONSORED_ADS",
+          "activationTime": "2025-02-12T19:23:56.063Z"
+        },
+        {
+          "label": "PRE_VALIDATED_OBSIDIAN",
+          "activationTime": "2025-03-07T22:59:00.124Z"
+        },
+        {
+          "label": "HIDE_DEAL_DETAILS",
+          "activationTime": "2025-04-08T05:09:48.623Z"
+        },
+        {
+          "label": "CAMPAIGN_API_ID_SSPA",
+          "activationTime": "2025-04-24T14:18:20.977Z"
+        },
+        {
+          "label": "BID_BOOST_BEHAVIOR_DYNAMIC_SEGMENTS",
+          "activationTime": "2025-04-29T21:42:26.838Z"
+        },
+        {
+          "label": "PORTFOLIOS",
+          "activationTime": "2025-05-06T15:01:40.118Z"
+        },
+        {
+          "label": "CREATIVE_ASIN",
+          "activationTime": "2025-05-06T15:01:40.193Z"
+        },
+        {
+          "label": "FREQUENCY_GROUPS",
+          "activationTime": "2025-05-20T17:49:53.721Z"
+        },
+        {
+          "label": "SNS_V2",
+          "activationTime": "2025-06-09T18:54:22.802Z"
+        },
+        {
+          "label": "AUDIENCES_ASIN_SAFETY_V2",
+          "activationTime": "2025-06-26T18:33:49.854Z"
+        }
+      ],
+      "advertiserTypes": []
+    },
+    {
+      "instanceId": "amczrzxckae",
+      "instanceName": "nevermehdirtylabsus",
+      "instanceType": "STANDARD",
+      "customerCanonicalName": "Dirty Labs",
+      "creationStatus": "COMPLETED",
+      "creationDatetime": "2025-01-11T09:17:47.776891356Z",
+      "s3BucketName": "amc-nevermehdirtylabsus-ti6v2f15",
+      "awsAccountId": "980921748886",
+      "entities": [
+        "NA"
+      ],
+      "dataUploadAwsAccountId": "811639200769",
+      "apiEndpoint": "https://advertising-api.amazon.com",
+      "acrCollaboration": null,
+      "optionalDatasets": [
+        {
+          "label": "CASPIAN_DIM_CUTOVER",
+          "activationTime": "2025-01-10T17:38:08.130Z"
+        },
+        {
+          "label": "CASPIAN_DIM_CUTOVER_CONVERSIONS",
+          "activationTime": "2025-01-10T17:38:08.130Z"
+        },
+        {
+          "label": "CASPIAN_FACT_CUTOVER",
+          "activationTime": "2025-01-10T17:38:08.130Z"
+        },
+        {
+          "label": "CASPIAN_ONLY",
+          "activationTime": "2025-01-10T17:38:08.130Z"
+        },
+        {
+          "label": "CONVERSIONS_EXPOSURE_V3",
+          "activationTime": "2025-01-10T17:38:08.130Z"
+        },
+        {
+          "label": "SNS_BROADCAST_JOIN_FIX",
+          "activationTime": "2025-01-21T23:38:51.194Z"
+        },
+        {
+          "label": "PRE_VALIDATED_SPONSORED_ADS",
+          "activationTime": "2025-02-12T19:17:15.922Z"
+        },
+        {
+          "label": "PRE_VALIDATED_OBSIDIAN",
+          "activationTime": "2025-03-07T22:55:32.667Z"
+        },
+        {
+          "label": "HIDE_DEAL_DETAILS",
+          "activationTime": "2025-04-08T04:52:33.152Z"
+        },
+        {
+          "label": "CAMPAIGN_API_ID_SSPA",
+          "activationTime": "2025-04-25T15:28:04.525Z"
+        },
+        {
+          "label": "BID_BOOST_BEHAVIOR_DYNAMIC_SEGMENTS",
+          "activationTime": "2025-04-30T18:40:24.772Z"
+        },
+        {
+          "label": "PORTFOLIOS",
+          "activationTime": "2025-05-07T16:16:00.751Z"
+        },
+        {
+          "label": "CREATIVE_ASIN",
+          "activationTime": "2025-05-07T16:16:00.855Z"
+        },
+        {
+          "label": "FREQUENCY_GROUPS",
+          "activationTime": "2025-05-20T17:43:26.063Z"
+        },
+        {
+          "label": "SNS_V2",
+          "activationTime": "2025-06-09T18:45:37.740Z"
+        },
+        {
+          "label": "AUDIENCES_ASIN_SAFETY_V2",
+          "activationTime": "2025-06-25T14:16:52.591Z"
+        }
+      ],
+      "advertiserTypes": [
+        "DISPLAY",
+        "SPONSORED_ADS"
+      ]
+    },
+    {
+      "instanceId": "amc7titm3gj",
+      "instanceName": "nevermehemfharmonyus",
+      "instanceType": "STANDARD",
+      "customerCanonicalName": "EMF Harmony",
+      "creationStatus": "COMPLETED",
+      "creationDatetime": "2025-01-11T07:56:50.050605163Z",
+      "s3BucketName": "amc-nevermehemfharmonyus-lmpz0uze",
+      "awsAccountId": "",
+      "entities": [
+        "NA"
+      ],
+      "dataUploadAwsAccountId": "811639200769",
+      "apiEndpoint": "https://advertising-api.amazon.com",
+      "acrCollaboration": null,
+      "optionalDatasets": [
+        {
+          "label": "CASPIAN_DIM_CUTOVER",
+          "activationTime": "2025-01-10T17:44:41.772Z"
+        },
+        {
+          "label": "CASPIAN_DIM_CUTOVER_CONVERSIONS",
+          "activationTime": "2025-01-10T17:44:41.772Z"
+        },
+        {
+          "label": "CASPIAN_FACT_CUTOVER",
+          "activationTime": "2025-01-10T17:44:41.772Z"
+        },
+        {
+          "label": "CASPIAN_ONLY",
+          "activationTime": "2025-01-10T17:44:41.772Z"
+        },
+        {
+          "label": "CONVERSIONS_EXPOSURE_V3",
+          "activationTime": "2025-01-10T17:44:41.772Z"
+        },
+        {
+          "label": "SNS_BROADCAST_JOIN_FIX",
+          "activationTime": "2025-01-22T00:06:24.846Z"
+        },
+        {
+          "label": "PRE_VALIDATED_SPONSORED_ADS",
+          "activationTime": "2025-02-12T19:57:33.021Z"
+        },
+        {
+          "label": "PRE_VALIDATED_OBSIDIAN",
+          "activationTime": "2025-03-07T23:17:56.635Z"
+        },
+        {
+          "label": "HIDE_DEAL_DETAILS",
+          "activationTime": "2025-04-08T00:09:08.571Z"
+        },
+        {
+          "label": "CAMPAIGN_API_ID_SSPA",
+          "activationTime": "2025-04-22T18:35:12.521Z"
+        },
+        {
+          "label": "BID_BOOST_BEHAVIOR_DYNAMIC_SEGMENTS",
+          "activationTime": "2025-04-29T20:41:41.386Z"
+        },
+        {
+          "label": "PORTFOLIOS",
+          "activationTime": "2025-05-07T15:42:36.607Z"
+        },
+        {
+          "label": "CREATIVE_ASIN",
+          "activationTime": "2025-05-07T15:42:36.714Z"
+        },
+        {
+          "label": "FREQUENCY_GROUPS",
+          "activationTime": "2025-05-20T18:22:51.718Z"
+        },
+        {
+          "label": "SNS_V2",
+          "activationTime": "2025-06-09T20:37:19.743Z"
+        },
+        {
+          "label": "AUDIENCES_ASIN_SAFETY_V2",
+          "activationTime": "2025-06-26T18:32:40.185Z"
+        }
+      ],
+      "advertiserTypes": [
+        "DISPLAY",
+        "SPONSORED_ADS"
+      ]
+    },
+    {
+      "instanceId": "amcgqeqtp2y",
+      "instanceName": "nevermehtyphoonhelmetsus",
+      "instanceType": "STANDARD",
+      "customerCanonicalName": "Typhoon Helmets",
+      "creationStatus": "COMPLETED",
+      "creationDatetime": "2025-01-11T04:13:09.936558249Z",
+      "s3BucketName": "amc-nevermehtyphoonhelmetsus-cprnk0p6",
+      "awsAccountId": "",
+      "entities": [
+        "NA"
+      ],
+      "dataUploadAwsAccountId": "811639200769",
+      "apiEndpoint": "https://advertising-api.amazon.com",
+      "acrCollaboration": null,
+      "optionalDatasets": [
+        {
+          "label": "CASPIAN_DIM_CUTOVER",
+          "activationTime": "2025-01-10T17:48:15.229Z"
+        },
+        {
+          "label": "CASPIAN_DIM_CUTOVER_CONVERSIONS",
+          "activationTime": "2025-01-10T17:48:15.229Z"
+        },
+        {
+          "label": "CASPIAN_FACT_CUTOVER",
+          "activationTime": "2025-01-10T17:48:15.229Z"
+        },
+        {
+          "label": "CASPIAN_ONLY",
+          "activationTime": "2025-01-10T17:48:15.229Z"
+        },
+        {
+          "label": "CONVERSIONS_EXPOSURE_V3",
+          "activationTime": "2025-01-10T17:48:15.229Z"
+        },
+        {
+          "label": "SNS_BROADCAST_JOIN_FIX",
+          "activationTime": "2025-01-21T23:28:28.444Z"
+        },
+        {
+          "label": "PRE_VALIDATED_SPONSORED_ADS",
+          "activationTime": "2025-02-12T19:01:39.728Z"
+        },
+        {
+          "label": "PRE_VALIDATED_OBSIDIAN",
+          "activationTime": "2025-03-07T22:46:40.754Z"
+        },
+        {
+          "label": "HIDE_DEAL_DETAILS",
+          "activationTime": "2025-04-07T22:07:35.330Z"
+        },
+        {
+          "label": "CAMPAIGN_API_ID_SSPA",
+          "activationTime": "2025-04-24T14:23:57.487Z"
+        },
+        {
+          "label": "BID_BOOST_BEHAVIOR_DYNAMIC_SEGMENTS",
+          "activationTime": "2025-04-29T21:49:39.833Z"
+        },
+        {
+          "label": "PORTFOLIOS",
+          "activationTime": "2025-05-07T15:46:57.985Z"
+        },
+        {
+          "label": "CREATIVE_ASIN",
+          "activationTime": "2025-05-07T15:46:58.093Z"
+        },
+        {
+          "label": "FREQUENCY_GROUPS",
+          "activationTime": "2025-05-20T17:27:37.961Z"
+        },
+        {
+          "label": "SNS_V2",
+          "activationTime": "2025-06-09T18:24:02.118Z"
+        },
+        {
+          "label": "AUDIENCES_ASIN_SAFETY_V2",
+          "activationTime": "2025-06-24T19:19:15.260Z"
+        }
+      ],
+      "advertiserTypes": [
+        "DISPLAY",
+        "SPONSORED_ADS"
+      ]
+    },
+    {
+      "instanceId": "amcz8eakylr",
+      "instanceName": "nevermehdefenderoperationsus",
+      "instanceType": "STANDARD",
+      "customerCanonicalName": "Defender Operations",
+      "creationStatus": "COMPLETED",
+      "creationDatetime": "2025-04-28T15:18:57.385377693Z",
+      "s3BucketName": "",
+      "awsAccountId": "",
+      "entities": [
+        "NA"
+      ],
+      "dataUploadAwsAccountId": "811639200769",
+      "apiEndpoint": "https://advertising-api.amazon.com",
+      "acrCollaboration": null,
+      "optionalDatasets": [
+        {
+          "label": "CASPIAN_DIM_CUTOVER",
+          "activationTime": "2025-04-28T13:39:27.566Z"
+        },
+        {
+          "label": "CASPIAN_DIM_CUTOVER_CONVERSIONS",
+          "activationTime": "2025-04-28T13:39:27.566Z"
+        },
+        {
+          "label": "CASPIAN_FACT_CUTOVER",
+          "activationTime": "2025-04-28T13:39:27.566Z"
+        },
+        {
+          "label": "CASPIAN_ONLY",
+          "activationTime": "2025-04-28T13:39:27.566Z"
+        },
+        {
+          "label": "CONVERSIONS_EXPOSURE_V3",
+          "activationTime": "2025-04-28T13:39:27.566Z"
+        },
+        {
+          "label": "HIDE_DEAL_DETAILS",
+          "activationTime": "2025-04-28T13:39:27.566Z"
+        },
+        {
+          "label": "CAMPAIGN_API_ID_SSPA",
+          "activationTime": "2025-04-28T13:39:27.566Z"
+        },
+        {
+          "label": "BID_BOOST_BEHAVIOR_DYNAMIC_SEGMENTS",
+          "activationTime": "2025-04-30T19:53:54.731Z"
+        },
+        {
+          "label": "PORTFOLIOS",
+          "activationTime": "2025-05-07T15:59:14.203Z"
+        },
+        {
+          "label": "CREATIVE_ASIN",
+          "activationTime": "2025-05-07T15:59:14.311Z"
+        },
+        {
+          "label": "FREQUENCY_GROUPS",
+          "activationTime": "2025-05-20T18:52:50.422Z"
+        },
+        {
+          "label": "SNS_V2",
+          "activationTime": "2025-06-10T15:15:29.018Z"
+        },
+        {
+          "label": "AUDIENCES_ASIN_SAFETY_V2",
+          "activationTime": "2025-06-25T13:55:58.811Z"
+        }
+      ],
+      "advertiserTypes": [
+        "DISPLAY",
+        "SPONSORED_ADS"
+      ]
+    },
+    {
+      "instanceId": "amcam7reoog",
+      "instanceName": "nevermehdesertfoxgolfus",
+      "instanceType": "STANDARD",
+      "customerCanonicalName": "Desert Fox Golf",
+      "creationStatus": "COMPLETED",
+      "creationDatetime": "2025-05-09T13:54:07.894131878Z",
+      "s3BucketName": "",
+      "awsAccountId": "",
+      "entities": [
+        "NA"
+      ],
+      "dataUploadAwsAccountId": "811639200769",
+      "apiEndpoint": "https://advertising-api.amazon.com",
+      "acrCollaboration": null,
+      "optionalDatasets": [
+        {
+          "label": "CASPIAN_DIM_CUTOVER",
+          "activationTime": "2025-05-09T11:55:10.341Z"
+        },
+        {
+          "label": "CASPIAN_DIM_CUTOVER_CONVERSIONS",
+          "activationTime": "2025-05-09T11:55:10.341Z"
+        },
+        {
+          "label": "CASPIAN_FACT_CUTOVER",
+          "activationTime": "2025-05-09T11:55:10.341Z"
+        },
+        {
+          "label": "CASPIAN_ONLY",
+          "activationTime": "2025-05-09T11:55:10.341Z"
+        },
+        {
+          "label": "CONVERSIONS_EXPOSURE_V3",
+          "activationTime": "2025-05-09T11:55:10.341Z"
+        },
+        {
+          "label": "HIDE_DEAL_DETAILS",
+          "activationTime": "2025-05-09T11:55:10.341Z"
+        },
+        {
+          "label": "CAMPAIGN_API_ID_SSPA",
+          "activationTime": "2025-05-09T11:55:10.341Z"
+        },
+        {
+          "label": "PORTFOLIOS",
+          "activationTime": "2025-05-09T11:55:10.341Z"
+        },
+        {
+          "label": "CREATIVE_ASIN",
+          "activationTime": "2025-05-09T11:55:10.341Z"
+        },
+        {
+          "label": "FREQUENCY_GROUPS",
+          "activationTime": "2025-05-20T17:26:35.996Z"
+        },
+        {
+          "label": "SNS_V2",
+          "activationTime": "2025-06-09T18:22:29.882Z"
+        },
+        {
+          "label": "AUDIENCES_ASIN_SAFETY_V2",
+          "activationTime": "2025-06-26T18:14:59.513Z"
+        }
+      ],
+      "advertiserTypes": [
+        "DISPLAY",
+        "SPONSORED_ADS"
+      ]
+    },
+    {
+      "instanceId": "amc4jzcqgd7",
+      "instanceName": "nevermeh",
+      "instanceType": "STANDARD",
+      "customerCanonicalName": null,
+      "creationStatus": "COMPLETED",
+      "creationDatetime": "2025-05-17T15:55:36.821289862Z",
+      "s3BucketName": "",
+      "awsAccountId": "",
+      "entities": [
+        "NA"
+      ],
+      "dataUploadAwsAccountId": "811639200769",
+      "apiEndpoint": "https://advertising-api.amazon.com",
+      "acrCollaboration": null,
+      "optionalDatasets": [
+        {
+          "label": "CASPIAN_DIM_CUTOVER",
+          "activationTime": "2025-05-17T15:54:06.199Z"
+        },
+        {
+          "label": "CASPIAN_DIM_CUTOVER_CONVERSIONS",
+          "activationTime": "2025-05-17T15:54:06.199Z"
+        },
+        {
+          "label": "CASPIAN_FACT_CUTOVER",
+          "activationTime": "2025-05-17T15:54:06.199Z"
+        },
+        {
+          "label": "CASPIAN_ONLY",
+          "activationTime": "2025-05-17T15:54:06.199Z"
+        },
+        {
+          "label": "CONVERSIONS_EXPOSURE_V3",
+          "activationTime": "2025-05-17T15:54:06.199Z"
+        },
+        {
+          "label": "HIDE_DEAL_DETAILS",
+          "activationTime": "2025-05-17T15:54:06.199Z"
+        },
+        {
+          "label": "CAMPAIGN_API_ID_SSPA",
+          "activationTime": "2025-05-17T15:54:06.199Z"
+        },
+        {
+          "label": "PORTFOLIOS",
+          "activationTime": "2025-05-17T15:54:06.199Z"
+        },
+        {
+          "label": "CREATIVE_ASIN",
+          "activationTime": "2025-05-17T15:54:06.199Z"
+        },
+        {
+          "label": "FREQUENCY_GROUPS",
+          "activationTime": "2025-05-20T17:34:56.293Z"
+        },
+        {
+          "label": "SNS_V2",
+          "activationTime": "2025-06-09T18:33:49.292Z"
+        },
+        {
+          "label": "AUDIENCES_ASIN_SAFETY_V2",
+          "activationTime": "2025-06-26T13:23:55.004Z"
+        }
+      ],
+      "advertiserTypes": []
+    },
+    {
+      "instanceId": "amccfqubecx",
+      "instanceName": "paneradsp",
+      "instanceType": "STANDARD",
+      "customerCanonicalName": null,
+      "creationStatus": "COMPLETED",
+      "creationDatetime": "2025-05-17T16:09:48.992676840Z",
+      "s3BucketName": "",
+      "awsAccountId": "",
+      "entities": [
+        "NA"
+      ],
+      "dataUploadAwsAccountId": "811639200769",
+      "apiEndpoint": "https://advertising-api.amazon.com",
+      "acrCollaboration": null,
+      "optionalDatasets": [
+        {
+          "label": "CASPIAN_DIM_CUTOVER",
+          "activationTime": "2025-05-17T16:08:34.622Z"
+        },
+        {
+          "label": "CASPIAN_DIM_CUTOVER_CONVERSIONS",
+          "activationTime": "2025-05-17T16:08:34.622Z"
+        },
+        {
+          "label": "CASPIAN_FACT_CUTOVER",
+          "activationTime": "2025-05-17T16:08:34.622Z"
+        },
+        {
+          "label": "CASPIAN_ONLY",
+          "activationTime": "2025-05-17T16:08:34.622Z"
+        },
+        {
+          "label": "CONVERSIONS_EXPOSURE_V3",
+          "activationTime": "2025-05-17T16:08:34.622Z"
+        },
+        {
+          "label": "HIDE_DEAL_DETAILS",
+          "activationTime": "2025-05-17T16:08:34.622Z"
+        },
+        {
+          "label": "CAMPAIGN_API_ID_SSPA",
+          "activationTime": "2025-05-17T16:08:34.622Z"
+        },
+        {
+          "label": "PORTFOLIOS",
+          "activationTime": "2025-05-17T16:08:34.622Z"
+        },
+        {
+          "label": "CREATIVE_ASIN",
+          "activationTime": "2025-05-17T16:08:34.622Z"
+        },
+        {
+          "label": "FREQUENCY_GROUPS",
+          "activationTime": "2025-05-20T18:11:20.224Z"
+        },
+        {
+          "label": "SNS_V2",
+          "activationTime": "2025-06-09T20:22:54.139Z"
+        },
+        {
+          "label": "AUDIENCES_ASIN_SAFETY_V2",
+          "activationTime": "2025-06-24T19:48:26.326Z"
+        }
+      ],
+      "advertiserTypes": []
+    }
+  ],
+  "nextToken": null
+}

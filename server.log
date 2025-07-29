@@ -1,0 +1,26 @@
+INFO:     Started server process [80839]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+
+==================================================
+Starting AMC Manager Simple OAuth Test Server
+==================================================
+
+Server running at: http://localhost:8000
+API Documentation: http://localhost:8000/docs
+OAuth Login: http://localhost:8000/api/auth/login
+
+Press CTRL+C to stop the server
+==================================================
+
+INFO:     127.0.0.1:33256 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57260 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41576 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42490 - "GET /api/auth/login HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     206.81.15.231:47020 - "GET / HTTP/1.1" 200 OK
+INFO:     206.81.15.231:47032 - "GET /login HTTP/1.1" 404 Not Found
+INFO:     139.59.91.75:54570 - "GET / HTTP/1.1" 200 OK
+INFO:     139.59.91.75:54572 - "GET /favicon.ico HTTP/1.1" 404 Not Found
