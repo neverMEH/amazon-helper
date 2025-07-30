@@ -14,22 +14,21 @@ router = APIRouter()
 
 @router.get("/")
 def list_instances(
-    current_user: Dict[str, Any] = Depends(get_current_user)
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    limit: int = 100,
+    offset: int = 0
 ) -> List[Dict[str, Any]]:
-    """List all AMC instances accessible to the current user"""
+    """List all AMC instances accessible to the current user with optimized query"""
     try:
-        # Call the sync version directly
-        instances = db_service.get_user_instances_sync(current_user['id'])
+        # Use the new optimized method
+        instances = db_service.get_user_instances_with_data_sync(current_user['id'])
+        
+        # Apply pagination
+        paginated = instances[offset:offset + limit]
         
         # Format response with camelCase for frontend
         result = []
-        for inst in instances:
-            # Get stats for this instance
-            stats = db_service.get_instance_stats_sync(inst['instance_id'])
-            
-            # Get brands directly associated with this instance
-            brands = brand_service.get_instance_brands_sync(inst['instance_id'])
-            
+        for inst in paginated:
             account_id = inst['amc_accounts']['account_id'] if 'amc_accounts' in inst else None
             
             result.append({
@@ -45,8 +44,12 @@ def list_instances(
                 "endpointUrl": inst.get('endpoint_url'),
                 "dataUploadAccountId": inst.get('data_upload_account_id'),
                 "createdAt": inst.get('created_at', ''),
-                "brands": brands[:5],  # Limit to 5 brands for display
-                "stats": stats
+                "brands": inst.get('brands', []),
+                "stats": inst.get('stats', {
+                    "totalCampaigns": 0,
+                    "totalWorkflows": 0,
+                    "activeWorkflows": 0
+                })
             })
         
         return result

@@ -23,21 +23,35 @@ interface AMCInstance {
 
 export default function Instances() {
   const navigate = useNavigate();
-  const { data: instances, isLoading } = useQuery<AMCInstance[]>({
+  const { data: instances, isLoading, isFetching } = useQuery<AMCInstance[]>({
     queryKey: ['instances'],
     queryFn: async () => {
-      const response = await api.get('/instances/');
+      const response = await api.get('/instances/', {
+        params: {
+          limit: 100,  // Load up to 100 instances
+          offset: 0
+        }
+      });
       return response.data;
     },
+    staleTime: 5 * 60 * 1000,  // Consider data stale after 5 minutes
+    gcTime: 10 * 60 * 1000,    // Keep in cache for 10 minutes
   });
 
   return (
     <div className="p-6">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">AMC Instances</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          Manage your Amazon Marketing Cloud instances
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">AMC Instances</h1>
+            <p className="mt-1 text-sm text-gray-600">
+              Manage your Amazon Marketing Cloud instances
+            </p>
+          </div>
+          {isFetching && !isLoading && (
+            <div className="text-sm text-gray-500">Refreshing...</div>
+          )}
+        </div>
       </div>
 
       {isLoading ? (

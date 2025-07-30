@@ -366,6 +366,60 @@ class DatabaseService:
             return []
     
     @with_connection_retry
+    def get_user_instances_with_data_sync(self, user_id: str) -> List[Dict[str, Any]]:
+        """Get all AMC instances with stats and brands in a single optimized query"""
+        try:
+            # First get user's accounts
+            accounts_response = self.client.table('amc_accounts').select('id').eq('user_id', user_id).execute()
+            if not accounts_response.data:
+                return []
+            
+            account_ids = [acc['id'] for acc in accounts_response.data]
+            
+            # Get instances with account data
+            instances_response = self.client.table('amc_instances')\
+                .select('''
+                    *,
+                    amc_accounts!inner(*),
+                    instance_brands(brand_tag),
+                    workflows(id, status)
+                ''')\
+                .in_('account_id', account_ids)\
+                .eq('status', 'active')\
+                .execute()
+            
+            if not instances_response.data:
+                return []
+            
+            # Process the data to calculate stats
+            result = []
+            for inst in instances_response.data:
+                # Calculate stats from the included workflows data
+                workflows = inst.get('workflows', [])
+                stats = {
+                    "totalCampaigns": 0,  # Will be populated if needed
+                    "totalWorkflows": len(workflows),
+                    "activeWorkflows": len([w for w in workflows if w.get('status') == 'active'])
+                }
+                
+                # Extract brands
+                brands = [b['brand_tag'] for b in inst.get('instance_brands', [])]
+                
+                # Clean up the instance data
+                inst_copy = inst.copy()
+                inst_copy.pop('workflows', None)
+                inst_copy.pop('instance_brands', None)
+                inst_copy['stats'] = stats
+                inst_copy['brands'] = brands[:5]  # Limit to 5 for display
+                
+                result.append(inst_copy)
+            
+            return result
+        except Exception as e:
+            logger.error(f"Error fetching user instances with data: {e}")
+            return []
+    
+    @with_connection_retry
     def get_instance_campaigns_filtered_sync(self, instance_id: str, user_id: str) -> List[Dict[str, Any]]:
         """Get campaigns filtered by instance brands"""
         try:
