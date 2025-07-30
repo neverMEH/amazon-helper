@@ -1,0 +1,19 @@
+[providers]
+python = "python311"
+
+[phases.setup]
+nixPkgs = ["python311", "nodejs_18", "npm-9_x"]
+
+[phases.install]
+cmds = [
+    "pip install -r requirements.txt",
+    "cd frontend && npm install && cd .."
+]
+
+[phases.build]
+cmds = [
+    "cd frontend && npm run build && cd .."
+]
+
+[start]
+cmd = "python main_supabase.py"

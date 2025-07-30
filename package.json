@@ -1,9 +1,0 @@
-{
-  "name": "amc-manager",
-  "version": "1.0.0",
-  "description": "AMC Manager Application",
-  "scripts": {
-    "build": "cd frontend && npm install && npm run build",
-    "start": "python3 main_supabase.py"
-  }
-}
