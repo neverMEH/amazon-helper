@@ -38,6 +38,17 @@ This is an Amazon Marketing Cloud (AMC) management application that helps users:
   - Workflow counts and statistics
   - Click-through to detailed view
   - Brand badges aggregated from campaign data
+- **Editable Brand Tags** (NEW):
+  - Direct brand association with AMC instances
+  - Add/remove brands with visual editor
+  - Autocomplete search for existing brands
+  - Campaign filtering based on instance brands
+  - Database migration with `instance_brands` table
+- **Railway Deployment**:
+  - Successfully deployed to Railway.app
+  - Frontend and backend served from single URL
+  - Environment-based configuration
+  - Automatic builds with Dockerfile
 
 ### 🔄 In Progress
 - Real Amazon OAuth token integration
@@ -61,6 +72,7 @@ headers = {
 
 ## Quick Start Guide
 
+### Local Development
 ```bash
 # 1. Clone and navigate to the project
 cd /root/amazon-helper
@@ -74,6 +86,21 @@ cd /root/amazon-helper
 # API Docs: http://localhost:8001/docs
 
 # 4. Login with: nick@nevermeh.com (no password required)
+```
+
+### Railway Deployment
+```bash
+# 1. Push to GitHub
+git push origin main
+
+# 2. Connect Railway to your GitHub repo
+
+# 3. Add environment variables in Railway:
+SUPABASE_URL=your_supabase_url
+SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_key
+
+# 4. Railway will build and deploy automatically
 ```
 
 ## Development Commands
@@ -286,7 +313,10 @@ Critical variables that must be set:
 - `scripts/create_sample_workflow.py`: Create template workflows
 - `scripts/test_auth_flow.py`: Test Amazon OAuth tokens
 - `scripts/test_campaign_import_mock.py`: Import mock campaign data with brands
+- `scripts/test_instance_brands.py`: Test instance brand functionality
+- `scripts/apply_instance_brands_migration.py`: Apply database migration for brands
 - `start_services.sh`: Start both backend and frontend services
+- `prepare_railway.sh`: Prepare app for Railway deployment
 
 ### Recent Architectural Changes (January 2025)
 
@@ -306,16 +336,32 @@ Critical variables that must be set:
 
 3. **Data Architecture**:
    - All data is stored in and served from Supabase (not direct Amazon API)
-   - Brands are aggregated from campaign_mappings table
+   - Brands are now directly associated with instances via `instance_brands` table
    - Instance stats are calculated from workflows table
    - Connection pooling handled by Supabase client
+   - Campaign filtering based on instance brand associations
 
 4. **UI/UX Enhancements**:
    - Table view for AMC instances with sortable columns
    - Clickable rows for navigation to detail views
    - Tabbed interface for instance details
-   - Brand badges for visual identification
+   - Editable brand tags with add/remove functionality
+   - Brand selector with autocomplete search
    - Responsive design for different screen sizes
+
+5. **Brand Tag Feature**:
+   - New `instance_brands` junction table for many-to-many relationships
+   - Brand service for managing brand operations
+   - API endpoints for updating instance brands
+   - Frontend components: BrandTag and BrandSelector
+   - Campaigns automatically filter based on instance brands
+
+6. **Railway Deployment**:
+   - Dockerfile-based deployment for consistency
+   - Single URL serves both frontend and backend
+   - Environment variables for configuration
+   - Automatic builds on git push
+   - Health check at `/api/health`
 
 ### Security Considerations
 
