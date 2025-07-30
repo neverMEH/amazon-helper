@@ -57,38 +57,15 @@ app.add_middleware(
 
 
 # Health check endpoint
-@app.get("/")
-async def root():
-    """Root endpoint - health check"""
+@app.get("/api/health")
+async def health_check():
+    """Health check endpoint"""
     return {
         "status": "healthy",
         "service": "AMC Manager API",
         "version": "0.2.0",
         "backend": "Supabase"
     }
-
-
-@app.get("/api/health")
-async def health_check():
-    """Detailed health check"""
-    health_status = {
-        "status": "healthy",
-        "checks": {
-            "api": "operational",
-            "supabase": "unknown"
-        }
-    }
-    
-    # Check Supabase connection
-    try:
-        client = SupabaseManager.get_client()
-        response = client.table('users').select('count', count='exact').limit(1).execute()
-        health_status["checks"]["supabase"] = "operational"
-    except Exception as e:
-        health_status["status"] = "degraded"
-        health_status["checks"]["supabase"] = f"error: {str(e)}"
-    
-    return health_status
 
 
 # Import and include routers (we'll create simplified versions)
@@ -115,9 +92,21 @@ except ImportError as e:
 # Serve static files if built frontend exists
 frontend_dist = Path("frontend/dist")
 if frontend_dist.exists():
-    app.mount("/assets", StaticFiles(directory=str(frontend_dist / "assets")), name="assets")
+    # Mount static assets
+    assets_path = frontend_dist / "assets"
+    if assets_path.exists():
+        app.mount("/assets", StaticFiles(directory=str(assets_path)), name="assets")
     
-    # Catch-all route for SPA
+    # Serve index.html for root and all non-API routes
+    @app.get("/")
+    async def serve_root():
+        index_path = frontend_dist / "index.html"
+        if index_path.exists():
+            return FileResponse(str(index_path))
+        else:
+            return {"message": "Frontend not built. Please run 'npm run build' in the frontend directory."}
+    
+    # Catch-all route for SPA (must be last)
     @app.get("/{full_path:path}")
     async def serve_spa(full_path: str):
         # Don't catch API routes
@@ -132,6 +121,16 @@ if frontend_dist.exists():
             raise HTTPException(status_code=404, detail="Frontend not found")
     
     logger.info("Frontend static files mounted")
+else:
+    logger.warning("Frontend dist directory not found. API-only mode.")
+    
+    @app.get("/")
+    async def root():
+        return {
+            "message": "AMC Manager API is running",
+            "docs": "/docs",
+            "frontend": "Not built - run 'npm run build' in frontend directory"
+        }
 
 
 if __name__ == "__main__":
