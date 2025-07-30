@@ -1,19 +1,31 @@
-import { useQuery } from '@tanstack/react-query';
-import { GitBranch, Plus, Play, Clock } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { GitBranch, Plus, Play, Clock, CheckCircle, AlertCircle, Tag } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'react-hot-toast';
 import api from '../../services/api';
 
 interface Workflow {
   id: string;
+  workflowId: string;
   name: string;
   description?: string;
   sqlQuery: string;
   parameters?: any;
+  tags?: string[];
+  isTemplate?: boolean;
+  instance?: {
+    id: string;
+    name: string;
+  };
   createdAt: string;
   lastExecuted?: string;
   status?: string;
 }
 
 export default function Workflows() {
+  const queryClient = useQueryClient();
+  const [executingWorkflow, setExecutingWorkflow] = useState<string | null>(null);
+  
   const { data: workflows, isLoading } = useQuery<Workflow[]>({
     queryKey: ['workflows'],
     queryFn: async () => {
@@ -22,13 +34,29 @@ export default function Workflows() {
     },
   });
 
-  const handleExecute = async (workflowId: string) => {
-    try {
-      await api.post(`/workflows/${workflowId}/execute/`);
-      // TODO: Show execution status
-    } catch (error) {
-      console.error('Failed to execute workflow:', error);
-    }
+  const executeMutation = useMutation({
+    mutationFn: async ({ workflowId, parameters }: { workflowId: string, parameters?: any }) => {
+      const response = await api.post(`/workflows/${workflowId}/execute/`, parameters || {});
+      return response.data;
+    },
+    onSuccess: (data) => {
+      toast.success(`Workflow execution started: ${data.execution_id}`);
+      setExecutingWorkflow(null);
+      // Optionally refresh workflows to update last executed time
+      queryClient.invalidateQueries({ queryKey: ['workflows'] });
+    },
+    onError: (error: any) => {
+      toast.error(`Failed to execute workflow: ${error.response?.data?.detail || error.message}`);
+      setExecutingWorkflow(null);
+    },
+  });
+
+  const handleExecute = (workflow: Workflow) => {
+    setExecutingWorkflow(workflow.workflowId);
+    executeMutation.mutate({ 
+      workflowId: workflow.workflowId,
+      parameters: workflow.parameters || {}
+    });
   };
 
   return (
@@ -57,33 +85,80 @@ export default function Workflows() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {workflows?.map((workflow) => (
             <div
-              key={workflow.id}
+              key={workflow.id || workflow.workflowId}
               className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow"
             >
               <div className="p-5">
                 <div className="flex items-center justify-between mb-4">
-                  <GitBranch className="h-8 w-8 text-indigo-500" />
+                  <div className="flex items-center">
+                    <GitBranch className="h-8 w-8 text-indigo-500" />
+                    {workflow.isTemplate && (
+                      <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        Template
+                      </span>
+                    )}
+                  </div>
                   <button
-                    onClick={() => handleExecute(workflow.id)}
-                    className="inline-flex items-center p-2 border border-transparent rounded-full text-white bg-indigo-600 hover:bg-indigo-700"
+                    onClick={() => handleExecute(workflow)}
+                    disabled={executingWorkflow === workflow.workflowId}
+                    className={`inline-flex items-center p-2 border border-transparent rounded-full text-white ${
+                      executingWorkflow === workflow.workflowId
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : 'bg-indigo-600 hover:bg-indigo-700'
+                    }`}
                   >
-                    <Play className="h-4 w-4" />
+                    {executingWorkflow === workflow.workflowId ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                    ) : (
+                      <Play className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
                 <h3 className="text-lg font-medium text-gray-900">
                   {workflow.name}
                 </h3>
                 {workflow.description && (
-                  <p className="mt-1 text-sm text-gray-500">
+                  <p className="mt-1 text-sm text-gray-500 line-clamp-2">
                     {workflow.description}
                   </p>
                 )}
-                <div className="mt-4 flex items-center text-sm text-gray-500">
-                  <Clock className="h-4 w-4 mr-1" />
-                  {workflow.lastExecuted ? (
-                    <span>Last run: {new Date(workflow.lastExecuted).toLocaleDateString()}</span>
+                
+                {workflow.instance && (
+                  <div className="mt-2 text-xs text-gray-600">
+                    Instance: {workflow.instance.name}
+                  </div>
+                )}
+                
+                {workflow.tags && workflow.tags.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1">
+                    {workflow.tags.slice(0, 3).map((tag, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full"
+                      >
+                        <Tag className="h-3 w-3 mr-1" />
+                        {tag}
+                      </span>
+                    ))}
+                    {workflow.tags.length > 3 && (
+                      <span className="text-xs text-gray-500">+{workflow.tags.length - 3} more</span>
+                    )}
+                  </div>
+                )}
+                
+                <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
+                  <div className="flex items-center">
+                    <Clock className="h-4 w-4 mr-1" />
+                    {workflow.lastExecuted ? (
+                      <span>Last run: {new Date(workflow.lastExecuted).toLocaleDateString()}</span>
+                    ) : (
+                      <span>Never executed</span>
+                    )}
+                  </div>
+                  {workflow.status === 'active' ? (
+                    <CheckCircle className="h-4 w-4 text-green-500" />
                   ) : (
-                    <span>Never executed</span>
+                    <AlertCircle className="h-4 w-4 text-yellow-500" />
                   )}
                 </div>
               </div>

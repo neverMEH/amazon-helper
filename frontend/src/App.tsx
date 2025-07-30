@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from 'react-hot-toast';
 import Layout from './components/Layout';
 import Login from './components/auth/Login';
 import Dashboard from './components/Dashboard';
@@ -40,6 +41,26 @@ function App() {
           </Route>
         </Routes>
       </Router>
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            style: {
+              background: '#059669',
+            },
+          },
+          error: {
+            style: {
+              background: '#DC2626',
+            },
+          },
+        }}
+      />
     </QueryClientProvider>
   );
 }
