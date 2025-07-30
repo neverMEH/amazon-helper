@@ -31,6 +31,19 @@ class WorkflowUpdate(BaseModel):
     status: Optional[str] = None
 
 
+class ScheduleCreate(BaseModel):
+    cron_expression: str
+    timezone: Optional[str] = "UTC"
+    default_parameters: Optional[Dict[str, Any]] = {}
+
+
+class ScheduleUpdate(BaseModel):
+    cron_expression: Optional[str] = None
+    timezone: Optional[str] = None
+    default_parameters: Optional[Dict[str, Any]] = None
+    is_active: Optional[bool] = None
+
+
 @router.get("/")
 def list_workflows(
     instance_id: Optional[str] = None,
@@ -199,7 +212,7 @@ def execute_workflow(
     parameters: Optional[Dict[str, Any]] = Body(default={}),
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
-    """Execute a workflow"""
+    """Execute a workflow on AMC instance"""
     try:
         workflow = db_service.get_workflow_by_id_sync(workflow_id)
         
@@ -210,29 +223,20 @@ def execute_workflow(
         if workflow['user_id'] != current_user['id']:
             raise HTTPException(status_code=403, detail="Access denied")
         
-        # Create execution record
-        execution_data = {
-            "workflow_id": workflow['id'],  # Use internal UUID
-            "status": "pending",
-            "execution_parameters": parameters,
-            "triggered_by": "manual",
-            "started_at": datetime.utcnow().isoformat()
-        }
+        # Import here to avoid circular import
+        from ...services.amc_execution_service import amc_execution_service
         
-        execution = db_service.create_execution_sync(execution_data)
-        if not execution:
-            raise HTTPException(status_code=500, detail="Failed to create execution")
+        # Execute workflow using AMC execution service
+        result = amc_execution_service.execute_workflow(
+            workflow_id=workflow['id'],  # Use internal UUID
+            user_id=current_user['id'],
+            execution_parameters=parameters,
+            triggered_by="manual"
+        )
         
-        # TODO: Implement actual AMC query execution
-        # For now, just return the execution record
-        
-        return {
-            "execution_id": execution['execution_id'],
-            "workflow_id": workflow_id,
-            "status": execution['status'],
-            "started_at": execution['started_at'],
-            "message": "Workflow execution started. Check status endpoint for updates."
-        }
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except HTTPException:
         raise
     except Exception as e:
@@ -268,10 +272,167 @@ def list_workflow_executions(
             "duration_seconds": e.get('duration_seconds'),
             "error_message": e.get('error_message'),
             "row_count": e.get('row_count'),
-            "triggered_by": e.get('triggered_by', 'manual')
+            "triggered_by": e.get('triggered_by', 'manual'),
+            "amc_execution_id": e.get('amc_execution_id')
         } for e in executions]
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error listing executions for workflow {workflow_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch executions")
+
+
+@router.get("/executions/{execution_id}/status")
+def get_execution_status(
+    execution_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """Get execution status"""
+    try:
+        from ...services.amc_execution_service import amc_execution_service
+        
+        status = amc_execution_service.get_execution_status(execution_id, current_user['id'])
+        if not status:
+            raise HTTPException(status_code=404, detail="Execution not found")
+        
+        return status
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching execution status: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch execution status")
+
+
+@router.get("/executions/{execution_id}/results")
+def get_execution_results(
+    execution_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """Get execution results"""
+    try:
+        from ...services.amc_execution_service import amc_execution_service
+        
+        results = amc_execution_service.get_execution_results(execution_id, current_user['id'])
+        if not results:
+            raise HTTPException(status_code=404, detail="Results not found or execution not completed")
+        
+        return results
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching execution results: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch execution results")
+
+
+# Schedule endpoints
+@router.post("/{workflow_id}/schedules")
+def create_workflow_schedule(
+    workflow_id: str,
+    schedule: ScheduleCreate,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """Create a schedule for a workflow"""
+    try:
+        from ...services.schedule_service import schedule_service
+        
+        result = schedule_service.create_schedule(
+            workflow_id=workflow_id,
+            cron_expression=schedule.cron_expression,
+            user_id=current_user['id'],
+            timezone=schedule.timezone,
+            default_parameters=schedule.default_parameters
+        )
+        
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error creating schedule: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create schedule")
+
+
+@router.get("/{workflow_id}/schedules")
+def list_workflow_schedules(
+    workflow_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> List[Dict[str, Any]]:
+    """List schedules for a workflow"""
+    try:
+        from ...services.schedule_service import schedule_service
+        
+        schedules = schedule_service.list_schedules(workflow_id, current_user['id'])
+        return schedules
+    except Exception as e:
+        logger.error(f"Error listing schedules: {e}")
+        raise HTTPException(status_code=500, detail="Failed to list schedules")
+
+
+@router.get("/schedules/{schedule_id}")
+def get_schedule(
+    schedule_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """Get schedule details"""
+    try:
+        from ...services.schedule_service import schedule_service
+        
+        schedule = schedule_service.get_schedule(schedule_id, current_user['id'])
+        if not schedule:
+            raise HTTPException(status_code=404, detail="Schedule not found")
+        
+        return schedule
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching schedule: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch schedule")
+
+
+@router.put("/schedules/{schedule_id}")
+def update_schedule(
+    schedule_id: str,
+    updates: ScheduleUpdate,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """Update a schedule"""
+    try:
+        from ...services.schedule_service import schedule_service
+        
+        result = schedule_service.update_schedule(
+            schedule_id=schedule_id,
+            user_id=current_user['id'],
+            updates=updates.dict(exclude_none=True)
+        )
+        
+        if not result:
+            raise HTTPException(status_code=404, detail="Schedule not found")
+        
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating schedule: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update schedule")
+
+
+@router.delete("/schedules/{schedule_id}")
+def delete_schedule(
+    schedule_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, str]:
+    """Delete a schedule"""
+    try:
+        from ...services.schedule_service import schedule_service
+        
+        success = schedule_service.delete_schedule(schedule_id, current_user['id'])
+        if not success:
+            raise HTTPException(status_code=404, detail="Schedule not found")
+        
+        return {"message": "Schedule deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting schedule: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete schedule")
