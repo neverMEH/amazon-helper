@@ -1,0 +1,58 @@
+# Multi-stage build for combined frontend and backend
+FROM node:18-alpine as frontend-build
+
+# Build frontend
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
+# Python backend with frontend
+FROM python:3.11-slim
+
+# Install Node.js for any runtime needs
+RUN apt-get update && apt-get install -y \
+    curl \
+    && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy backend
+COPY requirements_supabase.txt ./
+RUN pip install --no-cache-dir -r requirements_supabase.txt
+
+# Copy backend code
+COPY amc_manager ./amc_manager
+COPY main_supabase.py ./
+COPY .env ./
+
+# Copy built frontend
+COPY --from=frontend-build /app/frontend/dist ./frontend/dist
+
+# Install simple http server for frontend
+RUN npm install -g http-server
+
+# Create start script
+RUN echo '#!/bin/bash\n\
+# Start backend\n\
+python main_supabase.py &\n\
+BACKEND_PID=$!\n\
+\n\
+# Start frontend\n\
+cd frontend/dist && http-server -p 5173 -P http://localhost:8001 &\n\
+FRONTEND_PID=$!\n\
+\n\
+# Wait for either process to exit\n\
+wait $BACKEND_PID $FRONTEND_PID' > /app/start.sh
+
+RUN chmod +x /app/start.sh
+
+# Expose ports
+EXPOSE 8001 5173
+
+# Start both services
+CMD ["/app/start.sh"]

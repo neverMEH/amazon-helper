@@ -4,7 +4,7 @@ import os
 from typing import Optional, Dict, Any, List
 from supabase import create_client, Client
 from ..config import settings
-from .logger import get_logger
+from .logger_simple import get_logger
 
 logger = get_logger(__name__)
 

@@ -1,9 +1,6 @@
-"""Amazon Marketing Cloud Manager - Main Package"""
+"""Amazon Marketing Cloud Manager - Minimal Init"""
 
-__version__ = "0.1.0"
-__author__ = "AMC Manager Team"
+# Version
+__version__ = "0.2.0"
 
-from .config import settings
-from .core.logger import get_logger
-
-logger = get_logger(__name__)
+# Don't import complex modules here to avoid dependency issues

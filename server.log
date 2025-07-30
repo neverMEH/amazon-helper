@@ -1,26 +1,21 @@
-INFO:     Started server process [80839]
+2025-07-30 22:31:11 - __main__ - INFO - All API routers loaded successfully
+2025-07-30 22:31:11 - main_supabase - INFO - All API routers loaded successfully
+INFO:     Started server process [381337]
 INFO:     Waiting for application startup.
+2025-07-30 22:31:11 - main_supabase - INFO - Starting AMC Manager application with Supabase...
+2025-07-30 22:31:11 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-07-30 22:31:11 - main_supabase - INFO - ✓ Supabase connection successful
 INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-
-==================================================
-Starting AMC Manager Simple OAuth Test Server
-==================================================
-
-Server running at: http://localhost:8000
-API Documentation: http://localhost:8000/docs
-OAuth Login: http://localhost:8000/api/auth/login
-
-Press CTRL+C to stop the server
-==================================================
-
-INFO:     127.0.0.1:33256 - "GET / HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57260 - "GET / HTTP/1.1" 200 OK
-INFO:     127.0.0.1:41576 - "GET / HTTP/1.1" 200 OK
-INFO:     127.0.0.1:42490 - "GET /api/auth/login HTTP/1.1" 200 OK
-WARNING:  Invalid HTTP request received.
-WARNING:  Invalid HTTP request received.
-INFO:     206.81.15.231:47020 - "GET / HTTP/1.1" 200 OK
-INFO:     206.81.15.231:47032 - "GET /login HTTP/1.1" 404 Not Found
-INFO:     139.59.91.75:54570 - "GET / HTTP/1.1" 200 OK
-INFO:     139.59.91.75:54572 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:     127.0.0.1:39396 - "GET /api/health HTTP/1.1" 200 OK
+2025-07-30 22:34:48 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-07-30 22:34:48 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-07-30 22:34:48 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+INFO:     127.0.0.1:53556 - "GET /api/instances/ HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-07-30 22:35:39 - main_supabase - INFO - Shutting down AMC Manager application...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [381337]
+tion shutdown complete.
+INFO:     Finished server process [380520]

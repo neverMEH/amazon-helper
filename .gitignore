@@ -3,6 +3,14 @@ venv/
 env/
 ENV/
 
+# Node modules
+node_modules/
+frontend/node_modules/
+
+# Frontend build
+frontend/dist/
+frontend/.vite/
+
 # Python cache
 __pycache__/
 *.pyc
@@ -32,8 +40,11 @@ server.log
 
 # Tokens and secrets
 tokens.json
+token.txt
 *.key
 *.pem
+credentials.json
+refresh_token.txt
 
 # Test coverage
 htmlcov/

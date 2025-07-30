@@ -21,11 +21,29 @@ This is an Amazon Marketing Cloud (AMC) management application that helps users:
   - 58 AMC instances (56 production, 2 sandbox)
 - **Sample Workflows**: 3 analysis templates created
 - **Query Templates**: Reusable templates configured
+- **API Server**: FastAPI running on port 8001 with all endpoints
+- **Campaign Management**: 
+  - Import service for DSP/SP/SD/SB campaigns
+  - Auto-tagging with brand names
+  - ASIN tracking per campaign
+  - Mock data for testing (8 campaigns across 8 brands)
+- **Authentication**: JWT-based auth with token encryption
+- **React Frontend**: Full UI built with React, TypeScript, and Vite
+  - AMC instances list with enhanced table view
+  - Instance detail pages with tabs (Overview, Campaigns, Workflows, Queries)
+  - Campaign management with brand filtering
+  - Dashboard with overview statistics
+- **Enhanced Instance Display**:
+  - Shows instance name, ID, account, and associated brands
+  - Workflow counts and statistics
+  - Click-through to detailed view
+  - Brand badges aggregated from campaign data
 
 ### 🔄 In Progress
-- Token validation for Amazon OAuth
-- API server startup and testing
-- Campaign data import from Amazon API
+- Real Amazon OAuth token integration
+- Workflow execution engine for AMC queries
+- Query builder with SQL editor
+- Results viewer and export functionality
 
 ## Key Discovery: AMC API Authentication
 
@@ -39,6 +57,23 @@ headers = {
     'Amazon-Advertising-API-MarketplaceId': marketplace_id,
     'Amazon-Advertising-API-AdvertiserId': entity_id  # This is the key!
 }
+```
+
+## Quick Start Guide
+
+```bash
+# 1. Clone and navigate to the project
+cd /root/amazon-helper
+
+# 2. Start both backend and frontend
+./start_services.sh
+
+# 3. Access the application
+# Frontend: http://localhost:5173
+# Backend API: http://localhost:8001
+# API Docs: http://localhost:8001/docs
+
+# 4. Login with: nick@nevermeh.com (no password required)
 ```
 
 ## Development Commands
@@ -64,14 +99,25 @@ python scripts/create_sample_workflow.py
 
 ### Full Application Setup
 ```bash
-# Install all dependencies (has some conflicts, needs cleanup)
-pip install -r requirements.txt
+# Backend setup
+cd /root/amazon-helper
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements_supabase.txt
 
-# Start the application
-python main.py  # API will be available at http://localhost:8000
+# Frontend setup
+cd frontend
+npm install
 
-# Note: Celery/Redis setup is optional with Supabase
-# Supabase Edge Functions can replace background tasks
+# Start both services
+cd /root/amazon-helper
+./start_services.sh
+
+# Or manually:
+# Backend: python main_supabase.py  # Runs on http://localhost:8001
+# Frontend: cd frontend && npm run dev  # Runs on http://localhost:5173
+
+# Note: The backend uses main_supabase.py on port 8001 (not main.py on 8000)
 ```
 
 ### Testing and Quality
@@ -139,11 +185,27 @@ mypy amc_manager/
 
 ### Key Files and Their Purposes
 
+**Backend**:
+- `main_supabase.py`: Main FastAPI application entry point (port 8001)
 - `amc_manager/config/settings.py`: Configuration management using Pydantic
-- `amc_manager/models/`: SQLAlchemy ORM models for database entities
-- `amc_manager/api/routers/`: FastAPI route handlers
-- `amc_manager/utils/`: Utility functions for S3, encryption, etc.
-- `amc_manager/web/`: Frontend assets (HTML, CSS, JS)
+- `amc_manager/core/supabase_client.py`: Supabase client singleton manager
+- `amc_manager/services/db_service.py`: Database service with retry logic
+- `amc_manager/api/supabase/`: API endpoints using Supabase
+  - `auth.py`: Authentication endpoints
+  - `instances_simple.py`: AMC instances endpoints
+  - `campaigns.py`: Campaign management endpoints
+  - `workflows.py`: Workflow management endpoints
+  - `queries.py`: Query template endpoints
+
+**Frontend** (`frontend/`):
+- `src/App.tsx`: Main React application with routing
+- `src/components/auth/`: Authentication components
+- `src/components/instances/`: Instance list and detail components
+- `src/components/campaigns/`: Campaign management UI
+- `src/components/workflows/`: Workflow management UI
+- `src/services/api.ts`: Axios API client configuration
+- `src/services/auth.ts`: Authentication service
+- `vite.config.ts`: Vite configuration with API proxy
 
 ### Database Schema (Supabase)
 
@@ -210,6 +272,12 @@ Critical variables that must be set:
 3. Supabase connection issues: Verify project URL and keys in .env
 4. For 403 errors: Verify the user has access to the requested AMC instance
 5. RLS errors: Check that user ID matches in requests
+6. Data not showing after idle period: 
+   - Supabase connection times out after ~30 minutes
+   - Automatic reconnection implemented in `db_service.py`
+   - Frontend will refetch on window focus
+   - Hard refresh (Ctrl+F5) if needed
+7. JWT errors: Fixed by using `jwt.DecodeError` instead of `jwt.JWTError`
 
 ### Important Scripts
 
@@ -217,6 +285,37 @@ Critical variables that must be set:
 - `scripts/import_initial_data.py`: Import user, accounts, and instances
 - `scripts/create_sample_workflow.py`: Create template workflows
 - `scripts/test_auth_flow.py`: Test Amazon OAuth tokens
+- `scripts/test_campaign_import_mock.py`: Import mock campaign data with brands
+- `start_services.sh`: Start both backend and frontend services
+
+### Recent Architectural Changes (January 2025)
+
+1. **Frontend Implementation**:
+   - Built complete React UI with TypeScript and Vite
+   - Used React Query for data fetching with automatic retries
+   - Implemented React Router for navigation
+   - Added Tailwind CSS for styling
+   - Created reusable components for instances, campaigns, workflows
+
+2. **Backend Improvements**:
+   - Fixed async/sync compatibility issues with Supabase Python client
+   - Added connection retry logic with `@with_connection_retry` decorator
+   - Implemented automatic Supabase reconnection after 30 minutes
+   - Fixed JWT authentication errors (jwt.DecodeError)
+   - Enhanced API endpoints to include brand and stats information
+
+3. **Data Architecture**:
+   - All data is stored in and served from Supabase (not direct Amazon API)
+   - Brands are aggregated from campaign_mappings table
+   - Instance stats are calculated from workflows table
+   - Connection pooling handled by Supabase client
+
+4. **UI/UX Enhancements**:
+   - Table view for AMC instances with sortable columns
+   - Clickable rows for navigation to detail views
+   - Tabbed interface for instance details
+   - Brand badges for visual identification
+   - Responsive design for different screen sizes
 
 ### Security Considerations
 
@@ -224,3 +323,4 @@ Critical variables that must be set:
 - API endpoints require authentication via JWT
 - Rate limiting prevents API abuse
 - Never log or expose client secrets or tokens
+- Frontend stores JWT in localStorage (consider moving to httpOnly cookies for production)
