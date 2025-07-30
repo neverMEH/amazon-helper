@@ -1,1 +1,1 @@
-web: python main_supabase.py
+web: python3 main_supabase.py

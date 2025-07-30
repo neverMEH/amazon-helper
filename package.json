@@ -4,6 +4,6 @@
   "description": "AMC Manager Application",
   "scripts": {
     "build": "cd frontend && npm install && npm run build",
-    "start": "python main_supabase.py"
+    "start": "python3 main_supabase.py"
   }
 }
