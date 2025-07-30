@@ -1,8 +1,7 @@
-[providers]
-python = "python311"
+providers = ["python"]
 
 [phases.setup]
-nixPkgs = ["python311", "nodejs_18", "npm-9_x"]
+nixPkgs = ["python311", "nodejs_18"]
 
 [phases.install]
 cmds = [
