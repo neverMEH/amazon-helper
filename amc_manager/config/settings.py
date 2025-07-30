@@ -10,23 +10,23 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables"""
     
     # Amazon Advertising API
-    amazon_client_id: str = Field(..., env='AMAZON_CLIENT_ID')
-    amazon_client_secret: str = Field(..., env='AMAZON_CLIENT_SECRET')
-    amazon_redirect_uri: str = Field(..., env='AMAZON_REDIRECT_URI')
-    amazon_scope: str = Field(..., env='AMAZON_SCOPE')
+    amazon_client_id: Optional[str] = Field(None, env='AMAZON_CLIENT_ID')
+    amazon_client_secret: Optional[str] = Field(None, env='AMAZON_CLIENT_SECRET')
+    amazon_redirect_uri: Optional[str] = Field('http://localhost:8000/callback', env='AMAZON_REDIRECT_URI')
+    amazon_scope: Optional[str] = Field('advertising::campaign_management', env='AMAZON_SCOPE')
     
     # Database
-    database_url: str = Field(..., env='DATABASE_URL')
-    redis_url: str = Field(..., env='REDIS_URL')
+    database_url: Optional[str] = Field(None, env='DATABASE_URL')
+    redis_url: Optional[str] = Field(None, env='REDIS_URL')
     
-    # Supabase
+    # Supabase (Required)
     supabase_url: str = Field(..., env='SUPABASE_URL')
     supabase_anon_key: str = Field(..., env='SUPABASE_ANON_KEY')
     supabase_service_role_key: str = Field(..., env='SUPABASE_SERVICE_ROLE_KEY')
     
     # Application
-    secret_key: str = Field(..., env='SECRET_KEY')
-    jwt_secret_key: str = Field(..., env='JWT_SECRET_KEY')
+    secret_key: str = Field('your-secret-key-here', env='SECRET_KEY')
+    jwt_secret_key: str = Field('your-jwt-secret-key-here', env='JWT_SECRET_KEY')
     environment: str = Field('development', env='ENVIRONMENT')
     debug: bool = Field(False, env='DEBUG')
     
@@ -42,8 +42,8 @@ class Settings(BaseSettings):
     api_workers: int = Field(4, env='API_WORKERS')
     
     # Celery
-    celery_broker_url: str = Field(..., env='CELERY_BROKER_URL')
-    celery_result_backend: str = Field(..., env='CELERY_RESULT_BACKEND')
+    celery_broker_url: Optional[str] = Field(None, env='CELERY_BROKER_URL')
+    celery_result_backend: Optional[str] = Field(None, env='CELERY_RESULT_BACKEND')
     
     # Monitoring
     sentry_dsn: Optional[str] = Field(None, env='SENTRY_DSN')
