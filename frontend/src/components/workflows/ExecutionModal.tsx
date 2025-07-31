@@ -79,9 +79,9 @@ export default function ExecutionModal({ isOpen, onClose, workflow }: ExecutionM
       return response.data;
     },
     enabled: !!executionId,
-    refetchInterval: (data) => {
+    refetchInterval: (query) => {
       // Stop polling if completed or failed
-      return data?.status === 'running' || data?.status === 'pending' ? 2000 : false;
+      return query.data?.status === 'running' || query.data?.status === 'pending' ? 2000 : false;
     },
   });
 

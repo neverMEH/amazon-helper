@@ -35,7 +35,6 @@ export default function WorkflowDetail() {
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<Partial<Workflow>>({});
-  const [executing, setExecuting] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('query');
   const [showExecutionModal, setShowExecutionModal] = useState(false);
 
