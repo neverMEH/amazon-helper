@@ -87,7 +87,8 @@ class AMCExecutionService:
                 "status": "pending",
                 "execution_parameters": execution_parameters or {},
                 "triggered_by": triggered_by,
-                "started_at": datetime.now(timezone.utc).isoformat()
+                "started_at": datetime.now(timezone.utc).isoformat(),
+                "instance_id": instance['instance_id']  # Track which instance this runs on
             }
             
             execution = self.db.create_execution_sync(execution_data)

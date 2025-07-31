@@ -179,12 +179,17 @@ class DatabaseService:
             logger.error(f"Error creating execution: {e}")
             return None
     
-    def get_workflow_executions_sync(self, workflow_id: str, limit: int = 50) -> List[Dict[str, Any]]:
-        """Get executions for a workflow - sync version"""
+    def get_workflow_executions_sync(self, workflow_id: str, limit: int = 50, instance_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Get executions for a workflow - sync version, optionally filtered by instance"""
         try:
-            response = self.client.table('workflow_executions').select('*').eq(
+            query = self.client.table('workflow_executions').select('*').eq(
                 'workflow_id', workflow_id
-            ).order('created_at', desc=True).limit(limit).execute()
+            )
+            
+            if instance_id:
+                query = query.eq('instance_id', instance_id)
+                
+            response = query.order('created_at', desc=True).limit(limit).execute()
             return response.data or []
         except Exception as e:
             logger.error(f"Error fetching executions: {e}")
@@ -582,12 +587,17 @@ class DatabaseService:
             logger.error(f"Error updating execution: {e}")
             return None
     
-    async def get_workflow_executions(self, workflow_id: str, limit: int = 50) -> List[Dict[str, Any]]:
-        """Get executions for a workflow"""
+    async def get_workflow_executions(self, workflow_id: str, limit: int = 50, instance_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Get executions for a workflow, optionally filtered by instance"""
         try:
-            response = self.client.table('workflow_executions').select('*').eq(
+            query = self.client.table('workflow_executions').select('*').eq(
                 'workflow_id', workflow_id
-            ).order('created_at', desc=True).limit(limit).execute()
+            )
+            
+            if instance_id:
+                query = query.eq('instance_id', instance_id)
+                
+            response = query.order('created_at', desc=True).limit(limit).execute()
             return response.data
         except Exception as e:
             logger.error(f"Error fetching executions: {e}")

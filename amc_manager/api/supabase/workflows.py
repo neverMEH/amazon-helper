@@ -251,9 +251,10 @@ def execute_workflow(
 def list_workflow_executions(
     workflow_id: str,
     limit: int = 50,
+    instance_id: Optional[str] = None,
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> List[Dict[str, Any]]:
-    """List executions for a workflow"""
+    """List executions for a workflow, optionally filtered by instance"""
     try:
         workflow = db_service.get_workflow_by_id_sync(workflow_id)
         
@@ -264,7 +265,7 @@ def list_workflow_executions(
         if workflow['user_id'] != current_user['id']:
             raise HTTPException(status_code=403, detail="Access denied")
         
-        executions = db_service.get_workflow_executions_sync(workflow['id'], limit)
+        executions = db_service.get_workflow_executions_sync(workflow['id'], limit, instance_id)
         
         return [{
             "execution_id": e['execution_id'],
@@ -276,7 +277,8 @@ def list_workflow_executions(
             "error_message": e.get('error_message'),
             "row_count": e.get('row_count'),
             "triggered_by": e.get('triggered_by', 'manual'),
-            "amc_execution_id": e.get('amc_execution_id')
+            "amc_execution_id": e.get('amc_execution_id'),
+            "instance_id": e.get('instance_id')  # Include instance_id in response
         } for e in executions]
     except HTTPException:
         raise

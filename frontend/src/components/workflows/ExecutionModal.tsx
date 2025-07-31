@@ -56,9 +56,20 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
   
   const workflowData = workflow || fetchedWorkflow;
   const [parameters, setParameters] = useState(workflowData?.parameters || {});
+  const [selectedInstanceId, setSelectedInstanceId] = useState<string | undefined>(instanceId);
   const [executionId, setExecutionId] = useState<string | null>(null);
   const [showResults, setShowResults] = useState(false);
   const [showVisualization, setShowVisualization] = useState(false);
+  
+  // Fetch available instances for the user
+  const { data: instances } = useQuery({
+    queryKey: ['instances'],
+    queryFn: async () => {
+      const response = await api.get('/instances');
+      return response.data;
+    },
+    enabled: isOpen && !instanceId, // Only fetch if no instanceId is provided
+  });
 
   // Reset state when modal opens
   useEffect(() => {
@@ -73,7 +84,7 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
   // Execute workflow mutation
   const executeMutation = useMutation({
     mutationFn: async (params: any) => {
-      const requestData = instanceId ? { ...params, instance_id: instanceId } : params;
+      const requestData = selectedInstanceId ? { ...params, instance_id: selectedInstanceId } : params;
       const response = await api.post(`/workflows/${actualWorkflowId}/execute`, requestData);
       return response.data;
     },
@@ -162,6 +173,42 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
           {!executionId ? (
             // Pre-execution: Parameter configuration
             <div className="space-y-6">
+              {/* Instance Selector */}
+              {!instanceId && instances && instances.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-medium mb-2">Target Instance</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Select the AMC instance where this workflow will be executed.
+                  </p>
+                  <select
+                    value={selectedInstanceId || ''}
+                    onChange={(e) => setSelectedInstanceId(e.target.value)}
+                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                    required
+                  >
+                    <option value="">Select an instance...</option>
+                    {instances.map((instance: any) => (
+                      <option key={instance.instanceId} value={instance.instanceId}>
+                        {instance.instanceName} ({instance.instanceId}) - {instance.accountName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              
+              {/* Show selected instance if provided */}
+              {instanceId && (
+                <div>
+                  <h3 className="text-lg font-medium mb-2">Target Instance</h3>
+                  <p className="text-sm text-gray-600">
+                    This workflow will be executed on the selected instance.
+                  </p>
+                  <div className="mt-2 p-3 bg-gray-50 rounded-md">
+                    <p className="text-sm font-medium">Instance ID: {instanceId}</p>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <h3 className="text-lg font-medium mb-2">Parameters</h3>
                 <p className="text-sm text-gray-600 mb-4">
@@ -177,7 +224,7 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
               <div className="flex justify-end">
                 <button
                   onClick={handleExecute}
-                  disabled={executeMutation.isPending}
+                  disabled={executeMutation.isPending || (!instanceId && !selectedInstanceId)}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400"
                 >
                   {executeMutation.isPending ? (

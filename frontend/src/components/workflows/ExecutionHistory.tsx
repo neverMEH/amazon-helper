@@ -19,14 +19,16 @@ interface Execution {
 
 interface ExecutionHistoryProps {
   workflowId: string;
+  instanceId?: string;
 }
 
-export default function ExecutionHistory({ workflowId }: ExecutionHistoryProps) {
+export default function ExecutionHistory({ workflowId, instanceId }: ExecutionHistoryProps) {
   const [selectedExecutionId, setSelectedExecutionId] = useState<string | null>(null);
   const { data: executions, isLoading } = useQuery<Execution[]>({
-    queryKey: ['workflow-executions', workflowId],
+    queryKey: ['workflow-executions', workflowId, instanceId],
     queryFn: async () => {
-      const response = await api.get(`/workflows/${workflowId}/executions`);
+      const params = instanceId ? { instance_id: instanceId } : {};
+      const response = await api.get(`/workflows/${workflowId}/executions`, { params });
       return response.data;
     },
     // Refetch every 10 seconds to check for updates
@@ -85,13 +87,25 @@ export default function ExecutionHistory({ workflowId }: ExecutionHistoryProps) 
       <div className="text-center py-8 text-gray-500">
         <History className="h-12 w-12 mx-auto mb-2 text-gray-400" />
         <p>No executions yet</p>
-        <p className="text-sm mt-1">Execute this workflow to see the history</p>
+        <p className="text-sm mt-1">
+          {instanceId 
+            ? `No executions found for instance ${instanceId}`
+            : 'Execute this workflow to see the history'
+          }
+        </p>
       </div>
     );
   }
 
   return (
     <div>
+      {instanceId && (
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
+          <p className="text-sm text-blue-800">
+            Showing executions for instance: <span className="font-medium">{instanceId}</span>
+          </p>
+        </div>
+      )}
       <h3 className="text-sm font-medium text-gray-700 mb-4">Execution History</h3>
       <div className="overflow-hidden bg-white shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
         <table className="min-w-full divide-y divide-gray-300">

@@ -125,7 +125,7 @@ export default function InstanceWorkflows({ instanceId }: InstanceWorkflowsProps
               </div>
               <div className="mt-4 flex gap-2">
                 <button 
-                  onClick={() => navigate(`/workflows/${workflow.workflowId}`)}
+                  onClick={() => navigate(`/workflows/${workflow.workflowId}?instanceId=${instanceId}`)}
                   className="text-sm text-indigo-600 hover:text-indigo-500 font-medium"
                 >
                   View Details

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Save, Play, Copy, Clock, AlertCircle, CheckCircle, Edit2, Code, Settings, History } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
@@ -33,6 +33,8 @@ export default function WorkflowDetail() {
   const { workflowId } = useParams<{ workflowId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  const instanceId = searchParams.get('instanceId') || undefined;
   const location = window.location.pathname;
   const isEditRoute = location.endsWith('/edit');
   const [isEditing, setIsEditing] = useState(isEditRoute);
@@ -374,7 +376,7 @@ export default function WorkflowDetail() {
               )}
 
               {activeTab === 'executions' && (
-                <ExecutionHistory workflowId={workflowId!} />
+                <ExecutionHistory workflowId={workflowId!} instanceId={instanceId} />
               )}
             </div>
           </div>
@@ -387,6 +389,7 @@ export default function WorkflowDetail() {
           isOpen={showExecutionModal}
           onClose={() => setShowExecutionModal(false)}
           workflow={workflow}
+          instanceId={instanceId}
         />
       )}
     </div>
