@@ -213,6 +213,8 @@ class AMCExecutionService:
                 }
             }
             
+            logger.info(f"Generated results for execution {execution_id}: {len(columns)} columns, {len(rows)} rows")
+            
             self._update_execution_completed(
                 execution_id=execution_id,
                 amc_execution_id=f"amc_exec_{execution_id}",
@@ -398,7 +400,7 @@ class AMCExecutionService:
             
             # Use timezone-aware datetime for completed_at
             completed_at = datetime.now(timezone.utc)
-            duration_seconds = (completed_at - started_at).total_seconds()
+            duration_seconds = int((completed_at - started_at).total_seconds())
             
             # Update execution
             update_data = {
@@ -423,11 +425,17 @@ class AMCExecutionService:
                     'data_scanned_gb': results.get('execution_details', {}).get('data_scanned_gb'),
                     'cost_estimate_usd': results.get('execution_details', {}).get('cost_estimate_usd')
                 })
+                logger.info(f"Updating execution {execution_id} with results: columns={len(results.get('columns', []))}, rows={len(results.get('rows', []))}")
             
-            client.table('workflow_executions')\
+            response = client.table('workflow_executions')\
                 .update(update_data)\
                 .eq('execution_id', execution_id)\
                 .execute()
+                
+            if response.data:
+                logger.info(f"Updated execution {execution_id} successfully")
+            else:
+                logger.error(f"Failed to update execution {execution_id} - no data returned")
                 
         except Exception as e:
             logger.error(f"Error updating execution completion: {e}")
