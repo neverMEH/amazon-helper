@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import Editor, { Monaco } from '@monaco-editor/react';
+import Editor from '@monaco-editor/react';
+import type { Monaco } from '@monaco-editor/react';
 import { editor } from 'monaco-editor';
 
 interface QueryEditorProps {
@@ -36,8 +37,8 @@ export default function QueryEditor({
 
     // Configure SQL language features
     monaco.languages.registerCompletionItemProvider('sql', {
-      provideCompletionItems: (model, position) => {
-        const suggestions = [
+      provideCompletionItems: () => {
+        const suggestions: any[] = [
           // AMC specific tables
           {
             label: 'impressions',
@@ -122,7 +123,7 @@ export default function QueryEditor({
           },
         ];
 
-        return { suggestions };
+        return { suggestions } as any;
       },
     });
 

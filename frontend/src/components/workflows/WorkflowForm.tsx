@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, Save, Play, Calendar } from 'lucide-react';
+import { X, Save } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import QueryEditor from './QueryEditor';
 import api from '../../services/api';
@@ -135,7 +135,7 @@ export default function WorkflowForm({ onClose, workflowId, templateId }: Workfl
     // Prepare parameters based on detected params
     const defaultParams: any = {};
     detectedParams.forEach(param => {
-      if (!formData.parameters[param]) {
+      if (!(param in formData.parameters)) {
         // Set default values based on parameter name
         if (param.includes('date') || param.includes('start') || param.includes('end')) {
           defaultParams[param] = new Date().toISOString().split('T')[0];

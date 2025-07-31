@@ -41,16 +41,16 @@ export default function ExecutionResults({ executionId, onClose }: ExecutionResu
   const [autoRefresh, setAutoRefresh] = useState(true);
 
   // Fetch execution status
-  const { data: status, refetch: refetchStatus } = useQuery<ExecutionStatus>({
+  const { data: status } = useQuery<ExecutionStatus>({
     queryKey: ['execution-status', executionId],
     queryFn: async () => {
       const response = await api.get(`/workflows/executions/${executionId}/status`);
       return response.data;
     },
-    refetchInterval: (data) => {
-      // Auto-refresh every 2 seconds if still running
-      if (data?.status === 'running' || data?.status === 'pending') {
-        return autoRefresh ? 2000 : false;
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (autoRefresh && data && (data.status === 'running' || data.status === 'pending')) {
+        return 2000;
       }
       return false;
     },
@@ -131,12 +131,12 @@ export default function ExecutionResults({ executionId, onClose }: ExecutionResu
     return `${minutes}m ${remainingSeconds}s`;
   };
 
-  const formatBytes = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
-    if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
-    return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
-  };
+  // const formatBytes = (bytes: number) => {
+  //   if (bytes < 1024) return `${bytes} B`;
+  //   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
+  //   if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+  //   return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
+  // };
 
   return (
     <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
