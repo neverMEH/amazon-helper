@@ -1,12 +1,12 @@
-2025-07-31 13:42:11 - __main__ - INFO - All API routers loaded successfully
-2025-07-31 13:42:11 - __main__ - INFO - Frontend static files mounted
-2025-07-31 13:42:11 - main_supabase - INFO - All API routers loaded successfully
-2025-07-31 13:42:11 - main_supabase - INFO - Frontend static files mounted
-INFO:     Started server process [461964]
+2025-07-31 13:55:11 - __main__ - INFO - All API routers loaded successfully
+2025-07-31 13:55:11 - __main__ - INFO - Frontend static files mounted
+2025-07-31 13:55:11 - main_supabase - INFO - All API routers loaded successfully
+2025-07-31 13:55:11 - main_supabase - INFO - Frontend static files mounted
+INFO:     Started server process [464797]
 INFO:     Waiting for application startup.
-2025-07-31 13:42:11 - main_supabase - INFO - Starting AMC Manager application with Supabase...
-2025-07-31 13:42:11 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-07-31 13:42:12 - main_supabase - INFO - ✓ Supabase connection successful
+2025-07-31 13:55:11 - main_supabase - INFO - Starting AMC Manager application with Supabase...
+2025-07-31 13:55:11 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-07-31 13:55:11 - main_supabase - INFO - ✓ Supabase connection successful
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     127.0.0.1:35336 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43080 - "GET /api/health HTTP/1.1" 200 OK
