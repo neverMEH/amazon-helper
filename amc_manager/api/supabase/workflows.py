@@ -7,6 +7,7 @@ from datetime import datetime
 
 from ...services.db_service import db_service
 from ...core.logger_simple import get_logger
+from ...core.supabase_client import SupabaseManager
 from .auth import get_current_user
 
 logger = get_logger(__name__)
@@ -303,6 +304,53 @@ def get_execution_status(
     except Exception as e:
         logger.error(f"Error fetching execution status: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch execution status")
+
+
+@router.get("/executions/{execution_id}/detail")
+def get_execution_detail(
+    execution_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """Get detailed execution information"""
+    try:
+        # Get execution record from database
+        client = SupabaseManager.get_client(use_service_role=True)
+        response = client.table('workflow_executions')\
+            .select('*, workflows!inner(user_id, name)')\
+            .eq('execution_id', execution_id)\
+            .execute()
+        
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Execution not found")
+        
+        execution = response.data[0]
+        
+        # Verify user has access
+        if execution['workflows']['user_id'] != current_user['id']:
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        # Return detailed execution data
+        return {
+            "execution_id": execution['execution_id'],
+            "workflow_id": execution['workflow_id'],
+            "workflow_name": execution['workflows']['name'],
+            "status": execution['status'],
+            "progress": execution.get('progress', 0),
+            "execution_parameters": execution.get('execution_parameters'),
+            "started_at": execution.get('started_at'),
+            "completed_at": execution.get('completed_at'),
+            "duration_seconds": execution.get('duration_seconds'),
+            "error_message": execution.get('error_message'),
+            "row_count": execution.get('row_count'),
+            "triggered_by": execution.get('triggered_by', 'manual'),
+            "output_location": execution.get('output_location'),
+            "size_bytes": execution.get('size_bytes')
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching execution detail: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch execution detail")
 
 
 @router.get("/executions/{execution_id}/results")

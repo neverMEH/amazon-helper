@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { History, Clock, CheckCircle, XCircle, Loader, AlertCircle } from 'lucide-react';
+import { History, Clock, CheckCircle, XCircle, Loader, AlertCircle, ExternalLink } from 'lucide-react';
 import api from '../../services/api';
+import ExecutionDetailModal from './ExecutionDetailModal';
 
 interface Execution {
   execution_id: string;
@@ -20,6 +22,7 @@ interface ExecutionHistoryProps {
 }
 
 export default function ExecutionHistory({ workflowId }: ExecutionHistoryProps) {
+  const [selectedExecutionId, setSelectedExecutionId] = useState<string | null>(null);
   const { data: executions, isLoading } = useQuery<Execution[]>({
     queryKey: ['workflow-executions', workflowId],
     queryFn: async () => {
@@ -116,7 +119,11 @@ export default function ExecutionHistory({ workflowId }: ExecutionHistoryProps) 
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {executions.map((execution) => (
-              <tr key={execution.execution_id} className="hover:bg-gray-50">
+              <tr 
+                key={execution.execution_id} 
+                className="hover:bg-gray-50 cursor-pointer"
+                onClick={() => setSelectedExecutionId(execution.execution_id)}
+              >
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     {getStatusIcon(execution.status)}
@@ -126,9 +133,12 @@ export default function ExecutionHistory({ workflowId }: ExecutionHistoryProps) 
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  <code className="text-xs bg-gray-100 px-2 py-1 rounded">
-                    {execution.execution_id.slice(0, 8)}...
-                  </code>
+                  <div className="flex items-center">
+                    <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+                      {execution.execution_id.slice(0, 8)}...
+                    </code>
+                    <ExternalLink className="h-3 w-3 ml-2 text-gray-400" />
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {execution.started_at ? new Date(execution.started_at).toLocaleString() : '-'}
@@ -158,6 +168,15 @@ export default function ExecutionHistory({ workflowId }: ExecutionHistoryProps) 
             </div>
           ))}
         </div>
+      )}
+
+      {/* Execution Detail Modal */}
+      {selectedExecutionId && (
+        <ExecutionDetailModal
+          isOpen={!!selectedExecutionId}
+          onClose={() => setSelectedExecutionId(null)}
+          executionId={selectedExecutionId}
+        />
       )}
     </div>
   );
