@@ -1,9 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Play, Copy, Clock, AlertCircle, CheckCircle, Edit2, Code } from 'lucide-react';
+import { ArrowLeft, Save, Play, Copy, Clock, AlertCircle, CheckCircle, Edit2, Code, Settings, History } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import api from '../../services/api';
+import SQLEditor from '../common/SQLEditor';
+import JSONEditor from '../common/JSONEditor';
+import ExecutionHistory from './ExecutionHistory';
 
 interface Workflow {
   id: string;
@@ -23,6 +26,8 @@ interface Workflow {
   status?: string;
 }
 
+type TabType = 'query' | 'parameters' | 'executions';
+
 export default function WorkflowDetail() {
   const { workflowId } = useParams<{ workflowId: string }>();
   const navigate = useNavigate();
@@ -30,6 +35,7 @@ export default function WorkflowDetail() {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<Partial<Workflow>>({});
   const [executing, setExecuting] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>('query');
 
   const { data: workflow, isLoading } = useQuery<Workflow>({
     queryKey: ['workflow', workflowId],
@@ -269,64 +275,111 @@ export default function WorkflowDetail() {
             )}
           </div>
 
-          {/* SQL Query */}
+          {/* Tabs */}
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-gray-700">SQL Query</label>
-              <button
-                onClick={handleCopy}
-                className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700"
-              >
-                <Copy className="h-4 w-4 mr-1" />
-                Copy
-              </button>
+            <div className="border-b border-gray-200">
+              <nav className="-mb-px flex space-x-8">
+                <button
+                  onClick={() => setActiveTab('query')}
+                  className={`flex items-center py-2 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'query'
+                      ? 'border-indigo-500 text-indigo-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <Code className="h-4 w-4 mr-2" />
+                  SQL Query
+                </button>
+                <button
+                  onClick={() => setActiveTab('parameters')}
+                  className={`flex items-center py-2 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'parameters'
+                      ? 'border-indigo-500 text-indigo-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <Settings className="h-4 w-4 mr-2" />
+                  Parameters
+                </button>
+                <button
+                  onClick={() => setActiveTab('executions')}
+                  className={`flex items-center py-2 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'executions'
+                      ? 'border-indigo-500 text-indigo-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <History className="h-4 w-4 mr-2" />
+                  Executions
+                </button>
+              </nav>
             </div>
-            <div className="relative">
-              <Code className="absolute top-3 left-3 h-5 w-5 text-gray-400" />
-              {isEditing ? (
-                <textarea
-                  value={editForm.sqlQuery || ''}
-                  onChange={(e) => setEditForm({ ...editForm, sqlQuery: e.target.value })}
-                  rows={15}
-                  className="w-full pl-10 font-mono text-sm border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                  style={{ fontFamily: 'monospace' }}
-                />
-              ) : (
-                <pre className="w-full p-3 pl-10 bg-gray-50 border border-gray-200 rounded-md overflow-x-auto">
-                  <code className="text-sm text-gray-800" style={{ fontFamily: 'monospace' }}>
-                    {workflow.sqlQuery}
-                  </code>
-                </pre>
+
+            {/* Tab Content */}
+            <div className="mt-4">
+              {activeTab === 'query' && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-medium text-gray-700">SQL Query</h3>
+                    {!isEditing && (
+                      <button
+                        onClick={handleCopy}
+                        className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700"
+                      >
+                        <Copy className="h-4 w-4 mr-1" />
+                        Copy
+                      </button>
+                    )}
+                  </div>
+                  {isEditing ? (
+                    <SQLEditor
+                      value={editForm.sqlQuery || ''}
+                      onChange={(value) => setEditForm({ ...editForm, sqlQuery: value })}
+                      height="500px"
+                    />
+                  ) : (
+                    <SQLEditor
+                      value={workflow.sqlQuery || ''}
+                      onChange={() => {}}
+                      height="500px"
+                      readOnly
+                    />
+                  )}
+                  {workflow.sqlQuery && (
+                    <div className="mt-2 text-sm text-gray-500">
+                      {workflow.sqlQuery.split('\n').length} lines • {workflow.sqlQuery.length} characters
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'parameters' && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Parameters</h3>
+                  <p className="text-xs text-gray-500 mb-4">
+                    Define default parameters for your query. Use {'{{parameter_name}}'} in your SQL to reference them.
+                  </p>
+                  {isEditing ? (
+                    <JSONEditor
+                      value={editForm.parameters || {}}
+                      onChange={(value) => setEditForm({ ...editForm, parameters: value })}
+                      height="300px"
+                    />
+                  ) : (
+                    <JSONEditor
+                      value={workflow.parameters || {}}
+                      onChange={() => {}}
+                      height="300px"
+                      readOnly
+                    />
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'executions' && (
+                <ExecutionHistory workflowId={workflowId!} />
               )}
             </div>
-          </div>
-
-          {/* Parameters */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Parameters</label>
-            {isEditing ? (
-              <textarea
-                value={JSON.stringify(editForm.parameters || {}, null, 2)}
-                onChange={(e) => {
-                  try {
-                    const params = JSON.parse(e.target.value);
-                    setEditForm({ ...editForm, parameters: params });
-                  } catch {
-                    // Invalid JSON, just update the text
-                  }
-                }}
-                rows={8}
-                className="w-full font-mono text-sm border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                style={{ fontFamily: 'monospace' }}
-                placeholder="{}"
-              />
-            ) : (
-              <pre className="w-full p-3 bg-gray-50 border border-gray-200 rounded-md overflow-x-auto">
-                <code className="text-sm text-gray-800" style={{ fontFamily: 'monospace' }}>
-                  {JSON.stringify(workflow.parameters || {}, null, 2)}
-                </code>
-              </pre>
-            )}
           </div>
         </div>
       </div>
