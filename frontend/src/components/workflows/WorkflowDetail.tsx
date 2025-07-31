@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, Play, Copy, Clock, AlertCircle, CheckCircle, Edit2, Code } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import api from '../../services/api';
 
@@ -37,20 +37,32 @@ export default function WorkflowDetail() {
       const response = await api.get(`/workflows/${workflowId}/`);
       return response.data;
     },
-    onSuccess: (data) => {
-      setEditForm({
-        name: data.name,
-        description: data.description,
-        sqlQuery: data.sqlQuery,
-        parameters: data.parameters,
-        tags: data.tags,
-      });
-    },
   });
+
+  // Update form when workflow data changes
+  useEffect(() => {
+    if (workflow) {
+      setEditForm({
+        name: workflow.name,
+        description: workflow.description,
+        sqlQuery: workflow.sqlQuery,
+        parameters: workflow.parameters,
+        tags: workflow.tags,
+      });
+    }
+  }, [workflow]);
 
   const updateMutation = useMutation({
     mutationFn: async (data: Partial<Workflow>) => {
-      const response = await api.put(`/workflows/${workflowId}/`, data);
+      // Map to snake_case for the API
+      const payload = {
+        name: data.name,
+        description: data.description,
+        sql_query: data.sqlQuery,
+        parameters: data.parameters,
+        tags: data.tags,
+      };
+      const response = await api.put(`/workflows/${workflowId}/`, payload);
       return response.data;
     },
     onSuccess: () => {
