@@ -212,11 +212,15 @@ def update_workflow(
 @router.post("/{workflow_id}/execute")
 def execute_workflow(
     workflow_id: str,
-    parameters: Optional[Dict[str, Any]] = Body(default={}),
+    body: Dict[str, Any] = Body(default={}),
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """Execute a workflow on AMC instance"""
     try:
+        # Extract instance_id and parameters from body
+        instance_id = body.get('instance_id')
+        parameters = {k: v for k, v in body.items() if k != 'instance_id'}
+        
         workflow = db_service.get_workflow_by_id_sync(workflow_id)
         
         if not workflow:
@@ -234,7 +238,8 @@ def execute_workflow(
             workflow_id=workflow['id'],  # Use internal UUID
             user_id=current_user['id'],
             execution_parameters=parameters,
-            triggered_by="manual"
+            triggered_by="manual",
+            instance_id=instance_id  # Pass instance_id if provided
         )
         
         return result

@@ -127,6 +127,10 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
   });
 
   const handleExecute = () => {
+    if (!instanceId && !selectedInstanceId) {
+      toast.error('Please select an instance to execute the workflow on');
+      return;
+    }
     executeMutation.mutate(parameters);
   };
 
@@ -174,25 +178,31 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
             // Pre-execution: Parameter configuration
             <div className="space-y-6">
               {/* Instance Selector */}
-              {!instanceId && instances && instances.length > 0 && (
+              {!instanceId && (
                 <div>
                   <h3 className="text-lg font-medium mb-2">Target Instance</h3>
                   <p className="text-sm text-gray-600 mb-4">
                     Select the AMC instance where this workflow will be executed.
                   </p>
-                  <select
-                    value={selectedInstanceId || ''}
-                    onChange={(e) => setSelectedInstanceId(e.target.value)}
-                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-                    required
-                  >
-                    <option value="">Select an instance...</option>
-                    {instances.map((instance: any) => (
-                      <option key={instance.instanceId} value={instance.instanceId}>
-                        {instance.instanceName} ({instance.instanceId}) - {instance.accountName}
-                      </option>
-                    ))}
-                  </select>
+                  {instances && instances.length > 0 ? (
+                    <select
+                      value={selectedInstanceId || ''}
+                      onChange={(e) => setSelectedInstanceId(e.target.value)}
+                      className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                      required
+                    >
+                      <option value="">Select an instance...</option>
+                      {instances.map((instance: any) => (
+                        <option key={instance.instanceId} value={instance.instanceId}>
+                          {instance.instanceName} ({instance.instanceId}) - {instance.accountName}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="mt-1 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                      <p className="text-sm text-yellow-800">No AMC instances available. Please ensure you have access to at least one AMC instance.</p>
+                    </div>
+                  )}
                 </div>
               )}
               

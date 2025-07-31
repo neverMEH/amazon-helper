@@ -42,8 +42,8 @@ export default function InstanceOverview({ instance }: InstanceOverviewProps) {
   const { data: availableBrands = [] } = useQuery({
     queryKey: ['brands'],
     queryFn: async () => {
-      const response = await api.get('/brands');
-      return response.data;
+      const response = await api.get('/campaigns/brands');
+      return response.data.map((item: any) => item.brand_tag);
     },
   });
 
