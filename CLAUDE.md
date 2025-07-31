@@ -58,13 +58,20 @@ This is an Amazon Marketing Cloud (AMC) management application that helps users:
   - Clickable execution rows in history table
   - Comprehensive execution detail modal
   - View execution parameters and error messages
-  - Download results as CSV (when result storage is fixed)
+  - Download results as CSV
   - Performance metrics display
+- **Real AMC Execution** (NEW):
+  - Integrated with existing token_service for Amazon OAuth
+  - Uses AMC API client for real query execution
+  - Configurable via AMC_USE_REAL_API environment variable
+  - Automatic entity ID lookup from database
+  - Polls for execution status and retrieves results
+  - Falls back to simulation for development/testing
 
 ### 🔄 In Progress
-- Real Amazon OAuth token integration
-- AMC API integration for actual query execution
-- Result data persistence (currently returns empty values)
+- Testing real AMC execution with production instances
+- S3 integration for large result sets
+- Query cost estimation and limits
 
 ### 🚀 Performance Optimizations (NEW)
 - **Optimized Database Queries**: 
