@@ -33,7 +33,9 @@ export default function WorkflowDetail() {
   const { workflowId } = useParams<{ workflowId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [isEditing, setIsEditing] = useState(false);
+  const location = window.location.pathname;
+  const isEditRoute = location.endsWith('/edit');
+  const [isEditing, setIsEditing] = useState(isEditRoute);
   const [editForm, setEditForm] = useState<Partial<Workflow>>({});
   const [activeTab, setActiveTab] = useState<TabType>('query');
   const [showExecutionModal, setShowExecutionModal] = useState(false);

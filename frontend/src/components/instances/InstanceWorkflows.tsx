@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { Clock, CheckCircle, XCircle, PlayCircle, Settings } from 'lucide-react';
 import api from '../../services/api';
+import ExecutionModal from '../workflows/ExecutionModal';
 
 interface Workflow {
   workflowId: string;
@@ -19,6 +22,11 @@ interface InstanceWorkflowsProps {
 }
 
 export default function InstanceWorkflows({ instanceId }: InstanceWorkflowsProps) {
+  const navigate = useNavigate();
+  const [executionModal, setExecutionModal] = useState<{ isOpen: boolean; workflowId: string | null }>({
+    isOpen: false,
+    workflowId: null,
+  });
   const { data: workflows, isLoading } = useQuery<Workflow[]>({
     queryKey: ['instance-workflows', instanceId],
     queryFn: async () => {
@@ -56,83 +64,102 @@ export default function InstanceWorkflows({ instanceId }: InstanceWorkflowsProps
   }
 
   return (
-    <div className="p-6">
-      <div className="space-y-4">
-        {workflows.map((workflow) => (
-          <div
-            key={workflow.workflowId}
-            className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow"
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center">
-                  <h3 className="text-sm font-medium text-gray-900">{workflow.name}</h3>
-                  {workflow.isTemplate && (
-                    <span className="ml-2 inline-flex px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">
-                      Global Template
-                    </span>
-                  )}
-                  {workflow.sourceInstanceId && workflow.sourceInstanceId !== instanceId && (
-                    <span className="ml-2 inline-flex px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                      From Another Instance
-                    </span>
-                  )}
-                </div>
-                {workflow.description && (
-                  <p className="mt-1 text-sm text-gray-500">{workflow.description}</p>
-                )}
-                <div className="mt-2 flex items-center gap-4 text-xs text-gray-500">
-                  <span className="flex items-center">
-                    <Clock className="h-3 w-3 mr-1" />
-                    Created {new Date(workflow.createdAt).toLocaleDateString()}
-                  </span>
-                  {workflow.lastExecutedAt && (
-                    <span className="flex items-center">
-                      <PlayCircle className="h-3 w-3 mr-1" />
-                      Last run {new Date(workflow.lastExecutedAt).toLocaleDateString()}
-                    </span>
-                  )}
-                </div>
-                {workflow.tags.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {workflow.tags.map((tag, idx) => (
-                      <span
-                        key={idx}
-                        className="inline-flex px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-700 rounded"
-                      >
-                        {tag}
+    <>
+      <div className="p-6">
+        <div className="space-y-4">
+          {workflows.map((workflow) => (
+            <div
+              key={workflow.workflowId}
+              className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center">
+                    <h3 className="text-sm font-medium text-gray-900">{workflow.name}</h3>
+                    {workflow.isTemplate && (
+                      <span className="ml-2 inline-flex px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">
+                        Global Template
                       </span>
-                    ))}
+                    )}
+                    {workflow.sourceInstanceId && workflow.sourceInstanceId !== instanceId && (
+                      <span className="ml-2 inline-flex px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                        From Another Instance
+                      </span>
+                    )}
                   </div>
-                )}
+                  {workflow.description && (
+                    <p className="mt-1 text-sm text-gray-500">{workflow.description}</p>
+                  )}
+                  <div className="mt-2 flex items-center gap-4 text-xs text-gray-500">
+                    <span className="flex items-center">
+                      <Clock className="h-3 w-3 mr-1" />
+                      Created {new Date(workflow.createdAt).toLocaleDateString()}
+                    </span>
+                    {workflow.lastExecutedAt && (
+                      <span className="flex items-center">
+                        <PlayCircle className="h-3 w-3 mr-1" />
+                        Last run {new Date(workflow.lastExecutedAt).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                  {workflow.tags.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {workflow.tags.map((tag, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-flex px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-700 rounded"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="ml-4 flex-shrink-0">
+                  {workflow.status === 'active' ? (
+                    <CheckCircle className="h-5 w-5 text-green-500" />
+                  ) : (
+                    <XCircle className="h-5 w-5 text-red-500" />
+                  )}
+                </div>
               </div>
-              <div className="ml-4 flex-shrink-0">
-                {workflow.status === 'active' ? (
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                ) : (
-                  <XCircle className="h-5 w-5 text-red-500" />
-                )}
+              <div className="mt-4 flex gap-2">
+                <button 
+                  onClick={() => navigate(`/workflows/${workflow.workflowId}`)}
+                  className="text-sm text-indigo-600 hover:text-indigo-500 font-medium"
+                >
+                  View Details
+                </button>
+                <span className="text-gray-300">•</span>
+                <button 
+                  onClick={() => setExecutionModal({ isOpen: true, workflowId: workflow.workflowId })}
+                  className="text-sm text-indigo-600 hover:text-indigo-500 font-medium"
+                  title={`Execute on this instance (${instanceId})`}
+                >
+                  Execute Here
+                </button>
+                <span className="text-gray-300">•</span>
+                <button 
+                  onClick={() => navigate(`/workflows/${workflow.workflowId}/edit`)}
+                  className="text-sm text-indigo-600 hover:text-indigo-500 font-medium"
+                >
+                  Edit
+                </button>
               </div>
             </div>
-            <div className="mt-4 flex gap-2">
-              <button className="text-sm text-indigo-600 hover:text-indigo-500 font-medium">
-                View Details
-              </button>
-              <span className="text-gray-300">•</span>
-              <button 
-                className="text-sm text-indigo-600 hover:text-indigo-500 font-medium"
-                title={`Execute on this instance (${instanceId})`}
-              >
-                Execute Here
-              </button>
-              <span className="text-gray-300">•</span>
-              <button className="text-sm text-indigo-600 hover:text-indigo-500 font-medium">
-                Edit
-              </button>
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-    </div>
+
+      {/* Execution Modal */}
+      {executionModal.workflowId && (
+        <ExecutionModal
+          isOpen={executionModal.isOpen}
+          onClose={() => setExecutionModal({ isOpen: false, workflowId: null })}
+          workflowId={executionModal.workflowId}
+          instanceId={instanceId}
+        />
+      )}
+    </>
   );
 }

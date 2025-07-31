@@ -9,11 +9,13 @@ import ResultsVisualization from './ResultsVisualization';
 interface ExecutionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  workflow: {
+  workflow?: {
     workflowId: string;
     name: string;
     parameters?: any;
   };
+  workflowId?: string;
+  instanceId?: string;
 }
 
 interface ExecutionStatus {
@@ -38,33 +40,47 @@ interface ExecutionResult {
   };
 }
 
-export default function ExecutionModal({ isOpen, onClose, workflow }: ExecutionModalProps) {
+export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: propWorkflowId, instanceId }: ExecutionModalProps) {
   const queryClient = useQueryClient();
-  const [parameters, setParameters] = useState(workflow.parameters || {});
+  const actualWorkflowId = workflow?.workflowId || propWorkflowId;
+  
+  // Fetch workflow details if only workflowId is provided
+  const { data: fetchedWorkflow } = useQuery({
+    queryKey: ['workflow', actualWorkflowId],
+    queryFn: async () => {
+      const response = await api.get(`/workflows/${actualWorkflowId}`);
+      return response.data;
+    },
+    enabled: !!actualWorkflowId && !workflow,
+  });
+  
+  const workflowData = workflow || fetchedWorkflow;
+  const [parameters, setParameters] = useState(workflowData?.parameters || {});
   const [executionId, setExecutionId] = useState<string | null>(null);
   const [showResults, setShowResults] = useState(false);
   const [showVisualization, setShowVisualization] = useState(false);
 
   // Reset state when modal opens
   useEffect(() => {
-    if (isOpen) {
-      setParameters(workflow.parameters || {});
+    if (isOpen && workflowData) {
+      setParameters(workflowData.parameters || {});
       setExecutionId(null);
       setShowResults(false);
       setShowVisualization(false);
     }
-  }, [isOpen, workflow.parameters]);
+  }, [isOpen, workflowData]);
 
   // Execute workflow mutation
   const executeMutation = useMutation({
     mutationFn: async (params: any) => {
-      const response = await api.post(`/workflows/${workflow.workflowId}/execute`, params);
+      const requestData = instanceId ? { ...params, instance_id: instanceId } : params;
+      const response = await api.post(`/workflows/${actualWorkflowId}/execute`, requestData);
       return response.data;
     },
     onSuccess: (data) => {
       setExecutionId(data.execution_id);
       toast.success('Workflow execution started');
-      queryClient.invalidateQueries({ queryKey: ['workflow-executions', workflow.workflowId] });
+      queryClient.invalidateQueries({ queryKey: ['workflow-executions', actualWorkflowId] });
     },
     onError: (error: any) => {
       toast.error(`Execution failed: ${error.response?.data?.detail || error.message}`);
@@ -118,7 +134,7 @@ export default function ExecutionModal({ isOpen, onClose, workflow }: ExecutionM
     
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${workflow.name.replace(/\s+/g, '_')}_results_${executionId}.csv`;
+    a.download = `${(workflowData?.name || 'workflow').replace(/\s+/g, '_')}_results_${executionId}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -127,13 +143,13 @@ export default function ExecutionModal({ isOpen, onClose, workflow }: ExecutionM
     toast.success('Results downloaded');
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !workflowData) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Execute Workflow: {workflow.name}</h2>
+          <h2 className="text-xl font-semibold">Execute Workflow: {workflowData.name}</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-500"

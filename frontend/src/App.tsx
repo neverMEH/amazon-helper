@@ -39,6 +39,7 @@ function App() {
               <Route path="/campaigns" element={<Campaigns />} />
               <Route path="/workflows" element={<Workflows />} />
               <Route path="/workflows/:workflowId" element={<WorkflowDetail />} />
+              <Route path="/workflows/:workflowId/edit" element={<WorkflowDetail />} />
             </Route>
           </Route>
         </Routes>
