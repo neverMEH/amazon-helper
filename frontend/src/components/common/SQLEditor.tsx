@@ -19,6 +19,9 @@ export default function SQLEditor({
 }: SQLEditorProps) {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
+  // Debug logging
+  console.log('SQLEditor rendering with value length:', value?.length || 0, 'readOnly:', readOnly);
+
   const handleEditorDidMount = (editor: editor.IStandaloneCodeEditor) => {
     editorRef.current = editor;
     
@@ -91,6 +94,15 @@ export default function SQLEditor({
     onChange(value || '');
   };
 
+  // Fallback if Monaco fails to load
+  if (!value && !readOnly) {
+    return (
+      <div className="border border-gray-300 rounded-md p-4 bg-gray-50">
+        <p className="text-gray-500">No SQL query content</p>
+      </div>
+    );
+  }
+
   return (
     <div className="border border-gray-300 rounded-md overflow-hidden">
       <Editor
@@ -109,6 +121,11 @@ export default function SQLEditor({
           wordWrap: 'on',
           wrappingIndent: 'indent',
         }}
+        loading={
+          <div className="flex items-center justify-center h-full bg-gray-50">
+            <p className="text-gray-500">Loading SQL editor...</p>
+          </div>
+        }
       />
     </div>
   );

@@ -350,18 +350,24 @@ export default function WorkflowDetail() {
                     )}
                   </div>
                   {isEditing ? (
-                    <SQLEditor
-                      value={editForm.sqlQuery || ''}
-                      onChange={(value) => setEditForm({ ...editForm, sqlQuery: value })}
-                      height="500px"
-                    />
+                    <div>
+                      <SQLEditor
+                        value={editForm.sqlQuery || ''}
+                        onChange={(value) => setEditForm({ ...editForm, sqlQuery: value })}
+                        height="500px"
+                      />
+                      <p className="mt-2 text-xs text-gray-500">Editing mode - SQL length: {editForm.sqlQuery?.length || 0}</p>
+                    </div>
                   ) : (
-                    <SQLEditor
-                      value={workflow.sqlQuery || ''}
-                      onChange={() => {}}
-                      height="500px"
-                      readOnly
-                    />
+                    <div>
+                      <SQLEditor
+                        value={workflow.sqlQuery || ''}
+                        onChange={() => {}}
+                        height="500px"
+                        readOnly
+                      />
+                      <p className="mt-2 text-xs text-gray-500">Read-only mode - SQL length: {workflow.sqlQuery?.length || 0}</p>
+                    </div>
                   )}
                   {workflow.sqlQuery && (
                     <div className="mt-2 text-sm text-gray-500">
