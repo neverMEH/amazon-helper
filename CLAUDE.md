@@ -49,12 +49,22 @@ This is an Amazon Marketing Cloud (AMC) management application that helps users:
   - Frontend and backend served from single URL
   - Environment-based configuration
   - Automatic builds with Dockerfile
+- **Workflow Execution** (NEW):
+  - Execute workflows with custom parameters
+  - Real-time progress monitoring with status updates
+  - Error handling with detailed error messages
+  - Mock execution engine for testing (completes in ~3 seconds)
+- **Execution History & Details** (NEW):
+  - Clickable execution rows in history table
+  - Comprehensive execution detail modal
+  - View execution parameters and error messages
+  - Download results as CSV (when result storage is fixed)
+  - Performance metrics display
 
 ### 🔄 In Progress
 - Real Amazon OAuth token integration
-- Workflow execution engine for AMC queries
-- Query builder with SQL editor
-- Results viewer and export functionality
+- AMC API integration for actual query execution
+- Result data persistence (currently returns empty values)
 
 ### 🚀 Performance Optimizations (NEW)
 - **Optimized Database Queries**: 
@@ -335,6 +345,9 @@ Critical variables that must be set:
 - `scripts/apply_performance_indexes.py`: Apply performance optimization indexes
 - `start_services.sh`: Start both backend and frontend services
 - `prepare_railway.sh`: Prepare app for Railway deployment
+- `test_execution.py`: Test workflow execution functionality
+- `test_execution_detail.py`: Test execution detail viewing
+- `demo_execution.py`: Demonstrate execution success/failure scenarios
 
 ### Performance Optimization Steps
 
@@ -344,6 +357,23 @@ To apply the performance optimizations:
 3. The frontend will automatically benefit from faster API responses
 
 ### Recent Architectural Changes (January 2025)
+
+1. **Workflow Execution Features**:
+   - Added ExecutionModal component for running workflows
+   - Real-time status polling with React Query
+   - Parameter configuration before execution
+   - Progress tracking with visual indicators
+   - Error display in dedicated UI components
+   - CSV download functionality (pending result storage fix)
+
+2. **Execution History Enhancement**:
+   - Created ExecutionDetailModal for viewing full execution details
+   - Made execution history rows clickable
+   - Added comprehensive execution information display
+   - Integrated status icons and progress visualization
+   - Added API endpoint `/executions/{execution_id}/detail`
+
+### Current Architectural State (January 2025)
 
 1. **Frontend Implementation**:
    - Built complete React UI with TypeScript and Vite
@@ -358,6 +388,8 @@ To apply the performance optimizations:
    - Implemented automatic Supabase reconnection after 30 minutes
    - Fixed JWT authentication errors (jwt.DecodeError)
    - Enhanced API endpoints to include brand and stats information
+   - Fixed workflow execution errors by removing non-existent database columns
+   - Added timezone-aware datetime handling for execution timestamps
 
 3. **Data Architecture**:
    - All data is stored in and served from Supabase (not direct Amazon API)
@@ -373,6 +405,11 @@ To apply the performance optimizations:
    - Editable brand tags with add/remove functionality
    - Brand selector with autocomplete search
    - Responsive design for different screen sizes
+   - Workflow execution modal with parameter configuration
+   - Real-time execution progress monitoring
+   - Clickable execution history with detailed view modal
+   - Results visualization with table/insights toggle
+   - CSV download for execution results
 
 5. **Brand Tag Feature**:
    - New `instance_brands` junction table for many-to-many relationships
