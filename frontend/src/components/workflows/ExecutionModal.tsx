@@ -79,11 +79,15 @@ export default function ExecutionModal({ isOpen, onClose, workflow }: ExecutionM
       return response.data;
     },
     enabled: !!executionId,
-    refetchInterval: (query) => {
-      // Stop polling if completed or failed
-      return query.data?.status === 'running' || query.data?.status === 'pending' ? 2000 : false;
-    },
+    refetchInterval: 2000, // Poll every 2 seconds
   });
+  
+  // Stop polling when execution is complete
+  useEffect(() => {
+    if (status && (status.status === 'completed' || status.status === 'failed')) {
+      queryClient.invalidateQueries({ queryKey: ['execution-status', executionId] });
+    }
+  }, [status, executionId, queryClient]);
 
   // Fetch results
   const { data: results, isLoading: loadingResults } = useQuery<ExecutionResult>({
