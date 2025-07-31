@@ -35,7 +35,8 @@ class AMCExecutionService:
         workflow_id: str,
         user_id: str,
         execution_parameters: Optional[Dict[str, Any]] = None,
-        triggered_by: str = "manual"
+        triggered_by: str = "manual",
+        instance_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Execute a workflow on an AMC instance
@@ -59,10 +60,20 @@ class AMCExecutionService:
             if workflow['user_id'] != user_id:
                 raise ValueError("Access denied to workflow")
             
-            # Get instance details
-            instance = workflow.get('amc_instances', {})
-            if not instance:
-                raise ValueError("No AMC instance associated with workflow")
+            # Determine which instance to use
+            if instance_id:
+                # Use the provided instance (for templates run on different instances)
+                instance = self._get_instance(instance_id)
+                if not instance:
+                    raise ValueError(f"AMC instance {instance_id} not found")
+                # Verify user has access to this instance
+                if not self.db.user_has_instance_access_sync(user_id, instance_id):
+                    raise ValueError(f"Access denied to instance {instance_id}")
+            else:
+                # Use the workflow's default instance
+                instance = workflow.get('amc_instances', {})
+                if not instance:
+                    raise ValueError("No AMC instance associated with workflow")
             
             # Prepare SQL query with parameter substitution
             sql_query = self._prepare_sql_query(
@@ -123,6 +134,21 @@ class AMCExecutionService:
         except Exception as e:
             logger.error(f"Error executing workflow: {e}")
             raise
+    
+    def _get_instance(self, instance_id: str) -> Optional[Dict[str, Any]]:
+        """Get instance details by instance_id"""
+        try:
+            client = SupabaseManager.get_client(use_service_role=True)
+            
+            response = client.table('amc_instances')\
+                .select('*')\
+                .eq('instance_id', instance_id)\
+                .execute()
+            
+            return response.data[0] if response.data else None
+        except Exception as e:
+            logger.error(f"Error fetching instance {instance_id}: {e}")
+            return None
     
     def _get_workflow_with_instance(self, workflow_id: str) -> Optional[Dict[str, Any]]:
         """Get workflow with instance details"""

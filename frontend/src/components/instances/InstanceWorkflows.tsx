@@ -11,6 +11,7 @@ interface Workflow {
   tags: string[];
   createdAt: string;
   lastExecutedAt: string | null;
+  sourceInstanceId?: string;
 }
 
 interface InstanceWorkflowsProps {
@@ -68,7 +69,12 @@ export default function InstanceWorkflows({ instanceId }: InstanceWorkflowsProps
                   <h3 className="text-sm font-medium text-gray-900">{workflow.name}</h3>
                   {workflow.isTemplate && (
                     <span className="ml-2 inline-flex px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">
-                      Template
+                      Global Template
+                    </span>
+                  )}
+                  {workflow.sourceInstanceId && workflow.sourceInstanceId !== instanceId && (
+                    <span className="ml-2 inline-flex px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                      From Another Instance
                     </span>
                   )}
                 </div>
@@ -113,8 +119,11 @@ export default function InstanceWorkflows({ instanceId }: InstanceWorkflowsProps
                 View Details
               </button>
               <span className="text-gray-300">•</span>
-              <button className="text-sm text-indigo-600 hover:text-indigo-500 font-medium">
-                Execute
+              <button 
+                className="text-sm text-indigo-600 hover:text-indigo-500 font-medium"
+                title={`Execute on this instance (${instanceId})`}
+              >
+                Execute Here
               </button>
               <span className="text-gray-300">•</span>
               <button className="text-sm text-indigo-600 hover:text-indigo-500 font-medium">

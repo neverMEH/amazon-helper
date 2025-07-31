@@ -149,7 +149,7 @@ def get_instance_workflows(
     instance_id: str,
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> List[Dict[str, Any]]:
-    """Get workflows associated with an instance"""
+    """Get workflows available for an instance (includes all templates)"""
     try:
         # Verify user has access
         user_instances = db_service.get_user_instances_sync(current_user['id'])
@@ -159,19 +159,52 @@ def get_instance_workflows(
         # Get all workflows for user
         workflows = db_service.get_user_workflows_sync(current_user['id'])
         
-        # Filter by instance
-        instance_workflows = [w for w in workflows if 'amc_instances' in w and w['amc_instances'].get('instance_id') == instance_id]
+        # Include workflows that are either:
+        # 1. Templates (available for all instances)
+        # 2. Specifically created for this instance
+        available_workflows = []
+        for w in workflows:
+            if w.get('is_template', False):
+                # Templates are available on all instances
+                available_workflows.append(w)
+            elif 'amc_instances' in w and w['amc_instances'].get('instance_id') == instance_id:
+                # Instance-specific workflows
+                available_workflows.append(w)
         
-        return [{
-            "workflowId": w['workflow_id'],
-            "name": w['name'],
-            "description": w.get('description'),
-            "status": w.get('status', 'active'),
-            "isTemplate": w.get('is_template', False),
-            "tags": w.get('tags', []),
-            "createdAt": w.get('created_at', ''),
-            "lastExecutedAt": w.get('last_executed_at')
-        } for w in instance_workflows]
+        # Get last execution time for each workflow on this instance
+        from ...core.supabase_client import SupabaseManager
+        client = SupabaseManager.get_client(use_service_role=True)
+        
+        result = []
+        for w in available_workflows:
+            # Get last execution for this workflow on this instance if possible
+            last_executed = None
+            try:
+                exec_response = client.table('workflow_executions')\
+                    .select('started_at')\
+                    .eq('workflow_id', w['id'])\
+                    .order('started_at', desc=True)\
+                    .limit(1)\
+                    .execute()
+                
+                if exec_response.data:
+                    last_executed = exec_response.data[0]['started_at']
+            except:
+                pass
+            
+            result.append({
+                "workflowId": w['workflow_id'],
+                "name": w['name'],
+                "description": w.get('description'),
+                "status": w.get('status', 'active'),
+                "isTemplate": w.get('is_template', False),
+                "tags": w.get('tags', []),
+                "createdAt": w.get('created_at', ''),
+                "lastExecutedAt": last_executed,
+                "sourceInstanceId": w.get('instance_id') if not w.get('is_template') else None
+            })
+        
+        return result
     except HTTPException:
         raise
     except Exception as e:
