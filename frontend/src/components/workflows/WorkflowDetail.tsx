@@ -37,10 +37,12 @@ export default function WorkflowDetail() {
   const [executing, setExecuting] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('query');
 
-  const { data: workflow, isLoading } = useQuery<Workflow>({
+  const { data: workflow, isLoading, error } = useQuery<Workflow>({
     queryKey: ['workflow', workflowId],
     queryFn: async () => {
-      const response = await api.get(`/workflows/${workflowId}/`);
+      console.log('Fetching workflow:', workflowId);
+      const response = await api.get(`/workflows/${workflowId}`);
+      console.log('Workflow response:', response.data);
       return response.data;
     },
   });
@@ -48,6 +50,7 @@ export default function WorkflowDetail() {
   // Update form when workflow data changes
   useEffect(() => {
     if (workflow) {
+      console.log('Setting edit form with workflow data:', workflow);
       setEditForm({
         name: workflow.name,
         description: workflow.description,
@@ -68,7 +71,7 @@ export default function WorkflowDetail() {
         parameters: data.parameters,
         tags: data.tags,
       };
-      const response = await api.put(`/workflows/${workflowId}/`, payload);
+      const response = await api.put(`/workflows/${workflowId}`, payload);
       return response.data;
     },
     onSuccess: () => {
@@ -84,7 +87,7 @@ export default function WorkflowDetail() {
 
   const executeMutation = useMutation({
     mutationFn: async (parameters?: any) => {
-      const response = await api.post(`/workflows/${workflowId}/execute/`, parameters || {});
+      const response = await api.post(`/workflows/${workflowId}/execute`, parameters || {});
       return response.data;
     },
     onSuccess: (data) => {
@@ -122,6 +125,19 @@ export default function WorkflowDetail() {
     );
   }
 
+  if (error) {
+    console.error('Error loading workflow:', error);
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-red-500">
+            Error loading workflow: {error instanceof Error ? error.message : 'Unknown error'}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!workflow) {
     return (
       <div className="p-6">
@@ -131,6 +147,8 @@ export default function WorkflowDetail() {
       </div>
     );
   }
+
+  console.log('Rendering workflow:', workflow);
 
   return (
     <div className="p-6">

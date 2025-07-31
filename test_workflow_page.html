@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Workflow Test</title>
+</head>
+<body>
+    <h1>Workflow API Test</h1>
+    <button onclick="testWorkflow()">Test Workflow API</button>
+    <pre id="output"></pre>
+
+    <script>
+        async function testWorkflow() {
+            const output = document.getElementById('output');
+            
+            // First login
+            output.textContent = 'Logging in...\n';
+            const loginResponse = await fetch('http://localhost:8001/api/auth/login?email=nick@nevermeh.com&password=', {
+                method: 'POST'
+            });
+            const loginData = await loginResponse.json();
+            const token = loginData.access_token;
+            
+            output.textContent += `Got token: ${token.substring(0, 20)}...\n\n`;
+            
+            // Get workflows list
+            output.textContent += 'Fetching workflows...\n';
+            const workflowsResponse = await fetch('http://localhost:8001/api/workflows/', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const workflows = await workflowsResponse.json();
+            
+            output.textContent += `Found ${workflows.length} workflows\n\n`;
+            
+            if (workflows.length > 0) {
+                const workflowId = workflows[0].workflowId;
+                output.textContent += `Testing workflow detail for: ${workflowId}\n`;
+                
+                // Get workflow detail
+                const detailResponse = await fetch(`http://localhost:8001/api/workflows/${workflowId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const detail = await detailResponse.json();
+                
+                output.textContent += '\nWorkflow Detail:\n';
+                output.textContent += JSON.stringify(detail, null, 2);
+                
+                // Check localStorage
+                output.textContent += '\n\nLocalStorage check:\n';
+                output.textContent += `Token in localStorage: ${localStorage.getItem('access_token')?.substring(0, 20) || 'NOT FOUND'}...\n`;
+            }
+        }
+    </script>
+</body>
+</html>
