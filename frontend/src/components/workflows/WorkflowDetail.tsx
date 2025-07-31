@@ -7,6 +7,7 @@ import api from '../../services/api';
 import SQLEditor from '../common/SQLEditor';
 import JSONEditor from '../common/JSONEditor';
 import ExecutionHistory from './ExecutionHistory';
+import ExecutionModal from './ExecutionModal';
 
 interface Workflow {
   id: string;
@@ -36,13 +37,12 @@ export default function WorkflowDetail() {
   const [editForm, setEditForm] = useState<Partial<Workflow>>({});
   const [executing, setExecuting] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('query');
+  const [showExecutionModal, setShowExecutionModal] = useState(false);
 
   const { data: workflow, isLoading, error } = useQuery<Workflow>({
     queryKey: ['workflow', workflowId],
     queryFn: async () => {
-      console.log('Fetching workflow:', workflowId);
       const response = await api.get(`/workflows/${workflowId}`);
-      console.log('Workflow response:', response.data);
       return response.data;
     },
   });
@@ -50,7 +50,6 @@ export default function WorkflowDetail() {
   // Update form when workflow data changes
   useEffect(() => {
     if (workflow) {
-      console.log('Setting edit form with workflow data:', workflow);
       setEditForm({
         name: workflow.name,
         description: workflow.description,
@@ -85,29 +84,12 @@ export default function WorkflowDetail() {
     },
   });
 
-  const executeMutation = useMutation({
-    mutationFn: async (parameters?: any) => {
-      const response = await api.post(`/workflows/${workflowId}/execute`, parameters || {});
-      return response.data;
-    },
-    onSuccess: (data) => {
-      toast.success(`Workflow execution started: ${data.execution_id}`);
-      setExecuting(false);
-      queryClient.invalidateQueries({ queryKey: ['workflow', workflowId] });
-    },
-    onError: (error: any) => {
-      toast.error(`Failed to execute workflow: ${error.response?.data?.detail || error.message}`);
-      setExecuting(false);
-    },
-  });
+  const handleExecute = () => {
+    setShowExecutionModal(true);
+  };
 
   const handleSave = () => {
     updateMutation.mutate(editForm);
-  };
-
-  const handleExecute = () => {
-    setExecuting(true);
-    executeMutation.mutate(editForm.parameters || {});
   };
 
   const handleCopy = () => {
@@ -126,7 +108,6 @@ export default function WorkflowDetail() {
   }
 
   if (error) {
-    console.error('Error loading workflow:', error);
     return (
       <div className="p-6">
         <div className="flex items-center justify-center h-64">
@@ -147,8 +128,6 @@ export default function WorkflowDetail() {
       </div>
     );
   }
-
-  console.log('Rendering workflow:', workflow);
 
   return (
     <div className="p-6">
@@ -201,14 +180,9 @@ export default function WorkflowDetail() {
                   </button>
                   <button
                     onClick={handleExecute}
-                    disabled={executing}
-                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400"
+                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
                   >
-                    {executing ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
-                    ) : (
-                      <Play className="h-4 w-4 mr-2" />
-                    )}
+                    <Play className="h-4 w-4 mr-2" />
                     Execute
                   </button>
                 </>
@@ -356,7 +330,6 @@ export default function WorkflowDetail() {
                         onChange={(value) => setEditForm({ ...editForm, sqlQuery: value })}
                         height="500px"
                       />
-                      <p className="mt-2 text-xs text-gray-500">Editing mode - SQL length: {editForm.sqlQuery?.length || 0}</p>
                     </div>
                   ) : (
                     <div>
@@ -366,7 +339,6 @@ export default function WorkflowDetail() {
                         height="500px"
                         readOnly
                       />
-                      <p className="mt-2 text-xs text-gray-500">Read-only mode - SQL length: {workflow.sqlQuery?.length || 0}</p>
                     </div>
                   )}
                   {workflow.sqlQuery && (
@@ -407,6 +379,15 @@ export default function WorkflowDetail() {
           </div>
         </div>
       </div>
+
+      {/* Execution Modal */}
+      {workflow && (
+        <ExecutionModal
+          isOpen={showExecutionModal}
+          onClose={() => setShowExecutionModal(false)}
+          workflow={workflow}
+        />
+      )}
     </div>
   );
 }

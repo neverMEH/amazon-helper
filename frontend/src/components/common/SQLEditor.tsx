@@ -19,9 +19,6 @@ export default function SQLEditor({
 }: SQLEditorProps) {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
-  // Debug logging
-  console.log('SQLEditor rendering with value length:', value?.length || 0, 'readOnly:', readOnly);
-
   const handleEditorDidMount = (editor: editor.IStandaloneCodeEditor) => {
     editorRef.current = editor;
     
