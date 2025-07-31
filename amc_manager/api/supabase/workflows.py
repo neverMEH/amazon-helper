@@ -147,20 +147,22 @@ def get_workflow(
             raise HTTPException(status_code=403, detail="Access denied")
         
         return {
-            "workflow_id": workflow['workflow_id'],
+            "id": workflow['workflow_id'],
+            "workflowId": workflow['workflow_id'],
             "name": workflow['name'],
             "description": workflow.get('description'),
             "instance": {
                 "id": workflow['amc_instances']['instance_id'],
                 "name": workflow['amc_instances']['instance_name']
             } if 'amc_instances' in workflow else None,
-            "sql_query": workflow['sql_query'],
+            "sqlQuery": workflow['sql_query'],
             "parameters": workflow.get('parameters', {}),
             "status": workflow.get('status', 'active'),
-            "is_template": workflow.get('is_template', False),
+            "isTemplate": workflow.get('is_template', False),
             "tags": workflow.get('tags', []),
-            "created_at": workflow.get('created_at'),
-            "updated_at": workflow.get('updated_at')
+            "createdAt": workflow.get('created_at'),
+            "updatedAt": workflow.get('updated_at'),
+            "lastExecuted": workflow.get('last_executed_at')
         }
     except HTTPException:
         raise

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { GitBranch, Plus, Play, Clock, CheckCircle, AlertCircle, Tag } from 'lucide-react';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import api from '../../services/api';
 
@@ -23,6 +24,7 @@ interface Workflow {
 }
 
 export default function Workflows() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [executingWorkflow, setExecutingWorkflow] = useState<string | null>(null);
   
@@ -86,7 +88,13 @@ export default function Workflows() {
           {workflows?.map((workflow) => (
             <div
               key={workflow.id || workflow.workflowId}
-              className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow"
+              className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow cursor-pointer"
+              onClick={(e) => {
+                // Don't navigate if clicking on the execute button
+                if (!(e.target as HTMLElement).closest('button')) {
+                  navigate(`/workflows/${workflow.workflowId}`);
+                }
+              }}
             >
               <div className="p-5">
                 <div className="flex items-center justify-between mb-4">

@@ -8,6 +8,7 @@ import Instances from './components/instances/Instances';
 import InstanceDetail from './components/instances/InstanceDetail';
 import Campaigns from './components/campaigns/Campaigns';
 import Workflows from './components/workflows/Workflows';
+import WorkflowDetail from './components/workflows/WorkflowDetail';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
 const queryClient = new QueryClient({
@@ -37,6 +38,7 @@ function App() {
               <Route path="/instances/:instanceId" element={<InstanceDetail />} />
               <Route path="/campaigns" element={<Campaigns />} />
               <Route path="/workflows" element={<Workflows />} />
+              <Route path="/workflows/:workflowId" element={<WorkflowDetail />} />
             </Route>
           </Route>
         </Routes>
