@@ -1,14 +1,30 @@
-2025-07-31 14:11:24 - __main__ - INFO - All API routers loaded successfully
-2025-07-31 14:11:24 - __main__ - INFO - Frontend static files mounted
-2025-07-31 14:11:24 - main_supabase - INFO - All API routers loaded successfully
-2025-07-31 14:11:24 - main_supabase - INFO - Frontend static files mounted
-INFO:     Started server process [469322]
+2025-07-31 15:35:22 - __main__ - INFO - All API routers loaded successfully
+2025-07-31 15:35:22 - __main__ - INFO - Frontend static files mounted
+2025-07-31 15:35:22 - main_supabase - INFO - All API routers loaded successfully
+2025-07-31 15:35:22 - main_supabase - INFO - Frontend static files mounted
+INFO:     Started server process [481270]
 INFO:     Waiting for application startup.
-2025-07-31 14:11:24 - main_supabase - INFO - Starting AMC Manager application with Supabase...
-2025-07-31 14:11:24 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-07-31 14:11:25 - main_supabase - INFO - ✓ Supabase connection successful
+2025-07-31 15:35:22 - main_supabase - INFO - Starting AMC Manager application with Supabase...
+2025-07-31 15:35:22 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-07-31 15:35:23 - main_supabase - INFO - ✓ Supabase connection successful
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     127.0.0.1:46306 - "GET /api/health HTTP/1.1" 200 OK
-INFO:     147.182.153.80:37080 - "GET / HTTP/1.1" 200 OK
-INFO:     147.182.153.80:37092 - "GET /vite.svg HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34320 - "GET /api/health HTTP/1.1" 200 OK
+2025-07-31 15:35:30 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-07-31 15:35:30 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-07-31 15:35:30 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+INFO:     127.0.0.1:36378 - "POST /api/auth/login?email=nick%40nevermeh.com&password= HTTP/1.1" 200 OK
+2025-07-31 15:35:34 - amc_manager.services.amc_execution_service - ERROR - Error updating execution completion: can't subtract offset-naive and offset-aware datetimes
+2025-07-31 15:35:34 - amc_manager.services.amc_execution_service - ERROR - Error updating execution status: {'message': "Could not find the 'amc_execution_id' column of 'workflow_executions' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2025-07-31 15:35:34 - amc_manager.services.db_service - ERROR - Error updating workflow: {'message': "Could not find the 'last_executed_at' column of 'workflows' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+INFO:     127.0.0.1:36392 - "POST /api/workflows/wf_path_to_conversion_7cd2651c/execute HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45558 - "POST /api/auth/login?email=nick%40nevermeh.com&password= HTTP/1.1" 200 OK
+2025-07-31 15:37:55 - amc_manager.services.amc_execution_service - ERROR - Error updating execution completion: can't subtract offset-naive and offset-aware datetimes
+2025-07-31 15:37:55 - amc_manager.services.amc_execution_service - ERROR - Error updating execution status: {'message': "Could not find the 'amc_execution_id' column of 'workflow_executions' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2025-07-31 15:37:55 - amc_manager.services.db_service - ERROR - Error updating workflow: {'message': "Could not find the 'last_executed_at' column of 'workflows' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+INFO:     127.0.0.1:45566 - "POST /api/workflows/wf_path_to_conversion_7cd2651c/execute HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-07-31 15:38:42 - main_supabase - INFO - Shutting down AMC Manager application...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [481270]

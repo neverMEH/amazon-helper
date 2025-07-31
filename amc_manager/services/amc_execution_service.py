@@ -3,14 +3,13 @@
 import json
 import time
 from typing import Dict, Any, Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 import re
 from string import Template
 
 from ..core.logger_simple import get_logger
 from ..core.supabase_client import SupabaseManager
 from .db_service import db_service
-from .auth_service import AuthService
 
 logger = get_logger(__name__)
 
@@ -20,7 +19,6 @@ class AMCExecutionService:
     
     def __init__(self):
         self.db = db_service
-        self.auth_service = AuthService()
         
     def execute_workflow(
         self,
@@ -66,11 +64,9 @@ class AMCExecutionService:
             execution_data = {
                 "workflow_id": workflow_id,
                 "status": "pending",
-                "execution_parameters": execution_parameters,
+                "execution_parameters": execution_parameters or {},
                 "triggered_by": triggered_by,
-                "started_at": datetime.utcnow().isoformat(),
-                "sql_query_executed": sql_query,
-                "instance_id": instance['instance_id']
+                "started_at": datetime.now(timezone.utc).isoformat()
             }
             
             execution = self.db.create_execution_sync(execution_data)
@@ -88,19 +84,14 @@ class AMCExecutionService:
             # Update execution with results
             update_data = {
                 "status": execution_result['status'],
-                "completed_at": datetime.utcnow().isoformat() if execution_result['status'] in ['completed', 'failed'] else None,
+                "completed_at": datetime.now(timezone.utc).isoformat() if execution_result['status'] in ['completed', 'failed'] else None,
                 "error_message": execution_result.get('error'),
-                "row_count": execution_result.get('row_count'),
-                "amc_execution_id": execution_result.get('amc_execution_id'),
-                "query_results_url": execution_result.get('results_url')
+                "row_count": execution_result.get('row_count')
             }
             
             self._update_execution_status(execution['id'], update_data)
             
-            # Update workflow last executed time
-            self.db.update_workflow_sync(workflow['workflow_id'], {
-                'last_executed_at': datetime.utcnow().isoformat()
-            })
+            # Note: last_executed_at column doesn't exist in workflows table
             
             return {
                 "execution_id": execution['execution_id'],
@@ -273,11 +264,9 @@ class AMCExecutionService:
         try:
             client = SupabaseManager.get_client(use_service_role=True)
             
-            # Calculate duration if completed
-            if update_data.get('completed_at') and update_data.get('started_at'):
-                started = datetime.fromisoformat(update_data['started_at'].replace('Z', '+00:00'))
-                completed = datetime.fromisoformat(update_data['completed_at'].replace('Z', '+00:00'))
-                update_data['duration_seconds'] = (completed - started).total_seconds()
+            # Remove non-existent columns
+            update_data.pop('amc_execution_id', None)
+            update_data.pop('query_results_url', None)
             
             response = client.table('workflow_executions')\
                 .update(update_data)\
@@ -317,8 +306,7 @@ class AMCExecutionService:
                 "duration_seconds": execution.get('duration_seconds'),
                 "error_message": execution.get('error_message'),
                 "row_count": execution.get('row_count'),
-                "triggered_by": execution.get('triggered_by', 'manual'),
-                "amc_execution_id": execution.get('amc_execution_id')
+                "triggered_by": execution.get('triggered_by', 'manual')
             }
         except Exception as e:
             logger.error(f"Error fetching execution status: {e}")
@@ -399,8 +387,17 @@ class AMCExecutionService:
             if not response.data:
                 return
             
-            started_at = datetime.fromisoformat(response.data[0]['started_at'].replace('Z', '+00:00'))
-            completed_at = datetime.utcnow()
+            # Parse started_at and ensure timezone awareness
+            started_at_str = response.data[0]['started_at']
+            if started_at_str.endswith('Z'):
+                started_at_str = started_at_str.replace('Z', '+00:00')
+            from datetime import timezone
+            started_at = datetime.fromisoformat(started_at_str)
+            if started_at.tzinfo is None:
+                started_at = started_at.replace(tzinfo=timezone.utc)
+            
+            # Use timezone-aware datetime for completed_at
+            completed_at = datetime.now(timezone.utc)
             duration_seconds = (completed_at - started_at).total_seconds()
             
             # Update execution
@@ -409,7 +406,6 @@ class AMCExecutionService:
                 'completed_at': completed_at.isoformat(),
                 'duration_seconds': duration_seconds,
                 'row_count': row_count,
-                'amc_execution_id': amc_execution_id,
                 'progress': 100
             }
             
