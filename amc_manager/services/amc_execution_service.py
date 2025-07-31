@@ -6,10 +6,12 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone
 import re
 from string import Template
+import asyncio
 
 from ..core.logger_simple import get_logger
 from ..core.supabase_client import SupabaseManager
 from .db_service import db_service
+from .token_service import token_service
 
 logger = get_logger(__name__)
 
@@ -19,6 +21,14 @@ class AMCExecutionService:
     
     def __init__(self):
         self.db = db_service
+        # Configuration flag to use real AMC API vs simulation
+        # Set via environment variable AMC_USE_REAL_API=true
+        import os
+        self.use_real_api = os.getenv('AMC_USE_REAL_API', 'false').lower() == 'true'
+        if self.use_real_api:
+            logger.info("AMC Execution Service configured to use REAL AMC API")
+        else:
+            logger.info("AMC Execution Service configured to use SIMULATED execution")
         
     def execute_workflow(
         self,
@@ -73,13 +83,22 @@ class AMCExecutionService:
             if not execution:
                 raise ValueError("Failed to create execution record")
             
-            # For now, simulate AMC execution since we don't have real AMC API credentials
-            # In production, this would call the actual AMC API
-            execution_result = self._simulate_amc_execution(
-                instance_id=instance['instance_id'],
-                sql_query=sql_query,
-                execution_id=execution['execution_id']
-            )
+            # Choose between real AMC API or simulation
+            if self.use_real_api:
+                execution_result = self._execute_real_amc_query(
+                    instance_id=instance['instance_id'],
+                    workflow_id=workflow_id,
+                    sql_query=sql_query,
+                    execution_id=execution['execution_id'],
+                    user_id=user_id,
+                    execution_parameters=execution_parameters
+                )
+            else:
+                execution_result = self._simulate_amc_execution(
+                    instance_id=instance['instance_id'],
+                    sql_query=sql_query,
+                    execution_id=execution['execution_id']
+                )
             
             # Update execution with results
             update_data = {
@@ -155,6 +174,183 @@ class AMCExecutionService:
             query = query.replace(f"{{{{{param}}}}}", value_str)
         
         return query
+    
+    def _execute_real_amc_query(
+        self,
+        instance_id: str,
+        workflow_id: str,
+        sql_query: str,
+        execution_id: str,
+        user_id: str,
+        execution_parameters: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Execute real AMC query using Amazon API
+        
+        Returns:
+            Execution result with status and details
+        """
+        try:
+            # Get user's Amazon OAuth token
+            valid_token = asyncio.run(token_service.get_valid_token(user_id))
+            if not valid_token:
+                logger.error(f"No valid Amazon token for user {user_id}")
+                return {
+                    "status": "failed",
+                    "error": "No valid Amazon OAuth token. Please re-authenticate with Amazon."
+                }
+            
+            # Get the AMC instance details to find entity ID
+            client = SupabaseManager.get_client(use_service_role=True)
+            instance_response = client.table('amc_instances')\
+                .select('*, amc_accounts!inner(entity_id)')\
+                .eq('instance_id', instance_id)\
+                .execute()
+            
+            if not instance_response.data:
+                return {
+                    "status": "failed",
+                    "error": f"AMC instance {instance_id} not found"
+                }
+            
+            instance = instance_response.data[0]
+            entity_id = instance['amc_accounts']['entity_id']
+            marketplace_id = instance.get('marketplace_id', 'ATVPDKIKX0DER')
+            
+            logger.info(f"Executing on instance {instance_id} with entity {entity_id}")
+            
+            # Create workflow execution via AMC API
+            from ..core.api_client import AMCAPIClient, AMCAPIEndpoints
+            
+            # Initialize API client
+            api_client = AMCAPIClient(
+                profile_id=entity_id,  # Using entity_id as profile_id
+                marketplace_id=marketplace_id
+            )
+            
+            # Prepare execution data
+            execution_data = {
+                'workflowId': workflow_id,
+                'executionId': execution_id,
+                'sqlQuery': sql_query,
+                'parameters': execution_parameters or {},
+                'triggeredBy': 'manual',
+                'triggeredAt': datetime.now(timezone.utc).isoformat()
+            }
+            
+            # Create the execution
+            endpoint = f"amc/instances/{instance_id}/workflows/{workflow_id}/executions"
+            
+            # Update progress to show we're starting
+            self._update_execution_progress(execution_id, 'running', 10)
+            
+            try:
+                # Make the API call to create execution
+                response = api_client.post(
+                    endpoint,
+                    user_id,
+                    {'access_token': valid_token},  # Pass token as dict
+                    json_data=execution_data
+                )
+                
+                amc_execution_id = response.get('executionId', execution_id)
+                logger.info(f"Created AMC execution: {amc_execution_id}")
+                
+                # Poll for completion
+                max_attempts = 120  # 10 minutes max (5 second intervals)
+                for attempt in range(max_attempts):
+                    # Get execution status
+                    status_endpoint = f"amc/instances/{instance_id}/executions/{amc_execution_id}/status"
+                    status_response = api_client.get(
+                        status_endpoint,
+                        user_id,
+                        {'access_token': valid_token}
+                    )
+                    
+                    status = status_response.get('status', 'running')
+                    progress = status_response.get('progress', 50)
+                    
+                    # Update our execution record
+                    self._update_execution_progress(execution_id, status, progress)
+                    
+                    if status == 'completed' or status == 'SUCCEEDED':
+                        # Get results
+                        results_endpoint = f"amc/instances/{instance_id}/executions/{amc_execution_id}/results"
+                        results_response = api_client.get(
+                            results_endpoint,
+                            user_id,
+                            {'access_token': valid_token}
+                        )
+                        
+                        # Parse results
+                        result_data = {
+                            "columns": results_response.get('schema', []),
+                            "rows": results_response.get('data', []),
+                            "total_rows": results_response.get('rowCount', 0),
+                            "sample_size": results_response.get('rowCount', 0),
+                            "execution_details": {
+                                "query_runtime_seconds": results_response.get('queryRuntime', 0),
+                                "data_scanned_gb": results_response.get('dataScanned', 0),
+                                "cost_estimate_usd": results_response.get('costEstimate', 0)
+                            }
+                        }
+                        
+                        # Update execution with results
+                        self._update_execution_completed(
+                            execution_id=execution_id,
+                            amc_execution_id=amc_execution_id,
+                            row_count=result_data['total_rows'],
+                            results=result_data
+                        )
+                        
+                        return {
+                            "status": "completed",
+                            "amc_execution_id": amc_execution_id,
+                            "row_count": result_data['total_rows'],
+                            "results_url": status_response.get('outputLocation')
+                        }
+                    
+                    elif status == 'failed' or status == 'FAILED':
+                        error_msg = status_response.get('error', 'Query execution failed')
+                        self._update_execution_completed(
+                            execution_id=execution_id,
+                            amc_execution_id=amc_execution_id,
+                            row_count=0,
+                            error_message=error_msg
+                        )
+                        return {
+                            "status": "failed",
+                            "error": error_msg
+                        }
+                    
+                    # Wait before next poll
+                    time.sleep(5)
+                
+                # Timeout
+                self._update_execution_completed(
+                    execution_id=execution_id,
+                    amc_execution_id=amc_execution_id,
+                    row_count=0,
+                    error_message="Execution timed out after 10 minutes"
+                )
+                return {
+                    "status": "failed",
+                    "error": "Execution timed out"
+                }
+                
+            except Exception as api_error:
+                logger.error(f"AMC API error: {api_error}")
+                return {
+                    "status": "failed",
+                    "error": f"AMC API error: {str(api_error)}"
+                }
+                
+        except Exception as e:
+            logger.error(f"Error executing real AMC query: {e}")
+            return {
+                "status": "failed",
+                "error": str(e)
+            }
     
     def _simulate_amc_execution(
         self,
