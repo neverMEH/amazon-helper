@@ -158,16 +158,18 @@ class AMCSyncService:
         
         for account in accounts:
             try:
-                # Check if account already exists
+                # Check if account already exists for any user
                 existing = self.db_service.client.table('amc_accounts')\
-                    .select('id')\
+                    .select('id, user_id')\
                     .eq('account_id', account['accountId'])\
-                    .eq('user_id', user_id)\
                     .execute()
                 
                 if existing.data:
-                    # Update existing account
+                    # Account already exists, just use it
                     account_id = existing.data[0]['id']
+                    logger.info(f"Using existing account {account['accountId']} with id {account_id}")
+                    
+                    # Update the account info
                     self.db_service.client.table('amc_accounts')\
                         .update({
                             'account_name': account['accountName'],
