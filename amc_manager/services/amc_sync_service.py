@@ -32,15 +32,16 @@ class AMCSyncService:
             Dictionary with sync results
         """
         try:
+            logger.info(f"Starting sync for user {user_id}")
+            
             # Get user's valid token
-            valid_token = await self.token_service.get_valid_token(user_id)
-            if not valid_token:
+            access_token = await self.token_service.get_valid_token(user_id)
+            if not access_token:
+                logger.error(f"No valid token found for user {user_id}")
                 return {
                     "success": False,
                     "error": "No valid Amazon OAuth token found. Please reconnect with Amazon."
                 }
-            
-            access_token = valid_token['access_token']
             
             # First, get AMC accounts
             logger.info(f"Fetching AMC accounts for user {user_id}")

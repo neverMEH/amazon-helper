@@ -25,12 +25,12 @@ class TokenService:
     
     def _get_fernet(self) -> Fernet:
         """Get or create Fernet encryption instance"""
-        # In production, store this key securely (e.g., environment variable)
-        key = os.getenv('ENCRYPTION_KEY')
+        # Try both possible environment variable names
+        key = settings.fernet_key or os.getenv('FERNET_KEY') or os.getenv('ENCRYPTION_KEY')
         if not key:
             # Generate a new key if none exists
             key = Fernet.generate_key().decode()
-            logger.warning("Generated new encryption key. Set ENCRYPTION_KEY env var for persistence.")
+            logger.warning("Generated new encryption key. Set FERNET_KEY env var for persistence.")
         else:
             key = key.encode() if isinstance(key, str) else key
         return Fernet(key)
