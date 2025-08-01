@@ -169,9 +169,10 @@ class AMCSyncService:
                     account_id = existing.data[0]['id']
                     logger.info(f"Using existing account {account['accountId']} with id {account_id}")
                     
-                    # Update the account info
+                    # Update the account info and ensure user_id is set
                     self.db_service.client.table('amc_accounts')\
                         .update({
+                            'user_id': user_id,  # Ensure account is associated with current user
                             'account_name': account['accountName'],
                             'marketplace_id': account.get('marketplaceId', 'ATVPDKIKX0DER'),
                             'region': 'us-east-1',  # Default region for US marketplace
