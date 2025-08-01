@@ -161,7 +161,7 @@ export default function ExecutionHistory({ workflowId, instanceId }: ExecutionHi
                   {formatDuration(execution.duration_seconds)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {execution.row_count?.toLocaleString() || '-'}
+                  {execution.row_count != null ? execution.row_count.toLocaleString() : '-'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {execution.triggered_by}

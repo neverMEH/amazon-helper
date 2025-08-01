@@ -180,7 +180,7 @@ export default function ExecutionDetailModal({ isOpen, onClose, executionId }: E
                 {status?.row_count !== undefined && (
                   <div>
                     <span className="text-gray-500">Rows:</span>
-                    <p>{status.row_count.toLocaleString()}</p>
+                    <p>{status.row_count != null ? status.row_count.toLocaleString() : '0'}</p>
                   </div>
                 )}
               </div>
@@ -315,11 +315,11 @@ export default function ExecutionDetailModal({ isOpen, onClose, executionId }: E
                           <div className="grid grid-cols-2 gap-4">
                             <div className="bg-white p-4 rounded-lg shadow-sm">
                               <h5 className="text-sm font-medium text-gray-600 mb-2">Total Records</h5>
-                              <p className="text-2xl font-bold text-gray-900">{results.total_rows.toLocaleString()}</p>
+                              <p className="text-2xl font-bold text-gray-900">{results.total_rows != null ? results.total_rows.toLocaleString() : '0'}</p>
                             </div>
                             <div className="bg-white p-4 rounded-lg shadow-sm">
                               <h5 className="text-sm font-medium text-gray-600 mb-2">Sample Size</h5>
-                              <p className="text-2xl font-bold text-gray-900">{results.sample_size.toLocaleString()}</p>
+                              <p className="text-2xl font-bold text-gray-900">{results.sample_size != null ? results.sample_size.toLocaleString() : '0'}</p>
                             </div>
                           </div>
                         </div>

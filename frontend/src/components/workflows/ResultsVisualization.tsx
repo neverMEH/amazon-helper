@@ -107,16 +107,16 @@ export default function ResultsVisualization({ columns, rows }: ResultsVisualiza
                   <tr key={idx}>
                     <td className="px-4 py-2 text-sm font-medium text-gray-900">{stat.column}</td>
                     <td className="px-4 py-2 text-sm text-right text-gray-600">
-                      {stat.min.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                      {stat.min != null ? stat.min.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '0'}
                     </td>
                     <td className="px-4 py-2 text-sm text-right text-gray-600">
-                      {stat.max.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                      {stat.max != null ? stat.max.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '0'}
                     </td>
                     <td className="px-4 py-2 text-sm text-right text-gray-600">
-                      {stat.avg.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                      {stat.avg != null ? stat.avg.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '0'}
                     </td>
                     <td className="px-4 py-2 text-sm text-right text-gray-600">
-                      {stat.sum.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                      {stat.sum != null ? stat.sum.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '0'}
                     </td>
                   </tr>
                 ))}

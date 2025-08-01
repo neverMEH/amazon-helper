@@ -222,7 +222,7 @@ export default function ExecutionResults({ executionId, onClose }: ExecutionResu
               <p className="text-lg font-medium capitalize">{status?.triggered_by || 'Unknown'}</p>
               {status?.row_count !== undefined && (
                 <p className="text-xs text-gray-500 mt-1">
-                  Rows: {status.row_count.toLocaleString()}
+                  Rows: {status.row_count != null ? status.row_count.toLocaleString() : '0'}
                 </p>
               )}
             </div>
@@ -274,7 +274,7 @@ export default function ExecutionResults({ executionId, onClose }: ExecutionResu
                   Query Results
                 </h4>
                 <p className="text-sm text-gray-500">
-                  Showing {results.sample_size} of {results.total_rows.toLocaleString()} rows
+                  Showing {results.sample_size} of {results.total_rows != null ? results.total_rows.toLocaleString() : '0'} rows
                 </p>
               </div>
 
@@ -319,7 +319,7 @@ export default function ExecutionResults({ executionId, onClose }: ExecutionResu
 
               {results.total_rows > results.sample_size && (
                 <p className="mt-4 text-sm text-gray-500 text-center">
-                  Download the full results to see all {results.total_rows.toLocaleString()} rows
+                  Download the full results to see all {results.total_rows != null ? results.total_rows.toLocaleString() : '0'} rows
                 </p>
               )}
             </>

@@ -308,7 +308,7 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
                       {status.row_count !== undefined && (
                         <div>
                           <span className="text-gray-500">Rows:</span>
-                          <p>{status.row_count.toLocaleString()}</p>
+                          <p>{status.row_count?.toLocaleString() || '0'}</p>
                         </div>
                       )}
                     </div>
@@ -432,7 +432,7 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
                             </div>
                             {results.total_rows > 100 && (
                               <div className="bg-gray-50 px-6 py-3 text-sm text-gray-600">
-                                Showing first 100 of {results.total_rows.toLocaleString()} rows
+                                Showing first 100 of {results.total_rows?.toLocaleString() || '0'} rows
                               </div>
                             )}
                           </div>
