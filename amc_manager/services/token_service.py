@@ -8,7 +8,7 @@ from typing import Optional, Dict, Any, Tuple, List
 from cryptography.fernet import Fernet
 
 from ..core.logger_simple import get_logger
-from ..config import settings
+from ..config.settings import settings
 from .db_service import db_service
 
 logger = get_logger(__name__)
@@ -23,24 +23,34 @@ class TokenService:
         self.token_endpoint = "https://api.amazon.com/auth/o2/token"
         self.profile_endpoint = "https://advertising-api.amazon.com/v2/profiles"
     
-    def _get_fernet(self) -> Fernet:
+    def _get_fernet(self) -> Optional[Fernet]:
         """Get or create Fernet encryption instance"""
-        # Try both possible environment variable names
-        key = settings.fernet_key or os.getenv('FERNET_KEY') or os.getenv('ENCRYPTION_KEY')
-        if not key:
-            # Generate a new key if none exists
-            key = Fernet.generate_key().decode()
-            logger.warning("Generated new encryption key. Set FERNET_KEY env var for persistence.")
-        else:
-            key = key.encode() if isinstance(key, str) else key
-        return Fernet(key)
+        try:
+            # Try both possible environment variable names
+            key = settings.fernet_key or os.getenv('FERNET_KEY') or os.getenv('ENCRYPTION_KEY')
+            if not key:
+                # Generate a new key if none exists
+                key = Fernet.generate_key().decode()
+                logger.warning("Generated new encryption key. Set FERNET_KEY env var for persistence.")
+            else:
+                key = key.encode() if isinstance(key, str) else key
+            return Fernet(key)
+        except Exception as e:
+            logger.error(f"Failed to initialize Fernet encryption: {e}")
+            return None
     
     def encrypt_token(self, token: str) -> str:
         """Encrypt a token for storage"""
+        if not self.fernet:
+            logger.warning("Fernet not initialized, returning token as-is")
+            return token
         return self.fernet.encrypt(token.encode()).decode()
     
     def decrypt_token(self, encrypted_token: str) -> str:
         """Decrypt a stored token"""
+        if not self.fernet:
+            logger.warning("Fernet not initialized, returning token as-is")
+            return encrypted_token
         return self.fernet.decrypt(encrypted_token.encode()).decode()
     
     async def validate_token(self, access_token: str) -> Tuple[bool, Optional[str]]:
