@@ -99,7 +99,11 @@ export default function WorkflowForm({ onClose, workflowId, templateId }: Workfl
       onClose();
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to create workflow');
+      if (error.response?.status === 405) {
+        toast.error('The workflow creation feature is not yet available on the server. Please contact your administrator to deploy the latest backend updates.');
+      } else {
+        toast.error(error.response?.data?.detail || 'Failed to create workflow');
+      }
     },
   });
 
