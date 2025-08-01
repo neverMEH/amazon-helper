@@ -183,8 +183,7 @@ class AMCSyncService:
                             'user_id': user_id,
                             'account_id': account['accountId'],
                             'account_name': account['accountName'],
-                            'marketplace_id': account.get('marketplaceId', 'ATVPDKIKX0DER'),
-                            'is_active': True
+                            'marketplace_id': account.get('marketplaceId', 'ATVPDKIKX0DER')
                         })\
                         .execute()
                     account_id = result.data[0]['id']
