@@ -132,20 +132,29 @@ async def amazon_callback(
         
         # Exchange code for tokens
         token_url = "https://api.amazon.com/auth/o2/token"
+        
+        # Use the same redirect URI that was used in the authorization request
+        exchange_redirect_uri = settings.amazon_redirect_uri
+        if os.getenv('RAILWAY_ENVIRONMENT'):
+            exchange_redirect_uri = 'https://web-production-95aa7.up.railway.app/api/auth/amazon/callback'
+        
         token_data = {
             'grant_type': 'authorization_code',
             'code': code,
             'client_id': settings.amazon_client_id,
             'client_secret': settings.amazon_client_secret,
-            'redirect_uri': settings.amazon_redirect_uri
+            'redirect_uri': exchange_redirect_uri
         }
         
-        logger.info("Exchanging authorization code for tokens...")
+        logger.info(f"Exchanging authorization code for tokens...")
+        logger.info(f"Token exchange redirect_uri: {exchange_redirect_uri}")
+        logger.info(f"Client ID: {settings.amazon_client_id[:10]}...")
         
         response = requests.post(token_url, data=token_data, timeout=30)
         
         if response.status_code != 200:
             logger.error(f"Token exchange failed: {response.status_code} - {response.text}")
+            logger.error(f"Request data: redirect_uri={exchange_redirect_uri}")
             raise HTTPException(status_code=400, detail="Failed to exchange code for tokens")
         
         tokens = response.json()
