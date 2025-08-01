@@ -29,9 +29,21 @@ async def amazon_login(redirect_uri: Optional[str] = None):
     Returns authorization URL for user to authenticate with Amazon
     """
     try:
+        # Check required configuration
         client_id = settings.amazon_client_id
         if not client_id:
-            raise HTTPException(status_code=500, detail="Amazon OAuth not configured")
+            logger.error("AMAZON_CLIENT_ID environment variable not set")
+            raise HTTPException(
+                status_code=500, 
+                detail="Amazon OAuth not configured. AMAZON_CLIENT_ID is missing."
+            )
+        
+        if not settings.amazon_client_secret:
+            logger.error("AMAZON_CLIENT_SECRET environment variable not set")
+            raise HTTPException(
+                status_code=500, 
+                detail="Amazon OAuth not configured. AMAZON_CLIENT_SECRET is missing."
+            )
         
         # Generate state for CSRF protection
         state = secrets.token_urlsafe(32)
@@ -52,7 +64,7 @@ async def amazon_login(redirect_uri: Optional[str] = None):
         base_url = "https://www.amazon.com/ap/oa"
         params = {
             'client_id': client_id,
-            'scope': settings.amazon_scope,
+            'scope': settings.amazon_scope or 'advertising::campaign_management',
             'response_type': 'code',
             'redirect_uri': settings.amazon_redirect_uri,
             'state': state
@@ -62,15 +74,21 @@ async def amazon_login(redirect_uri: Optional[str] = None):
         auth_url = f"{base_url}?{param_string}"
         
         logger.info(f"Generated Amazon OAuth URL with state: {state[:10]}...")
+        logger.info(f"Redirect URI: {settings.amazon_redirect_uri}")
         
         return {
             "auth_url": auth_url,
             "state": state
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Failed to generate auth URL: {e}")
-        raise HTTPException(status_code=500, detail="Failed to initiate login")
+        logger.error(f"Failed to generate auth URL: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to initiate login: {str(e)}"
+        )
 
 
 @router.get("/callback")

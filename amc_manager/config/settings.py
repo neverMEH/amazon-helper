@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     # Application
     secret_key: str = Field('your-secret-key-here', env='SECRET_KEY')
     jwt_secret_key: str = Field('your-jwt-secret-key-here', env='JWT_SECRET_KEY')
+    fernet_key: Optional[str] = Field(None, env='FERNET_KEY')
     environment: str = Field('development', env='ENVIRONMENT')
     debug: bool = Field(False, env='DEBUG')
     
