@@ -105,10 +105,14 @@ class AMCSyncService:
         
         try:
             response = requests.get(url, headers=headers, timeout=30)
+            logger.info(f"AMC accounts API response status: {response.status_code}")
             
             if response.status_code == 200:
                 data = response.json()
-                return data.get('amcAccounts', [])
+                accounts = data.get('amcAccounts', [])
+                logger.info(f"AMC accounts API response: {json.dumps(data, indent=2)}")
+                logger.info(f"Found {len(accounts)} AMC accounts")
+                return accounts
             else:
                 logger.error(f"Failed to fetch AMC accounts: {response.status_code} - {response.text}")
                 return []
@@ -132,10 +136,12 @@ class AMCSyncService:
         
         try:
             response = requests.get(url, headers=headers, timeout=30)
+            logger.info(f"AMC instances API response status for entity {entity_id}: {response.status_code}")
             
             if response.status_code == 200:
                 data = response.json()
                 instances = data.get('instances', [])
+                logger.info(f"AMC instances API response: {json.dumps(data, indent=2)}")
                 logger.info(f"Found {len(instances)} instances for entity {entity_id}")
                 return instances
             else:
