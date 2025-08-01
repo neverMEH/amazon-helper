@@ -62,11 +62,19 @@ async def amazon_login(redirect_uri: Optional[str] = None):
         
         # Build authorization URL
         base_url = "https://www.amazon.com/ap/oa"
+        
+        # Ensure we're using the correct redirect URI
+        redirect_uri = settings.amazon_redirect_uri
+        if settings.environment == 'production' and 'localhost' in redirect_uri:
+            # Override with production URL if not set correctly
+            redirect_uri = 'https://web-production-95aa7.up.railway.app/api/auth/amazon/callback'
+            logger.warning(f"Overriding localhost redirect URI with production URL")
+        
         params = {
             'client_id': client_id,
             'scope': settings.amazon_scope or 'advertising::campaign_management',
             'response_type': 'code',
-            'redirect_uri': settings.amazon_redirect_uri,
+            'redirect_uri': redirect_uri,
             'state': state
         }
         
@@ -74,7 +82,7 @@ async def amazon_login(redirect_uri: Optional[str] = None):
         auth_url = f"{base_url}?{param_string}"
         
         logger.info(f"Generated Amazon OAuth URL with state: {state[:10]}...")
-        logger.info(f"Redirect URI: {settings.amazon_redirect_uri}")
+        logger.info(f"Redirect URI: {redirect_uri}")
         
         return {
             "auth_url": auth_url,

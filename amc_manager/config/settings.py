@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     # Amazon Advertising API
     amazon_client_id: Optional[str] = Field(None, env='AMAZON_CLIENT_ID')
     amazon_client_secret: Optional[str] = Field(None, env='AMAZON_CLIENT_SECRET')
-    amazon_redirect_uri: Optional[str] = Field('http://localhost:8001/api/auth/amazon/callback', env='AMAZON_REDIRECT_URI')
+    amazon_redirect_uri: Optional[str] = Field('http://localhost:8001/api/auth/amazon/callback', env='AMAZON_OAUTH_REDIRECT_URI')
     amazon_scope: Optional[str] = Field('advertising::campaign_management', env='AMAZON_SCOPE')
     
     # Database
