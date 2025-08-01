@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Box, CircularProgress, Alert } from '@mui/material';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 export const AuthCallback: React.FC = () => {
@@ -40,31 +40,22 @@ export const AuthCallback: React.FC = () => {
 
   if (error) {
     return (
-      <Box 
-        display="flex" 
-        flexDirection="column" 
-        alignItems="center" 
-        justifyContent="center" 
-        minHeight="50vh"
-        gap={2}
-      >
-        <Alert severity="error">{error}</Alert>
-        <a href="/">Return to Home</a>
-      </Box>
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
+        <div className="flex items-center p-4 bg-red-50 border border-red-200 rounded-lg">
+          <AlertCircle className="w-5 h-5 text-red-600 mr-2" />
+          <span className="text-red-800">{error}</span>
+        </div>
+        <a href="/" className="text-blue-600 hover:text-blue-800 underline">
+          Return to Home
+        </a>
+      </div>
     );
   }
 
   return (
-    <Box 
-      display="flex" 
-      flexDirection="column" 
-      alignItems="center" 
-      justifyContent="center" 
-      minHeight="50vh"
-      gap={2}
-    >
-      <CircularProgress />
-      <span>Completing authentication...</span>
-    </Box>
+    <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
+      <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      <span className="text-gray-600">Completing authentication...</span>
+    </div>
   );
 };
