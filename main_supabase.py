@@ -76,26 +76,36 @@ async def health_check():
     }
 
 
-# Import and include routers (we'll create simplified versions)
-try:
-    from amc_manager.api.supabase.auth import router as auth_router
-    from amc_manager.api.supabase.instances_simple import router as instances_router
-    from amc_manager.api.supabase.workflows import router as workflows_router
-    from amc_manager.api.supabase.campaigns import router as campaigns_router
-    from amc_manager.api.supabase.queries import router as queries_router
-    from amc_manager.api.supabase.brands import router as brands_router
-    
-    app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
-    app.include_router(instances_router, prefix="/api/instances", tags=["AMC Instances"])
-    app.include_router(workflows_router, prefix="/api/workflows", tags=["Workflows"])
-    app.include_router(campaigns_router, prefix="/api/campaigns", tags=["Campaigns"])
-    app.include_router(queries_router, prefix="/api/queries", tags=["Query Templates"])
-    app.include_router(brands_router, prefix="/api/brands", tags=["Brands"])
-    
-    logger.info("All API routers loaded successfully")
-except ImportError as e:
-    logger.warning(f"Could not import all routers: {e}")
-    logger.info("Running with limited endpoints")
+# Debug endpoint to list all routes
+@app.get("/api/debug/routes")
+async def list_routes():
+    """List all registered routes for debugging"""
+    routes = []
+    for route in app.routes:
+        if hasattr(route, "path"):
+            routes.append({
+                "path": route.path,
+                "methods": list(route.methods) if hasattr(route, "methods") else []
+            })
+    return {"routes": sorted(routes, key=lambda x: x["path"])}
+
+
+# Import and include routers
+from amc_manager.api.supabase.auth import router as auth_router
+from amc_manager.api.supabase.instances_simple import router as instances_router
+from amc_manager.api.supabase.workflows import router as workflows_router
+from amc_manager.api.supabase.campaigns import router as campaigns_router
+from amc_manager.api.supabase.queries import router as queries_router
+from amc_manager.api.supabase.brands import router as brands_router
+
+app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
+app.include_router(instances_router, prefix="/api/instances", tags=["AMC Instances"])
+app.include_router(workflows_router, prefix="/api/workflows", tags=["Workflows"])
+app.include_router(campaigns_router, prefix="/api/campaigns", tags=["Campaigns"])
+app.include_router(queries_router, prefix="/api/queries", tags=["Query Templates"])
+app.include_router(brands_router, prefix="/api/brands", tags=["Brands"])
+
+logger.info("All API routers loaded successfully")
 
 # Serve static files if built frontend exists
 frontend_dist = Path("frontend/dist")
@@ -117,9 +127,10 @@ if frontend_dist.exists():
     # Catch-all route for SPA (must be last)
     @app.get("/{full_path:path}")
     async def serve_spa(full_path: str):
-        # Don't catch API routes
+        # Don't catch API routes - let FastAPI handle 404s for them
         if full_path.startswith("api/"):
-            raise HTTPException(status_code=404, detail="API endpoint not found")
+            # Return 404 but don't override FastAPI's error handling
+            raise HTTPException(status_code=404)
         
         # Serve index.html for all other routes
         index_path = frontend_dist / "index.html"

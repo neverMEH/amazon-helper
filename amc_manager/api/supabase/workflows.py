@@ -45,7 +45,7 @@ class ScheduleUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 
-@router.get("/")
+@router.get("")
 def list_workflows(
     instance_id: Optional[str] = None,
     current_user: Dict[str, Any] = Depends(get_current_user)

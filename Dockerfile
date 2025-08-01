@@ -28,8 +28,8 @@ WORKDIR /app
 # Copy the rest of the application
 COPY . .
 
-# Expose port
-EXPOSE 8000
+# Expose port (Railway will set PORT env var)
+EXPOSE 8001
 
 # Start the application
 CMD ["python", "main_supabase.py"]

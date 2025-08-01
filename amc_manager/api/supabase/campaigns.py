@@ -11,7 +11,7 @@ logger = get_logger(__name__)
 router = APIRouter()
 
 
-@router.get("/")
+@router.get("")
 def list_campaigns(
     brand_tag: Optional[str] = Query(None, description="Filter by brand tag"),
     campaign_type: Optional[str] = Query(None, description="Filter by campaign type"),

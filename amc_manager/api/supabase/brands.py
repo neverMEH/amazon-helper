@@ -11,7 +11,7 @@ logger = get_logger(__name__)
 router = APIRouter()
 
 
-@router.get("/")
+@router.get("")
 def list_brands(
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> List[Dict[str, str]]:
