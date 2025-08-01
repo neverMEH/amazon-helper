@@ -1,14 +1,13 @@
-2025-08-01 21:03:52 - amc_manager.services.token_service - WARNING - Generated new encryption key. Set ENCRYPTION_KEY env var for persistence.
-2025-08-01 21:03:52 - __main__ - INFO - All API routers loaded successfully
-2025-08-01 21:03:52 - __main__ - INFO - Frontend static files mounted
-2025-08-01 21:03:52 - main_supabase - INFO - All API routers loaded successfully
-2025-08-01 21:03:52 - main_supabase - INFO - Frontend static files mounted
-INFO:     Started server process [207091]
+2025-08-01 23:37:56 - amc_manager.services.token_service - WARNING - Generated new encryption key. Set FERNET_KEY env var for persistence.
+2025-08-01 23:37:56 - __main__ - INFO - All API routers loaded successfully
+2025-08-01 23:37:56 - __main__ - INFO - Frontend static files mounted
+2025-08-01 23:37:56 - main_supabase - INFO - All API routers loaded successfully
+2025-08-01 23:37:56 - main_supabase - INFO - Frontend static files mounted
+INFO:     Started server process [247150]
 INFO:     Waiting for application startup.
-2025-08-01 21:03:52 - main_supabase - INFO - Starting AMC Manager application with Supabase...
-2025-08-01 21:03:52 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-01 21:03:53 - main_supabase - INFO - ✓ Supabase connection successful
+2025-08-01 23:37:56 - main_supabase - INFO - Starting AMC Manager application with Supabase...
+2025-08-01 23:37:56 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-08-01 23:37:56 - main_supabase - INFO - ✓ Supabase connection successful
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     127.0.0.1:43890 - "GET /api/health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:54648 - "GET /api/instances HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:47452 - "GET /api/health HTTP/1.1" 200 OK
