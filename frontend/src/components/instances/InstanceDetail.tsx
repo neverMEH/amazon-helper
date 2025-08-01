@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Database, Activity, Settings, FileText } from 'lucide-react';
+import { ArrowLeft, Database, Activity, Settings, FileText, History } from 'lucide-react';
 import api from '../../services/api';
 import InstanceOverview from './InstanceOverview';
 import InstanceCampaigns from './InstanceCampaigns';
 import InstanceWorkflows from './InstanceWorkflows';
 import InstanceQueries from './InstanceQueries';
+import InstanceExecutions from './InstanceExecutions';
 
 interface InstanceDetail {
   id: string;
@@ -34,7 +35,7 @@ interface InstanceDetail {
   };
 }
 
-type TabType = 'overview' | 'campaigns' | 'workflows' | 'queries';
+type TabType = 'overview' | 'campaigns' | 'workflows' | 'queries' | 'executions';
 
 export default function InstanceDetail() {
   const { instanceId } = useParams<{ instanceId: string }>();
@@ -73,6 +74,7 @@ export default function InstanceDetail() {
     { id: 'campaigns' as TabType, name: 'Campaigns', icon: Activity },
     { id: 'workflows' as TabType, name: 'Workflows', icon: Settings },
     { id: 'queries' as TabType, name: 'Queries', icon: FileText },
+    { id: 'executions' as TabType, name: 'Executions', icon: History },
   ];
 
   return (
@@ -144,6 +146,7 @@ export default function InstanceDetail() {
         {activeTab === 'campaigns' && <InstanceCampaigns instanceId={instance.instanceId} />}
         {activeTab === 'workflows' && <InstanceWorkflows instanceId={instance.instanceId} />}
         {activeTab === 'queries' && <InstanceQueries instanceId={instance.instanceId} />}
+        {activeTab === 'executions' && <InstanceExecutions instanceId={instance.instanceId} />}
       </div>
     </div>
   );
