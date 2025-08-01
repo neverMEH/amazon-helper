@@ -7,6 +7,7 @@ from ...services.db_service import db_service
 from ...services.brand_service import brand_service
 from ...core.logger_simple import get_logger
 from .auth import get_current_user
+from ...services.amc_sync_service import amc_sync_service
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -264,3 +265,41 @@ def update_instance_brands(
     except Exception as e:
         logger.error(f"Error updating brands for instance {instance_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to update brands")
+
+
+@router.post("/sync")
+async def sync_instances(
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Sync AMC instances from Amazon API for the current user
+    
+    This will:
+    1. Fetch AMC accounts from Amazon API
+    2. For each account, fetch associated AMC instances
+    3. Store/update the data in the database
+    """
+    try:
+        logger.info(f"Starting AMC instance sync for user {current_user['id']}")
+        
+        # Run the sync
+        result = await amc_sync_service.sync_user_instances(current_user['id'])
+        
+        if result['success']:
+            logger.info(f"Successfully synced instances: {result['message']}")
+            return result
+        else:
+            logger.error(f"Sync failed: {result['error']}")
+            raise HTTPException(
+                status_code=400, 
+                detail=result['error']
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error during sync: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to sync instances from Amazon"
+        )

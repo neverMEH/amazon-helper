@@ -1,6 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Database, CheckCircle, XCircle, ChevronRight } from 'lucide-react';
+import { Database, CheckCircle, XCircle, ChevronRight, RefreshCw } from 'lucide-react';
+import { useState } from 'react';
 import api from '../../services/api';
 
 interface AMCInstance {
@@ -23,6 +24,9 @@ interface AMCInstance {
 
 export default function Instances() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [syncStatus, setSyncStatus] = useState<string | null>(null);
+  
   const { data: instances, isLoading, isFetching } = useQuery<AMCInstance[]>({
     queryKey: ['instances'],
     queryFn: async () => {
@@ -38,6 +42,23 @@ export default function Instances() {
     gcTime: 10 * 60 * 1000,    // Keep in cache for 10 minutes
   });
 
+  const syncMutation = useMutation({
+    mutationFn: async () => {
+      const response = await api.post('/instances/sync');
+      return response.data;
+    },
+    onSuccess: (data) => {
+      // Invalidate and refetch instances
+      queryClient.invalidateQueries({ queryKey: ['instances'] });
+      setSyncStatus(`Synced ${data.instances_synced} instances from ${data.accounts_synced} accounts`);
+      setTimeout(() => setSyncStatus(null), 5000);
+    },
+    onError: (error: any) => {
+      setSyncStatus(error.response?.data?.detail || 'Failed to sync instances');
+      setTimeout(() => setSyncStatus(null), 5000);
+    }
+  });
+
   return (
     <div className="p-6">
       <div className="mb-8">
@@ -48,15 +69,52 @@ export default function Instances() {
               Manage your Amazon Marketing Cloud instances
             </p>
           </div>
-          {isFetching && !isLoading && (
-            <div className="text-sm text-gray-500">Refreshing...</div>
-          )}
+          <div className="flex items-center gap-4">
+            {(isFetching && !isLoading) || syncMutation.isPending ? (
+              <div className="text-sm text-gray-500">
+                {syncMutation.isPending ? 'Syncing with Amazon...' : 'Refreshing...'}
+              </div>
+            ) : null}
+            {syncStatus && (
+              <div className={`text-sm ${syncStatus.includes('Failed') ? 'text-red-600' : 'text-green-600'}`}>
+                {syncStatus}
+              </div>
+            )}
+            <button
+              onClick={() => syncMutation.mutate()}
+              disabled={syncMutation.isPending}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
+              Sync from Amazon
+            </button>
+          </div>
         </div>
       </div>
 
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
           <div className="text-gray-500">Loading instances...</div>
+        </div>
+      ) : instances && instances.length === 0 ? (
+        <div className="bg-white shadow overflow-hidden sm:rounded-lg p-12">
+          <div className="text-center">
+            <Database className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900">No AMC instances found</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Click "Sync from Amazon" to fetch your AMC instances.
+            </p>
+            <div className="mt-6">
+              <button
+                onClick={() => syncMutation.mutate()}
+                disabled={syncMutation.isPending}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
+                Sync from Amazon
+              </button>
+            </div>
+          </div>
         </div>
       ) : (
         <div className="bg-white shadow overflow-hidden sm:rounded-lg">
