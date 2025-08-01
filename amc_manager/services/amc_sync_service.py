@@ -221,17 +221,12 @@ class AMCSyncService:
                     'instance_name': instance.get('instanceName', ''),
                     'account_id': account_db_id,
                     'region': instance.get('region', 'us-east-1'),
-                    'status': 'active' if instance.get('creationStatus') == 'CREATED' else 'inactive',
+                    'status': 'active' if instance.get('creationStatus') == 'COMPLETED' else 'inactive',
                     'endpoint_url': instance.get('apiEndpoint', ''),
                     'data_upload_account_id': instance.get('s3BucketName', ''),
                     'capabilities': {
                         'instance_type': instance.get('instanceType', 'STANDARD'),
                         'datasets': instance.get('optionalDatasets', [])
-                    },
-                    'metadata': {
-                        'customer_name': instance.get('customerCanonicalName', ''),
-                        'entities': instance.get('entities', []),
-                        'creation_datetime': instance.get('creationDatetime', '')
                     }
                 }
                 
