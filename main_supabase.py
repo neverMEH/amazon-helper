@@ -99,6 +99,16 @@ from amc_manager.api.supabase.campaigns import router as campaigns_router
 from amc_manager.api.supabase.queries import router as queries_router
 from amc_manager.api.supabase.brands import router as brands_router
 
+# Add redirect for misconfigured callback URL (must be before router includes)
+@app.get("/api/auth/callback")
+async def redirect_amazon_callback(code: str, state: str, scope: str = None):
+    """Redirect misconfigured Amazon callback to correct endpoint"""
+    from fastapi.responses import RedirectResponse
+    params = f"code={code}&state={state}"
+    if scope:
+        params += f"&scope={scope}"
+    return RedirectResponse(url=f"/api/auth/amazon/callback?{params}")
+
 app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(amazon_auth_router, prefix="/api/auth/amazon", tags=["Amazon OAuth"])
 app.include_router(instances_router, prefix="/api/instances", tags=["AMC Instances"])
