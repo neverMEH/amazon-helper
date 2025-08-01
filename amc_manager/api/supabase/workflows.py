@@ -221,19 +221,26 @@ def execute_workflow(
         instance_id = body.get('instance_id')
         parameters = {k: v for k, v in body.items() if k != 'instance_id'}
         
+        logger.info(f"Executing workflow {workflow_id} with instance_id: {instance_id}, parameters: {parameters}")
+        
         workflow = db_service.get_workflow_by_id_sync(workflow_id)
         
         if not workflow:
+            logger.error(f"Workflow {workflow_id} not found")
             raise HTTPException(status_code=404, detail="Workflow not found")
+        
+        logger.info(f"Found workflow: id={workflow['id']}, name={workflow['name']}, is_template={workflow.get('is_template', False)}")
         
         # Verify ownership
         if workflow['user_id'] != current_user['id']:
+            logger.error(f"Access denied: workflow user_id={workflow['user_id']}, current user_id={current_user['id']}")
             raise HTTPException(status_code=403, detail="Access denied")
         
         # Import here to avoid circular import
         from ...services.amc_execution_service import amc_execution_service
         
         # Execute workflow using AMC execution service
+        logger.info(f"Calling execution service with workflow UUID: {workflow['id']}")
         result = amc_execution_service.execute_workflow(
             workflow_id=workflow['id'],  # Use internal UUID
             user_id=current_user['id'],
@@ -244,12 +251,13 @@ def execute_workflow(
         
         return result
     except ValueError as e:
+        logger.error(f"ValueError in workflow execution: {e}")
         raise HTTPException(status_code=400, detail=str(e))
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error executing workflow {workflow_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to execute workflow")
+        logger.error(f"Error executing workflow {workflow_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to execute workflow: {str(e)}")
 
 
 @router.get("/{workflow_id}/executions")
@@ -282,8 +290,8 @@ def list_workflow_executions(
             "error_message": e.get('error_message'),
             "row_count": e.get('row_count'),
             "triggered_by": e.get('triggered_by', 'manual'),
-            "amc_execution_id": e.get('amc_execution_id'),
-            "instance_id": e.get('instance_id')  # Include instance_id in response
+            "amc_execution_id": e.get('amc_execution_id')
+            # Note: instance_id not stored in executions - use workflow relationship if needed
         } for e in executions]
     except HTTPException:
         raise

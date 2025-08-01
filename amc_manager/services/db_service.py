@@ -94,6 +94,19 @@ class DatabaseService:
             return []
     
     @with_connection_retry
+    def user_has_instance_access_sync(self, user_id: str, instance_id: str) -> bool:
+        """Check if user has access to a specific instance - sync version"""
+        try:
+            # Get user's instances
+            user_instances = self.get_user_instances_sync(user_id)
+            
+            # Check if the requested instance_id is in the user's instances
+            return any(inst['instance_id'] == instance_id for inst in user_instances)
+        except Exception as e:
+            logger.error(f"Error checking instance access: {e}")
+            return False
+    
+    @with_connection_retry
     def get_user_campaigns_sync(self, user_id: str, brand_tag: Optional[str] = None) -> List[Dict[str, Any]]:
         """Get campaigns for user - sync version"""
         try:

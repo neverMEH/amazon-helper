@@ -63,17 +63,26 @@ class AMCExecutionService:
             # Determine which instance to use
             if instance_id:
                 # Use the provided instance (for templates run on different instances)
+                logger.info(f"Looking up instance by instance_id: {instance_id}")
                 instance = self._get_instance(instance_id)
                 if not instance:
+                    logger.error(f"AMC instance {instance_id} not found in database")
                     raise ValueError(f"AMC instance {instance_id} not found")
+                logger.info(f"Found instance: {instance['instance_name']} (id: {instance['id']})")
+                
                 # Verify user has access to this instance
+                logger.info(f"Checking user {user_id} access to instance {instance_id}")
                 if not self.db.user_has_instance_access_sync(user_id, instance_id):
+                    logger.error(f"User {user_id} does not have access to instance {instance_id}")
                     raise ValueError(f"Access denied to instance {instance_id}")
+                logger.info(f"User has access to instance {instance_id}")
             else:
                 # Use the workflow's default instance
                 instance = workflow.get('amc_instances', {})
                 if not instance:
+                    logger.error(f"No AMC instance associated with workflow {workflow_id}")
                     raise ValueError("No AMC instance associated with workflow")
+                logger.info(f"Using workflow's default instance: {instance.get('instance_id', 'unknown')}")
             
             # Prepare SQL query with parameter substitution
             sql_query = self._prepare_sql_query(
@@ -87,8 +96,8 @@ class AMCExecutionService:
                 "status": "pending",
                 "execution_parameters": execution_parameters or {},
                 "triggered_by": triggered_by,
-                "started_at": datetime.now(timezone.utc).isoformat(),
-                "instance_id": instance['instance_id']  # Track which instance this runs on
+                "started_at": datetime.now(timezone.utc).isoformat()
+                # Note: instance_id is not stored in executions table - it's tracked via workflow relationship
             }
             
             execution = self.db.create_execution_sync(execution_data)
