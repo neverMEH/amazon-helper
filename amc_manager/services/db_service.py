@@ -76,18 +76,20 @@ class DatabaseService:
         try:
             # First get user's accounts
             accounts_response = self.client.table('amc_accounts').select('id').eq('user_id', user_id).execute()
+            logger.info(f"Found {len(accounts_response.data)} accounts for user {user_id}")
             if not accounts_response.data:
                 return []
             
             account_ids = [acc['id'] for acc in accounts_response.data]
+            logger.info(f"Account IDs: {account_ids}")
             
             # Then get instances for those accounts with joined account data
             instances_response = self.client.table('amc_instances')\
                 .select('*, amc_accounts!inner(*)')\
                 .in_('account_id', account_ids)\
-                .eq('status', 'active')\
                 .execute()
             
+            logger.info(f"Found {len(instances_response.data)} instances")
             return instances_response.data or []
         except Exception as e:
             logger.error(f"Error fetching user instances: {e}")
@@ -403,7 +405,6 @@ class DatabaseService:
                     workflows(id, status)
                 ''')\
                 .in_('account_id', account_ids)\
-                .eq('status', 'active')\
                 .execute()
             
             if not instances_response.data:
