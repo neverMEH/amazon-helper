@@ -26,7 +26,7 @@ export default function Instances() {
   const { data: instances, isLoading, isFetching } = useQuery<AMCInstance[]>({
     queryKey: ['instances'],
     queryFn: async () => {
-      const response = await api.get('/instances/', {
+      const response = await api.get('/instances', {
         params: {
           limit: 100,  // Load up to 100 instances
           offset: 0

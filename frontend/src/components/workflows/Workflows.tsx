@@ -31,14 +31,14 @@ export default function Workflows() {
   const { data: workflows, isLoading } = useQuery<Workflow[]>({
     queryKey: ['workflows'],
     queryFn: async () => {
-      const response = await api.get('/workflows/');
+      const response = await api.get('/workflows');
       return response.data;
     },
   });
 
   const executeMutation = useMutation({
     mutationFn: async ({ workflowId, parameters }: { workflowId: string, parameters?: any }) => {
-      const response = await api.post(`/workflows/${workflowId}/execute/`, parameters || {});
+      const response = await api.post(`/workflows/${workflowId}/execute`, parameters || {});
       return response.data;
     },
     onSuccess: (data) => {

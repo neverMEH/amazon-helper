@@ -16,9 +16,9 @@ export default function Dashboard() {
       // For now, we'll use placeholder data
       // TODO: Create a dedicated stats endpoint
       const [instances, workflows, campaigns] = await Promise.all([
-        api.get('/instances/'),
-        api.get('/workflows/'),
-        api.get('/campaigns/'),
+        api.get('/instances'),
+        api.get('/workflows'),
+        api.get('/campaigns'),
       ]);
       
       return {

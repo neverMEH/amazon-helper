@@ -44,7 +44,7 @@ export default function WorkflowForm({ onClose, workflowId, templateId }: Workfl
   const { data: instances } = useQuery<Instance[]>({
     queryKey: ['instances'],
     queryFn: async () => {
-      const response = await api.get('/instances/');
+      const response = await api.get('/instances');
       return response.data;
     },
   });
@@ -53,7 +53,7 @@ export default function WorkflowForm({ onClose, workflowId, templateId }: Workfl
   const { data: templates } = useQuery<QueryTemplate[]>({
     queryKey: ['query-templates'],
     queryFn: async () => {
-      const response = await api.get('/queries/templates/');
+      const response = await api.get('/queries/templates');
       return response.data;
     },
   });
@@ -95,7 +95,7 @@ export default function WorkflowForm({ onClose, workflowId, templateId }: Workfl
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const response = await api.post('/workflows/', data);
+      const response = await api.post('/workflows', data);
       return response.data;
     },
     onSuccess: () => {

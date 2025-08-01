@@ -24,14 +24,14 @@ export default function Campaigns() {
       if (brandFilter) params.append('brand_tag', brandFilter);
       if (typeFilter) params.append('campaign_type', typeFilter);
       
-      const response = await api.get(`/campaigns/?${params}`);
+      const response = await api.get(`/campaigns?${params}`);
       return response.data;
     },
   });
 
   const handleSync = async () => {
     try {
-      await api.post('/campaigns/sync/');
+      await api.post('/campaigns/sync');
       refetch();
     } catch (error) {
       console.error('Failed to sync campaigns:', error);
