@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { X, Play, Loader, CheckCircle, XCircle, Download, Eye, BarChart } from 'lucide-react';
+import { X, Play, Loader, CheckCircle, XCircle, Download, Eye, BarChart, Code } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../../services/api';
 import JSONEditor from '../common/JSONEditor';
+import ParameterEditor from './ParameterEditor';
 import ResultsVisualization from './ResultsVisualization';
 
 interface ExecutionModalProps {
@@ -60,6 +61,7 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
   const [executionId, setExecutionId] = useState<string | null>(null);
   const [showResults, setShowResults] = useState(false);
   const [showVisualization, setShowVisualization] = useState(false);
+  const [useAdvancedEditor, setUseAdvancedEditor] = useState(false);
   
   // Fetch available instances for the user
   const { data: instances } = useQuery({
@@ -220,15 +222,33 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
               )}
 
               <div>
-                <h3 className="text-lg font-medium mb-2">Parameters</h3>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-lg font-medium">Parameters</h3>
+                  <button
+                    type="button"
+                    onClick={() => setUseAdvancedEditor(!useAdvancedEditor)}
+                    className="inline-flex items-center px-2 py-1 text-xs font-medium rounded text-gray-600 hover:text-gray-900"
+                  >
+                    <Code className="h-3 w-3 mr-1" />
+                    {useAdvancedEditor ? 'Simple Editor' : 'Advanced Editor'}
+                  </button>
+                </div>
                 <p className="text-sm text-gray-600 mb-4">
                   Configure the parameters for this execution. These will be substituted in the SQL query.
                 </p>
-                <JSONEditor
-                  value={parameters}
-                  onChange={setParameters}
-                  height="200px"
-                />
+                {useAdvancedEditor ? (
+                  <JSONEditor
+                    value={parameters}
+                    onChange={setParameters}
+                    height="200px"
+                  />
+                ) : (
+                  <ParameterEditor
+                    parameters={parameters}
+                    onChange={setParameters}
+                    schema={workflowData?.parameterSchema}
+                  />
+                )}
               </div>
 
               <div className="flex justify-end">
