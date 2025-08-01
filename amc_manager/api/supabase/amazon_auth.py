@@ -7,6 +7,7 @@ import secrets
 import requests
 from datetime import datetime, timedelta
 import jwt
+import os
 
 from ...config import settings
 from ...services.db_service import db_service
@@ -65,10 +66,21 @@ async def amazon_login(redirect_uri: Optional[str] = None):
         
         # Ensure we're using the correct redirect URI
         redirect_uri = settings.amazon_redirect_uri
-        if settings.environment == 'production' and 'localhost' in redirect_uri:
-            # Override with production URL if not set correctly
+        
+        # Force correct redirect URI in production (Railway)
+        if os.getenv('RAILWAY_ENVIRONMENT'):
             redirect_uri = 'https://web-production-95aa7.up.railway.app/api/auth/amazon/callback'
-            logger.warning(f"Overriding localhost redirect URI with production URL")
+            logger.info(f"Using Railway production redirect URI")
+        else:
+            # Check if we're using the wrong callback path
+            if '/api/auth/callback' in redirect_uri and '/api/auth/amazon/callback' not in redirect_uri:
+                redirect_uri = redirect_uri.replace('/api/auth/callback', '/api/auth/amazon/callback')
+                logger.warning(f"Fixed incorrect callback path in redirect URI: {redirect_uri}")
+            
+            # Override localhost URLs in non-debug mode
+            if 'localhost' in redirect_uri and not settings.debug:
+                redirect_uri = 'https://web-production-95aa7.up.railway.app/api/auth/amazon/callback'
+                logger.warning(f"Overriding localhost redirect URI with production URL")
         
         params = {
             'client_id': client_id,
