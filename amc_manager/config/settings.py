@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     # Amazon Advertising API
     amazon_client_id: Optional[str] = Field(None, env='AMAZON_CLIENT_ID')
     amazon_client_secret: Optional[str] = Field(None, env='AMAZON_CLIENT_SECRET')
-    amazon_redirect_uri: Optional[str] = Field('http://localhost:8000/callback', env='AMAZON_REDIRECT_URI')
+    amazon_redirect_uri: Optional[str] = Field('http://localhost:8001/api/auth/amazon/callback', env='AMAZON_REDIRECT_URI')
     amazon_scope: Optional[str] = Field('advertising::campaign_management', env='AMAZON_SCOPE')
     
     # Database
@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     api_host: str = Field('0.0.0.0', env='API_HOST')
     api_port: int = Field(8000, env='API_PORT')
     api_workers: int = Field(4, env='API_WORKERS')
+    frontend_url: Optional[str] = Field('http://localhost:5173', env='FRONTEND_URL')
     
     # Celery
     celery_broker_url: Optional[str] = Field(None, env='CELERY_BROKER_URL')

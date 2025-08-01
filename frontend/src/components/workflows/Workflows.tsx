@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import api from '../../services/api';
+import { AmazonAuthStatus } from '../AmazonAuthStatus';
 
 interface Workflow {
   id: string;
@@ -77,6 +78,10 @@ export default function Workflows() {
           <Plus className="h-4 w-4 mr-2" />
           New Workflow
         </button>
+      </div>
+
+      <div className="mb-4">
+        <AmazonAuthStatus />
       </div>
 
       {isLoading ? (

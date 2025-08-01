@@ -10,6 +10,7 @@ import Campaigns from './components/campaigns/Campaigns';
 import Workflows from './components/workflows/Workflows';
 import WorkflowDetail from './components/workflows/WorkflowDetail';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import { AuthCallback } from './pages/AuthCallback';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,6 +31,8 @@ function App() {
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/auth/success" element={<AuthCallback />} />
+          <Route path="/auth/error" element={<AuthCallback />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />

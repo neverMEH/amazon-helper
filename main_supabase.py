@@ -92,6 +92,7 @@ async def list_routes():
 
 # Import and include routers
 from amc_manager.api.supabase.auth import router as auth_router
+from amc_manager.api.supabase.amazon_auth import router as amazon_auth_router
 from amc_manager.api.supabase.instances_simple import router as instances_router
 from amc_manager.api.supabase.workflows import router as workflows_router
 from amc_manager.api.supabase.campaigns import router as campaigns_router
@@ -99,6 +100,7 @@ from amc_manager.api.supabase.queries import router as queries_router
 from amc_manager.api.supabase.brands import router as brands_router
 
 app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
+app.include_router(amazon_auth_router, prefix="/api/auth/amazon", tags=["Amazon OAuth"])
 app.include_router(instances_router, prefix="/api/instances", tags=["AMC Instances"])
 app.include_router(workflows_router, prefix="/api/workflows", tags=["Workflows"])
 app.include_router(campaigns_router, prefix="/api/campaigns", tags=["Campaigns"])
