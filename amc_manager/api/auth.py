@@ -76,12 +76,14 @@ async def auth_callback(
         })
         
         # Redirect to frontend with token
-        redirect_url = f"http://localhost:3000/auth/success?token={jwt_token}"
+        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+        redirect_url = f"{frontend_url}/auth/success?token={jwt_token}"
         return RedirectResponse(url=redirect_url)
         
     except Exception as e:
         logger.error(f"Auth callback failed: {e}")
-        redirect_url = f"http://localhost:3000/auth/error?message={str(e)}"
+        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+        redirect_url = f"{frontend_url}/auth/error?message={str(e)}"
         return RedirectResponse(url=redirect_url)
 
 
