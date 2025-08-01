@@ -1,4 +1,4 @@
-import { FileText, TrendingUp, Users, ShoppingCart, BarChart } from 'lucide-react';
+import { TrendingUp, Users, ShoppingCart, BarChart } from 'lucide-react';
 
 export interface QueryTemplate {
   id: string;

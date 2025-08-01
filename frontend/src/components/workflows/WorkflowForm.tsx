@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { X, Save, FileText } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import QueryEditor from './QueryEditor';
-import QueryTemplates, { QueryTemplate } from './QueryTemplates';
+import QueryTemplates from './QueryTemplates';
+import type { QueryTemplate as ImportedQueryTemplate } from './QueryTemplates';
 import api from '../../services/api';
 
 interface WorkflowFormProps {
@@ -20,14 +21,6 @@ interface Instance {
   isActive: boolean;
 }
 
-interface QueryTemplate {
-  template_id: string;
-  name: string;
-  description: string;
-  sql_template: string;
-  default_parameters: any;
-  tags: string[];
-}
 
 export default function WorkflowForm({ onClose, workflowId, templateId }: WorkflowFormProps) {
   const queryClient = useQueryClient();
@@ -52,7 +45,7 @@ export default function WorkflowForm({ onClose, workflowId, templateId }: Workfl
   });
 
   // Fetch templates
-  const { data: templates } = useQuery<QueryTemplate[]>({
+  const { data: templates } = useQuery<any[]>({
     queryKey: ['query-templates'],
     queryFn: async () => {
       const response = await api.get('/queries/templates');
@@ -171,7 +164,7 @@ export default function WorkflowForm({ onClose, workflowId, templateId }: Workfl
     setFormData(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tag) }));
   };
 
-  const handleTemplateSelect = (template: QueryTemplate) => {
+  const handleTemplateSelect = (template: ImportedQueryTemplate) => {
     setFormData(prev => ({
       ...prev,
       name: template.name,

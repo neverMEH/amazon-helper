@@ -1,8 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { GitBranch, Plus, Play, Clock, CheckCircle, AlertCircle, Tag } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-hot-toast';
 import api from '../../services/api';
 import { AmazonAuthStatus } from '../AmazonAuthStatus';
 import WorkflowForm from './WorkflowForm';
@@ -29,7 +28,6 @@ interface Workflow {
 export default function Workflows() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [executingWorkflow, setExecutingWorkflow] = useState<string | null>(null);
   const [showWorkflowForm, setShowWorkflowForm] = useState(false);
   const [showExecutionModal, setShowExecutionModal] = useState(false);
   const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null);
