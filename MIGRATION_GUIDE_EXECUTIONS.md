@@ -1,7 +1,9 @@
 # Migration Guide: Add Execution History to Instance View
 
 ## Overview
-This guide explains how to enable execution history tracking in the instance detail view. Currently, executions are not shown because the `instance_id` column is missing from the `workflow_executions` table.
+This guide explains how to enable execution history tracking in the instance detail view. Currently, executions are not shown because:
+1. The `instance_id` column is missing from the `workflow_executions` table
+2. Template workflows are associated with one instance but can be executed on any instance
 
 ## Steps to Enable Execution History
 

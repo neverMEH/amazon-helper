@@ -52,13 +52,22 @@ def list_workflows(
 ) -> List[Dict[str, Any]]:
     """List all workflows for the current user"""
     try:
+        logger.info(f"Listing workflows for user {current_user['id']}, instance_id filter: {instance_id}")
         workflows = db_service.get_user_workflows_sync(current_user['id'])
+        logger.info(f"Found {len(workflows)} total workflows for user")
         
         # Filter by instance if provided
         if instance_id:
-            # For now, filter by instance_id directly
-            # TODO: Add proper instance lookup
+            logger.info(f"Filtering workflows by instance_id: {instance_id}")
+            # Check if any workflows have instance data
+            for w in workflows[:3]:  # Log first 3 for debugging
+                if 'amc_instances' in w:
+                    logger.info(f"  Workflow {w['workflow_id']} has instance: {w['amc_instances'].get('instance_id')}")
+                else:
+                    logger.info(f"  Workflow {w['workflow_id']} has NO instance data")
+            
             workflows = [w for w in workflows if 'amc_instances' in w and w['amc_instances'].get('instance_id') == instance_id]
+            logger.info(f"After filtering: {len(workflows)} workflows for instance {instance_id}")
         
         return [{
             "id": w['workflow_id'],
@@ -79,7 +88,7 @@ def list_workflows(
             "lastExecuted": w.get('last_executed_at')
         } for w in workflows]
     except Exception as e:
-        logger.error(f"Error listing workflows: {e}")
+        logger.error(f"Error listing workflows: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to fetch workflows")
 
 

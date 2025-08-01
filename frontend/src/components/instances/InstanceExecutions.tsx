@@ -35,26 +35,30 @@ export default function InstanceExecutions({ instanceId }: InstanceExecutionsPro
   const [selectedExecutionId, setSelectedExecutionId] = useState<string | null>(null);
   const [selectedWorkflow, setSelectedWorkflow] = useState<{ workflowId: string; name: string } | null>(null);
   
-  // Fetch workflows for this instance
-  const { data: workflows } = useQuery<Workflow[]>({
-    queryKey: ['instance-workflows', instanceId],
+  // Fetch ALL workflows (including templates) for execution
+  const { data: allWorkflows } = useQuery<Workflow[]>({
+    queryKey: ['all-workflows'],
     queryFn: async () => {
-      const response = await api.get('/workflows', { params: { instance_id: instanceId } });
+      const response = await api.get('/workflows');
       return response.data;
     },
   });
 
-  // Fetch all executions for all workflows of this instance
+  // Fetch executions for ALL workflows, then filter by instance
+  // This approach is needed because template workflows can be executed on any instance
   const { data: executions, isLoading } = useQuery<Execution[]>({
     queryKey: ['instance-executions', instanceId],
     queryFn: async () => {
-      if (!workflows || workflows.length === 0) return [];
+      if (!allWorkflows || allWorkflows.length === 0) return [];
       
-      // Fetch executions for each workflow
+      // Fetch executions for each workflow with instance filter
       const allExecutions = await Promise.all(
-        workflows.map(async (workflow) => {
+        allWorkflows.map(async (workflow) => {
           try {
-            const response = await api.get(`/workflows/${workflow.workflowId}/executions`);
+            // Pass instance_id to filter executions by instance
+            const response = await api.get(`/workflows/${workflow.workflowId}/executions`, {
+              params: { instance_id: instanceId }
+            });
             // Add workflow info to each execution
             return response.data.map((exec: Execution) => ({
               ...exec,
@@ -76,7 +80,7 @@ export default function InstanceExecutions({ instanceId }: InstanceExecutionsPro
           return new Date(b.started_at).getTime() - new Date(a.started_at).getTime();
         });
     },
-    enabled: !!workflows && workflows.length > 0,
+    enabled: !!allWorkflows && allWorkflows.length > 0,
     refetchInterval: 10000, // Refetch every 10 seconds
   });
 
@@ -129,7 +133,7 @@ export default function InstanceExecutions({ instanceId }: InstanceExecutionsPro
     );
   }
 
-  const hasWorkflows = workflows && workflows.length > 0;
+  const hasWorkflows = allWorkflows && allWorkflows.length > 0;
   const hasExecutions = executions && executions.length > 0;
 
   return (
@@ -145,7 +149,7 @@ export default function InstanceExecutions({ instanceId }: InstanceExecutionsPro
           <button
             onClick={() => {
               // Pick the first workflow as default for execution
-              const firstWorkflow = workflows[0];
+              const firstWorkflow = allWorkflows[0];
               setSelectedWorkflow({
                 workflowId: firstWorkflow.workflowId,
                 name: firstWorkflow.name

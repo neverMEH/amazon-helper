@@ -97,7 +97,9 @@ class AMCExecutionService:
                 "execution_parameters": execution_parameters or {},
                 "triggered_by": triggered_by,
                 "started_at": datetime.now(timezone.utc).isoformat()
-                # Note: instance_id is not stored in executions table - it's tracked via workflow relationship
+                # Note: instance_id column must be added to workflow_executions table via migration
+                # Once added, uncomment the line below:
+                # "instance_id": instance['instance_id']
             }
             
             execution = self.db.create_execution_sync(execution_data)
