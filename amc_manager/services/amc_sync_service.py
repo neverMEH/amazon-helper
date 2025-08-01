@@ -172,6 +172,7 @@ class AMCSyncService:
                         .update({
                             'account_name': account['accountName'],
                             'marketplace_id': account.get('marketplaceId', 'ATVPDKIKX0DER'),
+                            'region': 'us-east-1',  # Default region for US marketplace
                             'updated_at': datetime.utcnow().isoformat()
                         })\
                         .eq('id', account_id)\
@@ -183,7 +184,8 @@ class AMCSyncService:
                             'user_id': user_id,
                             'account_id': account['accountId'],
                             'account_name': account['accountName'],
-                            'marketplace_id': account.get('marketplaceId', 'ATVPDKIKX0DER')
+                            'marketplace_id': account.get('marketplaceId', 'ATVPDKIKX0DER'),
+                            'region': 'us-east-1'  # Default region for US marketplace
                         })\
                         .execute()
                     account_id = result.data[0]['id']
