@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, Save } from 'lucide-react';
+import { X, Save, FileText } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import QueryEditor from './QueryEditor';
+import QueryTemplates, { QueryTemplate } from './QueryTemplates';
 import api from '../../services/api';
 
 interface WorkflowFormProps {
@@ -39,6 +40,7 @@ export default function WorkflowForm({ onClose, workflowId, templateId }: Workfl
     tags: [] as string[],
   });
   const [detectedParams, setDetectedParams] = useState<string[]>([]);
+  const [showTemplates, setShowTemplates] = useState(false);
 
   // Fetch instances
   const { data: instances } = useQuery<Instance[]>({
@@ -169,6 +171,18 @@ export default function WorkflowForm({ onClose, workflowId, templateId }: Workfl
     setFormData(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tag) }));
   };
 
+  const handleTemplateSelect = (template: QueryTemplate) => {
+    setFormData(prev => ({
+      ...prev,
+      name: template.name,
+      description: template.description,
+      sql_query: template.sqlTemplate,
+      tags: template.tags,
+    }));
+    setShowTemplates(false);
+    toast.success(`Template "${template.name}" loaded`);
+  };
+
   return (
     <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
@@ -226,7 +240,7 @@ export default function WorkflowForm({ onClose, workflowId, templateId }: Workfl
               >
                 <option value="">Select an instance</option>
                 {instances?.filter(i => i.isActive).map(instance => (
-                  <option key={instance.instanceId} value={instance.instanceId}>
+                  <option key={instance.id} value={instance.id}>
                     {instance.instanceName} ({instance.accountName})
                   </option>
                 ))}
@@ -236,23 +250,40 @@ export default function WorkflowForm({ onClose, workflowId, templateId }: Workfl
 
           {/* SQL Query Editor */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              SQL Query *
-            </label>
-            <QueryEditor
-              value={formData.sql_query}
-              onChange={(value) => setFormData(prev => ({ ...prev, sql_query: value }))}
-              onParametersDetected={setDetectedParams}
-              height="400px"
-            />
-            {detectedParams.length > 0 && (
-              <div className="mt-2 text-sm text-gray-600">
-                Detected parameters: {detectedParams.map(p => (
-                  <span key={p} className="inline-flex items-center px-2 py-1 mr-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
-                    {`{{${p}}}`}
-                  </span>
-                ))}
-              </div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700">
+                SQL Query *
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowTemplates(!showTemplates)}
+                className="inline-flex items-center px-3 py-1 text-sm font-medium text-indigo-600 hover:text-indigo-700"
+              >
+                <FileText className="h-4 w-4 mr-1" />
+                {showTemplates ? 'Hide Templates' : 'Use Template'}
+              </button>
+            </div>
+            
+            {showTemplates ? (
+              <QueryTemplates onSelectTemplate={handleTemplateSelect} />
+            ) : (
+              <>
+                <QueryEditor
+                  value={formData.sql_query}
+                  onChange={(value) => setFormData(prev => ({ ...prev, sql_query: value }))}
+                  onParametersDetected={setDetectedParams}
+                  height="400px"
+                />
+                {detectedParams.length > 0 && (
+                  <div className="mt-2 text-sm text-gray-600">
+                    Detected parameters: {detectedParams.map(p => (
+                      <span key={p} className="inline-flex items-center px-2 py-1 mr-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
+                        {`{{${p}}}`}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
 

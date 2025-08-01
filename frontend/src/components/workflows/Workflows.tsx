@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import api from '../../services/api';
 import { AmazonAuthStatus } from '../AmazonAuthStatus';
+import WorkflowForm from './WorkflowForm';
+import ExecutionModal from './ExecutionModal';
 
 interface Workflow {
   id: string;
@@ -28,6 +30,9 @@ export default function Workflows() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [executingWorkflow, setExecutingWorkflow] = useState<string | null>(null);
+  const [showWorkflowForm, setShowWorkflowForm] = useState(false);
+  const [showExecutionModal, setShowExecutionModal] = useState(false);
+  const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null);
   
   const { data: workflows, isLoading } = useQuery<Workflow[]>({
     queryKey: ['workflows'],
@@ -37,29 +42,9 @@ export default function Workflows() {
     },
   });
 
-  const executeMutation = useMutation({
-    mutationFn: async ({ workflowId, parameters }: { workflowId: string, parameters?: any }) => {
-      const response = await api.post(`/workflows/${workflowId}/execute`, parameters || {});
-      return response.data;
-    },
-    onSuccess: (data) => {
-      toast.success(`Workflow execution started: ${data.execution_id}`);
-      setExecutingWorkflow(null);
-      // Optionally refresh workflows to update last executed time
-      queryClient.invalidateQueries({ queryKey: ['workflows'] });
-    },
-    onError: (error: any) => {
-      toast.error(`Failed to execute workflow: ${error.response?.data?.detail || error.message}`);
-      setExecutingWorkflow(null);
-    },
-  });
-
   const handleExecute = (workflow: Workflow) => {
-    setExecutingWorkflow(workflow.workflowId);
-    executeMutation.mutate({ 
-      workflowId: workflow.workflowId,
-      parameters: workflow.parameters || {}
-    });
+    setSelectedWorkflow(workflow);
+    setShowExecutionModal(true);
   };
 
   return (
@@ -72,7 +57,7 @@ export default function Workflows() {
           </p>
         </div>
         <button
-          onClick={() => console.log('Create workflow modal - TODO')}
+          onClick={() => setShowWorkflowForm(true)}
           className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -113,18 +98,9 @@ export default function Workflows() {
                   </div>
                   <button
                     onClick={() => handleExecute(workflow)}
-                    disabled={executingWorkflow === workflow.workflowId}
-                    className={`inline-flex items-center p-2 border border-transparent rounded-full text-white ${
-                      executingWorkflow === workflow.workflowId
-                        ? 'bg-gray-400 cursor-not-allowed'
-                        : 'bg-indigo-600 hover:bg-indigo-700'
-                    }`}
+                    className="inline-flex items-center p-2 border border-transparent rounded-full text-white bg-indigo-600 hover:bg-indigo-700"
                   >
-                    {executingWorkflow === workflow.workflowId ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                    ) : (
-                      <Play className="h-4 w-4" />
-                    )}
+                    <Play className="h-4 w-4" />
                   </button>
                 </div>
                 <h3 className="text-lg font-medium text-gray-900">
@@ -180,7 +156,24 @@ export default function Workflows() {
         </div>
       )}
 
-      {/* TODO: Add create workflow modal */}
+      {/* Workflow Form Modal */}
+      {showWorkflowForm && (
+        <WorkflowForm
+          onClose={() => setShowWorkflowForm(false)}
+        />
+      )}
+
+      {/* Execution Modal */}
+      <ExecutionModal
+        isOpen={showExecutionModal}
+        onClose={() => {
+          setShowExecutionModal(false);
+          setSelectedWorkflow(null);
+          // Refresh workflows to update last executed time
+          queryClient.invalidateQueries({ queryKey: ['workflows'] });
+        }}
+        workflow={selectedWorkflow || undefined}
+      />
     </div>
   );
 }
