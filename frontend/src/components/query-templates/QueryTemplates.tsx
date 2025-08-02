@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Code, Edit2, Trash2, Globe, Lock, Copy } from 'lucide-react';
 import { queryTemplateService } from '../../services/queryTemplateService';
-import { QueryTemplate } from '../../types/queryTemplate';
+import type { QueryTemplate } from '../../types/queryTemplate';
 import { formatDate } from '../../utils/dateUtils';
 import QueryTemplateModal from './QueryTemplateModal';
 import toast from 'react-hot-toast';

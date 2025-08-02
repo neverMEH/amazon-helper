@@ -3,7 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import MonacoEditor from '@monaco-editor/react';
 import { queryTemplateService } from '../../services/queryTemplateService';
-import { QueryTemplate, QueryTemplateCreate, QueryTemplateUpdate } from '../../types/queryTemplate';
+import type { QueryTemplate, QueryTemplateCreate, QueryTemplateUpdate } from '../../types/queryTemplate';
 import toast from 'react-hot-toast';
 
 interface QueryTemplateModalProps {

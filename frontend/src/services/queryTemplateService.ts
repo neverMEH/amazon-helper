@@ -1,5 +1,5 @@
-import { api } from './api';
-import { QueryTemplate, QueryTemplateCreate, QueryTemplateUpdate, CreateFromWorkflow } from '../types/queryTemplate';
+import api from './api';
+import type { QueryTemplate, QueryTemplateCreate, QueryTemplateUpdate, CreateFromWorkflow } from '../types/queryTemplate';
 
 export const queryTemplateService = {
   async listTemplates(includePublic = true, category?: string): Promise<QueryTemplate[]> {

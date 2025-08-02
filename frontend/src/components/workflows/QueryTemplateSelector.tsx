@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, FileText, Globe, Lock } from 'lucide-react';
 import { queryTemplateService } from '../../services/queryTemplateService';
-import { QueryTemplate } from '../../types/queryTemplate';
+import type { QueryTemplate } from '../../types/queryTemplate';
 
 interface QueryTemplateSelectorProps {
   onSelectTemplate: (template: QueryTemplate) => void;
@@ -87,9 +87,13 @@ export default function QueryTemplateSelector({ onSelectTemplate }: QueryTemplat
                   <div className="flex items-center space-x-2">
                     <h4 className="font-medium text-gray-900">{template.name}</h4>
                     {template.isPublic ? (
-                      <Globe className="h-4 w-4 text-green-600" title="Public template" />
+                      <span title="Public template">
+                        <Globe className="h-4 w-4 text-green-600" />
+                      </span>
                     ) : (
-                      <Lock className="h-4 w-4 text-gray-600" title="Private template" />
+                      <span title="Private template">
+                        <Lock className="h-4 w-4 text-gray-600" />
+                      </span>
                     )}
                   </div>
                   {template.description && (
