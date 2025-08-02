@@ -53,7 +53,7 @@ export const queryTemplateService = {
     sql_query: string;
     parameters_used: Record<string, any>;
   }> {
-    const response = await api.post(`/queries/templates/${templateId}/build`, parameters);
+    const response = await api.post(`/query-templates/${templateId}/build`, parameters);
     return response.data;
   }
 };

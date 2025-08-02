@@ -1,24 +1,13 @@
-2025-08-02 00:16:31 - amc_manager.services.token_service - WARNING - Generated new encryption key. Set FERNET_KEY env var for persistence.
-2025-08-02 00:16:31 - __main__ - INFO - All API routers loaded successfully
-2025-08-02 00:16:31 - __main__ - INFO - Frontend static files mounted
-2025-08-02 00:16:31 - main_supabase - INFO - All API routers loaded successfully
-2025-08-02 00:16:31 - main_supabase - INFO - Frontend static files mounted
-INFO:     Started server process [267954]
+2025-08-02 00:29:32 - amc_manager.services.token_service - WARNING - Generated new encryption key. Set FERNET_KEY env var for persistence.
+2025-08-02 00:29:32 - __main__ - INFO - All API routers loaded successfully
+2025-08-02 00:29:32 - __main__ - INFO - Frontend static files mounted
+2025-08-02 00:29:32 - main_supabase - INFO - All API routers loaded successfully
+2025-08-02 00:29:32 - main_supabase - INFO - Frontend static files mounted
+INFO:     Started server process [273149]
 INFO:     Waiting for application startup.
-2025-08-02 00:16:31 - main_supabase - INFO - Starting AMC Manager application with Supabase...
-2025-08-02 00:16:31 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-02 00:16:31 - main_supabase - INFO - ✓ Supabase connection successful
+2025-08-02 00:29:32 - main_supabase - INFO - Starting AMC Manager application with Supabase...
+2025-08-02 00:29:32 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-08-02 00:29:33 - main_supabase - INFO - ✓ Supabase connection successful
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     127.0.0.1:59668 - "GET /api/health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:49896 - "GET /api/health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:49902 - "GET /api/debug/routes HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43806 - "POST /api/auth/login HTTP/1.1" 422 Unprocessable Entity
-2025-08-02 00:17:27 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-02 00:17:28 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-02 00:17:28 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-INFO:     127.0.0.1:44342 - "POST /api/auth/login?email=nick@nevermeh.com HTTP/1.1" 200 OK
-2025-08-02 00:17:28 - amc_manager.services.query_template_service - INFO - Created query template: tpl_cdc56928a9dc
-INFO:     127.0.0.1:44342 - "POST /api/query-templates HTTP/1.1" 200 OK
-2025-08-02 00:17:28 - amc_manager.services.query_template_service - INFO - Retrieved 6 templates for user fe841586-7807-48b1-8808-02877834fce0
-INFO:     127.0.0.1:44342 - "GET /api/query-templates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45644 - "GET /api/health HTTP/1.1" 200 OK

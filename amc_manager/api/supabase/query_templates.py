@@ -277,3 +277,43 @@ def use_template(
     except Exception as e:
         logger.error(f"Error marking template as used: {e}")
         raise HTTPException(status_code=500, detail="Failed to update usage count")
+
+
+@router.post("/{template_id}/build")
+def build_query_from_template(
+    template_id: str,
+    parameters: Dict[str, Any],
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """Build a query from a template with given parameters"""
+    try:
+        template = query_template_service.get_template(template_id, current_user['id'])
+        
+        if not template:
+            raise HTTPException(status_code=404, detail="Template not found or access denied")
+        
+        # Build query by replacing template variables
+        sql_query = template['sql_template']
+        
+        # Simple template variable replacement
+        for key, value in parameters.items():
+            placeholder = f"{{{{{key}}}}}"  # {{variable}}
+            if placeholder in sql_query:
+                if isinstance(value, list):
+                    # Handle list parameters (e.g., ASIN lists)
+                    value_str = ", ".join(f"'{v}'" for v in value)
+                    sql_query = sql_query.replace(placeholder, value_str)
+                else:
+                    sql_query = sql_query.replace(placeholder, str(value))
+        
+        return {
+            "template_id": template_id,
+            "template_name": template['name'],
+            "sql_query": sql_query,
+            "parameters_used": parameters
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error building query from template {template_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to build query")
