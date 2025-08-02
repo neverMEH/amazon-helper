@@ -66,8 +66,8 @@ export default function WorkflowForm({ onClose, workflowId, templateId }: Workfl
       setFormData({
         name: workflow.name,
         description: workflow.description || '',
-        instance_id: workflow.instance?.id || '',
-        sql_query: workflow.sql_query,
+        instance_id: workflow.instance?.id || workflow.instance?.instanceId || '',
+        sql_query: workflow.sqlQuery || workflow.sql_query,
         parameters: workflow.parameters || {},
         tags: workflow.tags || [],
       });
@@ -240,7 +240,7 @@ export default function WorkflowForm({ onClose, workflowId, templateId }: Workfl
               >
                 <option value="">Select an instance</option>
                 {instances?.filter(i => i.isActive).map(instance => (
-                  <option key={instance.id} value={instance.id}>
+                  <option key={instance.id} value={instance.instanceId}>
                     {instance.instanceName} ({instance.accountName})
                   </option>
                 ))}
