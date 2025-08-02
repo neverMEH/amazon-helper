@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Database, Tag, GitBranch, LogOut, User } from 'lucide-react';
+import { LayoutDashboard, Database, Tag, GitBranch, LogOut, User, Code } from 'lucide-react';
 import { authService } from '../services/auth';
 
 const navigation = [
@@ -7,6 +7,7 @@ const navigation = [
   { name: 'AMC Instances', href: '/instances', icon: Database },
   { name: 'Campaigns', href: '/campaigns', icon: Tag },
   { name: 'Workflows', href: '/workflows', icon: GitBranch },
+  { name: 'Query Templates', href: '/query-templates', icon: Code },
 ];
 
 export default function Layout() {

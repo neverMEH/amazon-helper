@@ -96,7 +96,7 @@ from amc_manager.api.supabase.amazon_auth import router as amazon_auth_router
 from amc_manager.api.supabase.instances_simple import router as instances_router
 from amc_manager.api.supabase.workflows import router as workflows_router
 from amc_manager.api.supabase.campaigns import router as campaigns_router
-from amc_manager.api.supabase.queries import router as queries_router
+from amc_manager.api.supabase.query_templates import router as query_templates_router
 from amc_manager.api.supabase.brands import router as brands_router
 
 # Add redirect for misconfigured callback URL (must be before router includes)
@@ -114,7 +114,7 @@ app.include_router(amazon_auth_router, prefix="/api/auth/amazon", tags=["Amazon 
 app.include_router(instances_router, prefix="/api/instances", tags=["AMC Instances"])
 app.include_router(workflows_router, prefix="/api/workflows", tags=["Workflows"])
 app.include_router(campaigns_router, prefix="/api/campaigns", tags=["Campaigns"])
-app.include_router(queries_router, prefix="/api/queries", tags=["Query Templates"])
+app.include_router(query_templates_router, prefix="/api/query-templates", tags=["Query Templates"])
 app.include_router(brands_router, prefix="/api/brands", tags=["Brands"])
 
 logger.info("All API routers loaded successfully")

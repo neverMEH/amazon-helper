@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Clock, CheckCircle, XCircle, PlayCircle, Settings } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, PlayCircle, Settings, Plus, FileText } from 'lucide-react';
 import api from '../../services/api';
 import ExecutionModal from '../workflows/ExecutionModal';
+import WorkflowForm from '../workflows/WorkflowForm';
 
 interface Workflow {
   workflowId: string;
@@ -27,6 +28,7 @@ export default function InstanceWorkflows({ instanceId }: InstanceWorkflowsProps
     isOpen: false,
     workflowId: null,
   });
+  const [showWorkflowForm, setShowWorkflowForm] = useState(false);
   const { data: workflows, isLoading } = useQuery<Workflow[]>({
     queryKey: ['instance-workflows', instanceId],
     queryFn: async () => {
@@ -52,10 +54,20 @@ export default function InstanceWorkflows({ instanceId }: InstanceWorkflowsProps
           <p className="mt-1 text-sm text-gray-500">
             Get started by creating a new workflow for this instance.
           </p>
-          <div className="mt-6">
-            <button className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
-              <PlayCircle className="h-4 w-4 mr-2" />
+          <div className="mt-6 flex justify-center space-x-4">
+            <button 
+              onClick={() => setShowWorkflowForm(true)}
+              className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+            >
+              <Plus className="h-4 w-4 mr-2" />
               Create Workflow
+            </button>
+            <button 
+              onClick={() => navigate('/query-templates')}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Browse Templates
             </button>
           </div>
         </div>
@@ -66,6 +78,25 @@ export default function InstanceWorkflows({ instanceId }: InstanceWorkflowsProps
   return (
     <>
       <div className="p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Workflows</h3>
+          <div className="flex space-x-2">
+            <button 
+              onClick={() => setShowWorkflowForm(true)}
+              className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Create Workflow
+            </button>
+            <button 
+              onClick={() => navigate('/query-templates')}
+              className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+            >
+              <FileText className="h-4 w-4 mr-1" />
+              Templates
+            </button>
+          </div>
+        </div>
         <div className="space-y-4">
           {workflows.map((workflow) => (
             <div
@@ -158,6 +189,13 @@ export default function InstanceWorkflows({ instanceId }: InstanceWorkflowsProps
           onClose={() => setExecutionModal({ isOpen: false, workflowId: null })}
           workflowId={executionModal.workflowId}
           instanceId={instanceId}
+        />
+      )}
+
+      {/* Workflow Form Modal */}
+      {showWorkflowForm && (
+        <WorkflowForm
+          onClose={() => setShowWorkflowForm(false)}
         />
       )}
     </>

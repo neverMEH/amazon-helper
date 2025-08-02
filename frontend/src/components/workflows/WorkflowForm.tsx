@@ -3,9 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { X, Save, FileText } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import QueryEditor from './QueryEditor';
-import QueryTemplates from './QueryTemplates';
-import type { QueryTemplate as ImportedQueryTemplate } from './QueryTemplates';
+import QueryTemplateSelector from './QueryTemplateSelector';
 import api from '../../services/api';
+import { queryTemplateService } from '../../services/queryTemplateService';
+import type { QueryTemplate } from '../../types/queryTemplate';
 
 interface WorkflowFormProps {
   onClose: () => void;
@@ -45,12 +46,9 @@ export default function WorkflowForm({ onClose, workflowId, templateId }: Workfl
   });
 
   // Fetch templates
-  const { data: templates } = useQuery<any[]>({
+  const { data: templates } = useQuery<QueryTemplate[]>({
     queryKey: ['query-templates'],
-    queryFn: async () => {
-      const response = await api.get('/queries/templates');
-      return response.data;
-    },
+    queryFn: () => queryTemplateService.listTemplates(),
   });
 
   // Fetch existing workflow if editing
@@ -74,14 +72,14 @@ export default function WorkflowForm({ onClose, workflowId, templateId }: Workfl
         tags: workflow.tags || [],
       });
     } else if (templateId && templates) {
-      const template = templates.find(t => t.template_id === templateId);
+      const template = templates.find(t => t.templateId === templateId);
       if (template) {
         setFormData(prev => ({
           ...prev,
           name: template.name,
           description: template.description || '',
-          sql_query: template.sql_template,
-          parameters: template.default_parameters || {},
+          sql_query: template.sqlTemplate,
+          parameters: template.defaultParameters || {},
           tags: template.tags || [],
         }));
       }
@@ -89,7 +87,7 @@ export default function WorkflowForm({ onClose, workflowId, templateId }: Workfl
   }, [workflow, templateId, templates]);
 
   const createMutation = useMutation({
-    mutationFn: async (data: typeof formData) => {
+    mutationFn: async (data: typeof formData & { template_id?: string }) => {
       const response = await api.post('/workflows', data);
       return response.data;
     },
@@ -149,6 +147,7 @@ export default function WorkflowForm({ onClose, workflowId, templateId }: Workfl
     const finalData = {
       ...formData,
       parameters: { ...defaultParams, ...formData.parameters },
+      template_id: templateId,
     };
 
     if (workflowId) {
@@ -168,16 +167,20 @@ export default function WorkflowForm({ onClose, workflowId, templateId }: Workfl
     setFormData(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tag) }));
   };
 
-  const handleTemplateSelect = (template: ImportedQueryTemplate) => {
+  const handleTemplateSelect = (template: QueryTemplate) => {
     setFormData(prev => ({
       ...prev,
       name: template.name,
-      description: template.description,
+      description: template.description || '',
       sql_query: template.sqlTemplate,
+      parameters: template.defaultParameters || {},
       tags: template.tags,
     }));
     setShowTemplates(false);
     toast.success(`Template "${template.name}" loaded`);
+    
+    // Track template usage
+    queryTemplateService.useTemplate(template.templateId);
   };
 
   return (
@@ -262,7 +265,7 @@ export default function WorkflowForm({ onClose, workflowId, templateId }: Workfl
             </div>
             
             {showTemplates ? (
-              <QueryTemplates onSelectTemplate={handleTemplateSelect} />
+              <QueryTemplateSelector onSelectTemplate={handleTemplateSelect} />
             ) : (
               <>
                 <QueryEditor

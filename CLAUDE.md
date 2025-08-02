@@ -45,6 +45,7 @@ cd frontend
 npm run dev      # Development server on port 5173
 npm run build    # Production build with TypeScript checking
 npm run lint     # ESLint checking
+npm run typecheck # TypeScript type checking via tsc
 
 # E2E tests with Playwright
 npx playwright test

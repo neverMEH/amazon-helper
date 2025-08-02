@@ -21,6 +21,7 @@ class WorkflowCreate(BaseModel):
     sql_query: str
     parameters: Optional[Dict[str, Any]] = {}
     tags: Optional[List[str]] = []
+    template_id: Optional[str] = None
 
 
 class WorkflowUpdate(BaseModel):
@@ -108,6 +109,11 @@ def create_workflow(
         instance = next((inst for inst in user_instances if inst['instance_id'] == workflow.instance_id), None)
         if not instance:
             raise HTTPException(status_code=404, detail="Instance not found")
+        
+        # If template_id is provided, increment its usage count
+        if workflow.template_id:
+            from ...services.query_template_service import query_template_service
+            query_template_service.increment_usage(workflow.template_id)
         
         # Create workflow
         workflow_data = {

@@ -9,6 +9,7 @@ import InstanceDetail from './components/instances/InstanceDetail';
 import Campaigns from './components/campaigns/Campaigns';
 import Workflows from './components/workflows/Workflows';
 import WorkflowDetail from './components/workflows/WorkflowDetail';
+import QueryTemplates from './components/query-templates/QueryTemplates';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import { AuthCallback } from './pages/AuthCallback';
 
@@ -43,6 +44,7 @@ function App() {
               <Route path="/workflows" element={<Workflows />} />
               <Route path="/workflows/:workflowId" element={<WorkflowDetail />} />
               <Route path="/workflows/:workflowId/edit" element={<WorkflowDetail />} />
+              <Route path="/query-templates" element={<QueryTemplates />} />
             </Route>
           </Route>
         </Routes>
