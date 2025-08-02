@@ -4,12 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an Amazon Marketing Cloud (AMC) management application that helps users:
-- Manage multiple AMC instances across different brands
-- Build and execute AMC SQL queries using templates or custom parameters
-- Track workflow executions and retrieve results
-- Map campaign IDs to names with brand tagging
-- Schedule recurring reports with CRON expressions
+Amazon Marketing Cloud (AMC) Manager - a full-stack application for managing AMC instances, creating and executing SQL queries, and tracking campaign performance across multiple brands.
+
+Core features:
+- AMC instance management with brand associations
+- Query template system for reusable AMC SQL queries with parameters
+- Workflow creation and execution with real-time status tracking  
+- Campaign tracking with automatic brand filtering
+- Scheduled report generation with CRON expressions
+- JWT authentication with encrypted token storage
 
 ## Development Commands
 
@@ -18,128 +21,312 @@ This is an Amazon Marketing Cloud (AMC) management application that helps users:
 # Start both backend and frontend services
 ./start_services.sh
 
-# Access the application
+# Services will be available at:
 # Frontend: http://localhost:5173
-# Backend API: http://localhost:8001
+# Backend API: http://localhost:8001  
 # API Docs: http://localhost:8001/docs
-# Login: nick@nevermeh.com (no password required)
+# Default login: nick@nevermeh.com (no password required in dev)
 ```
 
 ### Backend Development
 ```bash
-# Run backend server (uses Supabase, not SQLAlchemy)
+# Run backend server (FastAPI with Supabase)
 python main_supabase.py  # Runs on port 8001
 
 # Run specific test
 pytest tests/test_api_auth.py::test_login_success
 
-# Code formatting and linting
-black amc_manager/
-flake8 amc_manager/
-mypy amc_manager/
+# Code quality
+black amc_manager/          # Format code
+flake8 amc_manager/         # Lint
+mypy amc_manager/           # Type checking
+
+# Database scripts
+python test_supabase_simple.py              # Test connection
+python scripts/import_initial_data.py       # Import initial data
+python scripts/apply_performance_indexes.py # Apply DB indexes
+
+# Test workflow execution (mock or real)
+python test_execution.py    # Test with mock data
+python demo_execution.py    # Demo success/failure scenarios
 ```
 
 ### Frontend Development
 ```bash
 cd frontend
-npm run dev      # Development server on port 5173
-npm run build    # Production build with TypeScript checking
-npm run lint     # ESLint checking
-npm run typecheck # TypeScript type checking via tsc
+npm run dev       # Development server on port 5173
+npm run build     # Production build with TypeScript checking
+npm run lint      # ESLint checking
+npm run typecheck # Alias for tsc --noEmit
+npx tsc --noEmit  # TypeScript type checking only
 
-# E2E tests with Playwright
+# E2E tests
 npx playwright test
+npx playwright test --ui  # Interactive mode
 ```
 
-### Database Operations
-```bash
-# Test Supabase connection
-python test_supabase_simple.py
-
-# Import initial data
-python scripts/import_initial_data.py
-
-# Apply performance indexes
-python scripts/apply_performance_indexes.py
-
-# Test workflow execution
-python test_execution.py
-python demo_execution.py  # Shows success/failure scenarios
-```
-
-## High-Level Architecture
+## Architecture
 
 ### Backend Structure
-- **FastAPI Application**: `main_supabase.py` serves API on port 8001
-- **Service Layer Pattern**: All business logic in `amc_manager/services/`
-  - Base class: `SupabaseService` handles connection retry logic
-  - Key services: `WorkflowService`, `ExecutionService`, `AMCInstanceService`
-- **Authentication**: JWT-based with token encryption via Fernet
-- **API Client**: Custom AMC API client with rate limiting and automatic token refresh
+- **FastAPI Application**: `main_supabase.py` - Main entry point
+- **Service Layer Pattern**: Business logic isolated in `amc_manager/services/`
+  - `SupabaseService`: Base class with automatic reconnection after 30-minute timeout
+  - `db_service.py`: Database operations and query helpers
+  - `amc_execution_service.py`: Workflow execution (mock/real modes)
+  - `query_template_service.py`: Query template CRUD operations
+  - `instance_service.py`: AMC instance and brand management
+  - `WorkflowService`: Workflow operations with execution tracking
+  - `ExecutionService`: Handles AMC query execution lifecycle
+- **API Endpoints**: RESTful design in `amc_manager/api/supabase/`
+  - All endpoints use dependency injection for authentication
+  - Consistent error handling with HTTPException
+- **Authentication**: JWT tokens with Fernet encryption stored in `auth_tokens` field
 
-### Frontend Architecture
-- **React + TypeScript**: Using Vite for fast development
-- **React Query**: Data fetching with 5-minute cache and automatic retries
-- **Component Structure**:
-  - `/instances`: Table view with clickable rows, brand tags
-  - `/workflows`: Execution modal with real-time progress
-  - `/campaigns`: Filtered by instance brands
-- **API Proxy**: Vite proxies `/api` to backend during development
+### Frontend Architecture  
+- **React + TypeScript**: Component-based UI with strict typing
+- **Routing**: React Router v7 with protected routes
+- **State Management**: TanStack Query (React Query) v5 for server state
+  - 5-minute cache duration (staleTime: 5 * 60 * 1000)
+  - Automatic retries with exponential backoff
+- **Styling**: Tailwind CSS with @tailwindcss/forms and @tailwindcss/typography
+- **API Client**: Axios with interceptors for auth and error handling
+- **Code Editor**: Monaco Editor for SQL syntax highlighting
+- **Key Components**:
+  - `QueryTemplates`: Full CRUD UI for template management
+  - `QueryTemplateModal`: Create/edit modal with parameter detection
+  - `QueryTemplateSelector`: Template browser for workflow creation
+  - `WorkflowForm`: Create/edit workflows with template integration
+  - `ExecutionModal`: Real-time execution monitoring (2-second polling)
+  - `InstanceWorkflows`: Instance-specific workflow management
+  - `BrandSelector`: Autocomplete brand selection with creation
 
-### Database Design (Supabase)
-- **instance_brands**: Junction table for many-to-many brand associations
-- **workflow_executions**: Tracks execution status with timezone-aware timestamps
-- **Connection Handling**: Automatic reconnection after 30-minute timeout
-- **Performance**: Optimized queries with joins to reduce round trips by 90%
+### Database Schema (Supabase)
+Key tables:
+- `users`: User accounts with encrypted auth tokens
+  - `auth_tokens` field stores Fernet-encrypted OAuth tokens
+- `amc_instances`: AMC instance configurations  
+  - `instance_id`: AMC instance ID (used in API calls)
+  - `id`: Internal UUID (used for relationships)
+- `instance_brands`: Many-to-many brand associations
+- `workflows`: Query definitions and parameters
+  - `sql_query`: AMC SQL query with {{parameter}} placeholders
+  - `parameters`: JSONB field for parameter values
+- `workflow_executions`: Execution history and results
+  - Tracks status: pending, running, completed, failed
+  - Stores AMC execution IDs and result locations
+- `query_templates`: Reusable query templates
+  - `template_id`: Unique identifier (e.g., "conversion-path-analysis")
+  - `parameters_schema`: JSONB schema for template parameters
+  - `usage_count`: Tracks template popularity
+- `campaign_mappings`: Campaign data with brand associations
 
-### Critical AMC API Integration Details
+### Critical Implementation Details
+
+#### AMC API Authentication
 ```python
-# MUST use entity ID as header, not query parameter
+# Entity ID must be passed as header, NOT query parameter
 headers = {
     'Amazon-Advertising-API-ClientId': CLIENT_ID,
     'Authorization': f'Bearer {access_token}',
     'Amazon-Advertising-API-MarketplaceId': marketplace_id,
-    'Amazon-Advertising-API-AdvertiserId': entity_id  # Critical!
+    'Amazon-Advertising-API-AdvertiserId': entity_id  # Critical - must be header!
 }
+
+# OAuth token refresh flow
+if token_expired:
+    new_tokens = refresh_oauth_tokens(refresh_token)
+    # Tokens are automatically encrypted before storage
 ```
 
-### Deployment Configuration
-- **Railway**: Uses Dockerfile for consistent builds
-- **Environment Variables**:
-  - `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
-  - `AMC_USE_REAL_API`: Toggle real/mock execution
-  - `AMAZON_CLIENT_ID`, `AMAZON_CLIENT_SECRET`: For OAuth
-- **Single URL**: Frontend served from backend in production
+#### FastAPI Route Trailing Slashes
+```python
+# Routes with trailing slashes require exact matching
+@router.post("/")  # Accessed as /api/workflows/ (with trailing slash)
+@router.get("")    # Accessed as /api/workflows (no trailing slash)
 
-## Key Implementation Notes
+# Frontend must match exactly:
+await api.post('/workflows/', data)  # Correct
+await api.post('/workflows', data)   # Wrong - returns 405
+```
 
-### Workflow Execution Flow
-1. Frontend sends execution request with parameters
-2. Backend creates execution record with "pending" status
-3. Execution service (real or mock) processes the workflow
-4. Status updates polled every 2 seconds by frontend
-5. Results stored and downloadable as CSV
+#### TypeScript Type Imports
+```typescript
+// Use type-only imports when verbatimModuleSyntax is enabled
+import type { QueryTemplate } from '../types/queryTemplate';
+import { queryTemplateService } from '../services/queryTemplateService';  // Regular import for values
 
-### Brand Tag System
-- Brands directly associated with instances via `instance_brands` table
-- Campaigns automatically filter based on instance brands
-- BrandSelector component provides autocomplete search
-- Changes persist immediately to database
+// This will cause an error:
+import { QueryTemplate } from '../types/queryTemplate';  // Error: must use type-only import
+```
 
-### Performance Considerations
-- Database queries use Supabase joins to minimize round trips
-- React Query caches data for 5 minutes
-- Gzip compression on API responses > 1KB
-- Indexes on frequently queried columns (instance_id, user_id, status)
+#### Workflow Instance IDs
+```javascript
+// Use instanceId (AMC ID) not id (internal UUID) for API calls
+<option value={instance.instanceId}>  // Correct - AMC instance ID
+<option value={instance.id}>          // Wrong - internal UUID causes 403
 
-### Common Issues and Solutions
-- **JWT Errors**: Use `jwt.DecodeError` instead of `jwt.JWTError`
-- **Supabase Timeout**: Automatic reconnection implemented in `db_service.py`
-- **AMC API 403**: Verify user has access to requested instance
-- **Empty Results After Idle**: Frontend refetches on window focus
+// Backend converts instanceId to internal UUID:
+const instance = await getInstanceByInstanceId(workflow.instance_id);
+workflow_data.instance_id = instance.id;  // Store internal UUID
+```
 
-## Testing Strategy
-- **Sandbox Instances**: Use `amchnfozgta` or `amcfo8abayq` for testing
-- **Mock Execution**: Enabled by default for development
-- **Real Execution**: Set `AMC_USE_REAL_API=true` in environment
+## Environment Configuration
 
+### Required Environment Variables
+- `SUPABASE_URL`: Supabase project URL
+- `SUPABASE_ANON_KEY`: Public anon key
+- `SUPABASE_SERVICE_ROLE_KEY`: Service role key for admin operations
+- `AMAZON_CLIENT_ID`: Amazon Advertising API client ID
+- `AMAZON_CLIENT_SECRET`: Client secret for OAuth
+- `AMC_USE_REAL_API`: Set to "true" for real AMC API calls (default: mock)
+- `FERNET_KEY`: Encryption key for auth tokens (auto-generated if not set)
+
+### Deployment (Railway)
+- Uses Dockerfile for consistent builds
+- Frontend built during Docker image creation
+- Single container serves both frontend and backend
+- Frontend files served from `/frontend/dist`
+
+## Common Development Tasks
+
+### Adding a New API Endpoint
+1. Create route in `amc_manager/api/supabase/[module].py`
+   - Use `@router.get/post/put/delete` decorators
+   - Add `current_user: Dict[str, Any] = Depends(get_current_user)` for auth
+2. Add service method in `amc_manager/services/[service].py`
+   - Inherit from `SupabaseService` for automatic reconnection
+   - Return data directly, let routes handle HTTPException
+3. Update frontend API service in `frontend/src/services/`
+   - Use consistent naming: `listItems`, `getItem`, `createItem`, etc.
+4. Add TypeScript types in `frontend/src/types/`
+   - Use interfaces for data models
+   - Export type-only when possible
+
+### Creating a Query Template  
+1. Templates stored in `query_templates` table
+2. Use `{{variable}}` syntax for parameters
+   - Parameters auto-detected by frontend
+   - Default values based on parameter names (dates, windows, etc.)
+3. Support for public/private visibility
+4. Track usage automatically via `increment_usage`
+5. Categories for organization (e.g., "attribution", "campaign", "audience")
+6. Tags stored as JSONB array
+
+### Working with Workflows
+1. Workflows link to AMC instances by instance_id
+   - Frontend sends instanceId (AMC ID)
+   - Backend converts to internal UUID for storage
+2. Support template-based creation
+   - Template selection in WorkflowForm
+   - Auto-populate name, description, query, parameters
+3. Parameters stored as JSONB
+   - Support for dynamic parameter substitution
+   - Default values applied during execution
+4. Execution tracked in `workflow_executions` table
+   - Real-time status updates via polling
+   - Results stored with S3 URLs
+
+## Testing Guidelines
+
+- **Mock Mode**: Default for development (no real AMC API calls)
+- **Sandbox Instances**: `amchnfozgta` or `amcfo8abayq` for testing
+- **Real API Mode**: Set `AMC_USE_REAL_API=true` environment variable
+- **Test Users**: Use nick@nevermeh.com for development
+
+## Performance Optimizations
+
+- Supabase queries use joins to minimize round trips
+- React Query caches API responses for 5 minutes
+- Database indexes on frequently queried columns
+- Automatic connection refresh after 30-minute timeout
+- Gzip compression for API responses > 1KB
+
+## Known Issues and Solutions
+
+### API Errors
+- **405 Method Not Allowed**: Check trailing slashes on POST endpoints
+  - Solution: Use `/workflows/` not `/workflows` for POST
+- **403 Forbidden on Workflow Creation**: Ensure using instanceId not internal UUID
+  - Solution: Use `instance.instanceId` in frontend forms
+- **404 on Query Templates**: Wrong API path
+  - Solution: Use `/query-templates` not `/queries/templates`
+
+### TypeScript Errors  
+- **Type must be imported using type-only import**: verbatimModuleSyntax enabled
+  - Solution: Change `import { Type }` to `import type { Type }`
+- **Cannot find module**: Check relative import paths
+  - Solution: Use `../` for parent directory imports
+
+### Database Issues
+- **Supabase Timeout After 30 Minutes**: Connection expires
+  - Solution: Automatic reconnection in SupabaseService base class
+- **Empty Results After Idle**: Stale cache
+  - Solution: React Query refetches on window focus
+
+### Development Tips
+- **Module Not Found in Backend**: Check imports match actual file structure
+  - Example: `from ...services.query_template_service import QueryTemplateService`
+- **JWT Decode Errors**: Use `jwt.DecodeError` not `jwt.JWTError`
+- **CORS Issues**: Backend serves frontend in production, proxy in dev
+
+## Query Templates Feature
+
+### Overview
+Query templates allow users to create reusable AMC SQL queries with parameters that can be filled in during workflow creation.
+
+### Implementation Details
+
+#### Backend Components
+- **Service**: `amc_manager/services/query_template_service.py`
+  - Full CRUD operations with access control
+  - Public/private template support
+  - Usage tracking for analytics
+- **API Routes**: `amc_manager/api/supabase/query_templates.py`
+  - RESTful endpoints at `/api/query-templates/`
+  - Template building endpoint for parameter substitution
+  - Category management endpoints
+
+#### Frontend Components  
+- **Main UI**: `frontend/src/components/query-templates/QueryTemplates.tsx`
+  - Table view with search, filter, and sort
+  - Create/Edit/Delete operations
+  - Category and visibility filters
+- **Modal**: `frontend/src/components/query-templates/QueryTemplateModal.tsx`
+  - Monaco editor for SQL editing
+  - Real-time parameter detection
+  - Parameter schema builder
+- **Selector**: `frontend/src/components/workflows/QueryTemplateSelector.tsx`
+  - Template browser in workflow creation
+  - Search and category filtering
+  - Preview with parameter highlighting
+
+#### Template Syntax
+```sql
+-- Use double curly braces for parameters
+SELECT 
+    campaign_id,
+    SUM(impressions) as total_impressions
+FROM campaign_data
+WHERE 
+    event_date >= '{{start_date}}'
+    AND event_date <= '{{end_date}}'
+    AND brand_id = '{{brand_id}}'
+GROUP BY campaign_id
+HAVING total_impressions > {{min_impressions}}
+```
+
+#### Usage Flow
+1. User creates template with parameters
+2. Template saved with parameter schema
+3. User selects template in workflow creation
+4. Parameters auto-populate with defaults
+5. User adjusts parameter values
+6. Workflow created with filled template
+7. Template usage count incremented
+
+### Best Practices
+- Use descriptive parameter names
+- Provide default values in schema
+- Add clear descriptions for templates
+- Use categories for organization
+- Make templates public for team sharing

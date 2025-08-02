@@ -70,3 +70,24 @@ Thumbs.db
 *.tmp
 *.bak
 *~
+
+# Test and demo files
+test_*.py
+debug_*.py
+demo_*.py
+check_*.py
+explore_*.py
+final_*.py
+
+# Generated files
+*.csv
+*.json
+!package*.json
+!tsconfig*.json
+*.html
+!index.html
+
+# Markdown summaries and guides (keep only essential docs)
+*_SUMMARY.md
+*_GUIDE.md
+*_COMPLETE.md
