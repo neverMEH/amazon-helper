@@ -88,7 +88,7 @@ export default function WorkflowForm({ onClose, workflowId, templateId }: Workfl
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData & { template_id?: string }) => {
-      const response = await api.post('/workflows', data);
+      const response = await api.post('/workflows/', data);
       return response.data;
     },
     onSuccess: () => {
