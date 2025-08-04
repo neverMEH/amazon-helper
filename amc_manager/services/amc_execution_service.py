@@ -292,7 +292,7 @@ class AMCExecutionService:
             
             instance = instance_response.data[0]
             entity_id = instance['amc_accounts']['account_id']
-            marketplace_id = instance.get('marketplace_id', 'ATVPDKIKX0DER')
+            marketplace_id = instance['amc_accounts'].get('marketplace_id', 'ATVPDKIKX0DER')
             
             logger.info(f"Executing on instance {instance_id} with entity {entity_id}")
             
@@ -491,7 +491,7 @@ class AMCExecutionService:
             client = SupabaseManager.get_client(use_service_role=True)
             
             response = client.table('workflow_executions')\
-                .select('*, workflows!inner(user_id, instance_id, amc_instances!inner(instance_id, marketplace_id, amc_accounts!inner(account_id)))')\
+                .select('*, workflows!inner(user_id, instance_id, amc_instances!inner(instance_id, amc_accounts!inner(account_id, marketplace_id)))')\
                 .eq('execution_id', execution_id)\
                 .execute()
             
@@ -518,7 +518,7 @@ class AMCExecutionService:
             instance = execution['workflows']['amc_instances']
             instance_id = instance['instance_id']
             entity_id = instance['amc_accounts']['account_id']
-            marketplace_id = instance.get('marketplace_id', 'ATVPDKIKX0DER')
+            marketplace_id = instance['amc_accounts'].get('marketplace_id', 'ATVPDKIKX0DER')
             
             # Get valid token
             valid_token = asyncio.run(token_service.get_valid_token(user_id))
