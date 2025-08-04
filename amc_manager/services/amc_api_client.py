@@ -94,13 +94,16 @@ class AMCAPIClient:
             logger.info(f"API Response Headers: {dict(response.headers)}")
             
             response_data = response.json() if response.text else {}
+            logger.info(f"API Response Body: {json.dumps(response_data, indent=2)}")
             
-            # According to AMC docs, the response should contain workflowExecutionId
-            if response.status_code == 200 and response_data.get('workflowExecutionId'):
-                logger.info(f"Created execution: {response_data['workflowExecutionId']}")
+            # Check for different possible field names in the response
+            execution_id = response_data.get('workflowExecutionId') or response_data.get('executionId') or response_data.get('id')
+            
+            if response.status_code == 200 and execution_id:
+                logger.info(f"Created execution: {execution_id}")
                 return {
                     "success": True,
-                    "executionId": response_data['workflowExecutionId'],
+                    "executionId": execution_id,
                     "status": response_data.get('status', 'PENDING'),
                     "outputLocation": output_location
                 }
@@ -152,6 +155,9 @@ class AMCAPIClient:
             'Amazon-Advertising-API-AdvertiserId': entity_id
         }
         
+        logger.info(f"Checking execution status for {execution_id} on instance {instance_id}")
+        logger.info(f"Status URL: {url}")
+        
         try:
             response = requests.get(
                 url,
@@ -160,6 +166,7 @@ class AMCAPIClient:
             )
             
             response_data = response.json() if response.text else {}
+            logger.info(f"Status check response: Status {response.status_code}, Body: {json.dumps(response_data, indent=2)}")
             
             if response.status_code != 200:
                 logger.error(f"Failed to get execution status: Status {response.status_code}, Response: {response_data}")

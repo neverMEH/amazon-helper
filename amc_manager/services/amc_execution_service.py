@@ -530,6 +530,10 @@ class AMCExecutionService:
             from .amc_api_client import AMCAPIClient
             api_client = AMCAPIClient()
             
+            # Add a small delay on first check to allow AMC to register the execution
+            if execution.get('status') == 'pending' and execution.get('progress', 0) < 20:
+                time.sleep(2)
+            
             status_response = api_client.get_execution_status(
                 execution_id=amc_execution_id,
                 access_token=valid_token,
