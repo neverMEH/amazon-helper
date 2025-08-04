@@ -242,7 +242,24 @@ class AMCExecutionService:
                     "error": "No valid Amazon OAuth token. Please re-authenticate with Amazon."
                 }
             
-            # Get valid access token
+            # Decrypt tokens for API usage
+            auth_tokens = user['auth_tokens']
+            try:
+                decrypted_tokens = {
+                    'access_token': token_service.decrypt_token(auth_tokens['access_token']),
+                    'refresh_token': token_service.decrypt_token(auth_tokens['refresh_token']),
+                    'expires_at': auth_tokens.get('expires_at'),
+                    'expires_in': auth_tokens.get('expires_in', 3600),
+                    'obtained_at': auth_tokens.get('obtained_at', time.time())
+                }
+            except Exception as e:
+                logger.error(f"Error decrypting tokens: {e}")
+                return {
+                    "status": "failed",
+                    "error": "Failed to decrypt authentication tokens. Please re-authenticate with Amazon."
+                }
+            
+            # Get valid access token (this will refresh if needed)
             valid_token = asyncio.run(token_service.get_valid_token(user_id))
             if not valid_token:
                 logger.error(f"No valid Amazon token for user {user_id}")
@@ -300,7 +317,7 @@ class AMCExecutionService:
                 response = api_client.post(
                     endpoint,
                     user_id,
-                    user['auth_tokens'],  # Pass full token data including refresh_token
+                    decrypted_tokens,  # Pass decrypted token data
                     json_data=execution_data
                 )
                 
@@ -315,7 +332,7 @@ class AMCExecutionService:
                     status_response = api_client.get(
                         status_endpoint,
                         user_id,
-                        user['auth_tokens']  # Pass full token data
+                        decrypted_tokens  # Pass decrypted token data
                     )
                     
                     status = status_response.get('status', 'running')
@@ -330,7 +347,7 @@ class AMCExecutionService:
                         results_response = api_client.get(
                             results_endpoint,
                             user_id,
-                            user['auth_tokens']  # Pass full token data
+                            decrypted_tokens  # Pass decrypted token data
                         )
                         
                         # Parse results
