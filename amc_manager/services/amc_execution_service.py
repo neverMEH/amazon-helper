@@ -332,94 +332,15 @@ class AMCExecutionService:
                 amc_execution_id = response.get('executionId', execution_id)
                 logger.info(f"Created AMC execution: {amc_execution_id}")
                 
-                # Poll for completion
-                max_attempts = 120  # 10 minutes max (5 second intervals)
-                for attempt in range(max_attempts):
-                    # Get execution status using the correct API method
-                    status_response = api_client.get_execution_status(
-                        execution_id=amc_execution_id,
-                        access_token=valid_token,
-                        entity_id=entity_id,
-                        marketplace_id=marketplace_id,
-                        instance_id=instance_id
-                    )
-                    
-                    # Check if status check was successful
-                    if not status_response.get('success'):
-                        logger.warning(f"Failed to get status: {status_response.get('error')}")
-                        time.sleep(5)
-                        continue
-                    
-                    status = status_response.get('status', 'RUNNING')
-                    progress = status_response.get('progress', 50)
-                    
-                    # Update our execution record
-                    self._update_execution_progress(execution_id, status.lower(), progress)
-                    
-                    if status in ['SUCCEEDED', 'COMPLETED']:
-                        # Get results using the correct API method
-                        results_response = api_client.get_execution_results(
-                            execution_id=amc_execution_id,
-                            access_token=valid_token,
-                            entity_id=entity_id,
-                            marketplace_id=marketplace_id,
-                            instance_id=instance_id
-                        )
-                        
-                        # Parse results
-                        result_data = {
-                            "columns": results_response.get('schema', []),
-                            "rows": results_response.get('data', []),
-                            "total_rows": results_response.get('rowCount', 0),
-                            "sample_size": results_response.get('rowCount', 0),
-                            "execution_details": {
-                                "query_runtime_seconds": results_response.get('queryRuntime', 0),
-                                "data_scanned_gb": results_response.get('dataScanned', 0),
-                                "cost_estimate_usd": results_response.get('costEstimate', 0)
-                            }
-                        }
-                        
-                        # Update execution with results
-                        self._update_execution_completed(
-                            execution_id=execution_id,
-                            amc_execution_id=amc_execution_id,
-                            row_count=result_data['total_rows'],
-                            results=result_data
-                        )
-                        
-                        return {
-                            "status": "completed",
-                            "amc_execution_id": amc_execution_id,
-                            "row_count": result_data['total_rows'],
-                            "results_url": status_response.get('outputLocation')
-                        }
-                    
-                    elif status in ['FAILED', 'ERROR']:
-                        error_msg = status_response.get('error', 'Query execution failed')
-                        self._update_execution_completed(
-                            execution_id=execution_id,
-                            amc_execution_id=amc_execution_id,
-                            row_count=0,
-                            error_message=error_msg
-                        )
-                        return {
-                            "status": "failed",
-                            "error": error_msg
-                        }
-                    
-                    # Wait before next poll
-                    time.sleep(5)
+                # Store the AMC execution ID in the database
+                self._update_execution_amc_id(execution_id, amc_execution_id)
                 
-                # Timeout
-                self._update_execution_completed(
-                    execution_id=execution_id,
-                    amc_execution_id=amc_execution_id,
-                    row_count=0,
-                    error_message="Execution timed out after 10 minutes"
-                )
+                # Return immediately with pending status
+                # The frontend will poll for status updates
                 return {
-                    "status": "failed",
-                    "error": "Execution timed out"
+                    "status": "pending",
+                    "amc_execution_id": amc_execution_id,
+                    "message": "Workflow execution started successfully"
                 }
                 
             except Exception as api_error:
@@ -560,6 +481,111 @@ class AMCExecutionService:
             logger.error(f"Error updating execution status: {e}")
             return None
     
+    def poll_and_update_execution(self, execution_id: str, user_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Poll AMC for execution status and update database
+        This is called by the status endpoint to check real-time status
+        """
+        try:
+            # Get execution record with AMC execution ID
+            client = SupabaseManager.get_client(use_service_role=True)
+            
+            response = client.table('workflow_executions')\
+                .select('*, workflows!inner(user_id, instance_id, amc_instances!inner(instance_id, marketplace_id, amc_accounts!inner(account_id)))')\
+                .eq('execution_id', execution_id)\
+                .execute()
+            
+            if not response.data:
+                return None
+            
+            execution = response.data[0]
+            
+            # Verify user has access
+            if execution['workflows']['user_id'] != user_id:
+                return None
+            
+            # Skip if already completed or failed
+            if execution['status'] in ['completed', 'failed']:
+                return self.get_execution_status(execution_id, user_id)
+            
+            # Get AMC execution ID
+            amc_execution_id = execution.get('amc_execution_id')
+            if not amc_execution_id:
+                logger.error(f"No AMC execution ID found for {execution_id}")
+                return self.get_execution_status(execution_id, user_id)
+            
+            # Get instance details
+            instance = execution['workflows']['amc_instances']
+            instance_id = instance['instance_id']
+            entity_id = instance['amc_accounts']['account_id']
+            marketplace_id = instance.get('marketplace_id', 'ATVPDKIKX0DER')
+            
+            # Get valid token
+            valid_token = asyncio.run(token_service.get_valid_token(user_id))
+            if not valid_token:
+                logger.error(f"No valid token for user {user_id}")
+                return self.get_execution_status(execution_id, user_id)
+            
+            # Check status with AMC
+            from .amc_api_client import AMCAPIClient
+            api_client = AMCAPIClient()
+            
+            status_response = api_client.get_execution_status(
+                execution_id=amc_execution_id,
+                access_token=valid_token,
+                entity_id=entity_id,
+                marketplace_id=marketplace_id,
+                instance_id=instance_id
+            )
+            
+            if status_response.get('success'):
+                status = status_response.get('status', 'running')
+                progress = status_response.get('progress', 50)
+                
+                # Update our execution record
+                self._update_execution_progress(execution_id, status, progress)
+                
+                # If completed, fetch results
+                if status == 'completed':
+                    results_response = api_client.get_execution_results(
+                        execution_id=amc_execution_id,
+                        access_token=valid_token,
+                        entity_id=entity_id,
+                        marketplace_id=marketplace_id,
+                        instance_id=instance_id
+                    )
+                    
+                    if results_response.get('success'):
+                        result_data = {
+                            "columns": results_response.get('columns', []),
+                            "rows": results_response.get('rows', []),
+                            "total_rows": results_response.get('rowCount', 0),
+                            "sample_size": results_response.get('rowCount', 0),
+                            "execution_details": results_response.get('metadata', {})
+                        }
+                        
+                        self._update_execution_completed(
+                            execution_id=execution_id,
+                            amc_execution_id=amc_execution_id,
+                            row_count=result_data['total_rows'],
+                            results=result_data
+                        )
+                elif status == 'failed':
+                    error_msg = status_response.get('error', 'Query execution failed')
+                    self._update_execution_completed(
+                        execution_id=execution_id,
+                        amc_execution_id=amc_execution_id,
+                        row_count=0,
+                        error_message=error_msg
+                    )
+            
+            # Return current status
+            return self.get_execution_status(execution_id, user_id)
+            
+        except Exception as e:
+            logger.error(f"Error polling execution status: {e}")
+            return self.get_execution_status(execution_id, user_id)
+    
     def get_execution_status(self, execution_id: str, user_id: str) -> Optional[Dict[str, Any]]:
         """Get execution status and results"""
         try:
@@ -647,6 +673,19 @@ class AMCExecutionService:
                 
         except Exception as e:
             logger.error(f"Error updating execution progress: {e}")
+    
+    def _update_execution_amc_id(self, execution_id: str, amc_execution_id: str):
+        """Update execution with AMC execution ID"""
+        try:
+            client = SupabaseManager.get_client(use_service_role=True)
+            
+            client.table('workflow_executions')\
+                .update({"amc_execution_id": amc_execution_id})\
+                .eq('execution_id', execution_id)\
+                .execute()
+                
+        except Exception as e:
+            logger.error(f"Error updating AMC execution ID: {e}")
     
     def _update_execution_completed(
         self, 

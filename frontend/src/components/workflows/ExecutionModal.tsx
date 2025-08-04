@@ -108,7 +108,7 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
       return response.data;
     },
     enabled: !!executionId,
-    refetchInterval: 2000, // Poll every 2 seconds
+    refetchInterval: 10000, // Poll every 10 seconds
   });
   
   // Stop polling when execution is complete

@@ -324,7 +324,8 @@ def get_execution_status(
     try:
         from ...services.amc_execution_service import amc_execution_service
         
-        status = amc_execution_service.get_execution_status(execution_id, current_user['id'])
+        # Poll AMC for latest status and update database
+        status = amc_execution_service.poll_and_update_execution(execution_id, current_user['id'])
         if not status:
             raise HTTPException(status_code=404, detail="Execution not found")
         

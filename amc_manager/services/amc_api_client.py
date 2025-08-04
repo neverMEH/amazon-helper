@@ -1,10 +1,12 @@
 """
 AMC API Client for real query execution
 """
+import csv
+import io
 import json
 import logging
 import time
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import requests
 from datetime import datetime
 
@@ -233,28 +235,137 @@ class AMCAPIClient:
                 "error": f"Execution not complete. Status: {status.get('status')}"
             }
         
-        # Get results from output location
-        # In a real implementation, this would download from S3
-        output_location = status.get('outputLocation')
+        # Get download URLs
+        download_urls_response = self.get_download_urls(
+            execution_id, access_token, entity_id, marketplace_id, instance_id
+        )
+        
+        if not download_urls_response.get('success'):
+            return download_urls_response
+        
+        download_urls = download_urls_response.get('downloadUrls', [])
+        if not download_urls:
+            return {
+                "success": False,
+                "error": "No download URLs available"
+            }
+        
+        # Download the first URL (should be the CSV results)
+        csv_url = download_urls[0] if isinstance(download_urls[0], str) else download_urls[0].get('url')
         
         try:
-            # For now, return a structure that matches what we expect
-            # In production, this would parse the actual results from S3
+            # Download the CSV file
+            csv_response = requests.get(csv_url, timeout=60)
+            if csv_response.status_code != 200:
+                return {
+                    "success": False,
+                    "error": f"Failed to download CSV: Status {csv_response.status_code}"
+                }
+            
+            # Parse CSV content
+            csv_content = csv_response.text
+            csv_reader = csv.reader(io.StringIO(csv_content))
+            
+            # Get headers (first row)
+            headers = next(csv_reader, [])
+            
+            # Get all rows
+            rows = list(csv_reader)
+            
+            # Convert to our format with column metadata
+            columns = [{"name": header, "type": "string"} for header in headers]
+            
             return {
                 "success": True,
                 "executionId": execution_id,
-                "outputLocation": output_location,
-                "resultUrl": f"{output_location}results.csv",
+                "columns": columns,
+                "rows": rows,
+                "rowCount": len(rows),
+                "columnCount": len(columns),
+                "schema": columns,  # For backward compatibility
+                "data": rows,       # For backward compatibility
                 "metadata": {
-                    "rowCount": 0,
-                    "columnCount": 0,
-                    "dataSizeBytes": 0,
-                    "queryRuntime": 0
+                    "rowCount": len(rows),
+                    "columnCount": len(columns),
+                    "dataSizeBytes": len(csv_content.encode('utf-8')),
+                    "queryRuntime": 0  # This would come from AMC metadata
                 }
             }
             
         except Exception as e:
             logger.error(f"Error getting execution results: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    def get_download_urls(
+        self,
+        execution_id: str,
+        access_token: str,
+        entity_id: str,
+        marketplace_id: str = "ATVPDKIKX0DER",
+        instance_id: str = None
+    ) -> Dict[str, Any]:
+        """
+        Get download URLs for workflow execution results
+        
+        Args:
+            execution_id: AMC execution ID
+            access_token: Amazon OAuth access token
+            entity_id: Advertiser entity ID
+            marketplace_id: Amazon marketplace ID
+            instance_id: AMC instance ID (required)
+            
+        Returns:
+            Download URLs for the execution results
+        """
+        if not instance_id:
+            return {"success": False, "error": "instance_id is required"}
+        
+        url = f"{self.base_url}/amc/reporting/{instance_id}/workflowExecutions/{execution_id}/downloadUrls"
+        
+        headers = {
+            'Amazon-Advertising-API-ClientId': settings.amazon_client_id,
+            'Authorization': f'Bearer {access_token}',
+            'Amazon-Advertising-API-MarketplaceId': marketplace_id,
+            'Amazon-Advertising-API-AdvertiserId': entity_id
+        }
+        
+        try:
+            response = requests.get(
+                url,
+                headers=headers,
+                timeout=30
+            )
+            
+            if response.status_code == 404:
+                # Execution not ready for download yet
+                return {
+                    "success": False,
+                    "error": f"Execution with ID {execution_id} is unavailable for download.",
+                    "not_ready": True
+                }
+            
+            response_data = response.json() if response.text else {}
+            
+            if response.status_code != 200:
+                logger.error(f"Failed to get download URLs: Status {response.status_code}, Response: {response_data}")
+                return {
+                    "success": False,
+                    "error": response_data.get('message', f'API Error: {response.status_code}')
+                }
+            
+            # Return the download URLs
+            return {
+                "success": True,
+                "executionId": execution_id,
+                "downloadUrls": response_data.get('downloadUrls', []),
+                "expires": response_data.get('expires')
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting download URLs: {e}")
             return {
                 "success": False,
                 "error": str(e)
