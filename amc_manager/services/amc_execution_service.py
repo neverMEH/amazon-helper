@@ -233,7 +233,16 @@ class AMCExecutionService:
             from .token_refresh_service import token_refresh_service
             asyncio.run(token_refresh_service.refresh_before_workflow(user_id))
             
-            # Get user's Amazon OAuth token
+            # Get user's full token data
+            user = asyncio.run(db_service.get_user_by_id(user_id))
+            if not user or not user.get('auth_tokens'):
+                logger.error(f"No tokens found for user {user_id}")
+                return {
+                    "status": "failed",
+                    "error": "No valid Amazon OAuth token. Please re-authenticate with Amazon."
+                }
+            
+            # Get valid access token
             valid_token = asyncio.run(token_service.get_valid_token(user_id))
             if not valid_token:
                 logger.error(f"No valid Amazon token for user {user_id}")
@@ -291,7 +300,7 @@ class AMCExecutionService:
                 response = api_client.post(
                     endpoint,
                     user_id,
-                    {'access_token': valid_token},  # Pass token as dict
+                    user['auth_tokens'],  # Pass full token data including refresh_token
                     json_data=execution_data
                 )
                 
@@ -306,7 +315,7 @@ class AMCExecutionService:
                     status_response = api_client.get(
                         status_endpoint,
                         user_id,
-                        {'access_token': valid_token}
+                        user['auth_tokens']  # Pass full token data
                     )
                     
                     status = status_response.get('status', 'running')
@@ -321,7 +330,7 @@ class AMCExecutionService:
                         results_response = api_client.get(
                             results_endpoint,
                             user_id,
-                            {'access_token': valid_token}
+                            user['auth_tokens']  # Pass full token data
                         )
                         
                         # Parse results

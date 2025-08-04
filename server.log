@@ -140,3 +140,11 @@ INFO:     127.0.0.1:58422 - "GET /api/health HTTP/1.1" 200 OK
 2025-08-04 20:28:57 - amc_manager.services.token_service - ERROR - Error decrypting access token: 
 2025-08-04 20:28:57 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user c75e7816-b99c-4c1e-8559-4ee993067124
 2025-08-04 20:28:58 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 1 successful, 8 failed
+2025-08-04 20:38:58 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 9 users
+2025-08-04 20:38:58 - amc_manager.services.token_refresh_service - INFO - Token for user 108b5460-ca76-44b1-81f6-e8fb85804ece expires in -254523s, refreshing...
+2025-08-04 20:38:58 - amc_manager.services.token_service - ERROR - Error decrypting access token: 
+2025-08-04 20:38:58 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user 108b5460-ca76-44b1-81f6-e8fb85804ece
+2025-08-04 20:38:59 - amc_manager.services.token_refresh_service - INFO - Token for user c75e7816-b99c-4c1e-8559-4ee993067124 expires in -252023s, refreshing...
+2025-08-04 20:38:59 - amc_manager.services.token_service - ERROR - Error decrypting access token: 
+2025-08-04 20:38:59 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user c75e7816-b99c-4c1e-8559-4ee993067124
+2025-08-04 20:38:59 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 6 successful, 3 failed
