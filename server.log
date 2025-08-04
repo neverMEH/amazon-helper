@@ -317,3 +317,21 @@ INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
 2025-08-04 23:33:13 - amc_manager.services.token_service - ERROR - Error decrypting access token: Failed to decrypt token: 
 2025-08-04 23:33:13 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user f7e6925f-8691-48ac-804c-b2e4369c617a
 2025-08-04 23:33:13 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 2 successful, 8 failed
+2025-08-04 23:43:13 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 10 users
+2025-08-04 23:43:14 - amc_manager.services.token_refresh_service - INFO - Token for user 108b5460-ca76-44b1-81f6-e8fb85804ece expires in -265579s, refreshing...
+2025-08-04 23:43:14 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-08-04 23:43:14 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABojSoXE4X-uNm9
+2025-08-04 23:43:14 - amc_manager.services.token_service - ERROR - Error decrypting access token: Failed to decrypt token: 
+2025-08-04 23:43:14 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user 108b5460-ca76-44b1-81f6-e8fb85804ece
+2025-08-04 23:43:14 - amc_manager.services.token_refresh_service - INFO - Token for user fe841586-7807-48b1-8808-02877834fce0 expires in -1921s, refreshing...
+2025-08-04 23:43:14 - amc_manager.services.token_service - INFO - Access token expired, attempting refresh...
+2025-08-04 23:43:14 - amc_manager.services.token_service - WARNING - Decrypted token doesn't look like Amazon token. First 20 chars: Atzr|IwEBIDEMO_REFRE
+2025-08-04 23:43:14 - amc_manager.services.token_service - ERROR - Failed to refresh token: 400 - {"error_index":"vj5vGYwLLHxEEoIZ3AeglQAAAAAAAAABvSrzlX1x-DW51yXhdl1nJWdn3T3fsl_Aaq4n3vYgmQabMXoLFcB9yWTTsyVwKdYi4FE_jjxtZQCf4LW1xi_wSoQbJ0AUkAXGc3nzNoIM1nDrUMHVAGH6hzHQbhLrh_P3_UbM7lnpJccT2s4shb4RmaA19JF91hRXNR6OVpE9bXNwmTIlAnVq_TfX0rj5Y4q5WRvB1ujFVjyDCYfsUL83Cra0jxATVebU-mWyFg==","error_description":"The request has an invalid grant parameter : refresh_token. User may have revoked or didn't grant the permission.","error":"invalid_grant","request_id":"58a2d119-effd-45f0-af0d-b5be07109bea"}
+2025-08-04 23:43:14 - amc_manager.services.token_service - ERROR - Failed to refresh token
+2025-08-04 23:43:14 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user fe841586-7807-48b1-8808-02877834fce0
+2025-08-04 23:43:14 - amc_manager.services.token_refresh_service - INFO - Token for user c75e7816-b99c-4c1e-8559-4ee993067124 expires in -263079s, refreshing...
+2025-08-04 23:43:15 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-08-04 23:43:15 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABojTPcAlYzPoXM
+2025-08-04 23:43:15 - amc_manager.services.token_service - ERROR - Error decrypting access token: Failed to decrypt token: 
+2025-08-04 23:43:15 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user c75e7816-b99c-4c1e-8559-4ee993067124
+2025-08-04 23:43:15 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 7 successful, 3 failed
