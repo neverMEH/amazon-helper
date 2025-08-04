@@ -1,16 +1,18 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Code, Edit2, Trash2, Globe, Lock, Copy } from 'lucide-react';
+import { Plus, Code, Edit2, Trash2, Globe, Lock, Copy, ChevronDown, ChevronUp } from 'lucide-react';
 import { queryTemplateService } from '../../services/queryTemplateService';
 import type { QueryTemplate } from '../../types/queryTemplate';
 import { formatDate } from '../../utils/dateUtils';
 import QueryTemplateModal from './QueryTemplateModal';
+import SQLEditor from '../common/SQLEditor';
 import toast from 'react-hot-toast';
 
 export default function QueryTemplates() {
   const [selectedTemplate, setSelectedTemplate] = useState<QueryTemplate | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [expandedTemplates, setExpandedTemplates] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
 
   const { data: templates = [], isLoading } = useQuery({
@@ -60,6 +62,23 @@ export default function QueryTemplates() {
     setIsModalOpen(true);
   };
 
+  const toggleExpanded = (templateId: string) => {
+    setExpandedTemplates(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(templateId)) {
+        newSet.delete(templateId);
+      } else {
+        newSet.add(templateId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleCopySQL = (sqlTemplate: string) => {
+    navigator.clipboard.writeText(sqlTemplate);
+    toast.success('SQL query copied to clipboard');
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -105,6 +124,7 @@ export default function QueryTemplates() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th className="w-8 px-2"></th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Template
                 </th>
@@ -126,9 +146,33 @@ export default function QueryTemplates() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {templates.map((template) => (
-                <tr key={template.templateId} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
+              {templates.map((template) => {
+                const isExpanded = expandedTemplates.has(template.templateId);
+                return (
+                  <>
+                    <tr 
+                      key={template.templateId} 
+                      className="hover:bg-gray-50 cursor-pointer"
+                      onClick={(e) => {
+                        // Don't toggle if clicking on action buttons
+                        if (!(e.target as HTMLElement).closest('.action-buttons')) {
+                          toggleExpanded(template.templateId);
+                        }
+                      }}
+                    >
+                      <td className="px-2 py-4">
+                        <button
+                          onClick={() => toggleExpanded(template.templateId)}
+                          className="p-1 hover:bg-gray-100 rounded"
+                        >
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4 text-gray-500" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4 text-gray-500" />
+                          )}
+                        </button>
+                      </td>
+                      <td className="px-6 py-4">
                     <div>
                       <div className="text-sm font-medium text-gray-900">{template.name}</div>
                       {template.description && (
@@ -144,6 +188,13 @@ export default function QueryTemplates() {
                               {tag}
                             </span>
                           ))}
+                        </div>
+                      )}
+                      {Object.keys(template.parametersSchema).length > 0 && (
+                        <div className="mt-1">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                            {Object.keys(template.parametersSchema).length} parameter{Object.keys(template.parametersSchema).length !== 1 ? 's' : ''}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -171,7 +222,7 @@ export default function QueryTemplates() {
                     {formatDate(template.createdAt)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex items-center justify-end space-x-2">
+                    <div className="flex items-center justify-end space-x-2 action-buttons">
                       <button
                         onClick={() => handleDuplicate(template)}
                         className="text-gray-400 hover:text-gray-600"
@@ -200,7 +251,125 @@ export default function QueryTemplates() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                {isExpanded && (
+                  <tr className="bg-gray-50 border-t-0">
+                    <td colSpan={7} className="px-6 py-6">
+                      <div className="space-y-6">
+                        {/* SQL Query Section */}
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="text-sm font-medium text-gray-900">SQL Query</h4>
+                            <button
+                              onClick={() => handleCopySQL(template.sqlTemplate)}
+                              className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700"
+                            >
+                              <Copy className="h-4 w-4 mr-1" />
+                              Copy SQL
+                            </button>
+                          </div>
+                          <SQLEditor
+                            value={template.sqlTemplate}
+                            onChange={() => {}}
+                            height="300px"
+                            readOnly
+                          />
+                          <div className="mt-2 text-sm text-gray-500">
+                            {template.sqlTemplate.split('\n').length} lines • {template.sqlTemplate.length} characters
+                          </div>
+                        </div>
+
+                        {/* Parameters Section */}
+                        {Object.keys(template.parametersSchema).length > 0 && (
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-900 mb-2">Parameters</h4>
+                            <div className="bg-white rounded-lg border border-gray-200 p-4">
+                              <div className="space-y-3">
+                                {Object.entries(template.parametersSchema).map(([key, schema]: [string, any]) => (
+                                  <div key={key} className="flex items-start">
+                                    <code className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
+                                      {`{{${key}}}`}
+                                    </code>
+                                    <div className="ml-4 flex-1">
+                                      <div className="text-sm text-gray-700">
+                                        Type: <span className="font-medium">{schema.type || 'string'}</span>
+                                      </div>
+                                      {schema.description && (
+                                        <div className="text-sm text-gray-500 mt-1">{schema.description}</div>
+                                      )}
+                                      {template.defaultParameters[key] !== undefined && (
+                                        <div className="text-sm text-gray-500 mt-1">
+                                          Default: <code className="bg-gray-100 px-1 rounded">
+                                            {JSON.stringify(template.defaultParameters[key])}
+                                          </code>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Metadata Section */}
+                        <div className="grid grid-cols-2 gap-6">
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-900 mb-2">Template Information</h4>
+                            <dl className="space-y-2">
+                              <div>
+                                <dt className="text-sm text-gray-500">Template ID</dt>
+                                <dd className="text-sm font-mono text-gray-900">{template.templateId}</dd>
+                              </div>
+                              <div>
+                                <dt className="text-sm text-gray-500">Created</dt>
+                                <dd className="text-sm text-gray-900">{formatDate(template.createdAt)}</dd>
+                              </div>
+                              <div>
+                                <dt className="text-sm text-gray-500">Last Updated</dt>
+                                <dd className="text-sm text-gray-900">{formatDate(template.updatedAt)}</dd>
+                              </div>
+                              <div>
+                                <dt className="text-sm text-gray-500">Usage Count</dt>
+                                <dd className="text-sm text-gray-900">{template.usageCount} times</dd>
+                              </div>
+                            </dl>
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-900 mb-2">Actions</h4>
+                            <div className="space-y-2">
+                              <button
+                                onClick={() => handleEdit(template)}
+                                className="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                              >
+                                <Edit2 className="h-4 w-4 mr-2" />
+                                Edit Template
+                              </button>
+                              <button
+                                onClick={() => handleDuplicate(template)}
+                                className="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                              >
+                                <Copy className="h-4 w-4 mr-2" />
+                                Duplicate Template
+                              </button>
+                              {template.isOwner && (
+                                <button
+                                  onClick={() => handleDelete(template.templateId)}
+                                  className="w-full inline-flex items-center justify-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete Template
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </>
+              );
+            })}
             </tbody>
           </table>
           
