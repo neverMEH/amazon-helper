@@ -44,7 +44,7 @@ class AMCAPIClient:
         url = f"{self.base_url}/amc/workflowExecutions"
         
         headers = {
-            'Amazon-Advertising-API-ClientId': settings.AMAZON_CLIENT_ID,
+            'Amazon-Advertising-API-ClientId': settings.amazon_client_id,
             'Authorization': f'Bearer {access_token}',
             'Amazon-Advertising-API-MarketplaceId': marketplace_id,
             'Amazon-Advertising-API-AdvertiserId': entity_id,
@@ -119,7 +119,7 @@ class AMCAPIClient:
         url = f"{self.base_url}/amc/workflowExecutions/{execution_id}"
         
         headers = {
-            'Amazon-Advertising-API-ClientId': settings.AMAZON_CLIENT_ID,
+            'Amazon-Advertising-API-ClientId': settings.amazon_client_id,
             'Authorization': f'Bearer {access_token}',
             'Amazon-Advertising-API-MarketplaceId': marketplace_id,
             'Amazon-Advertising-API-AdvertiserId': entity_id
