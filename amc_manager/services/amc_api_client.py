@@ -7,7 +7,6 @@ from typing import Dict, Any, Optional
 import requests
 from datetime import datetime
 
-from ..core.api_client import APIClient
 from ..config.settings import settings
 
 logger = logging.getLogger(__name__)
@@ -17,7 +16,6 @@ class AMCAPIClient:
     """Client for Amazon Marketing Cloud API operations"""
     
     def __init__(self):
-        self.api_client = APIClient()
         self.base_url = "https://advertising-api.amazon.com"
     
     def create_workflow_execution(
