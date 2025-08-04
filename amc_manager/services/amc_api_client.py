@@ -1,6 +1,7 @@
 """
 AMC API Client for real query execution
 """
+import json
 import logging
 import time
 from typing import Dict, Any, Optional
@@ -61,15 +62,22 @@ class AMCAPIClient:
         timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
         output_location = f"s3://amc-results/{instance_id}/{timestamp}/"
         
-        # According to AMC documentation, we need to specify timeWindowType
-        # and provide the SQL query for ad hoc execution
+        # For ad hoc execution, we need to provide a workflow object with the SQL query
+        # Based on AMC documentation, we can either:
+        # 1. Execute a saved workflow using workflowId
+        # 2. Execute an ad hoc workflow by providing the SQL in the workflow object
         payload = {
-            "query": sql_query,  # SQL query for ad hoc execution
-            "timeWindowType": "MOST_RECENT_DAY",  # Default to most recent day
+            "workflow": {
+                "sqlQuery": sql_query  # SQL query for ad hoc execution
+            },
+            "timeWindowType": "EXPLICIT",  # Use explicit time window
+            "timeWindowStart": datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0).isoformat(),
+            "timeWindowEnd": datetime.utcnow().isoformat(),
             "timeWindowTimeZone": "America/New_York"
         }
         
         logger.info(f"Creating AMC workflow execution for instance {instance_id}")
+        logger.info(f"Request payload: {json.dumps(payload, indent=2)}")
         
         try:
             response = requests.post(

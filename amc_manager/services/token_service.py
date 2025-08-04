@@ -61,7 +61,8 @@ class TokenService:
         try:
             decrypted = self.fernet.decrypt(encrypted_token.encode()).decode()
             # Validate the decrypted token looks like an Amazon token
-            if not decrypted.startswith('Atza|'):
+            # Access tokens start with 'Atza|' and refresh tokens start with 'Atzr|'
+            if not (decrypted.startswith('Atza|') or decrypted.startswith('Atzr|')):
                 logger.warning(f"Decrypted token doesn't look like Amazon token. First 20 chars: {decrypted[:20]}")
             return decrypted
         except Exception as e:
