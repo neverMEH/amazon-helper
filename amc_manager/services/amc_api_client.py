@@ -51,6 +51,9 @@ class AMCAPIClient:
             'Content-Type': 'application/json'
         }
         
+        # Debug: Log authorization header to verify format
+        logger.info(f"Authorization header: Bearer {access_token[:20]}..." if len(str(access_token)) > 20 else f"Short token: {access_token}")
+        
         # Generate output location (in real implementation, this would be an S3 bucket)
         timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
         output_location = f"s3://amc-results/{instance_id}/{timestamp}/"

@@ -252,8 +252,14 @@ class AMCExecutionService:
                     'expires_in': auth_tokens.get('expires_in', 3600),
                     'obtained_at': auth_tokens.get('obtained_at', time.time())
                 }
+            except ValueError as e:
+                logger.error(f"Token decryption failed - likely due to key mismatch: {e}")
+                return {
+                    "status": "failed",
+                    "error": "Authentication tokens cannot be decrypted. This usually happens when the encryption key has changed. Please log out and log in again with Amazon to refresh your authentication."
+                }
             except Exception as e:
-                logger.error(f"Error decrypting tokens: {e}")
+                logger.error(f"Unexpected error decrypting tokens: {e}")
                 return {
                     "status": "failed",
                     "error": "Failed to decrypt authentication tokens. Please re-authenticate with Amazon."
@@ -267,6 +273,9 @@ class AMCExecutionService:
                     "status": "failed",
                     "error": "No valid Amazon OAuth token. Please re-authenticate with Amazon."
                 }
+            
+            # Debug: Log token prefix to verify it's decrypted
+            logger.info(f"Valid token starts with: {valid_token[:20]}..." if len(valid_token) > 20 else "Token too short")
             
             # Get the AMC instance details to find entity ID
             client = SupabaseManager.get_client(use_service_role=True)

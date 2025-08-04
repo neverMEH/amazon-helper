@@ -32,11 +32,17 @@ class TokenService:
                 # Generate a new key if none exists
                 key = Fernet.generate_key().decode()
                 logger.warning("Generated new encryption key. Set FERNET_KEY env var for persistence.")
+                logger.info(f"Generated key (for debugging): {key}")
             else:
+                logger.info("Using existing FERNET_KEY from environment")
                 key = key.encode() if isinstance(key, str) else key
-            return Fernet(key)
+            
+            fernet = Fernet(key)
+            logger.info("Fernet encryption initialized successfully")
+            return fernet
         except Exception as e:
             logger.error(f"Failed to initialize Fernet encryption: {e}")
+            logger.error("This will prevent token encryption/decryption from working!")
             return None
     
     def encrypt_token(self, token: str) -> str:
@@ -49,9 +55,19 @@ class TokenService:
     def decrypt_token(self, encrypted_token: str) -> str:
         """Decrypt a stored token"""
         if not self.fernet:
-            logger.warning("Fernet not initialized, returning token as-is")
-            return encrypted_token
-        return self.fernet.decrypt(encrypted_token.encode()).decode()
+            logger.error("CRITICAL: Fernet not initialized, cannot decrypt token!")
+            raise ValueError("Encryption not properly initialized. Check FERNET_KEY environment variable.")
+        
+        try:
+            decrypted = self.fernet.decrypt(encrypted_token.encode()).decode()
+            # Validate the decrypted token looks like an Amazon token
+            if not decrypted.startswith('Atza|'):
+                logger.warning(f"Decrypted token doesn't look like Amazon token. First 20 chars: {decrypted[:20]}")
+            return decrypted
+        except Exception as e:
+            logger.error(f"Failed to decrypt token: {e}")
+            logger.error(f"Encrypted token first 20 chars: {encrypted_token[:20]}")
+            raise ValueError(f"Failed to decrypt token: {e}")
     
     async def validate_token(self, access_token: str) -> Tuple[bool, Optional[str]]:
         """
