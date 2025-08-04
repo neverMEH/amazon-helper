@@ -53,7 +53,7 @@ class AMCAPIClient:
         self.session.headers.update({
             'Content-Type': 'application/json',
             'Amazon-Advertising-API-ClientId': settings.amazon_client_id,
-            'Amazon-Advertising-API-Scope': self.profile_id,
+            'Amazon-Advertising-API-AdvertiserId': self.profile_id,
             'Amazon-Advertising-API-MarketplaceId': self.marketplace_id
         })
         

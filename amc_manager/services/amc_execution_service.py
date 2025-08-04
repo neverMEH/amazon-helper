@@ -245,7 +245,7 @@ class AMCExecutionService:
             # Get the AMC instance details to find entity ID
             client = SupabaseManager.get_client(use_service_role=True)
             instance_response = client.table('amc_instances')\
-                .select('*, amc_accounts!inner(entity_id)')\
+                .select('*, amc_accounts!inner(account_id)')\
                 .eq('instance_id', instance_id)\
                 .execute()
             
@@ -256,7 +256,7 @@ class AMCExecutionService:
                 }
             
             instance = instance_response.data[0]
-            entity_id = instance['amc_accounts']['entity_id']
+            entity_id = instance['amc_accounts']['account_id']
             marketplace_id = instance.get('marketplace_id', 'ATVPDKIKX0DER')
             
             logger.info(f"Executing on instance {instance_id} with entity {entity_id}")
