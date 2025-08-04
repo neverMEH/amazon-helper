@@ -3,9 +3,17 @@ import { AlertCircle, CheckCircle, Loader2, RefreshCw } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
 
+interface TokenInfo {
+  expires_at: string;
+  expires_in_seconds: number;
+  is_expired: boolean;
+}
+
 interface AuthStatus {
   authenticated: boolean;
   message: string;
+  auto_refresh_enabled?: boolean;
+  token_info?: TokenInfo;
 }
 
 export const AmazonAuthStatus: React.FC = () => {
@@ -16,6 +24,13 @@ export const AmazonAuthStatus: React.FC = () => {
 
   useEffect(() => {
     checkAuthStatus();
+    
+    // Set up periodic status checks every 30 seconds
+    const interval = setInterval(() => {
+      checkAuthStatus();
+    }, 30000);
+    
+    return () => clearInterval(interval);
   }, [token]);
 
   const checkAuthStatus = async () => {
@@ -99,12 +114,38 @@ export const AmazonAuthStatus: React.FC = () => {
     );
   }
 
+  const formatTimeRemaining = (seconds: number): string => {
+    if (seconds <= 0) return 'Expired';
+    
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${minutes}m`;
+  };
+
+  const timeRemaining = authStatus?.token_info?.expires_in_seconds || 0;
+  const isExpiringSoon = timeRemaining > 0 && timeRemaining < 900; // 15 minutes
+
   return (
     <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
       <div className="flex items-center justify-between">
         <div className="flex items-center">
           <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
           <span className="text-green-800">Amazon account connected</span>
+          {authStatus?.auto_refresh_enabled && (
+            <span className="ml-3 flex items-center text-sm text-green-700">
+              <RefreshCw className="w-4 h-4 mr-1" />
+              Auto-refresh enabled
+            </span>
+          )}
+          {authStatus?.token_info && (
+            <span className={`ml-3 text-sm ${isExpiringSoon ? 'text-amber-600' : 'text-green-700'}`}>
+              (Expires in {formatTimeRemaining(timeRemaining)})
+            </span>
+          )}
         </div>
         <button
           onClick={handleRefreshToken}

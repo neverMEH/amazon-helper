@@ -5,9 +5,11 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Dict, Any, Optional
 import jwt
 from datetime import datetime, timedelta
+import asyncio
 
 from ...config import settings
 from ...services.db_service import db_service
+from ...services.token_refresh_service import token_refresh_service
 from ...core.logger_simple import get_logger
 
 logger = get_logger(__name__)
@@ -74,6 +76,12 @@ def login(email: str, password: Optional[str] = None):
     
     # Create access token
     access_token = create_access_token(user['id'], user['email'])
+    
+    # Trigger token refresh on login (for Amazon OAuth tokens if they exist)
+    try:
+        asyncio.create_task(token_refresh_service.refresh_on_login(user['id']))
+    except Exception as e:
+        logger.warning(f"Could not trigger token refresh on login: {e}")
     
     return {
         "access_token": access_token,

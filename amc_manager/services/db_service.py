@@ -71,6 +71,16 @@ class DatabaseService:
             return None
     
     @with_connection_retry
+    def get_user_by_id_sync(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """Get user by ID - sync version"""
+        try:
+            response = self.client.table('users').select('*').eq('id', user_id).execute()
+            return response.data[0] if response.data else None
+        except Exception as e:
+            logger.error(f"Error fetching user by ID: {e}")
+            return None
+    
+    @with_connection_retry
     def get_user_instances_sync(self, user_id: str) -> List[Dict[str, Any]]:
         """Get all AMC instances accessible to a user - sync version"""
         try:

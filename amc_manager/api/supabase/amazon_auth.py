@@ -205,6 +205,11 @@ async def amazon_callback(
             logger.error("Failed to store tokens")
             raise HTTPException(status_code=500, detail="Failed to store authentication tokens")
         
+        # Add user to token refresh tracking
+        from ...services.token_refresh_service import token_refresh_service
+        token_refresh_service.add_user(user['id'])
+        logger.info(f"Added user {user['id']} to token refresh tracking")
+        
         # Create our app's JWT token
         app_token = create_access_token(user['id'], user['email'])
         
@@ -268,9 +273,31 @@ async def amazon_auth_status(current_user: Dict[str, Any] = Depends(get_current_
         # Try to get valid token
         valid_token = await token_service.get_valid_token(current_user['id'])
         
+        # Check if user is being tracked for auto-refresh
+        from ...services.token_refresh_service import token_refresh_service
+        is_tracked = current_user['id'] in token_refresh_service.get_tracked_users()
+        
+        # Get token expiry info
+        token_info = {}
+        if user.get('auth_tokens'):
+            auth_tokens = user['auth_tokens']
+            expires_at = auth_tokens.get('expires_at')
+            if expires_at:
+                from datetime import datetime
+                expiry = datetime.fromisoformat(expires_at)
+                now = datetime.utcnow()
+                seconds_until_expiry = (expiry - now).total_seconds()
+                token_info = {
+                    "expires_at": expires_at,
+                    "expires_in_seconds": max(0, seconds_until_expiry),
+                    "is_expired": seconds_until_expiry <= 0
+                }
+        
         return {
             "authenticated": bool(valid_token),
-            "message": "Valid Amazon OAuth token" if valid_token else "Token expired or invalid"
+            "message": "Valid Amazon OAuth token" if valid_token else "Token expired or invalid",
+            "auto_refresh_enabled": is_tracked,
+            "token_info": token_info
         }
         
     except Exception as e:
@@ -279,3 +306,19 @@ async def amazon_auth_status(current_user: Dict[str, Any] = Depends(get_current_
             "authenticated": False,
             "message": "Error checking authentication status"
         }
+
+
+@router.get("/refresh-status")
+async def get_refresh_status(current_user: Dict[str, Any] = Depends(get_current_user)):
+    """
+    Get token refresh service status
+    """
+    from ...services.token_refresh_service import token_refresh_service
+    
+    return {
+        "service_running": token_refresh_service.is_running(),
+        "tracked_users": len(token_refresh_service.get_tracked_users()),
+        "user_tracked": current_user['id'] in token_refresh_service.get_tracked_users(),
+        "refresh_interval_seconds": token_refresh_service.refresh_interval,
+        "refresh_buffer_seconds": token_refresh_service.refresh_buffer
+    }

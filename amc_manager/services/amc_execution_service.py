@@ -229,6 +229,10 @@ class AMCExecutionService:
             Execution result with status and details
         """
         try:
+            # Ensure token is fresh before workflow execution
+            from .token_refresh_service import token_refresh_service
+            asyncio.run(token_refresh_service.refresh_before_workflow(user_id))
+            
             # Get user's Amazon OAuth token
             valid_token = asyncio.run(token_service.get_valid_token(user_id))
             if not valid_token:

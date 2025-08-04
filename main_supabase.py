@@ -13,6 +13,7 @@ from pathlib import Path
 from amc_manager.config import settings
 from amc_manager.core.logger_simple import get_logger
 from amc_manager.core.supabase_client import SupabaseManager
+from amc_manager.services.token_refresh_service import token_refresh_service
 
 logger = get_logger(__name__)
 
@@ -33,10 +34,25 @@ async def lifespan(app: FastAPI):
         logger.error(f"Failed to connect to Supabase: {e}")
         raise
     
+    # Start token refresh service
+    await token_refresh_service.start()
+    logger.info("✓ Token refresh service started")
+    
+    # Load all active users for token refresh tracking
+    try:
+        users_response = client.table('users').select('id').execute()
+        if users_response.data:
+            for user in users_response.data:
+                token_refresh_service.add_user(user['id'])
+            logger.info(f"✓ Added {len(users_response.data)} users to token refresh tracking")
+    except Exception as e:
+        logger.warning(f"Could not load users for token refresh: {e}")
+    
     yield
     
     # Shutdown
     logger.info("Shutting down AMC Manager application...")
+    await token_refresh_service.stop()
 
 
 # Create FastAPI app
