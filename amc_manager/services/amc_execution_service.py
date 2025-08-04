@@ -301,7 +301,7 @@ class AMCExecutionService:
                 response = api_client.create_workflow_execution(
                     instance_id=instance_id,
                     sql_query=sql_query,
-                    access_token=decrypted_tokens['access_token'],
+                    access_token=valid_token,
                     entity_id=entity_id,
                     marketplace_id=marketplace_id
                 )
@@ -329,7 +329,7 @@ class AMCExecutionService:
                     # Get execution status using the correct API method
                     status_response = api_client.get_execution_status(
                         execution_id=amc_execution_id,
-                        access_token=decrypted_tokens['access_token'],
+                        access_token=valid_token,
                         entity_id=entity_id,
                         marketplace_id=marketplace_id
                     )
@@ -350,7 +350,7 @@ class AMCExecutionService:
                         # Get results using the correct API method
                         results_response = api_client.get_execution_results(
                             execution_id=amc_execution_id,
-                            access_token=decrypted_tokens['access_token'],
+                            access_token=valid_token,
                             entity_id=entity_id,
                             marketplace_id=marketplace_id
                         )
