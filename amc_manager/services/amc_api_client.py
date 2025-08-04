@@ -41,7 +41,7 @@ class AMCAPIClient:
         Returns:
             Execution details including execution ID
         """
-        url = f"{self.base_url}/amc/workflowExecutions"
+        url = f"{self.base_url}/amc/reporting/{instance_id}/workflowExecutions"
         
         headers = {
             'Amazon-Advertising-API-ClientId': settings.amazon_client_id,
@@ -53,17 +53,20 @@ class AMCAPIClient:
         
         # Debug: Log authorization header to verify format
         logger.info(f"Authorization header: Bearer {access_token[:20]}..." if len(str(access_token)) > 20 else f"Short token: {access_token}")
+        logger.info(f"Token starts with 'Atza|': {access_token.startswith('Atza|') if access_token else 'No token'}")
+        logger.info(f"Full headers being sent: {headers}")
+        logger.info(f"Request URL: {url}")
         
         # Generate output location (in real implementation, this would be an S3 bucket)
         timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
         output_location = f"s3://amc-results/{instance_id}/{timestamp}/"
         
+        # According to AMC documentation, we need to specify timeWindowType
+        # and provide the SQL query for ad hoc execution
         payload = {
-            "instanceId": instance_id,
-            "sqlQuery": sql_query,
-            "outputLocation": output_location,
-            "dataFormat": output_format,
-            "workflowName": f"query_{timestamp}"
+            "query": sql_query,  # SQL query for ad hoc execution
+            "timeWindowType": "MOST_RECENT_DAY",  # Default to most recent day
+            "timeWindowTimeZone": "America/New_York"
         }
         
         logger.info(f"Creating AMC workflow execution for instance {instance_id}")
@@ -82,12 +85,13 @@ class AMCAPIClient:
             
             response_data = response.json() if response.text else {}
             
-            if response.status_code == 200 and response_data.get('executionId'):
-                logger.info(f"Created execution: {response_data['executionId']}")
+            # According to AMC docs, the response should contain workflowExecutionId
+            if response.status_code == 200 and response_data.get('workflowExecutionId'):
+                logger.info(f"Created execution: {response_data['workflowExecutionId']}")
                 return {
                     "success": True,
-                    "executionId": response_data['executionId'],
-                    "status": "PENDING",
+                    "executionId": response_data['workflowExecutionId'],
+                    "status": response_data.get('status', 'PENDING'),
                     "outputLocation": output_location
                 }
             else:
@@ -110,7 +114,8 @@ class AMCAPIClient:
         execution_id: str,
         access_token: str,
         entity_id: str,
-        marketplace_id: str = "ATVPDKIKX0DER"
+        marketplace_id: str = "ATVPDKIKX0DER",
+        instance_id: str = None
     ) -> Dict[str, Any]:
         """
         Get the status of an AMC workflow execution
@@ -120,11 +125,15 @@ class AMCAPIClient:
             access_token: Amazon OAuth access token
             entity_id: Advertiser entity ID
             marketplace_id: Amazon marketplace ID
+            instance_id: AMC instance ID (required)
             
         Returns:
             Execution status details
         """
-        url = f"{self.base_url}/amc/workflowExecutions/{execution_id}"
+        if not instance_id:
+            return {"success": False, "error": "instance_id is required"}
+        
+        url = f"{self.base_url}/amc/reporting/{instance_id}/workflowExecutions/{execution_id}"
         
         headers = {
             'Amazon-Advertising-API-ClientId': settings.amazon_client_id,
@@ -183,7 +192,8 @@ class AMCAPIClient:
         execution_id: str,
         access_token: str,
         entity_id: str,
-        marketplace_id: str = "ATVPDKIKX0DER"
+        marketplace_id: str = "ATVPDKIKX0DER",
+        instance_id: str = None
     ) -> Dict[str, Any]:
         """
         Get the results of a completed AMC workflow execution
@@ -193,13 +203,17 @@ class AMCAPIClient:
             access_token: Amazon OAuth access token
             entity_id: Advertiser entity ID
             marketplace_id: Amazon marketplace ID
+            instance_id: AMC instance ID (required)
             
         Returns:
             Query results
         """
+        if not instance_id:
+            return {"success": False, "error": "instance_id is required"}
+            
         # First check if execution is complete
         status = self.get_execution_status(
-            execution_id, access_token, entity_id, marketplace_id
+            execution_id, access_token, entity_id, marketplace_id, instance_id
         )
         
         if not status.get('success'):

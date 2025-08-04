@@ -47,8 +47,7 @@ python scripts/import_initial_data.py       # Import initial data
 python scripts/apply_performance_indexes.py # Apply DB indexes
 
 # Test workflow execution (mock or real)
-python test_execution.py    # Test with mock data
-python demo_execution.py    # Demo success/failure scenarios
+python scripts/demo_execution.py    # Demo success/failure scenarios
 ```
 
 ### Frontend Development

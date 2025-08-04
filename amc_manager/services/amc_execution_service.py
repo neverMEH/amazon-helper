@@ -340,7 +340,8 @@ class AMCExecutionService:
                         execution_id=amc_execution_id,
                         access_token=valid_token,
                         entity_id=entity_id,
-                        marketplace_id=marketplace_id
+                        marketplace_id=marketplace_id,
+                        instance_id=instance_id
                     )
                     
                     # Check if status check was successful
@@ -361,7 +362,8 @@ class AMCExecutionService:
                             execution_id=amc_execution_id,
                             access_token=valid_token,
                             entity_id=entity_id,
-                            marketplace_id=marketplace_id
+                            marketplace_id=marketplace_id,
+                            instance_id=instance_id
                         )
                         
                         # Parse results
