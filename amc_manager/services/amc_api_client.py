@@ -76,6 +76,10 @@ class AMCAPIClient:
                 timeout=30
             )
             
+            # Log response details for debugging
+            logger.info(f"API Response Status: {response.status_code}")
+            logger.info(f"API Response Headers: {dict(response.headers)}")
+            
             response_data = response.json() if response.text else {}
             
             if response.status_code == 200 and response_data.get('executionId'):
@@ -88,6 +92,7 @@ class AMCAPIClient:
                 }
             else:
                 logger.error(f"Failed to create execution: Status {response.status_code}, Response: {response_data}")
+                logger.error(f"Response text: {response.text}")
                 return {
                     "success": False,
                     "error": response_data.get('message', f'API Error: {response.status_code}')
