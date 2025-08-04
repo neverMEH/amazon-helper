@@ -288,38 +288,37 @@ class AMCExecutionService:
             logger.info(f"Executing on instance {instance_id} with entity {entity_id}")
             
             # Create workflow execution via AMC API
-            from ..core.api_client import AMCAPIClient, AMCAPIEndpoints
+            from .amc_api_client import AMCAPIClient
             
-            # Initialize API client
-            api_client = AMCAPIClient(
-                profile_id=entity_id,  # Using entity_id as profile_id
-                marketplace_id=marketplace_id
-            )
-            
-            # Prepare execution data
-            execution_data = {
-                'workflowId': workflow_id,
-                'executionId': execution_id,
-                'sqlQuery': sql_query,
-                'parameters': execution_parameters or {},
-                'triggeredBy': 'manual',
-                'triggeredAt': datetime.now(timezone.utc).isoformat()
-            }
-            
-            # Create the execution
-            endpoint = f"amc/instances/{instance_id}/workflows/{workflow_id}/executions"
+            # Initialize API client with correct service
+            api_client = AMCAPIClient()
             
             # Update progress to show we're starting
             self._update_execution_progress(execution_id, 'running', 10)
             
             try:
-                # Make the API call to create execution
-                response = api_client.post(
-                    endpoint,
-                    user_id,
-                    decrypted_tokens,  # Pass decrypted token data
-                    json_data=execution_data
+                # Create workflow execution using the correct API method
+                response = api_client.create_workflow_execution(
+                    instance_id=instance_id,
+                    sql_query=sql_query,
+                    access_token=decrypted_tokens['access_token'],
+                    entity_id=entity_id,
+                    marketplace_id=marketplace_id
                 )
+                
+                # Check if execution was created successfully
+                if not response.get('success'):
+                    error_msg = response.get('error', 'Failed to create workflow execution')
+                    self._update_execution_completed(
+                        execution_id=execution_id,
+                        amc_execution_id=execution_id,
+                        row_count=0,
+                        error_message=error_msg
+                    )
+                    return {
+                        "status": "failed",
+                        "error": error_msg
+                    }
                 
                 amc_execution_id = response.get('executionId', execution_id)
                 logger.info(f"Created AMC execution: {amc_execution_id}")
@@ -327,27 +326,33 @@ class AMCExecutionService:
                 # Poll for completion
                 max_attempts = 120  # 10 minutes max (5 second intervals)
                 for attempt in range(max_attempts):
-                    # Get execution status
-                    status_endpoint = f"amc/instances/{instance_id}/executions/{amc_execution_id}/status"
-                    status_response = api_client.get(
-                        status_endpoint,
-                        user_id,
-                        decrypted_tokens  # Pass decrypted token data
+                    # Get execution status using the correct API method
+                    status_response = api_client.get_execution_status(
+                        execution_id=amc_execution_id,
+                        access_token=decrypted_tokens['access_token'],
+                        entity_id=entity_id,
+                        marketplace_id=marketplace_id
                     )
                     
-                    status = status_response.get('status', 'running')
+                    # Check if status check was successful
+                    if not status_response.get('success'):
+                        logger.warning(f"Failed to get status: {status_response.get('error')}")
+                        time.sleep(5)
+                        continue
+                    
+                    status = status_response.get('status', 'RUNNING')
                     progress = status_response.get('progress', 50)
                     
                     # Update our execution record
-                    self._update_execution_progress(execution_id, status, progress)
+                    self._update_execution_progress(execution_id, status.lower(), progress)
                     
-                    if status == 'completed' or status == 'SUCCEEDED':
-                        # Get results
-                        results_endpoint = f"amc/instances/{instance_id}/executions/{amc_execution_id}/results"
-                        results_response = api_client.get(
-                            results_endpoint,
-                            user_id,
-                            decrypted_tokens  # Pass decrypted token data
+                    if status in ['SUCCEEDED', 'COMPLETED']:
+                        # Get results using the correct API method
+                        results_response = api_client.get_execution_results(
+                            execution_id=amc_execution_id,
+                            access_token=decrypted_tokens['access_token'],
+                            entity_id=entity_id,
+                            marketplace_id=marketplace_id
                         )
                         
                         # Parse results
@@ -378,7 +383,7 @@ class AMCExecutionService:
                             "results_url": status_response.get('outputLocation')
                         }
                     
-                    elif status == 'failed' or status == 'FAILED':
+                    elif status in ['FAILED', 'ERROR']:
                         error_msg = status_response.get('error', 'Query execution failed')
                         self._update_execution_completed(
                             execution_id=execution_id,

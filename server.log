@@ -156,3 +156,25 @@ INFO:     127.0.0.1:58422 - "GET /api/health HTTP/1.1" 200 OK
 2025-08-04 20:49:00 - amc_manager.services.token_service - ERROR - Error decrypting access token: 
 2025-08-04 20:49:00 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user c75e7816-b99c-4c1e-8559-4ee993067124
 2025-08-04 20:49:00 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 6 successful, 3 failed
+2025-08-04 20:59:00 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 9 users
+2025-08-04 20:59:00 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-08-04 20:59:00 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-08-04 20:59:00 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-08-04 20:59:01 - amc_manager.services.token_refresh_service - INFO - Token for user 108b5460-ca76-44b1-81f6-e8fb85804ece expires in -255726s, refreshing...
+2025-08-04 20:59:01 - amc_manager.services.token_service - ERROR - Error decrypting access token: 
+2025-08-04 20:59:01 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user 108b5460-ca76-44b1-81f6-e8fb85804ece
+2025-08-04 20:59:02 - amc_manager.services.token_refresh_service - INFO - Token for user c75e7816-b99c-4c1e-8559-4ee993067124 expires in -253226s, refreshing...
+2025-08-04 20:59:02 - amc_manager.services.token_service - ERROR - Error decrypting access token: 
+2025-08-04 20:59:02 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user c75e7816-b99c-4c1e-8559-4ee993067124
+2025-08-04 20:59:02 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 6 successful, 3 failed
+2025-08-04 21:09:02 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 9 users
+2025-08-04 21:09:02 - amc_manager.services.token_refresh_service - INFO - Token for user 108b5460-ca76-44b1-81f6-e8fb85804ece expires in -256328s, refreshing...
+2025-08-04 21:09:03 - amc_manager.services.token_service - ERROR - Error decrypting access token: 
+2025-08-04 21:09:03 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user 108b5460-ca76-44b1-81f6-e8fb85804ece
+2025-08-04 21:09:03 - amc_manager.services.token_refresh_service - INFO - Token for user d4eeda5c-c7f8-49bf-b980-40dc6c94916a expires in 819s, refreshing...
+2025-08-04 21:09:03 - amc_manager.services.token_service - ERROR - Error decrypting access token: 
+2025-08-04 21:09:03 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user d4eeda5c-c7f8-49bf-b980-40dc6c94916a
+2025-08-04 21:09:03 - amc_manager.services.token_refresh_service - INFO - Token for user c75e7816-b99c-4c1e-8559-4ee993067124 expires in -253827s, refreshing...
+2025-08-04 21:09:03 - amc_manager.services.token_service - ERROR - Error decrypting access token: 
+2025-08-04 21:09:03 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user c75e7816-b99c-4c1e-8559-4ee993067124
+2025-08-04 21:09:04 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 5 successful, 4 failed

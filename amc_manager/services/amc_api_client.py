@@ -68,26 +68,28 @@ class AMCAPIClient:
         logger.info(f"Creating AMC workflow execution for instance {instance_id}")
         
         try:
-            response = self.api_client.make_request(
-                'POST',
+            response = requests.post(
                 url,
                 headers=headers,
-                json_data=payload
+                json=payload,
+                timeout=30
             )
             
-            if response.get('executionId'):
-                logger.info(f"Created execution: {response['executionId']}")
+            response_data = response.json() if response.text else {}
+            
+            if response.status_code == 200 and response_data.get('executionId'):
+                logger.info(f"Created execution: {response_data['executionId']}")
                 return {
                     "success": True,
-                    "executionId": response['executionId'],
+                    "executionId": response_data['executionId'],
                     "status": "PENDING",
                     "outputLocation": output_location
                 }
             else:
-                logger.error(f"Failed to create execution: {response}")
+                logger.error(f"Failed to create execution: Status {response.status_code}, Response: {response_data}")
                 return {
                     "success": False,
-                    "error": response.get('message', 'Unknown error')
+                    "error": response_data.get('message', f'API Error: {response.status_code}')
                 }
                 
         except Exception as e:
@@ -126,14 +128,23 @@ class AMCAPIClient:
         }
         
         try:
-            response = self.api_client.make_request(
-                'GET',
+            response = requests.get(
                 url,
-                headers=headers
+                headers=headers,
+                timeout=30
             )
             
+            response_data = response.json() if response.text else {}
+            
+            if response.status_code != 200:
+                logger.error(f"Failed to get execution status: Status {response.status_code}, Response: {response_data}")
+                return {
+                    "success": False,
+                    "error": response_data.get('message', f'API Error: {response.status_code}')
+                }
+            
             # Map AMC status to our status
-            amc_status = response.get('status', 'UNKNOWN')
+            amc_status = response_data.get('status', 'UNKNOWN')
             status_map = {
                 'PENDING': 'pending',
                 'RUNNING': 'running',
@@ -148,10 +159,10 @@ class AMCAPIClient:
                 "status": status_map.get(amc_status, 'running'),
                 "amcStatus": amc_status,
                 "progress": self._calculate_progress(amc_status),
-                "startTime": response.get('startTime'),
-                "endTime": response.get('endTime'),
-                "outputLocation": response.get('outputLocation'),
-                "error": response.get('failureReason')
+                "startTime": response_data.get('startTime'),
+                "endTime": response_data.get('endTime'),
+                "outputLocation": response_data.get('outputLocation'),
+                "error": response_data.get('failureReason')
             }
             
         except Exception as e:
