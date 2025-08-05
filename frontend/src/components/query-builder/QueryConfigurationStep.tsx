@@ -82,7 +82,7 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
     }));
   };
 
-  const selectedInstance = instances.find(i => i.id === state.instanceId || i.instanceId === state.instanceId);
+  const selectedInstance = instances.find(i => i.instanceId === state.instanceId || i.id === state.instanceId);
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -98,7 +98,7 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
         >
           <option value="">Select an instance...</option>
           {instances.map(instance => (
-            <option key={instance.id} value={instance.id}>
+            <option key={instance.id} value={instance.instanceId}>
               {instance.instanceName} ({instance.instanceId})
               {instance.instanceId?.includes('sandbox') && ' - Sandbox'}
             </option>

@@ -12,7 +12,7 @@ export default function QueryReviewStep({ state, instances }: QueryReviewStepPro
   const [estimatedRuntime, setEstimatedRuntime] = useState<number | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
 
-  const selectedInstance = instances.find(i => i.id === state.instanceId || i.instanceId === state.instanceId);
+  const selectedInstance = instances.find(i => i.instanceId === state.instanceId || i.id === state.instanceId);
 
   useEffect(() => {
     // Simulate cost and runtime estimation
