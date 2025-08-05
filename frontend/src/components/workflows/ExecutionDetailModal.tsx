@@ -1,8 +1,12 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { X, CheckCircle, XCircle, Loader, Clock, AlertCircle, Download, Eye, BarChart } from 'lucide-react';
+import { X, CheckCircle, XCircle, Loader, Clock, AlertCircle, Download, Eye, BarChart, Table, TrendingUp, Database } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import EnhancedResultsTable from '../executions/EnhancedResultsTable';
+import DataVisualization from '../executions/DataVisualization';
+// AI analysis will be integrated later
+// import { DataAnalysisService } from '../../services/dataAnalysisService';
 
 interface ExecutionDetailModalProps {
   isOpen: boolean;
@@ -52,7 +56,8 @@ interface Results {
 
 export default function ExecutionDetailModal({ isOpen, onClose, executionId }: ExecutionDetailModalProps) {
   const [showResults, setShowResults] = useState(false);
-  const [showVisualization, setShowVisualization] = useState(false);
+  const [viewMode, setViewMode] = useState<'table' | 'enhanced' | 'charts' | 'ai'>('enhanced');
+  // const analysisService = useMemo(() => new DataAnalysisService(), []);
 
   // Get execution details
   const { data: execution } = useQuery<ExecutionDetails>({
@@ -236,13 +241,52 @@ export default function ExecutionDetailModal({ isOpen, onClose, executionId }: E
                     </button>
                   )}
                   {showResults && results && (
-                    <button
-                      onClick={() => setShowVisualization(!showVisualization)}
-                      className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                    >
-                      <BarChart className="h-4 w-4 mr-2" />
-                      {showVisualization ? 'Show Table' : 'Show Insights'}
-                    </button>
+                    <div className="inline-flex rounded-md shadow-sm" role="group">
+                      <button
+                        onClick={() => setViewMode('enhanced')}
+                        className={`px-3 py-1 text-sm font-medium rounded-l-md border ${
+                          viewMode === 'enhanced' 
+                            ? 'bg-indigo-600 text-white border-indigo-600' 
+                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        <Table className="h-4 w-4 inline mr-1" />
+                        Enhanced Table
+                      </button>
+                      <button
+                        onClick={() => setViewMode('charts')}
+                        className={`px-3 py-1 text-sm font-medium border-t border-b ${
+                          viewMode === 'charts'
+                            ? 'bg-indigo-600 text-white border-indigo-600'
+                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        <BarChart className="h-4 w-4 inline mr-1" />
+                        Charts
+                      </button>
+                      <button
+                        onClick={() => setViewMode('ai')}
+                        className={`px-3 py-1 text-sm font-medium border ${
+                          viewMode === 'ai'
+                            ? 'bg-indigo-600 text-white border-indigo-600'
+                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        <TrendingUp className="h-4 w-4 inline mr-1" />
+                        AI Analysis
+                      </button>
+                      <button
+                        onClick={() => setViewMode('table')}
+                        className={`px-3 py-1 text-sm font-medium rounded-r-md border ${
+                          viewMode === 'table'
+                            ? 'bg-indigo-600 text-white border-indigo-600'
+                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        <Database className="h-4 w-4 inline mr-1" />
+                        Raw Data
+                      </button>
+                    </div>
                   )}
                   <button
                     onClick={handleDownloadResults}
@@ -281,49 +325,91 @@ export default function ExecutionDetailModal({ isOpen, onClose, executionId }: E
                         </div>
                       )}
 
-                      {!showVisualization ? (
-                        <div className="overflow-x-auto">
-                          <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                              <tr>
-                                {results.columns.map((col) => (
-                                  <th
-                                    key={col.name}
-                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                  >
-                                    {col.name}
-                                  </th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                              {results.rows.map((row, idx) => (
-                                <tr key={idx}>
-                                  {row.map((cell, cellIdx) => (
-                                    <td key={cellIdx} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                      {cell}
-                                    </td>
-                                  ))}
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      ) : (
-                        <div className="bg-gray-50 rounded-lg p-6">
-                          <h4 className="text-lg font-medium mb-4">Query Insights</h4>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-white p-4 rounded-lg shadow-sm">
-                              <h5 className="text-sm font-medium text-gray-600 mb-2">Total Records</h5>
-                              <p className="text-2xl font-bold text-gray-900">{results.total_rows != null ? results.total_rows.toLocaleString() : '0'}</p>
-                            </div>
-                            <div className="bg-white p-4 rounded-lg shadow-sm">
-                              <h5 className="text-sm font-medium text-gray-600 mb-2">Sample Size</h5>
-                              <p className="text-2xl font-bold text-gray-900">{results.sample_size != null ? results.sample_size.toLocaleString() : '0'}</p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                      {(() => {
+                        // Transform data for visualization
+                        const transformedData = results.rows.map(row => {
+                          const obj: any = {};
+                          results.columns.forEach((col, idx) => {
+                            obj[col.name] = row[idx];
+                          });
+                          return obj;
+                        });
+
+                        // Extract instance and brand info
+                        const instanceInfo = undefined; // Will be implemented with proper instance data
+
+                        const brands = execution?.execution_parameters?.brands || 
+                                      execution?.execution_parameters?.brand_id ? 
+                                      [execution.execution_parameters.brand_id] : [];
+
+                        switch (viewMode) {
+                          case 'enhanced':
+                            return (
+                              <EnhancedResultsTable
+                                data={transformedData}
+                                instanceInfo={instanceInfo}
+                                brands={brands}
+                                executionContext={{
+                                  workflowName: execution?.workflow_id || '',
+                                  executionId: executionId,
+                                  startTime: execution?.started_at,
+                                  endTime: execution?.completed_at
+                                }}
+                              />
+                            );
+                          
+                          case 'charts':
+                            return (
+                              <DataVisualization
+                                data={transformedData}
+                                columns={results.columns.map(c => c.name)}
+                                title="Query Results Visualization"
+                                brands={brands}
+                              />
+                            );
+                          
+                          case 'ai':
+                            // AI analysis will be integrated later
+                            return (
+                              <div className="bg-gray-50 rounded-lg p-6">
+                                <h4 className="text-lg font-medium mb-4">AI-Powered Analysis</h4>
+                                <p className="text-sm text-gray-600">AI analysis feature coming soon...</p>
+                              </div>
+                            );
+                          
+                          case 'table':
+                          default:
+                            return (
+                              <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                  <thead className="bg-gray-50">
+                                    <tr>
+                                      {results.columns.map((col) => (
+                                        <th
+                                          key={col.name}
+                                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                        >
+                                          {col.name}
+                                        </th>
+                                      ))}
+                                    </tr>
+                                  </thead>
+                                  <tbody className="bg-white divide-y divide-gray-200">
+                                    {results.rows.map((row, idx) => (
+                                      <tr key={idx}>
+                                        {row.map((cell, cellIdx) => (
+                                          <td key={cellIdx} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            {cell}
+                                          </td>
+                                        ))}
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            );
+                        }
+                      })()}
                     </div>
                   ) : (
                     <div className="text-center py-8 text-gray-500">
