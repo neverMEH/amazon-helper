@@ -528,7 +528,8 @@ class AMCAPIClient:
         distinct_user_count_column: Optional[str] = None,
         filtered_metrics_discriminator_column: Optional[str] = None,
         filtered_reason_column: Optional[str] = None,
-        input_parameters: Optional[List[Dict[str, Any]]] = None
+        input_parameters: Optional[List[Dict[str, Any]]] = None,
+        output_format: str = "CSV"
     ) -> Dict[str, Any]:
         """
         Create a workflow definition in AMC
@@ -561,7 +562,8 @@ class AMCAPIClient:
         # Build request body
         body = {
             'workflowId': workflow_id,
-            'sqlQuery': sql_query
+            'sqlQuery': sql_query,
+            'outputFormat': output_format
         }
         
         # Add optional aggregation threshold columns
@@ -618,7 +620,8 @@ class AMCAPIClient:
         distinct_user_count_column: Optional[str] = None,
         filtered_metrics_discriminator_column: Optional[str] = None,
         filtered_reason_column: Optional[str] = None,
-        input_parameters: Optional[List[Dict[str, Any]]] = None
+        input_parameters: Optional[List[Dict[str, Any]]] = None,
+        output_format: str = "CSV"
     ) -> Dict[str, Any]:
         """
         Update an existing workflow definition in AMC
@@ -651,7 +654,8 @@ class AMCAPIClient:
         # Build request body (workflowId is required for PUT)
         body = {
             'workflowId': workflow_id,
-            'sqlQuery': sql_query
+            'sqlQuery': sql_query,
+            'outputFormat': output_format
         }
         
         # Add optional aggregation threshold columns

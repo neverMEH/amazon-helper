@@ -13,6 +13,11 @@ import QueryTemplates from './components/query-templates/QueryTemplates';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import { AuthCallback } from './pages/AuthCallback';
 
+// New Query Builder imports
+import QueryLibrary from './pages/QueryLibrary';
+import QueryBuilder from './pages/QueryBuilder';
+import MyQueries from './pages/MyQueries';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -41,10 +46,19 @@ function App() {
               <Route path="/instances" element={<Instances />} />
               <Route path="/instances/:instanceId" element={<InstanceDetail />} />
               <Route path="/campaigns" element={<Campaigns />} />
-              <Route path="/workflows" element={<Workflows />} />
+              
+              {/* Legacy routes - redirect to new ones */}
+              <Route path="/workflows" element={<Navigate to="/my-queries" replace />} />
               <Route path="/workflows/:workflowId" element={<WorkflowDetail />} />
               <Route path="/workflows/:workflowId/edit" element={<WorkflowDetail />} />
-              <Route path="/query-templates" element={<QueryTemplates />} />
+              <Route path="/query-templates" element={<Navigate to="/query-library" replace />} />
+              
+              {/* New Query Builder routes */}
+              <Route path="/query-library" element={<QueryLibrary />} />
+              <Route path="/my-queries" element={<MyQueries />} />
+              <Route path="/query-builder/new" element={<QueryBuilder />} />
+              <Route path="/query-builder/template/:templateId" element={<QueryBuilder />} />
+              <Route path="/query-builder/edit/:workflowId" element={<QueryBuilder />} />
             </Route>
           </Route>
         </Routes>

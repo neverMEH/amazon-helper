@@ -596,6 +596,9 @@ def sync_workflow_to_amc(
         from ...services.amc_api_client import AMCAPIClient
         api_client = AMCAPIClient()
         
+        # Get output format from workflow parameters or default to CSV
+        output_format = workflow.get('parameters', {}).get('output_format', 'CSV')
+        
         response = api_client.create_workflow(
             instance_id=instance['instance_id'],
             workflow_id=amc_workflow_id,
@@ -603,7 +606,8 @@ def sync_workflow_to_amc(
             access_token=valid_token,
             entity_id=entity_id,
             marketplace_id=marketplace_id,
-            input_parameters=input_parameters if input_parameters else None
+            input_parameters=input_parameters if input_parameters else None,
+            output_format=output_format
         )
         
         if not response.get('success'):

@@ -1,13 +1,13 @@
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Database, Tag, GitBranch, LogOut, User, Code } from 'lucide-react';
+import { LayoutDashboard, Database, Tag, BookOpen, FileText, LogOut, User } from 'lucide-react';
 import { authService } from '../services/auth';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'AMC Instances', href: '/instances', icon: Database },
   { name: 'Campaigns', href: '/campaigns', icon: Tag },
-  { name: 'Workflows', href: '/workflows', icon: GitBranch },
-  { name: 'Query Templates', href: '/query-templates', icon: Code },
+  { name: 'Query Library', href: '/query-library', icon: BookOpen },
+  { name: 'My Queries', href: '/my-queries', icon: FileText },
 ];
 
 export default function Layout() {

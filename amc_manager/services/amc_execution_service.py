@@ -331,7 +331,8 @@ class AMCExecutionService:
                         access_token=valid_token,
                         entity_id=entity_id,
                         marketplace_id=marketplace_id,
-                        parameter_values=execution_parameters  # Pass parameters for saved workflow
+                        parameter_values=execution_parameters,  # Pass parameters for saved workflow
+                        output_format=execution_parameters.get('output_format', 'CSV') if execution_parameters else 'CSV'
                     )
                 else:
                     # Execute as ad-hoc with full SQL query
@@ -341,7 +342,8 @@ class AMCExecutionService:
                         sql_query=sql_query,
                         access_token=valid_token,
                         entity_id=entity_id,
-                        marketplace_id=marketplace_id
+                        marketplace_id=marketplace_id,
+                        output_format=execution_parameters.get('output_format', 'CSV') if execution_parameters else 'CSV'
                     )
                 
                 # Check if execution was created successfully
