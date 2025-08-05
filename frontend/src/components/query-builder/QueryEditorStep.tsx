@@ -222,7 +222,7 @@ export default function QueryEditorStep({ state, setState }: QueryEditorStepProp
 
       {/* Right Panel - SQL Editor */}
       <div className="flex-1 flex flex-col">
-        <div className="p-4 border-b border-gray-200">
+        <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between mb-2">
             <div>
               <h3 className="text-sm font-semibold text-gray-900">SQL Query</h3>
@@ -260,7 +260,7 @@ export default function QueryEditorStep({ state, setState }: QueryEditorStepProp
           )}
         </div>
 
-        <div className="flex-1 min-h-0 p-4">
+        <div className="flex-1 min-h-0 p-6">
           <SQLEditor
             value={state.sqlQuery || `-- Enter your AMC SQL query here
 -- Example:
@@ -279,7 +279,7 @@ GROUP BY campaign_id`}
         </div>
 
         {/* Query Metadata */}
-        <div className="p-4 border-t border-gray-200 bg-gray-50">
+        <div className="p-6 border-t border-gray-200 bg-gray-50">
           <div className="flex items-center justify-between text-xs text-gray-500">
             <div className="flex items-center space-x-4">
               <span>{state.sqlQuery.split('\n').length} lines</span>
