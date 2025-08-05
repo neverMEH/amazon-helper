@@ -64,10 +64,12 @@ class AMCAPIClient:
         timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
         output_location = f"s3://amc-results/{instance_id}/{timestamp}/"
         
-        # For ad hoc execution, provide the SQL query directly
-        # According to AMC docs, we should provide just "query" at the top level for ad hoc execution
+        # For ad hoc execution, we need to provide the workflow object with the SQL query
+        # Based on AMC API error: "Neither workflow ID or workflow were specified"
         payload = {
-            "query": sql_query,
+            "workflow": {
+                "query": sql_query
+            },
             "timeWindowType": "EXPLICIT",  # Use explicit time window
             "timeWindowStart": datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0).isoformat() + "Z",
             "timeWindowEnd": datetime.utcnow().isoformat() + "Z",
