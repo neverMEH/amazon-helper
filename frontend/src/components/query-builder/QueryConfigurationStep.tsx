@@ -97,7 +97,6 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
           value={state.instanceId}
           onChange={handleInstanceChange}
           placeholder="Select an instance..."
-          required={true}
         />
         {selectedInstance && (
           <p className="mt-2 text-xs text-gray-500">

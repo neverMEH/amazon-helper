@@ -15,15 +15,13 @@ interface InstanceSelectorProps {
   value: string;
   onChange: (instanceId: string) => void;
   placeholder?: string;
-  required?: boolean;
 }
 
 export default function InstanceSelector({
   instances,
   value,
   onChange,
-  placeholder = "Select an instance...",
-  required = false
+  placeholder = "Select an instance..."
 }: InstanceSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
