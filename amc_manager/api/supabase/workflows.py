@@ -225,6 +225,44 @@ def update_workflow(
         raise HTTPException(status_code=500, detail="Failed to update workflow")
 
 
+@router.delete("/{workflow_id}")
+def delete_workflow(
+    workflow_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """Delete a workflow"""
+    try:
+        # Get workflow to verify it exists and check ownership
+        workflow = db_service.get_workflow_by_id_sync(workflow_id)
+        
+        if not workflow:
+            raise HTTPException(status_code=404, detail="Workflow not found")
+        
+        # Verify ownership
+        if workflow['user_id'] != current_user['id']:
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        # Delete the workflow from database
+        client = SupabaseManager.get_client(use_service_role=True)
+        response = client.table('workflows').delete().eq('workflow_id', workflow_id).execute()
+        
+        if not response.data:
+            raise HTTPException(status_code=500, detail="Failed to delete workflow")
+        
+        logger.info(f"Workflow {workflow_id} deleted by user {current_user['id']}")
+        
+        return {
+            "success": True,
+            "message": f"Workflow {workflow_id} deleted successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting workflow {workflow_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete workflow")
+
+
 @router.post("/{workflow_id}/execute")
 def execute_workflow(
     workflow_id: str,
