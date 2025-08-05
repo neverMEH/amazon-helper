@@ -1,4 +1,7 @@
-"""AMC Executions API endpoints for fetching executions directly from AMC"""
+"""AMC Executions API endpoints for fetching workflow executions directly from AMC
+
+Note: The AMC API /workflows endpoint returns workflow executions (historical runs),
+not workflow definitions. Each execution represents a past run of a workflow."""
 
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Dict, Any, List
@@ -79,31 +82,12 @@ async def list_amc_executions(
         
         executions = response.get('executions', [])
         
-        # Try to match with local executions to get workflow names
-        local_executions = amc_execution_service.get_instance_executions(
-            instance_id=instance['id'],  # Use internal UUID
-            user_id=current_user['id']
-        )
-        
-        # Create a map of AMC execution ID to local execution data
-        local_map = {
-            exec.get('amc_execution_id'): exec
-            for exec in local_executions
-            if exec.get('amc_execution_id')
-        }
-        
-        # Enhance AMC executions with local data
+        # For now, return the AMC executions directly
+        # The AMC API returns workflow executions (past runs), not workflow definitions
         enhanced_executions = []
         for amc_exec in executions:
-            exec_id = amc_exec.get('workflowExecutionId')
-            local_data = local_map.get(exec_id, {})
-            
             enhanced_exec = {
                 **amc_exec,
-                'localExecutionId': local_data.get('id'),
-                'workflowName': local_data.get('workflows', {}).get('name') if local_data else None,
-                'workflowId': local_data.get('workflow_id'),
-                'triggeredBy': local_data.get('triggered_by'),
                 'instanceId': instance_id
             }
             enhanced_executions.append(enhanced_exec)
