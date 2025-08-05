@@ -687,6 +687,45 @@ class DatabaseService:
         except Exception as e:
             logger.error(f"Error fetching template: {e}")
             return None
+    
+    @with_connection_retry
+    def get_brands_for_instance_sync(self, instance_id: str) -> List[str]:
+        """Get brands associated with a specific instance"""
+        try:
+            # Query instance_brands table to get brands for this instance
+            response = self.client.table('instance_brands').select('brand_name').eq('instance_id', instance_id).execute()
+            brands = [item['brand_name'] for item in response.data if item.get('brand_name')]
+            
+            # If no brands in instance_brands, try to get from campaigns
+            if not brands:
+                # Get campaigns for this instance (by profile_id)
+                campaigns_response = self.client.table('campaign_mappings').select('brand_tag').eq('profile_id', instance_id).execute()
+                brands_set = set()
+                for campaign in campaigns_response.data:
+                    if campaign.get('brand_tag'):
+                        brands_set.add(campaign['brand_tag'])
+                brands = list(brands_set)
+            
+            return brands
+        except Exception as e:
+            logger.error(f"Error fetching brands for instance {instance_id}: {e}")
+            return []
+    
+    @with_connection_retry
+    def get_workflow_by_amc_id_sync(self, amc_workflow_id: str, instance_id: str) -> Optional[Dict[str, Any]]:
+        """Get workflow details by AMC workflow ID"""
+        try:
+            # Query workflows table by amc_workflow_id and instance_id
+            response = self.client.table('workflows').select('*').eq('amc_workflow_id', amc_workflow_id).eq('instance_id', instance_id).execute()
+            
+            if not response.data:
+                # Try without instance_id in case it's a global workflow
+                response = self.client.table('workflows').select('*').eq('amc_workflow_id', amc_workflow_id).execute()
+            
+            return response.data[0] if response.data else None
+        except Exception as e:
+            logger.error(f"Error fetching workflow by AMC ID {amc_workflow_id}: {e}")
+            return None
 
 # Global instance
 db_service = DatabaseService()

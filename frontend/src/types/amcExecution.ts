@@ -18,4 +18,18 @@ export interface AMCExecutionDetail extends AMCExecution {
   resultData?: any;
   downloadUrls?: string[];
   error?: string;
+  instanceInfo?: {
+    instanceId: string;
+    instanceName: string;
+    region: string;
+    accountId: string;
+    accountName: string;
+    marketplaceId: string;
+  };
+  brands?: string[];
+  workflowInfo?: {
+    id: string;
+    name: string;
+    description: string;
+  };
 }

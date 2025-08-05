@@ -10,6 +10,7 @@ import logging
 from ...services.amc_execution_service import amc_execution_service
 from ...services.db_service import db_service
 from ...services.token_service import token_service
+from ...services.data_analysis_service import data_analysis_service
 from ...core.supabase_client import SupabaseManager
 from .auth import get_current_user
 
@@ -194,11 +195,42 @@ async def get_amc_execution_details(
                     if csv_response.get('success'):
                         result_data = csv_response.get('data')
         
+        # Get associated brands for the instance
+        brands = db_service.get_brands_for_instance_sync(instance_id)
+        
+        # Get workflow details if execution is linked to a workflow
+        workflow_info = None
+        if status_response.get('workflowId'):
+            try:
+                workflow = db_service.get_workflow_by_amc_id_sync(
+                    status_response.get('workflowId'),
+                    instance_id
+                )
+                if workflow:
+                    workflow_info = {
+                        'id': workflow.get('id'),
+                        'name': workflow.get('name'),
+                        'description': workflow.get('description')
+                    }
+            except Exception as e:
+                logger.warning(f"Failed to get workflow info: {e}")
+        
+        # Build enhanced execution response
         return {
             "success": True,
             "execution": {
                 **status_response,
-                "resultData": result_data
+                "resultData": result_data,
+                "instanceInfo": {
+                    "instanceId": instance.get('instance_id'),
+                    "instanceName": instance.get('instance_name'),
+                    "region": instance.get('region', 'us-east-1'),
+                    "accountId": account.get('account_id'),
+                    "accountName": account.get('account_name', 'N/A'),
+                    "marketplaceId": marketplace_id
+                },
+                "brands": brands,
+                "workflowInfo": workflow_info
             }
         }
         
@@ -206,4 +238,62 @@ async def get_amc_execution_details(
         raise
     except Exception as e:
         logger.error(f"Error getting AMC execution details: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/{instance_id}/{execution_id}/analysis")
+async def analyze_execution_data(
+    instance_id: str,
+    execution_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Analyze execution result data and provide insights
+    
+    Args:
+        instance_id: The AMC instance ID
+        execution_id: The AMC execution ID
+        current_user: The authenticated user
+        
+    Returns:
+        Analysis results including statistics and insights
+    """
+    try:
+        # First get the execution details to get the data
+        execution_details = await get_amc_execution_details(
+            instance_id, execution_id, current_user
+        )
+        
+        if not execution_details.get("success"):
+            raise HTTPException(status_code=404, detail="Execution not found")
+        
+        execution = execution_details.get("execution", {})
+        result_data = execution.get("resultData")
+        
+        if not result_data:
+            return {
+                "success": True,
+                "analysis": {
+                    "summary": {
+                        "row_count": 0,
+                        "column_count": 0,
+                        "data_quality": "No data available"
+                    },
+                    "message": "No result data available for analysis"
+                }
+            }
+        
+        # Perform data analysis
+        analysis = data_analysis_service.analyze_data(result_data)
+        
+        return {
+            "success": True,
+            "executionId": execution_id,
+            "instanceId": instance_id,
+            "analysis": analysis
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error analyzing execution data: {e}")
         raise HTTPException(status_code=500, detail=str(e))

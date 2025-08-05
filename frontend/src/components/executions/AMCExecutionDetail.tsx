@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import { amcExecutionService } from '../../services/amcExecutionService';
-import ResultsTable from './ResultsTable';
+import EnhancedResultsTable from './EnhancedResultsTable';
 
 interface Props {
   instanceId: string;
@@ -129,7 +129,11 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                         {execution.resultData && (
                           <div>
                             <h4 className="text-sm font-medium text-gray-900 mb-2">Results</h4>
-                            <ResultsTable data={execution.resultData} />
+                            <EnhancedResultsTable 
+                              data={execution.resultData}
+                              instanceInfo={execution.instanceInfo}
+                              brands={execution.brands}
+                            />
                           </div>
                         )}
 
