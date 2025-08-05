@@ -6,7 +6,7 @@ import logging
 
 from ...services.amc_execution_service import AMCExecutionService
 from ...services.db_service import db_service
-from ...services.token_service import TokenService
+from ...services.token_service import token_service
 from ...core.supabase_client import SupabaseManager
 from .auth import get_current_user
 
@@ -45,8 +45,6 @@ async def list_amc_executions(
             raise HTTPException(status_code=403, detail="Access denied to this instance")
         
         # Get valid token
-        supabase_client = SupabaseManager.get_client(use_service_role=True)
-        token_service = TokenService(supabase_client)
         valid_token = token_service.get_valid_token(current_user['id'])
         
         if not valid_token:
@@ -155,8 +153,6 @@ async def get_amc_execution_details(
             raise HTTPException(status_code=403, detail="Access denied to this instance")
         
         # Get valid token
-        supabase_client = SupabaseManager.get_client(use_service_role=True)
-        token_service = TokenService(supabase_client)
         valid_token = token_service.get_valid_token(current_user['id'])
         
         if not valid_token:
