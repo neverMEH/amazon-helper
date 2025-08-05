@@ -64,18 +64,15 @@ class AMCAPIClient:
         timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
         output_location = f"s3://amc-results/{instance_id}/{timestamp}/"
         
-        # For ad hoc execution, we need to provide a workflow object with the SQL query
-        # Based on AMC documentation, we can either:
-        # 1. Execute a saved workflow using workflowId
-        # 2. Execute an ad hoc workflow by providing the SQL in the workflow object
+        # For ad hoc execution, provide the SQL query directly
+        # According to AMC docs, we should provide just "query" at the top level for ad hoc execution
         payload = {
-            "workflow": {
-                "sqlQuery": sql_query  # SQL query for ad hoc execution
-            },
+            "query": sql_query,
             "timeWindowType": "EXPLICIT",  # Use explicit time window
-            "timeWindowStart": datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0).isoformat(),
-            "timeWindowEnd": datetime.utcnow().isoformat(),
-            "timeWindowTimeZone": "America/New_York"
+            "timeWindowStart": datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0).isoformat() + "Z",
+            "timeWindowEnd": datetime.utcnow().isoformat() + "Z",
+            "timeWindowTimeZone": "America/New_York",
+            "outputFormat": output_format
         }
         
         logger.info(f"Creating AMC workflow execution for instance {instance_id}")
@@ -93,20 +90,54 @@ class AMCAPIClient:
             logger.info(f"API Response Status: {response.status_code}")
             logger.info(f"API Response Headers: {dict(response.headers)}")
             
+            # Check if execution ID is in Location header (common for async APIs)
+            location_exec_id = None
+            location_header = response.headers.get('Location', '')
+            if location_header:
+                logger.info(f"Location header found: {location_header}")
+                # Extract execution ID from location header (e.g., /amc/reporting/{instanceId}/workflowExecutions/{executionId})
+                import re
+                match = re.search(r'/workflowExecutions/([^/]+)', location_header)
+                if match:
+                    location_exec_id = match.group(1)
+                    logger.info(f"Extracted execution ID from Location header: {location_exec_id}")
+            
             response_data = response.json() if response.text else {}
             logger.info(f"API Response Body: {json.dumps(response_data, indent=2)}")
             
-            # Check for different possible field names in the response
-            execution_id = response_data.get('workflowExecutionId') or response_data.get('executionId') or response_data.get('id')
+            # Check for different possible field names in the response, prioritize Location header
+            execution_id = location_exec_id or response_data.get('workflowExecutionId') or response_data.get('executionId') or response_data.get('id')
             
-            if response.status_code == 200 and execution_id:
-                logger.info(f"Created execution: {execution_id}")
-                return {
-                    "success": True,
-                    "executionId": execution_id,
-                    "status": response_data.get('status', 'PENDING'),
-                    "outputLocation": output_location
-                }
+            # Accept both 200 and 202 status codes for async operations
+            if response.status_code in [200, 202]:
+                if execution_id:
+                    logger.info(f"Created execution: {execution_id}")
+                    return {
+                        "success": True,
+                        "executionId": execution_id,
+                        "status": response_data.get('status', 'PENDING'),
+                        "outputLocation": output_location
+                    }
+                else:
+                    # Log all fields in response to debug
+                    logger.warning(f"No execution ID found in response. Available fields: {list(response_data.keys())}")
+                    logger.warning(f"Full response: {json.dumps(response_data, indent=2)}")
+                    
+                    # Try to use any ID-like field
+                    for key in ['workflowExecutionId', 'executionId', 'id', 'execution_id', 'workflowId']:
+                        if key in response_data:
+                            logger.info(f"Using {key} as execution ID: {response_data[key]}")
+                            return {
+                                "success": True,
+                                "executionId": response_data[key],
+                                "status": response_data.get('status', 'PENDING'),
+                                "outputLocation": output_location
+                            }
+                    
+                    return {
+                        "success": False,
+                        "error": "No execution ID found in API response"
+                    }
             else:
                 logger.error(f"Failed to create execution: Status {response.status_code}, Response: {response_data}")
                 logger.error(f"Response text: {response.text}")
