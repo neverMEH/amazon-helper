@@ -133,15 +133,17 @@ async def amazon_reauth(
         
         callback_url = f"{base_url}/api/auth/amazon/callback"
         
-        # Build Amazon OAuth URL
+        # Build Amazon OAuth URL using the same format as the initial login
         auth_params = {
-            'application_id': client_id,
-            'state': state,
+            'client_id': client_id,  # Use 'client_id' not 'application_id'
+            'scope': settings.amazon_scope or 'advertising::campaign_management',
+            'response_type': 'code',
             'redirect_uri': callback_url,
-            'scope': 'profile advertising::campaign_management'
+            'state': state
         }
         
-        auth_url = f"https://www.amazon.com/ap/oa?{requests.compat.urlencode(auth_params)}"
+        param_string = '&'.join([f"{k}={v}" for k, v in auth_params.items()])
+        auth_url = f"https://www.amazon.com/ap/oa?{param_string}"
         
         logger.info(f"Re-authentication initiated for user {current_user['id']}")
         
@@ -208,6 +210,8 @@ async def amazon_callback(
         
         state_data = state_store.pop(state)
         redirect_uri = state_data.get("redirect_uri", "/")
+        is_reauth = state_data.get("is_reauth", False)
+        reauth_user_id = state_data.get("user_id")
         
         # Exchange code for tokens
         token_url = "https://api.amazon.com/auth/o2/token"
@@ -262,21 +266,29 @@ async def amazon_callback(
             email = f"user_{secrets.token_hex(8)}@amazon.com"
             name = "Amazon User"
         
-        # Check if user exists
-        user = db_service.get_user_by_email_sync(email)
-        
-        if not user:
-            # Create new user
-            user = db_service.create_user_sync({
-                "email": email,
-                "name": name,
-                "is_active": True
-            })
+        # Handle re-authentication vs new login
+        if is_reauth and reauth_user_id:
+            # Re-authentication: use existing user
+            user = db_service.get_user_by_id_sync(reauth_user_id)
             if not user:
-                raise HTTPException(status_code=500, detail="Failed to create user")
-            logger.info(f"Created new user: {email}")
+                raise HTTPException(status_code=404, detail="User not found for re-authentication")
+            logger.info(f"Re-authenticating user: {user['email']}")
         else:
-            logger.info(f"Found existing user: {email}")
+            # Normal login: check if user exists
+            user = db_service.get_user_by_email_sync(email)
+            
+            if not user:
+                # Create new user
+                user = db_service.create_user_sync({
+                    "email": email,
+                    "name": name,
+                    "is_active": True
+                })
+                if not user:
+                    raise HTTPException(status_code=500, detail="Failed to create user")
+                logger.info(f"Created new user: {email}")
+            else:
+                logger.info(f"Found existing user: {email}")
         
         # Store Amazon tokens (encrypted)
         success = await token_service.store_user_tokens(user['id'], tokens)
@@ -289,14 +301,18 @@ async def amazon_callback(
         token_refresh_service.add_user(user['id'])
         logger.info(f"Added user {user['id']} to token refresh tracking")
         
-        # Create our app's JWT token
-        app_token = create_access_token(user['id'], user['email'])
-        
-        # Redirect to frontend with token
+        # Handle redirect based on auth type
         frontend_url = settings.frontend_url or 'http://localhost:5173'
-        redirect_url = f"{frontend_url}/auth/success?token={app_token}&redirect={redirect_uri}"
         
-        logger.info(f"OAuth flow completed successfully for user: {email}")
+        if is_reauth:
+            # For re-authentication, redirect to profile page
+            redirect_url = f"{frontend_url}/profile?reauth=success"
+            logger.info(f"Re-authentication completed successfully for user: {user['email']}")
+        else:
+            # For normal login, create JWT and redirect
+            app_token = create_access_token(user['id'], user['email'])
+            redirect_url = f"{frontend_url}/auth/success?token={app_token}&redirect={redirect_uri}"
+            logger.info(f"OAuth flow completed successfully for user: {email}")
         
         return RedirectResponse(url=redirect_url)
         

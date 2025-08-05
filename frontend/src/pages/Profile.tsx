@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { User, Mail, Calendar, Shield, RefreshCw, AlertCircle, CheckCircle, Key, Building } from 'lucide-react';
 import api from '../services/api';
@@ -23,6 +23,18 @@ interface UserProfile {
 export default function Profile() {
   const queryClient = useQueryClient();
   const [isReAuthenticating, setIsReAuthenticating] = useState(false);
+
+  // Check for reauth success on component mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('reauth') === 'success') {
+      toast.success('Amazon account re-connected successfully!');
+      // Clear the query parameter
+      window.history.replaceState({}, '', window.location.pathname);
+      // Refetch profile data
+      queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+    }
+  }, [queryClient]);
 
   // Fetch user profile
   const { data: profile, isLoading, error } = useQuery<UserProfile>({

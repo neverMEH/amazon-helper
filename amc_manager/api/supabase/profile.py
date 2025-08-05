@@ -42,15 +42,16 @@ async def get_user_profile(
         # Check if user has auth tokens
         if user_data.get('auth_tokens'):
             try:
-                # Try to decrypt and check token validity
-                tokens = token_service.decrypt_tokens(user_data['auth_tokens'])
-                if tokens:
+                auth_tokens = user_data['auth_tokens']
+                # Check if tokens exist
+                if auth_tokens.get('access_token'):
                     amazon_connected = True
                     # Check token expiry
-                    if 'expires_at' in tokens:
-                        token_expires_at = tokens['expires_at']
-                        expires_timestamp = tokens.get('expires_at', 0)
-                        if expires_timestamp > datetime.utcnow().timestamp():
+                    if 'expires_at' in auth_tokens:
+                        expires_at_str = auth_tokens['expires_at']
+                        expires_dt = datetime.fromisoformat(expires_at_str)
+                        token_expires_at = expires_dt.timestamp()
+                        if expires_dt > datetime.utcnow():
                             refresh_token_valid = True
             except Exception as e:
                 logger.warning(f"Could not check token status: {e}")
