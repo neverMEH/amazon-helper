@@ -55,22 +55,22 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                   Execution Details
                 </h3>
 
-                    {isLoading && (
-                      <div className="mt-4 flex justify-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                      </div>
-                    )}
+                {isLoading && (
+                  <div className="mt-4 flex justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                  </div>
+                )}
 
-                    {error && (
-                      <div className="mt-4 bg-red-50 border border-red-200 rounded-md p-4">
-                        <p className="text-sm text-red-600">Failed to load execution details</p>
-                      </div>
-                    )}
+                {error && (
+                  <div className="mt-4 bg-red-50 border border-red-200 rounded-md p-4">
+                    <p className="text-sm text-red-600">Failed to load execution details</p>
+                  </div>
+                )}
 
-                    {execution && (
-                      <div className="mt-4 space-y-4">
-                        <div className="bg-gray-50 px-4 py-3 sm:px-6 rounded-lg">
-                          <dl className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+                {execution && (
+                  <div className="mt-4 space-y-4">
+                    <div className="bg-gray-50 px-4 py-3 sm:px-6 rounded-lg">
+                      <dl className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
                             <div>
                               <dt className="text-sm font-medium text-gray-500">Execution ID</dt>
                               <dd className="mt-1 text-sm text-gray-900 font-mono">
@@ -136,27 +136,26 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                           </div>
                         )}
 
-                        {execution.status === 'SUCCEEDED' && !execution.resultData && (
-                          <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-                            <p className="text-sm text-blue-700">
-                              Execution completed successfully. Results may take a moment to load.
-                            </p>
-                          </div>
-                        )}
+                    {execution.status === 'SUCCEEDED' && !execution.resultData && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                        <p className="text-sm text-blue-700">
+                          Execution completed successfully. Results may take a moment to load.
+                        </p>
                       </div>
                     )}
                   </div>
-                </div>
-
-              <div className="mt-5 sm:mt-6">
-                <button
-                  type="button"
-                  className="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                  onClick={onClose}
-                >
-                  Close
-                </button>
+                )}
               </div>
+            </div>
+
+            <div className="mt-5 sm:mt-6">
+              <button
+                type="button"
+                className="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                onClick={onClose}
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
