@@ -82,13 +82,22 @@ async def list_amc_executions(
         
         executions = response.get('executions', [])
         
+        # Log the first execution to see its structure
+        if executions:
+            logger.info(f"Sample execution data: {executions[0]}")
+        
         # For now, return the AMC executions directly
         # The AMC API returns workflow executions (past runs), not workflow definitions
         enhanced_executions = []
         for amc_exec in executions:
+            # Ensure we have essential fields for frontend display
             enhanced_exec = {
                 **amc_exec,
-                'instanceId': instance_id
+                'instanceId': instance_id,
+                # Ensure workflowExecutionId exists (some APIs might use different field names)
+                'workflowExecutionId': amc_exec.get('workflowExecutionId') or amc_exec.get('executionId') or amc_exec.get('id'),
+                # Default workflowName for ad-hoc queries
+                'workflowName': amc_exec.get('workflowName') or 'Ad-hoc Query'
             }
             enhanced_executions.append(enhanced_exec)
         
