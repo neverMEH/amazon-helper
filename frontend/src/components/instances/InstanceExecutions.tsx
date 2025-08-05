@@ -4,6 +4,7 @@ import { History, Clock, CheckCircle, XCircle, Loader, AlertCircle, ExternalLink
 import api from '../../services/api';
 import ExecutionDetailModal from '../workflows/ExecutionDetailModal';
 import ExecutionModal from '../workflows/ExecutionModal';
+import AMCExecutionList from '../executions/AMCExecutionList';
 
 interface Execution {
   execution_id: string;
@@ -34,6 +35,7 @@ interface InstanceExecutionsProps {
 export default function InstanceExecutions({ instanceId }: InstanceExecutionsProps) {
   const [selectedExecutionId, setSelectedExecutionId] = useState<string | null>(null);
   const [selectedWorkflow, setSelectedWorkflow] = useState<{ workflowId: string; name: string } | null>(null);
+  const [activeTab, setActiveTab] = useState<'local' | 'amc'>('local');
   
   // Fetch ALL workflows (including templates) for execution
   const { data: allWorkflows } = useQuery<Workflow[]>({
@@ -145,7 +147,7 @@ export default function InstanceExecutions({ instanceId }: InstanceExecutionsPro
             View all workflow executions for this AMC instance
           </p>
         </div>
-        {hasWorkflows && (
+        {hasWorkflows && activeTab === 'local' && (
           <button
             onClick={() => {
               // Pick the first workflow as default for execution
@@ -163,7 +165,35 @@ export default function InstanceExecutions({ instanceId }: InstanceExecutionsPro
         )}
       </div>
 
-      {!hasWorkflows ? (
+      {/* Tab Navigation */}
+      <div className="mb-6">
+        <nav className="flex space-x-4" aria-label="Tabs">
+          <button
+            onClick={() => setActiveTab('local')}
+            className={`${
+              activeTab === 'local'
+                ? 'bg-indigo-100 text-indigo-700'
+                : 'text-gray-500 hover:text-gray-700'
+            } px-3 py-2 font-medium text-sm rounded-md`}
+          >
+            Local Executions
+          </button>
+          <button
+            onClick={() => setActiveTab('amc')}
+            className={`${
+              activeTab === 'amc'
+                ? 'bg-indigo-100 text-indigo-700'
+                : 'text-gray-500 hover:text-gray-700'
+            } px-3 py-2 font-medium text-sm rounded-md`}
+          >
+            AMC Executions
+          </button>
+        </nav>
+      </div>
+
+      {activeTab === 'amc' ? (
+        <AMCExecutionList instanceId={instanceId} />
+      ) : !hasWorkflows ? (
         <div className="text-center py-8 text-gray-500">
           <Settings className="h-12 w-12 mx-auto mb-2 text-gray-400" />
           <p>No workflows configured for this instance</p>

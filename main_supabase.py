@@ -114,6 +114,7 @@ from amc_manager.api.supabase.workflows import router as workflows_router
 from amc_manager.api.supabase.campaigns import router as campaigns_router
 from amc_manager.api.supabase.query_templates import router as query_templates_router
 from amc_manager.api.supabase.brands import router as brands_router
+from amc_manager.api.supabase.amc_executions import router as amc_executions_router
 
 # Add redirect for misconfigured callback URL (must be before router includes)
 @app.get("/api/auth/callback")
@@ -132,6 +133,7 @@ app.include_router(workflows_router, prefix="/api/workflows", tags=["Workflows"]
 app.include_router(campaigns_router, prefix="/api/campaigns", tags=["Campaigns"])
 app.include_router(query_templates_router, prefix="/api/query-templates", tags=["Query Templates"])
 app.include_router(brands_router, prefix="/api/brands", tags=["Brands"])
+app.include_router(amc_executions_router, prefix="/api/amc-executions", tags=["AMC Executions"])
 
 logger.info("All API routers loaded successfully")
 
