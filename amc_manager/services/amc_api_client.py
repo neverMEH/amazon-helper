@@ -65,11 +65,15 @@ class AMCAPIClient:
         output_location = f"s3://amc-results/{instance_id}/{timestamp}/"
         
         # For ad hoc execution, we need to provide the workflow object with a structured query
-        # The query field expects a Query object with a sql property
+        # The query expects an operations list with a sql operation
         payload = {
             "workflow": {
                 "query": {
-                    "sql": sql_query
+                    "operations": [
+                        {
+                            "sql": sql_query
+                        }
+                    ]
                 }
             },
             "timeWindowType": "EXPLICIT",  # Use explicit time window
