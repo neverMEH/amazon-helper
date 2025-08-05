@@ -3,9 +3,10 @@
 from fastapi import APIRouter, HTTPException, Depends, Body
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import datetime, timezone
 
 from ...services.db_service import db_service
+from ...services.token_service import token_service
 from ...core.logger_simple import get_logger
 from ...core.supabase_client import SupabaseManager
 from .auth import get_current_user
@@ -517,3 +518,231 @@ def delete_schedule(
     except Exception as e:
         logger.error(f"Error deleting schedule: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete schedule")
+
+
+# AMC Workflow Sync Endpoints
+
+@router.post("/{workflow_id}/sync-to-amc")
+def sync_workflow_to_amc(
+    workflow_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Sync a local workflow to AMC, creating it as a saved workflow definition
+    """
+    try:
+        # Get workflow details
+        workflow = db_service.get_workflow_by_id_sync(workflow_id)
+        if not workflow:
+            raise HTTPException(status_code=404, detail="Workflow not found")
+        
+        if workflow['user_id'] != current_user['id']:
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        # Check if already synced
+        if workflow.get('amc_workflow_id'):
+            return {
+                "success": True,
+                "message": "Workflow already synced to AMC",
+                "amc_workflow_id": workflow['amc_workflow_id']
+            }
+        
+        # Get instance details
+        instance = workflow.get('amc_instances')
+        if not instance:
+            raise HTTPException(status_code=400, detail="No AMC instance associated with workflow")
+        
+        # Get valid token
+        import asyncio
+        valid_token = asyncio.run(token_service.get_valid_token(current_user['id']))
+        if not valid_token:
+            raise HTTPException(status_code=401, detail="No valid authentication token")
+        
+        # Get AMC account details
+        account = instance.get('amc_accounts')
+        if not account:
+            raise HTTPException(status_code=404, detail="AMC account not found")
+        
+        entity_id = account['account_id']
+        marketplace_id = account['marketplace_id']
+        
+        # Generate AMC-compliant workflow ID
+        # AMC requires alphanumeric + periods, dashes, underscores only
+        import re
+        amc_workflow_id = re.sub(r'[^a-zA-Z0-9._-]', '_', workflow['workflow_id'])
+        
+        # Extract parameters from SQL query for AMC input parameter definitions
+        import re
+        param_pattern = r'\{\{(\w+)\}\}'
+        param_names = re.findall(param_pattern, workflow['sql_query'])
+        
+        # Create input parameter definitions for AMC
+        input_parameters = []
+        for param_name in param_names:
+            # Determine parameter type based on name conventions or default to STRING
+            param_type = 'STRING'
+            if 'date' in param_name.lower() or 'time' in param_name.lower():
+                param_type = 'TIMESTAMP'
+            elif 'count' in param_name.lower() or 'number' in param_name.lower() or 'id' in param_name.lower():
+                param_type = 'INTEGER'
+            
+            input_parameters.append({
+                'name': param_name,
+                'type': param_type,
+                'required': True
+            })
+        
+        # Create workflow in AMC
+        from ...services.amc_api_client import AMCAPIClient
+        api_client = AMCAPIClient()
+        
+        response = api_client.create_workflow(
+            instance_id=instance['instance_id'],
+            workflow_id=amc_workflow_id,
+            sql_query=workflow['sql_query'],
+            access_token=valid_token,
+            entity_id=entity_id,
+            marketplace_id=marketplace_id,
+            input_parameters=input_parameters if input_parameters else None
+        )
+        
+        if not response.get('success'):
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to create workflow in AMC: {response.get('error')}"
+            )
+        
+        # Update local workflow with AMC workflow ID
+        update_data = {
+            'amc_workflow_id': amc_workflow_id,
+            'is_synced_to_amc': True,
+            'amc_sync_status': 'synced',
+            'last_synced_at': datetime.now(timezone.utc).isoformat()
+        }
+        
+        db_service.update_workflow_sync(workflow_id, update_data)
+        
+        return {
+            "success": True,
+            "message": "Workflow successfully synced to AMC",
+            "amc_workflow_id": amc_workflow_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error syncing workflow to AMC: {e}")
+        # Update sync status to failed
+        db_service.update_workflow_sync(workflow_id, {'amc_sync_status': 'sync_failed'})
+        raise HTTPException(status_code=500, detail=f"Failed to sync workflow: {str(e)}")
+
+
+@router.get("/{workflow_id}/amc-status")
+def get_workflow_amc_status(
+    workflow_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Get the AMC sync status of a workflow
+    """
+    try:
+        workflow = db_service.get_workflow_by_id_sync(workflow_id)
+        if not workflow:
+            raise HTTPException(status_code=404, detail="Workflow not found")
+        
+        if workflow['user_id'] != current_user['id']:
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        return {
+            "workflow_id": workflow_id,
+            "amc_workflow_id": workflow.get('amc_workflow_id'),
+            "is_synced_to_amc": workflow.get('is_synced_to_amc', False),
+            "amc_sync_status": workflow.get('amc_sync_status', 'not_synced'),
+            "last_synced_at": workflow.get('last_synced_at')
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting workflow AMC status: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get AMC status")
+
+
+@router.delete("/{workflow_id}/amc-sync")
+def remove_workflow_from_amc(
+    workflow_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Remove a workflow from AMC (delete the saved workflow definition)
+    """
+    try:
+        workflow = db_service.get_workflow_by_id_sync(workflow_id)
+        if not workflow:
+            raise HTTPException(status_code=404, detail="Workflow not found")
+        
+        if workflow['user_id'] != current_user['id']:
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        amc_workflow_id = workflow.get('amc_workflow_id')
+        if not amc_workflow_id:
+            return {
+                "success": True,
+                "message": "Workflow is not synced to AMC"
+            }
+        
+        # Get instance details
+        instance = workflow.get('amc_instances')
+        if not instance:
+            raise HTTPException(status_code=400, detail="No AMC instance associated with workflow")
+        
+        # Get valid token
+        import asyncio
+        valid_token = asyncio.run(token_service.get_valid_token(current_user['id']))
+        if not valid_token:
+            raise HTTPException(status_code=401, detail="No valid authentication token")
+        
+        # Get AMC account details
+        account = instance.get('amc_accounts')
+        if not account:
+            raise HTTPException(status_code=404, detail="AMC account not found")
+        
+        entity_id = account['account_id']
+        marketplace_id = account['marketplace_id']
+        
+        # Delete workflow from AMC
+        from ...services.amc_api_client import AMCAPIClient
+        api_client = AMCAPIClient()
+        
+        response = api_client.delete_workflow(
+            instance_id=instance['instance_id'],
+            workflow_id=amc_workflow_id,
+            access_token=valid_token,
+            entity_id=entity_id,
+            marketplace_id=marketplace_id
+        )
+        
+        if not response.get('success'):
+            # Log the error but continue to update local state
+            logger.error(f"Failed to delete workflow from AMC: {response.get('error')}")
+        
+        # Update local workflow to remove AMC sync
+        update_data = {
+            'amc_workflow_id': None,
+            'is_synced_to_amc': False,
+            'amc_sync_status': 'not_synced',
+            'last_synced_at': None
+        }
+        
+        db_service.update_workflow_sync(workflow_id, update_data)
+        
+        return {
+            "success": True,
+            "message": "Workflow removed from AMC"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error removing workflow from AMC: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to remove workflow: {str(e)}")

@@ -24,10 +24,12 @@ class AMCAPIClient:
     def create_workflow_execution(
         self,
         instance_id: str,
-        sql_query: str,
         access_token: str,
         entity_id: str,
         marketplace_id: str = "ATVPDKIKX0DER",
+        sql_query: Optional[str] = None,
+        workflow_id: Optional[str] = None,
+        parameter_values: Optional[Dict[str, Any]] = None,
         output_format: str = "CSV"
     ) -> Dict[str, Any]:
         """
@@ -35,15 +37,23 @@ class AMCAPIClient:
         
         Args:
             instance_id: AMC instance ID
-            sql_query: SQL query to execute
             access_token: Amazon OAuth access token
             entity_id: Advertiser entity ID
             marketplace_id: Amazon marketplace ID
+            sql_query: SQL query for ad-hoc execution (mutually exclusive with workflow_id)
+            workflow_id: Workflow ID for saved workflow execution (mutually exclusive with sql_query)
+            parameter_values: Parameter values for saved workflow execution
             output_format: Output format (CSV, JSON, PARQUET)
             
         Returns:
             Execution details including execution ID
         """
+        
+        # Validate that either sql_query or workflow_id is provided, but not both
+        if not sql_query and not workflow_id:
+            raise ValueError("Either sql_query or workflow_id must be provided")
+        if sql_query and workflow_id:
+            raise ValueError("Cannot provide both sql_query and workflow_id")
         url = f"{self.base_url}/amc/reporting/{instance_id}/workflowExecutions"
         
         headers = {
@@ -64,24 +74,38 @@ class AMCAPIClient:
         timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
         output_location = f"s3://amc-results/{instance_id}/{timestamp}/"
         
-        # For ad hoc execution, we need to provide the workflow object with a structured query
-        # The query expects an operations list with a sql operation
-        payload = {
-            "workflow": {
-                "query": {
-                    "operations": [
-                        {
-                            "sql": sql_query
-                        }
-                    ]
-                }
-            },
-            "timeWindowType": "EXPLICIT",  # Use explicit time window
-            "timeWindowStart": datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0).isoformat() + "Z",
-            "timeWindowEnd": datetime.utcnow().isoformat() + "Z",
-            "timeWindowTimeZone": "America/New_York",
-            "outputFormat": output_format
-        }
+        # Build payload based on execution mode
+        if workflow_id:
+            # Saved workflow execution
+            payload = {
+                "workflowId": workflow_id,
+                "timeWindowType": "EXPLICIT",  # Use explicit time window
+                "timeWindowStart": datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0).isoformat() + "Z",
+                "timeWindowEnd": datetime.utcnow().isoformat() + "Z",
+                "timeWindowTimeZone": "America/New_York",
+                "outputFormat": output_format
+            }
+            # Add parameter values if provided
+            if parameter_values:
+                payload["parameterValues"] = parameter_values
+        else:
+            # Ad-hoc execution with SQL query
+            payload = {
+                "workflow": {
+                    "query": {
+                        "operations": [
+                            {
+                                "sql": sql_query
+                            }
+                        ]
+                    }
+                },
+                "timeWindowType": "EXPLICIT",  # Use explicit time window
+                "timeWindowStart": datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0).isoformat() + "Z",
+                "timeWindowEnd": datetime.utcnow().isoformat() + "Z",
+                "timeWindowTimeZone": "America/New_York",
+                "outputFormat": output_format
+            }
         
         logger.info(f"Creating AMC workflow execution for instance {instance_id}")
         logger.info(f"Request payload: {json.dumps(payload, indent=2)}")
@@ -368,8 +392,8 @@ class AMCAPIClient:
         Returns:
             List of executions
         """
-        # Use /workflows endpoint as shown in Postman reference
-        url = f"{self.base_url}/amc/reporting/{instance_id}/workflows"
+        # Use /workflowExecutions endpoint for listing execution history
+        url = f"{self.base_url}/amc/reporting/{instance_id}/workflowExecutions"
         
         headers = {
             'Amazon-Advertising-API-ClientId': settings.amazon_client_id,
@@ -378,12 +402,12 @@ class AMCAPIClient:
             'Amazon-Advertising-API-AdvertiserId': entity_id
         }
         
-        # Match Postman query parameters exactly
+        # Set up query parameters
         params = {
             'limit': limit
         }
         
-        # Only add nextToken if provided
+        # Add optional parameters if provided
         if next_token:
             params['nextToken'] = next_token
         
@@ -405,17 +429,11 @@ class AMCAPIClient:
             if response.status_code == 200:
                 return {
                     "success": True,
-                    "executions": response_data.get('executions', response_data.get('workflows', [])),
+                    "executions": response_data.get('executions', []),
                     "nextToken": response_data.get('nextToken')
                 }
             else:
                 logger.error(f"Failed to list executions: Status {response.status_code}, Response: {response_data}")
-                # If /workflows endpoint fails, try fallback to /workflowExecutions
-                if response.status_code == 404:
-                    logger.info("Trying fallback endpoint /workflowExecutions")
-                    return self._list_executions_fallback(
-                        instance_id, access_token, entity_id, marketplace_id, limit
-                    )
                 return {
                     "success": False,
                     "error": response_data.get('message', f'API Error: {response.status_code}')
@@ -428,18 +446,30 @@ class AMCAPIClient:
                 "error": str(e)
             }
     
-    def _list_executions_fallback(
+    def list_workflows(
         self,
         instance_id: str,
         access_token: str,
         entity_id: str,
         marketplace_id: str = "ATVPDKIKX0DER",
-        limit: int = 50
+        limit: int = 50,
+        next_token: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Fallback method using /workflowExecutions endpoint
+        List workflow definitions for an AMC instance
+        
+        Args:
+            instance_id: AMC instance ID
+            access_token: Amazon OAuth access token
+            entity_id: Advertiser entity ID
+            marketplace_id: Amazon marketplace ID
+            limit: Maximum number of workflows to return
+            next_token: Token for pagination
+            
+        Returns:
+            List of workflow definitions
         """
-        url = f"{self.base_url}/amc/reporting/{instance_id}/workflowExecutions"
+        url = f"{self.base_url}/amc/reporting/{instance_id}/workflows"
         
         headers = {
             'Amazon-Advertising-API-ClientId': settings.amazon_client_id,
@@ -449,12 +479,13 @@ class AMCAPIClient:
         }
         
         params = {
-            'limit': limit,
-            'sortBy': 'startTime',
-            'sortOrder': 'DESC'
+            'limit': limit
         }
         
-        logger.info(f"Using fallback endpoint: {url}")
+        if next_token:
+            params['nextToken'] = next_token
+        
+        logger.info(f"Listing workflows for instance {instance_id}")
         
         try:
             response = requests.get(
@@ -469,16 +500,318 @@ class AMCAPIClient:
             if response.status_code == 200:
                 return {
                     "success": True,
-                    "executions": response_data.get('executions', [])
+                    "workflows": response_data.get('workflows', []),
+                    "nextToken": response_data.get('nextToken')
                 }
             else:
+                logger.error(f"Failed to list workflows: Status {response.status_code}, Response: {response_data}")
                 return {
                     "success": False,
                     "error": response_data.get('message', f'API Error: {response.status_code}')
                 }
                 
         except Exception as e:
-            logger.error(f"Error in fallback listing: {e}")
+            logger.error(f"Error listing workflows: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    def create_workflow(
+        self,
+        instance_id: str,
+        workflow_id: str,
+        sql_query: str,
+        access_token: str,
+        entity_id: str,
+        marketplace_id: str = "ATVPDKIKX0DER",
+        distinct_user_count_column: Optional[str] = None,
+        filtered_metrics_discriminator_column: Optional[str] = None,
+        filtered_reason_column: Optional[str] = None,
+        input_parameters: Optional[List[Dict[str, Any]]] = None
+    ) -> Dict[str, Any]:
+        """
+        Create a workflow definition in AMC
+        
+        Args:
+            instance_id: AMC instance ID
+            workflow_id: Unique workflow identifier (alphanumeric + .-_)
+            sql_query: SQL query for the workflow
+            access_token: Amazon OAuth access token
+            entity_id: Advertiser entity ID
+            marketplace_id: Amazon marketplace ID
+            distinct_user_count_column: Column name for distinct user counts
+            filtered_metrics_discriminator_column: Column name for filtered metrics
+            filtered_reason_column: Column name for filter reasons
+            input_parameters: List of parameter definitions
+            
+        Returns:
+            Success status and response data
+        """
+        url = f"{self.base_url}/amc/reporting/{instance_id}/workflows"
+        
+        headers = {
+            'Amazon-Advertising-API-ClientId': settings.amazon_client_id,
+            'Authorization': f'Bearer {access_token}',
+            'Amazon-Advertising-API-MarketplaceId': marketplace_id,
+            'Amazon-Advertising-API-AdvertiserId': entity_id,
+            'Content-Type': 'application/json'
+        }
+        
+        # Build request body
+        body = {
+            'workflowId': workflow_id,
+            'sqlQuery': sql_query
+        }
+        
+        # Add optional aggregation threshold columns
+        if distinct_user_count_column:
+            body['distinctUserCountColumn'] = distinct_user_count_column
+        if filtered_metrics_discriminator_column:
+            body['filteredMetricsDiscriminatorColumn'] = filtered_metrics_discriminator_column
+        if filtered_reason_column:
+            body['filteredReasonColumn'] = filtered_reason_column
+        if input_parameters:
+            body['inputParameters'] = input_parameters
+        
+        logger.info(f"Creating workflow {workflow_id} in instance {instance_id}")
+        
+        try:
+            response = requests.post(
+                url,
+                headers=headers,
+                json=body,
+                timeout=30
+            )
+            
+            response_data = response.json() if response.text else {}
+            
+            if response.status_code == 200:
+                logger.info(f"Successfully created workflow {workflow_id}")
+                return {
+                    "success": True,
+                    "workflowId": workflow_id,
+                    "data": response_data
+                }
+            else:
+                logger.error(f"Failed to create workflow: Status {response.status_code}, Response: {response_data}")
+                return {
+                    "success": False,
+                    "error": response_data.get('message', f'API Error: {response.status_code}')
+                }
+                
+        except Exception as e:
+            logger.error(f"Error creating workflow: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    def update_workflow(
+        self,
+        instance_id: str,
+        workflow_id: str,
+        sql_query: str,
+        access_token: str,
+        entity_id: str,
+        marketplace_id: str = "ATVPDKIKX0DER",
+        distinct_user_count_column: Optional[str] = None,
+        filtered_metrics_discriminator_column: Optional[str] = None,
+        filtered_reason_column: Optional[str] = None,
+        input_parameters: Optional[List[Dict[str, Any]]] = None
+    ) -> Dict[str, Any]:
+        """
+        Update an existing workflow definition in AMC
+        
+        Args:
+            instance_id: AMC instance ID
+            workflow_id: Workflow identifier to update
+            sql_query: Updated SQL query
+            access_token: Amazon OAuth access token
+            entity_id: Advertiser entity ID
+            marketplace_id: Amazon marketplace ID
+            distinct_user_count_column: Column name for distinct user counts
+            filtered_metrics_discriminator_column: Column name for filtered metrics
+            filtered_reason_column: Column name for filter reasons
+            input_parameters: List of parameter definitions
+            
+        Returns:
+            Success status and response data
+        """
+        url = f"{self.base_url}/amc/reporting/{instance_id}/workflows/{workflow_id}"
+        
+        headers = {
+            'Amazon-Advertising-API-ClientId': settings.amazon_client_id,
+            'Authorization': f'Bearer {access_token}',
+            'Amazon-Advertising-API-MarketplaceId': marketplace_id,
+            'Amazon-Advertising-API-AdvertiserId': entity_id,
+            'Content-Type': 'application/json'
+        }
+        
+        # Build request body (workflowId is required for PUT)
+        body = {
+            'workflowId': workflow_id,
+            'sqlQuery': sql_query
+        }
+        
+        # Add optional aggregation threshold columns
+        if distinct_user_count_column:
+            body['distinctUserCountColumn'] = distinct_user_count_column
+        if filtered_metrics_discriminator_column:
+            body['filteredMetricsDiscriminatorColumn'] = filtered_metrics_discriminator_column
+        if filtered_reason_column:
+            body['filteredReasonColumn'] = filtered_reason_column
+        if input_parameters:
+            body['inputParameters'] = input_parameters
+        
+        logger.info(f"Updating workflow {workflow_id} in instance {instance_id}")
+        
+        try:
+            response = requests.put(
+                url,
+                headers=headers,
+                json=body,
+                timeout=30
+            )
+            
+            response_data = response.json() if response.text else {}
+            
+            if response.status_code == 200:
+                logger.info(f"Successfully updated workflow {workflow_id}")
+                return {
+                    "success": True,
+                    "workflowId": workflow_id,
+                    "data": response_data
+                }
+            else:
+                logger.error(f"Failed to update workflow: Status {response.status_code}, Response: {response_data}")
+                return {
+                    "success": False,
+                    "error": response_data.get('message', f'API Error: {response.status_code}')
+                }
+                
+        except Exception as e:
+            logger.error(f"Error updating workflow: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    def delete_workflow(
+        self,
+        instance_id: str,
+        workflow_id: str,
+        access_token: str,
+        entity_id: str,
+        marketplace_id: str = "ATVPDKIKX0DER"
+    ) -> Dict[str, Any]:
+        """
+        Delete a workflow definition from AMC
+        
+        Args:
+            instance_id: AMC instance ID
+            workflow_id: Workflow identifier to delete
+            access_token: Amazon OAuth access token
+            entity_id: Advertiser entity ID
+            marketplace_id: Amazon marketplace ID
+            
+        Returns:
+            Success status
+        """
+        url = f"{self.base_url}/amc/reporting/{instance_id}/workflows/{workflow_id}"
+        
+        headers = {
+            'Amazon-Advertising-API-ClientId': settings.amazon_client_id,
+            'Authorization': f'Bearer {access_token}',
+            'Amazon-Advertising-API-MarketplaceId': marketplace_id,
+            'Amazon-Advertising-API-AdvertiserId': entity_id
+        }
+        
+        logger.info(f"Deleting workflow {workflow_id} from instance {instance_id}")
+        
+        try:
+            response = requests.delete(
+                url,
+                headers=headers,
+                timeout=30
+            )
+            
+            if response.status_code == 200 or response.status_code == 204:
+                logger.info(f"Successfully deleted workflow {workflow_id}")
+                return {
+                    "success": True,
+                    "workflowId": workflow_id
+                }
+            else:
+                response_data = response.json() if response.text else {}
+                logger.error(f"Failed to delete workflow: Status {response.status_code}, Response: {response_data}")
+                return {
+                    "success": False,
+                    "error": response_data.get('message', f'API Error: {response.status_code}')
+                }
+                
+        except Exception as e:
+            logger.error(f"Error deleting workflow: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    def get_workflow(
+        self,
+        instance_id: str,
+        workflow_id: str,
+        access_token: str,
+        entity_id: str,
+        marketplace_id: str = "ATVPDKIKX0DER"
+    ) -> Dict[str, Any]:
+        """
+        Get details of a specific workflow definition
+        
+        Args:
+            instance_id: AMC instance ID
+            workflow_id: Workflow identifier
+            access_token: Amazon OAuth access token
+            entity_id: Advertiser entity ID
+            marketplace_id: Amazon marketplace ID
+            
+        Returns:
+            Workflow details
+        """
+        url = f"{self.base_url}/amc/reporting/{instance_id}/workflows/{workflow_id}"
+        
+        headers = {
+            'Amazon-Advertising-API-ClientId': settings.amazon_client_id,
+            'Authorization': f'Bearer {access_token}',
+            'Amazon-Advertising-API-MarketplaceId': marketplace_id,
+            'Amazon-Advertising-API-AdvertiserId': entity_id
+        }
+        
+        logger.info(f"Getting workflow {workflow_id} from instance {instance_id}")
+        
+        try:
+            response = requests.get(
+                url,
+                headers=headers,
+                timeout=30
+            )
+            
+            response_data = response.json() if response.text else {}
+            
+            if response.status_code == 200:
+                return {
+                    "success": True,
+                    "workflow": response_data
+                }
+            else:
+                logger.error(f"Failed to get workflow: Status {response.status_code}, Response: {response_data}")
+                return {
+                    "success": False,
+                    "error": response_data.get('message', f'API Error: {response.status_code}')
+                }
+                
+        except Exception as e:
+            logger.error(f"Error getting workflow: {e}")
             return {
                 "success": False,
                 "error": str(e)

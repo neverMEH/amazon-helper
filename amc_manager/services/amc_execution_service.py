@@ -84,11 +84,19 @@ class AMCExecutionService:
                     raise ValueError("No AMC instance associated with workflow")
                 logger.info(f"Using workflow's default instance: {instance.get('instance_id', 'unknown')}")
             
-            # Prepare SQL query with parameter substitution
-            sql_query = self._prepare_sql_query(
-                workflow['sql_query'],
-                execution_parameters or workflow.get('parameters', {})
-            )
+            # Determine execution mode based on whether workflow is synced to AMC
+            execution_mode = 'saved_workflow' if workflow.get('amc_workflow_id') else 'ad_hoc'
+            
+            # Prepare SQL query - only substitute parameters for ad-hoc queries
+            # For saved workflows, AMC will handle parameter substitution
+            if execution_mode == 'ad_hoc':
+                sql_query = self._prepare_sql_query(
+                    workflow['sql_query'],
+                    execution_parameters or workflow.get('parameters', {})
+                )
+            else:
+                # For saved workflows, keep the original query with placeholders
+                sql_query = workflow['sql_query']
             
             # Create execution record
             execution_data = {
@@ -97,7 +105,9 @@ class AMCExecutionService:
                 "progress": 0,  # Initialize progress to ensure delay works
                 "execution_parameters": execution_parameters or {},
                 "triggered_by": triggered_by,
-                "started_at": datetime.now(timezone.utc).isoformat()
+                "started_at": datetime.now(timezone.utc).isoformat(),
+                "execution_mode": execution_mode,
+                "amc_workflow_id": workflow.get('amc_workflow_id')
                 # Note: instance_id column must be added to workflow_executions table via migration
                 # Once added, uncomment the line below:
                 # "instance_id": instance['instance_id']
@@ -115,7 +125,9 @@ class AMCExecutionService:
                     sql_query=sql_query,
                     execution_id=execution['execution_id'],
                     user_id=user_id,
-                    execution_parameters=execution_parameters
+                    execution_parameters=execution_parameters,
+                    execution_mode=execution_mode,
+                    amc_workflow_id=workflow.get('amc_workflow_id')
                 )
             else:
                 execution_result = self._simulate_amc_execution(
@@ -221,7 +233,9 @@ class AMCExecutionService:
         sql_query: str,
         execution_id: str,
         user_id: str,
-        execution_parameters: Optional[Dict[str, Any]] = None
+        execution_parameters: Optional[Dict[str, Any]] = None,
+        execution_mode: str = 'ad_hoc',
+        amc_workflow_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Execute real AMC query using Amazon API
@@ -307,14 +321,28 @@ class AMCExecutionService:
             self._update_execution_progress(execution_id, 'running', 10)
             
             try:
-                # Create workflow execution using the correct API method
-                response = api_client.create_workflow_execution(
-                    instance_id=instance_id,
-                    sql_query=sql_query,
-                    access_token=valid_token,
-                    entity_id=entity_id,
-                    marketplace_id=marketplace_id
-                )
+                # Create workflow execution using the appropriate method based on execution mode
+                if execution_mode == 'saved_workflow' and amc_workflow_id:
+                    # Execute using saved workflow ID
+                    logger.info(f"Executing saved workflow {amc_workflow_id}")
+                    response = api_client.create_workflow_execution(
+                        instance_id=instance_id,
+                        workflow_id=amc_workflow_id,
+                        access_token=valid_token,
+                        entity_id=entity_id,
+                        marketplace_id=marketplace_id,
+                        parameter_values=execution_parameters  # Pass parameters for saved workflow
+                    )
+                else:
+                    # Execute as ad-hoc with full SQL query
+                    logger.info("Executing ad-hoc workflow")
+                    response = api_client.create_workflow_execution(
+                        instance_id=instance_id,
+                        sql_query=sql_query,
+                        access_token=valid_token,
+                        entity_id=entity_id,
+                        marketplace_id=marketplace_id
+                    )
                 
                 # Check if execution was created successfully
                 if not response.get('success'):
