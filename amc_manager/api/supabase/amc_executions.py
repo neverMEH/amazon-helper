@@ -5,7 +5,7 @@ from typing import Dict, Any, List
 import logging
 
 from ...services.amc_execution_service import AMCExecutionService
-from ...services.instance_service import InstanceService
+from ...services.db_service import db_service
 from ...services.token_service import TokenService
 from ...core.supabase_client import get_service_role_client
 from ...api.auth import get_current_user
@@ -33,20 +33,19 @@ async def list_amc_executions(
     """
     try:
         # Get instance details
-        supabase = get_service_role_client()
-        instance_service = InstanceService(supabase)
-        instance = instance_service.get_instance_by_instance_id(instance_id)
+        instance = db_service.get_instance_by_instance_id_sync(instance_id)
         
         if not instance:
             raise HTTPException(status_code=404, detail="Instance not found")
         
         # Check if user has access to this instance
-        user_instances = instance_service.get_user_instances(current_user['id'])
+        user_instances = db_service.get_user_instances_sync(current_user['id'])
         if not any(inst['instance_id'] == instance_id for inst in user_instances):
             raise HTTPException(status_code=403, detail="Access denied to this instance")
         
         # Get valid token
-        token_service = TokenService(supabase)
+        supabase_client = get_service_role_client()
+        token_service = TokenService(supabase_client)
         valid_token = token_service.get_valid_token(current_user['id'])
         
         if not valid_token:
@@ -81,6 +80,7 @@ async def list_amc_executions(
         executions = response.get('executions', [])
         
         # Try to match with local executions to get workflow names
+        supabase = get_service_role_client()
         execution_service = AMCExecutionService(supabase)
         local_executions = execution_service.get_instance_executions(
             instance_id=instance['id'],  # Use internal UUID
@@ -141,20 +141,19 @@ async def get_amc_execution_details(
     """
     try:
         # Get instance details
-        supabase = get_service_role_client()
-        instance_service = InstanceService(supabase)
-        instance = instance_service.get_instance_by_instance_id(instance_id)
+        instance = db_service.get_instance_by_instance_id_sync(instance_id)
         
         if not instance:
             raise HTTPException(status_code=404, detail="Instance not found")
         
         # Check if user has access to this instance
-        user_instances = instance_service.get_user_instances(current_user['id'])
+        user_instances = db_service.get_user_instances_sync(current_user['id'])
         if not any(inst['instance_id'] == instance_id for inst in user_instances):
             raise HTTPException(status_code=403, detail="Access denied to this instance")
         
         # Get valid token
-        token_service = TokenService(supabase)
+        supabase_client = get_service_role_client()
+        token_service = TokenService(supabase_client)
         valid_token = token_service.get_valid_token(current_user['id'])
         
         if not valid_token:
