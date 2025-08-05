@@ -536,17 +536,33 @@ class AMCExecutionService:
             # Add a delay on first check to allow AMC to register the execution
             if execution.get('status') == 'pending' and execution.get('progress', 0) < 20:
                 logger.info(f"First status check - execution status: {execution.get('status')}, progress: {execution.get('progress', 0)}")
-                logger.info("Waiting 30 seconds for AMC to register execution...")
-                time.sleep(30)
+                logger.info("Waiting 45 seconds for AMC to register execution...")
+                time.sleep(45)
                 logger.info("Delay complete, checking AMC status now")
             
-            status_response = api_client.get_execution_status(
-                execution_id=amc_execution_id,
-                access_token=valid_token,
-                entity_id=entity_id,
-                marketplace_id=marketplace_id,
-                instance_id=instance_id
-            )
+            # Try status check with retry on first attempt
+            max_retries = 3 if execution.get('progress', 0) < 20 else 1
+            status_response = None
+            
+            for attempt in range(max_retries):
+                status_response = api_client.get_execution_status(
+                    execution_id=amc_execution_id,
+                    access_token=valid_token,
+                    entity_id=entity_id,
+                    marketplace_id=marketplace_id,
+                    instance_id=instance_id
+                )
+                
+                if status_response.get('success'):
+                    break
+                    
+                # If execution not found and this is not the last attempt, wait and retry
+                error_msg = status_response.get('error', '')
+                if 'does not exist' in error_msg and attempt < max_retries - 1:
+                    logger.info(f"Execution not found on attempt {attempt + 1}, waiting 15 seconds before retry...")
+                    time.sleep(15)
+                else:
+                    break
             
             if status_response.get('success'):
                 status = status_response.get('status', 'running')
