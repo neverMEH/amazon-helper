@@ -561,6 +561,23 @@ class AMCExecutionService:
                 if 'does not exist' in error_msg and attempt < max_retries - 1:
                     logger.info(f"Execution not found on attempt {attempt + 1}, waiting 15 seconds before retry...")
                     time.sleep(15)
+                    
+                    # On second attempt, try listing executions to find it
+                    if attempt == 1:
+                        logger.info("Trying to find execution by listing all executions...")
+                        list_response = api_client.list_executions(
+                            instance_id=instance_id,
+                            access_token=valid_token,
+                            entity_id=entity_id,
+                            marketplace_id=marketplace_id,
+                            limit=10
+                        )
+                        
+                        if list_response.get('success'):
+                            executions = list_response.get('executions', [])
+                            logger.info(f"Found {len(executions)} recent executions")
+                            for exec_item in executions:
+                                logger.info(f"Execution: {exec_item.get('workflowExecutionId', 'N/A')} - Status: {exec_item.get('status', 'N/A')}")
                 else:
                     break
             

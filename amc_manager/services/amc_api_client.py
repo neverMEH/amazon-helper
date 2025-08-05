@@ -345,6 +345,73 @@ class AMCAPIClient:
                 "error": str(e)
             }
     
+    def list_executions(
+        self,
+        instance_id: str,
+        access_token: str,
+        entity_id: str,
+        marketplace_id: str = "ATVPDKIKX0DER",
+        limit: int = 50
+    ) -> Dict[str, Any]:
+        """
+        List workflow executions for an AMC instance
+        
+        Args:
+            instance_id: AMC instance ID
+            access_token: Amazon OAuth access token
+            entity_id: Advertiser entity ID
+            marketplace_id: Amazon marketplace ID
+            limit: Maximum number of executions to return
+            
+        Returns:
+            List of executions
+        """
+        url = f"{self.base_url}/amc/reporting/{instance_id}/workflowExecutions"
+        
+        headers = {
+            'Amazon-Advertising-API-ClientId': settings.amazon_client_id,
+            'Authorization': f'Bearer {access_token}',
+            'Amazon-Advertising-API-MarketplaceId': marketplace_id,
+            'Amazon-Advertising-API-AdvertiserId': entity_id
+        }
+        
+        params = {
+            'limit': limit,
+            'sortBy': 'startTime',
+            'sortOrder': 'DESC'
+        }
+        
+        logger.info(f"Listing executions for instance {instance_id}")
+        
+        try:
+            response = requests.get(
+                url,
+                headers=headers,
+                params=params,
+                timeout=30
+            )
+            
+            response_data = response.json() if response.text else {}
+            logger.info(f"List executions response: Status {response.status_code}")
+            
+            if response.status_code == 200:
+                return {
+                    "success": True,
+                    "executions": response_data.get('executions', [])
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": response_data.get('message', f'API Error: {response.status_code}')
+                }
+                
+        except Exception as e:
+            logger.error(f"Error listing executions: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
     def get_download_urls(
         self,
         execution_id: str,
