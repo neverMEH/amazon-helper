@@ -260,7 +260,7 @@ export default function QueryEditorStep({ state, setState }: QueryEditorStepProp
           )}
         </div>
 
-        <div className="flex-1 p-4">
+        <div className="flex-1 min-h-0 p-4">
           <SQLEditor
             value={state.sqlQuery || `-- Enter your AMC SQL query here
 -- Example:
@@ -274,7 +274,7 @@ WHERE
     AND event_dt <= '{{end_date}}'
 GROUP BY campaign_id`}
             onChange={(value) => setState((prev: any) => ({ ...prev, sqlQuery: value }))}
-            height="100%"
+            height="450px"
           />
         </div>
 
