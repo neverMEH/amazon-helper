@@ -351,7 +351,8 @@ class AMCAPIClient:
         access_token: str,
         entity_id: str,
         marketplace_id: str = "ATVPDKIKX0DER",
-        limit: int = 50
+        limit: int = 50,
+        next_token: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         List workflow executions for an AMC instance
@@ -362,9 +363,81 @@ class AMCAPIClient:
             entity_id: Advertiser entity ID
             marketplace_id: Amazon marketplace ID
             limit: Maximum number of executions to return
+            next_token: Token for pagination
             
         Returns:
             List of executions
+        """
+        # Use /workflows endpoint as shown in Postman reference
+        url = f"{self.base_url}/amc/reporting/{instance_id}/workflows"
+        
+        headers = {
+            'Amazon-Advertising-API-ClientId': settings.amazon_client_id,
+            'Authorization': f'Bearer {access_token}',
+            'Amazon-Advertising-API-MarketplaceId': marketplace_id,
+            'Amazon-Advertising-API-AdvertiserId': entity_id
+        }
+        
+        # Match Postman query parameters exactly
+        params = {
+            'limit': limit
+        }
+        
+        # Only add nextToken if provided
+        if next_token:
+            params['nextToken'] = next_token
+        
+        logger.info(f"Listing executions for instance {instance_id}")
+        logger.info(f"Request URL: {url}")
+        logger.info(f"Query params: {params}")
+        
+        try:
+            response = requests.get(
+                url,
+                headers=headers,
+                params=params,
+                timeout=30
+            )
+            
+            response_data = response.json() if response.text else {}
+            logger.info(f"List executions response: Status {response.status_code}")
+            
+            if response.status_code == 200:
+                return {
+                    "success": True,
+                    "executions": response_data.get('executions', response_data.get('workflows', [])),
+                    "nextToken": response_data.get('nextToken')
+                }
+            else:
+                logger.error(f"Failed to list executions: Status {response.status_code}, Response: {response_data}")
+                # If /workflows endpoint fails, try fallback to /workflowExecutions
+                if response.status_code == 404:
+                    logger.info("Trying fallback endpoint /workflowExecutions")
+                    return self._list_executions_fallback(
+                        instance_id, access_token, entity_id, marketplace_id, limit
+                    )
+                return {
+                    "success": False,
+                    "error": response_data.get('message', f'API Error: {response.status_code}')
+                }
+                
+        except Exception as e:
+            logger.error(f"Error listing executions: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _list_executions_fallback(
+        self,
+        instance_id: str,
+        access_token: str,
+        entity_id: str,
+        marketplace_id: str = "ATVPDKIKX0DER",
+        limit: int = 50
+    ) -> Dict[str, Any]:
+        """
+        Fallback method using /workflowExecutions endpoint
         """
         url = f"{self.base_url}/amc/reporting/{instance_id}/workflowExecutions"
         
@@ -381,7 +454,7 @@ class AMCAPIClient:
             'sortOrder': 'DESC'
         }
         
-        logger.info(f"Listing executions for instance {instance_id}")
+        logger.info(f"Using fallback endpoint: {url}")
         
         try:
             response = requests.get(
@@ -392,7 +465,6 @@ class AMCAPIClient:
             )
             
             response_data = response.json() if response.text else {}
-            logger.info(f"List executions response: Status {response.status_code}")
             
             if response.status_code == 200:
                 return {
@@ -406,7 +478,7 @@ class AMCAPIClient:
                 }
                 
         except Exception as e:
-            logger.error(f"Error listing executions: {e}")
+            logger.error(f"Error in fallback listing: {e}")
             return {
                 "success": False,
                 "error": str(e)

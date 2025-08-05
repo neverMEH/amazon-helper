@@ -18,6 +18,7 @@ router = APIRouter()
 async def list_amc_executions(
     instance_id: str,
     limit: int = 50,
+    next_token: str = None,
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
@@ -33,7 +34,7 @@ async def list_amc_executions(
     """
     try:
         # Get instance details
-        instance = db_service.get_instance_by_instance_id_sync(instance_id)
+        instance = db_service.get_instance_details_sync(instance_id)
         
         if not instance:
             raise HTTPException(status_code=404, detail="Instance not found")
@@ -68,7 +69,8 @@ async def list_amc_executions(
             access_token=valid_token,
             entity_id=entity_id,
             marketplace_id=marketplace_id,
-            limit=limit
+            limit=limit,
+            next_token=next_token
         )
         
         if not response.get('success'):
@@ -113,7 +115,8 @@ async def list_amc_executions(
         return {
             "success": True,
             "executions": enhanced_executions,
-            "total": len(enhanced_executions)
+            "total": len(enhanced_executions),
+            "nextToken": response.get('nextToken')
         }
         
     except HTTPException:
@@ -141,7 +144,7 @@ async def get_amc_execution_details(
     """
     try:
         # Get instance details
-        instance = db_service.get_instance_by_instance_id_sync(instance_id)
+        instance = db_service.get_instance_details_sync(instance_id)
         
         if not instance:
             raise HTTPException(status_code=404, detail="Instance not found")
