@@ -398,16 +398,24 @@ class AMCAPIClient:
             # Get all rows
             rows = list(csv_reader)
             
+            # Convert rows to list of objects with column names as keys
+            data_objects = []
+            for row in rows:
+                row_object = {}
+                for i, header in enumerate(headers):
+                    row_object[header] = row[i] if i < len(row) else None
+                data_objects.append(row_object)
+            
             # Convert to our format with column metadata
             columns = [{"name": header, "type": "string"} for header in headers]
             
             return {
                 "success": True,
                 "columns": columns,
-                "rows": rows,
+                "rows": rows,  # Keep raw rows for backwards compatibility
                 "rowCount": len(rows),
                 "columnCount": len(columns),
-                "data": rows,
+                "data": data_objects,  # Use objects with column names as keys
                 "metadata": {
                     "rowCount": len(rows),
                     "columnCount": len(columns),
