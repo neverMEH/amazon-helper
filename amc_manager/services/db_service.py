@@ -155,6 +155,7 @@ class DatabaseService:
             logger.error(f"Error creating user: {e}")
             return None
     
+    @with_connection_retry
     def get_workflow_by_id_sync(self, workflow_id: str) -> Optional[Dict[str, Any]]:
         """Get workflow by ID - sync version"""
         try:
@@ -167,6 +168,7 @@ class DatabaseService:
             logger.error(f"Error fetching workflow: {e}")
             return None
     
+    @with_connection_retry
     def create_workflow_sync(self, workflow_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Create new workflow - sync version"""
         try:
@@ -181,6 +183,7 @@ class DatabaseService:
             logger.error(f"Error creating workflow: {e}")
             return None
     
+    @with_connection_retry
     def update_workflow_sync(self, workflow_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Update workflow - sync version"""
         try:
@@ -190,6 +193,7 @@ class DatabaseService:
             logger.error(f"Error updating workflow: {e}")
             return None
     
+    @with_connection_retry
     def create_execution_sync(self, execution_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Create workflow execution record - sync version"""
         try:
