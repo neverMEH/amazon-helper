@@ -164,12 +164,12 @@ export default function QueryBuilder() {
         ...queryState.parameters,
         output_format: queryState.exportSettings.format || 'CSV'
       });
-      return response.data;
+      return { ...response.data, workflowId: wfId };
     },
     onSuccess: (data) => {
       toast.success('Query execution started');
-      // Navigate to execution details
-      navigate(`/executions/${data.execution_id}`);
+      // Navigate to workflow detail page to see execution
+      navigate(`/workflows/${data.workflowId}`);
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.detail || 'Failed to execute query');
