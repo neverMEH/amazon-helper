@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Info, Check, AlertCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import InstanceSelector from './InstanceSelector';
 
 interface QueryConfigurationStepProps {
   state: any;
@@ -91,22 +92,16 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
         <label className="block text-sm font-medium text-gray-700 mb-2">
           AMC Instance <span className="text-red-500">*</span>
         </label>
-        <select
+        <InstanceSelector
+          instances={instances}
           value={state.instanceId}
-          onChange={(e) => handleInstanceChange(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-        >
-          <option value="">Select an instance...</option>
-          {instances.map(instance => (
-            <option key={instance.id} value={instance.instanceId}>
-              {instance.instanceName} ({instance.instanceId})
-              {instance.instanceId?.includes('sandbox') && ' - Sandbox'}
-            </option>
-          ))}
-        </select>
+          onChange={handleInstanceChange}
+          placeholder="Select an instance..."
+          required={true}
+        />
         {selectedInstance && (
-          <p className="mt-1 text-xs text-gray-500">
-            Region: {selectedInstance.region} | Account: {selectedInstance.accountName}
+          <p className="mt-2 text-xs text-gray-500">
+            Selected: {selectedInstance.accountName} account in {selectedInstance.region}
           </p>
         )}
       </div>
