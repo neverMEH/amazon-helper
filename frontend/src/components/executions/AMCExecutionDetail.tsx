@@ -15,11 +15,8 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
     queryKey: ['amc-execution-detail', instanceId, executionId],
     queryFn: () => amcExecutionService.getExecutionDetails(instanceId, executionId),
     enabled: isOpen && !!executionId,
-    refetchInterval: (query) => {
-      // Poll while running
-      const status = query.state.data?.execution?.status;
-      return status === 'RUNNING' || status === 'PENDING' ? 5000 : false;
-    }
+    // Poll every 5 seconds while modal is open
+    refetchInterval: isOpen ? 5000 : false,
   });
 
   const execution = data?.execution;
