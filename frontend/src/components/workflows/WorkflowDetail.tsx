@@ -8,6 +8,7 @@ import SQLEditor from '../common/SQLEditor';
 import JSONEditor from '../common/JSONEditor';
 import ExecutionHistory from './ExecutionHistory';
 import ExecutionModal from './ExecutionModal';
+import AMCSyncStatus from './AMCSyncStatus';
 
 interface Workflow {
   id: string;
@@ -269,6 +270,11 @@ export default function WorkflowDetail() {
               </div>
             )}
           </div>
+
+          {/* AMC Sync Status */}
+          {!isEditing && workflow.instance && (
+            <AMCSyncStatus workflowId={workflow.workflowId} />
+          )}
 
           {/* Tabs */}
           <div>

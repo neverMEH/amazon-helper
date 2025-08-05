@@ -3097,3 +3097,113 @@ INFO:     204.48.21.14:38826 - "GET /vite.svg HTTP/1.1" 200 OK
 2025-08-05 16:36:27 - amc_manager.services.token_service - ERROR - Error decrypting access token: Failed to decrypt token: 
 2025-08-05 16:36:27 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user c75e7816-b99c-4c1e-8559-4ee993067124
 2025-08-05 16:36:27 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 7 successful, 3 failed
+2025-08-05 16:46:27 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 10 users
+2025-08-05 16:46:27 - amc_manager.services.token_refresh_service - INFO - Token for user 90b7125e-1d8d-4a2a-875b-ef46e712c0c4 expires in 546s, refreshing...
+2025-08-05 16:46:27 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-08-05 16:46:27 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABokil1xoYw6TjG
+2025-08-05 16:46:27 - amc_manager.services.token_service - ERROR - Error decrypting access token: Failed to decrypt token: 
+2025-08-05 16:46:27 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user 90b7125e-1d8d-4a2a-875b-ef46e712c0c4
+2025-08-05 16:46:28 - amc_manager.services.token_refresh_service - INFO - Token for user 81357e76-4fe7-4850-85b0-6779d5cd095a expires in 547s, refreshing...
+2025-08-05 16:46:28 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-08-05 16:46:28 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABokil3PPCjYV0N
+2025-08-05 16:46:28 - amc_manager.services.token_service - ERROR - Error decrypting access token: Failed to decrypt token: 
+2025-08-05 16:46:28 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user 81357e76-4fe7-4850-85b0-6779d5cd095a
+2025-08-05 16:46:28 - amc_manager.services.token_refresh_service - INFO - Token for user d4eeda5c-c7f8-49bf-b980-40dc6c94916a expires in 545s, refreshing...
+2025-08-05 16:46:28 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-08-05 16:46:28 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABokil19MJG3JeO
+2025-08-05 16:46:28 - amc_manager.services.token_service - ERROR - Error decrypting access token: Failed to decrypt token: 
+2025-08-05 16:46:28 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user d4eeda5c-c7f8-49bf-b980-40dc6c94916a
+2025-08-05 16:46:28 - amc_manager.services.token_refresh_service - INFO - Token for user 5eebc291-c9d3-4e8f-b24a-21cded23e606 expires in 546s, refreshing...
+2025-08-05 16:46:28 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-08-05 16:46:28 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABokil2-HQNMkk2
+2025-08-05 16:46:28 - amc_manager.services.token_service - ERROR - Error decrypting access token: Failed to decrypt token: 
+2025-08-05 16:46:28 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user 5eebc291-c9d3-4e8f-b24a-21cded23e606
+2025-08-05 16:46:28 - amc_manager.services.token_refresh_service - INFO - Token for user 7b3993d7-bfc0-4f23-b673-d0cde127ceb1 expires in 545s, refreshing...
+2025-08-05 16:46:28 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-08-05 16:46:28 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABokil2bcR25S7D
+2025-08-05 16:46:28 - amc_manager.services.token_service - ERROR - Error decrypting access token: Failed to decrypt token: 
+2025-08-05 16:46:28 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user 7b3993d7-bfc0-4f23-b673-d0cde127ceb1
+2025-08-05 16:46:29 - amc_manager.services.token_refresh_service - INFO - Token for user 108b5460-ca76-44b1-81f6-e8fb85804ece expires in -326974s, refreshing...
+2025-08-05 16:46:29 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-08-05 16:46:29 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABojSoXE4X-uNm9
+2025-08-05 16:46:29 - amc_manager.services.token_service - ERROR - Error decrypting access token: Failed to decrypt token: 
+2025-08-05 16:46:29 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user 108b5460-ca76-44b1-81f6-e8fb85804ece
+2025-08-05 16:46:29 - amc_manager.services.token_refresh_service - INFO - Token for user aa45408c-bbfa-4545-95b6-d1e56201a254 expires in 547s, refreshing...
+2025-08-05 16:46:29 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-08-05 16:46:29 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABokil39HqiKzFW
+2025-08-05 16:46:29 - amc_manager.services.token_service - ERROR - Error decrypting access token: Failed to decrypt token: 
+2025-08-05 16:46:29 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user aa45408c-bbfa-4545-95b6-d1e56201a254
+2025-08-05 16:46:29 - amc_manager.services.token_refresh_service - INFO - Token for user fe841586-7807-48b1-8808-02877834fce0 expires in -63316s, refreshing...
+2025-08-05 16:46:29 - amc_manager.services.token_service - INFO - Access token expired, attempting refresh...
+2025-08-05 16:46:29 - amc_manager.services.token_service - WARNING - Decrypted token doesn't look like Amazon token. First 20 chars: Atzr|IwEBIDEMO_REFRE
+2025-08-05 16:46:29 - amc_manager.services.token_service - ERROR - Failed to refresh token: 400 - {"error_index":"rm_SmA8u8UUS8ZqHAd1vGQAAAAAAAAAB9YuJ4G4VhI40qbFJc5EESkEElHqUB2iE9O-OS5P96YWu-1i_IroG5MdKOXNj54XjCFh5ffTPn0SXcNzZyh6qYjNz0j06MtedyZaXbO3r4IMboKXYcbwoXWnv7m2zId--A-uT5D9Kve3VUE2lgYMkE7UrZRVVn1D_KgEjbzkcHkcCz-KUKUrKGGQBJoJvDG1wt_ZHg4bMpnBGMjomJ8_2_gxDU_iSHiSsCIrqtA==","error_description":"The request has an invalid grant parameter : refresh_token. User may have revoked or didn't grant the permission.","error":"invalid_grant","request_id":"9fee04fc-fd29-4318-97e2-ef113dfe7e4c"}
+2025-08-05 16:46:29 - amc_manager.services.token_service - ERROR - Failed to refresh token
+2025-08-05 16:46:29 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user fe841586-7807-48b1-8808-02877834fce0
+2025-08-05 16:46:29 - amc_manager.services.token_refresh_service - INFO - Token for user c75e7816-b99c-4c1e-8559-4ee993067124 expires in -324473s, refreshing...
+2025-08-05 16:46:29 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-08-05 16:46:29 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABojTPcAlYzPoXM
+2025-08-05 16:46:29 - amc_manager.services.token_service - ERROR - Error decrypting access token: Failed to decrypt token: 
+2025-08-05 16:46:29 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user c75e7816-b99c-4c1e-8559-4ee993067124
+2025-08-05 16:46:30 - amc_manager.services.token_refresh_service - INFO - Token for user f7e6925f-8691-48ac-804c-b2e4369c617a expires in 546s, refreshing...
+2025-08-05 16:46:30 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-08-05 16:46:30 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABokil4FCOuYcYj
+2025-08-05 16:46:30 - amc_manager.services.token_service - ERROR - Error decrypting access token: Failed to decrypt token: 
+2025-08-05 16:46:30 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user f7e6925f-8691-48ac-804c-b2e4369c617a
+2025-08-05 16:46:30 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 0 successful, 10 failed
+2025-08-05 16:56:30 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 10 users
+2025-08-05 16:56:31 - amc_manager.services.token_refresh_service - INFO - Token for user 108b5460-ca76-44b1-81f6-e8fb85804ece expires in -327576s, refreshing...
+2025-08-05 16:56:31 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-08-05 16:56:31 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABojSoXE4X-uNm9
+2025-08-05 16:56:31 - amc_manager.services.token_service - ERROR - Error decrypting access token: Failed to decrypt token: 
+2025-08-05 16:56:31 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user 108b5460-ca76-44b1-81f6-e8fb85804ece
+2025-08-05 16:56:31 - amc_manager.services.token_refresh_service - INFO - Token for user fe841586-7807-48b1-8808-02877834fce0 expires in -63918s, refreshing...
+2025-08-05 16:56:31 - amc_manager.services.token_service - INFO - Access token expired, attempting refresh...
+2025-08-05 16:56:31 - amc_manager.services.token_service - WARNING - Decrypted token doesn't look like Amazon token. First 20 chars: Atzr|IwEBIDEMO_REFRE
+2025-08-05 16:56:31 - amc_manager.services.token_service - ERROR - Failed to refresh token: 400 - {"error_index":"UQbH1-3Enm5S0mN1bVpHawAAAAAAAAABBuboeA2oGDx1lXM443UrhjSIgtoU2TvgdT7fum4SxLiQFER_9M1G0lmOT5lUFeJ17Udt8sIC6Z8fEtcJdWdSVxx2oZWTSmbKs_f-WBbiyAjC4Td_joMvqTgIFtDJvfzZ-pW7dtpjJcOQwLT1q6H4uwsmyPZrsLwHI8jQYSyS6Rld71zocySaibskAoBU_OXjrekDbr1ZYNAJIA62rZFM4WTQAwSgSzMvIllQag==","error_description":"The request has an invalid grant parameter : refresh_token. User may have revoked or didn't grant the permission.","error":"invalid_grant","request_id":"852c897a-e93b-47cd-a56b-1bb4c115b10c"}
+2025-08-05 16:56:31 - amc_manager.services.token_service - ERROR - Failed to refresh token
+2025-08-05 16:56:31 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user fe841586-7807-48b1-8808-02877834fce0
+2025-08-05 16:56:31 - amc_manager.services.token_refresh_service - INFO - Token for user c75e7816-b99c-4c1e-8559-4ee993067124 expires in -325075s, refreshing...
+2025-08-05 16:56:31 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-08-05 16:56:31 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABojTPcAlYzPoXM
+2025-08-05 16:56:31 - amc_manager.services.token_service - ERROR - Error decrypting access token: Failed to decrypt token: 
+2025-08-05 16:56:31 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user c75e7816-b99c-4c1e-8559-4ee993067124
+2025-08-05 16:56:31 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 7 successful, 3 failed
+2025-08-05 17:06:31 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 10 users
+2025-08-05 17:06:31 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-08-05 17:06:31 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-08-05 17:06:31 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-08-05 17:06:33 - amc_manager.services.token_refresh_service - INFO - Token for user 108b5460-ca76-44b1-81f6-e8fb85804ece expires in -328178s, refreshing...
+2025-08-05 17:06:33 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-08-05 17:06:33 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABojSoXE4X-uNm9
+2025-08-05 17:06:33 - amc_manager.services.token_service - ERROR - Error decrypting access token: Failed to decrypt token: 
+2025-08-05 17:06:33 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user 108b5460-ca76-44b1-81f6-e8fb85804ece
+2025-08-05 17:06:33 - amc_manager.services.token_refresh_service - INFO - Token for user fe841586-7807-48b1-8808-02877834fce0 expires in -64520s, refreshing...
+2025-08-05 17:06:33 - amc_manager.services.token_service - INFO - Access token expired, attempting refresh...
+2025-08-05 17:06:33 - amc_manager.services.token_service - WARNING - Decrypted token doesn't look like Amazon token. First 20 chars: Atzr|IwEBIDEMO_REFRE
+2025-08-05 17:06:33 - amc_manager.services.token_service - ERROR - Failed to refresh token: 400 - {"error_index":"3GjuMkHYt2eXLKb9QS4xBwAAAAAAAAABb_SyGUYpUrI7AeymedHdp9oGEPlBgusTYyD4Koc_QA9_ThjX0jLA1gM1jkQPExGiXTCIYzhFeDUDOo20CE1fOQDom-3K4tfJK5h0vSjjE4ISJMfPv6A2TEr9tRGzkUfpxRHPy5Ve7qLmgR5IBaAse_IRq7NzhD7u7IRgVQciSBHmF15V5LfGANgomIJYxf-STBSZWvXDt9qq4W8VxZYJYcygkJ5P48YCa8I9rA==","error_description":"The request has an invalid grant parameter : refresh_token. User may have revoked or didn't grant the permission.","error":"invalid_grant","request_id":"fddd8865-5823-4a97-b770-a14db2257782"}
+2025-08-05 17:06:33 - amc_manager.services.token_service - ERROR - Failed to refresh token
+2025-08-05 17:06:33 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user fe841586-7807-48b1-8808-02877834fce0
+2025-08-05 17:06:33 - amc_manager.services.token_refresh_service - INFO - Token for user c75e7816-b99c-4c1e-8559-4ee993067124 expires in -325677s, refreshing...
+2025-08-05 17:06:33 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-08-05 17:06:33 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABojTPcAlYzPoXM
+2025-08-05 17:06:33 - amc_manager.services.token_service - ERROR - Error decrypting access token: Failed to decrypt token: 
+2025-08-05 17:06:33 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user c75e7816-b99c-4c1e-8559-4ee993067124
+2025-08-05 17:06:34 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 7 successful, 3 failed
+2025-08-05 17:16:34 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 10 users
+2025-08-05 17:16:35 - amc_manager.services.token_refresh_service - INFO - Token for user 108b5460-ca76-44b1-81f6-e8fb85804ece expires in -328780s, refreshing...
+2025-08-05 17:16:35 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-08-05 17:16:35 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABojSoXE4X-uNm9
+2025-08-05 17:16:35 - amc_manager.services.token_service - ERROR - Error decrypting access token: Failed to decrypt token: 
+2025-08-05 17:16:35 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user 108b5460-ca76-44b1-81f6-e8fb85804ece
+2025-08-05 17:16:35 - amc_manager.services.token_refresh_service - INFO - Token for user fe841586-7807-48b1-8808-02877834fce0 expires in -65122s, refreshing...
+2025-08-05 17:16:35 - amc_manager.services.token_service - INFO - Access token expired, attempting refresh...
+2025-08-05 17:16:35 - amc_manager.services.token_service - WARNING - Decrypted token doesn't look like Amazon token. First 20 chars: Atzr|IwEBIDEMO_REFRE
+2025-08-05 17:16:35 - amc_manager.services.token_service - ERROR - Failed to refresh token: 400 - {"error_index":"IFkNkwxmHrmDenLaXnKYDgAAAAAAAAABeFiHd2rmdoomOTPZXDNspKSx_UeDcHs1LrvWFX4AuN5ilqsVX4tbHU3j-FTvFdrC3HRTd5JPHb-lilr9mYf8_w7t50GSqWrORvY7Vp8XUu8Eu3ar3OFOWrfMZTBGgYEP_xn8ZzfOsnjIh93d4JUswxREhaXk5y-VOod-DgenIKbQG9rOKnVlpGaNTgeDu4I5L6cmr9ggQKpXO2KLgNh_e42Hexlmc_HREvfYMQ==","error_description":"The request has an invalid grant parameter : refresh_token. User may have revoked or didn't grant the permission.","error":"invalid_grant","request_id":"ca8346e8-a753-44e9-b41c-eed2f4bf83be"}
+2025-08-05 17:16:35 - amc_manager.services.token_service - ERROR - Failed to refresh token
+2025-08-05 17:16:35 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user fe841586-7807-48b1-8808-02877834fce0
+2025-08-05 17:16:35 - amc_manager.services.token_refresh_service - INFO - Token for user c75e7816-b99c-4c1e-8559-4ee993067124 expires in -326279s, refreshing...
+2025-08-05 17:16:35 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-08-05 17:16:35 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABojTPcAlYzPoXM
+2025-08-05 17:16:35 - amc_manager.services.token_service - ERROR - Error decrypting access token: Failed to decrypt token: 
+2025-08-05 17:16:35 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user c75e7816-b99c-4c1e-8559-4ee993067124
+2025-08-05 17:16:36 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 7 successful, 3 failed
