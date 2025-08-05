@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Database, Activity, Settings, FileText, History } from 'lucide-react';
+import { ArrowLeft, Database, Activity, FileText, History } from 'lucide-react';
 import api from '../../services/api';
 import InstanceOverview from './InstanceOverview';
 import InstanceCampaigns from './InstanceCampaigns';
 import InstanceWorkflows from './InstanceWorkflows';
-import InstanceQueries from './InstanceQueries';
 import InstanceExecutions from './InstanceExecutions';
 
 interface InstanceDetail {
@@ -35,7 +34,7 @@ interface InstanceDetail {
   };
 }
 
-type TabType = 'overview' | 'campaigns' | 'workflows' | 'queries' | 'executions';
+type TabType = 'overview' | 'campaigns' | 'queries' | 'executions';
 
 export default function InstanceDetail() {
   const { instanceId } = useParams<{ instanceId: string }>();
@@ -72,7 +71,6 @@ export default function InstanceDetail() {
   const tabs = [
     { id: 'overview' as TabType, name: 'Overview', icon: Database },
     { id: 'campaigns' as TabType, name: 'Campaigns', icon: Activity },
-    { id: 'workflows' as TabType, name: 'Workflows', icon: Settings },
     { id: 'queries' as TabType, name: 'Queries', icon: FileText },
     { id: 'executions' as TabType, name: 'Executions', icon: History },
   ];
@@ -144,8 +142,7 @@ export default function InstanceDetail() {
       <div className="bg-white shadow rounded-lg">
         {activeTab === 'overview' && <InstanceOverview instance={instance} />}
         {activeTab === 'campaigns' && <InstanceCampaigns instanceId={instance.instanceId} />}
-        {activeTab === 'workflows' && <InstanceWorkflows instanceId={instance.instanceId} />}
-        {activeTab === 'queries' && <InstanceQueries instanceId={instance.instanceId} />}
+        {activeTab === 'queries' && <InstanceWorkflows instanceId={instance.instanceId} />}
         {activeTab === 'executions' && <InstanceExecutions instanceId={instance.instanceId} />}
       </div>
     </div>
