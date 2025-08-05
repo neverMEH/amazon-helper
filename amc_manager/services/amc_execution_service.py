@@ -94,6 +94,7 @@ class AMCExecutionService:
             execution_data = {
                 "workflow_id": workflow_id,
                 "status": "pending",
+                "progress": 0,  # Initialize progress to ensure delay works
                 "execution_parameters": execution_parameters or {},
                 "triggered_by": triggered_by,
                 "started_at": datetime.now(timezone.utc).isoformat()
@@ -514,6 +515,8 @@ class AMCExecutionService:
                 logger.error(f"No AMC execution ID found for {execution_id}")
                 return self.get_execution_status(execution_id, user_id)
             
+            logger.info(f"AMC execution ID: {amc_execution_id}, Internal execution ID: {execution_id}")
+            
             # Get instance details
             instance = execution['workflows']['amc_instances']
             instance_id = instance['instance_id']
@@ -532,8 +535,10 @@ class AMCExecutionService:
             
             # Add a delay on first check to allow AMC to register the execution
             if execution.get('status') == 'pending' and execution.get('progress', 0) < 20:
-                logger.info("First status check - waiting 30 seconds for AMC to register execution")
+                logger.info(f"First status check - execution status: {execution.get('status')}, progress: {execution.get('progress', 0)}")
+                logger.info("Waiting 30 seconds for AMC to register execution...")
                 time.sleep(30)
+                logger.info("Delay complete, checking AMC status now")
             
             status_response = api_client.get_execution_status(
                 execution_id=amc_execution_id,
