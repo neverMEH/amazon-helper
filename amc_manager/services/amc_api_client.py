@@ -80,8 +80,8 @@ class AMCAPIClient:
             payload = {
                 "workflowId": workflow_id,
                 "timeWindowType": "EXPLICIT",  # Use explicit time window
-                "timeWindowStart": datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0).isoformat() + "Z",
-                "timeWindowEnd": datetime.utcnow().isoformat() + "Z",
+                "timeWindowStart": datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0).strftime('%Y-%m-%dT%H:%M:%S'),
+                "timeWindowEnd": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S'),
                 "timeWindowTimeZone": "America/New_York",
                 "outputFormat": output_format
             }
@@ -101,8 +101,8 @@ class AMCAPIClient:
                     }
                 },
                 "timeWindowType": "EXPLICIT",  # Use explicit time window
-                "timeWindowStart": datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0).isoformat() + "Z",
-                "timeWindowEnd": datetime.utcnow().isoformat() + "Z",
+                "timeWindowStart": datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0).strftime('%Y-%m-%dT%H:%M:%S'),
+                "timeWindowEnd": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S'),
                 "timeWindowTimeZone": "America/New_York",
                 "outputFormat": output_format
             }
@@ -423,8 +423,9 @@ class AMCAPIClient:
         else:
             # Default to last 7 days if neither provided
             from datetime import datetime, timedelta
-            seven_days_ago = (datetime.utcnow() - timedelta(days=7)).isoformat() + 'Z'
-            params['minCreationTime'] = seven_days_ago
+            seven_days_ago = datetime.utcnow() - timedelta(days=7)
+            # Format as required by AMC API: yyyy-MM-dd'T'HH:mm:ss (no 'Z')
+            params['minCreationTime'] = seven_days_ago.strftime('%Y-%m-%dT%H:%M:%S')
         
         logger.info(f"Listing executions for instance {instance_id}")
         logger.info(f"Request URL: {url}")
