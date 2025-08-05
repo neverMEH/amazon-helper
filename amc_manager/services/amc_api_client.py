@@ -369,6 +369,59 @@ class AMCAPIClient:
                 "error": str(e)
             }
     
+    def download_and_parse_csv(self, csv_url: str) -> Dict[str, Any]:
+        """
+        Download and parse a CSV file from a URL
+        
+        Args:
+            csv_url: URL to download the CSV from
+            
+        Returns:
+            Dict with parsed CSV data
+        """
+        try:
+            # Download the CSV file
+            csv_response = requests.get(csv_url, timeout=60)
+            if csv_response.status_code != 200:
+                return {
+                    "success": False,
+                    "error": f"Failed to download CSV: Status {csv_response.status_code}"
+                }
+            
+            # Parse CSV content
+            csv_content = csv_response.text
+            csv_reader = csv.reader(io.StringIO(csv_content))
+            
+            # Get headers (first row)
+            headers = next(csv_reader, [])
+            
+            # Get all rows
+            rows = list(csv_reader)
+            
+            # Convert to our format with column metadata
+            columns = [{"name": header, "type": "string"} for header in headers]
+            
+            return {
+                "success": True,
+                "columns": columns,
+                "rows": rows,
+                "rowCount": len(rows),
+                "columnCount": len(columns),
+                "data": rows,
+                "metadata": {
+                    "rowCount": len(rows),
+                    "columnCount": len(columns),
+                    "dataSizeBytes": len(csv_content.encode('utf-8'))
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Error downloading and parsing CSV: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
     def list_executions(
         self,
         instance_id: str,
