@@ -4,7 +4,8 @@ from fastapi import Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 from typing import Optional
 
-from ..core import AMCAPIClient, auth_manager, get_logger
+from ..core import AMCAPIClient, get_logger
+from ..core.auth import auth_manager
 from ..models import get_db, User
 from ..core.exceptions import AuthenticationError
 

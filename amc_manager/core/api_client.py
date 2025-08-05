@@ -16,7 +16,6 @@ from ratelimit import limits, sleep_and_retry
 from ..config import settings
 from .logger import get_logger
 from .exceptions import APIError, RateLimitError, AuthenticationError
-from .auth import auth_manager
 
 
 logger = get_logger(__name__)
@@ -153,7 +152,8 @@ class AMCAPIClient:
             APIError: For API errors
             RateLimitError: For rate limit errors
         """
-        # Get valid token
+        # Get valid token - import here to avoid circular dependency
+        from .auth import auth_manager
         valid_token = auth_manager.get_valid_token(user_id, user_token)
         access_token = valid_token['access_token']
         

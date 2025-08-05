@@ -1,3 +1,12 @@
-"""Core module - Minimal Init"""
+"""Core module exports"""
 
-# Don't import complex modules here to avoid dependency issues
+# Import and re-export commonly used classes and functions
+from .api_client import AMCAPIClient, AMCAPIEndpoints
+from .logger import get_logger
+
+# Make exports available at package level
+__all__ = [
+    'AMCAPIClient',
+    'AMCAPIEndpoints', 
+    'get_logger'
+]

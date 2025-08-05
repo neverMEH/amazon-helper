@@ -5,7 +5,8 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from typing import Dict, Any
 
-from ..core import auth_manager, get_logger
+from ..core import get_logger
+from ..core.auth import auth_manager
 from ..models import get_db, User
 from ..core.exceptions import AuthenticationError
 

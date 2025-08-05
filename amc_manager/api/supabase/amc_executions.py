@@ -7,8 +7,8 @@ import logging
 from ...services.amc_execution_service import AMCExecutionService
 from ...services.db_service import db_service
 from ...services.token_service import TokenService
-from ...core.supabase_client import get_service_role_client
-from ...api.auth import get_current_user
+from ...core.supabase_client import SupabaseManager
+from .auth import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ async def list_amc_executions(
             raise HTTPException(status_code=403, detail="Access denied to this instance")
         
         # Get valid token
-        supabase_client = get_service_role_client()
+        supabase_client = SupabaseManager.get_client(use_service_role=True)
         token_service = TokenService(supabase_client)
         valid_token = token_service.get_valid_token(current_user['id'])
         
@@ -80,7 +80,7 @@ async def list_amc_executions(
         executions = response.get('executions', [])
         
         # Try to match with local executions to get workflow names
-        supabase = get_service_role_client()
+        supabase = SupabaseManager.get_client(use_service_role=True)
         execution_service = AMCExecutionService(supabase)
         local_executions = execution_service.get_instance_executions(
             instance_id=instance['id'],  # Use internal UUID
@@ -152,7 +152,7 @@ async def get_amc_execution_details(
             raise HTTPException(status_code=403, detail="Access denied to this instance")
         
         # Get valid token
-        supabase_client = get_service_role_client()
+        supabase_client = SupabaseManager.get_client(use_service_role=True)
         token_service = TokenService(supabase_client)
         valid_token = token_service.get_valid_token(current_user['id'])
         
