@@ -376,7 +376,9 @@ class AMCAPIClient:
         entity_id: str,
         marketplace_id: str = "ATVPDKIKX0DER",
         limit: int = 50,
-        next_token: Optional[str] = None
+        next_token: Optional[str] = None,
+        workflow_id: Optional[str] = None,
+        min_creation_time: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         List workflow executions for an AMC instance
@@ -388,6 +390,8 @@ class AMCAPIClient:
             marketplace_id: Amazon marketplace ID
             limit: Maximum number of executions to return
             next_token: Token for pagination
+            workflow_id: Optional workflow ID to filter executions
+            min_creation_time: Optional minimum creation time (ISO 8601)
             
         Returns:
             List of executions
@@ -410,6 +414,17 @@ class AMCAPIClient:
         # Add optional parameters if provided
         if next_token:
             params['nextToken'] = next_token
+        
+        # Amazon requires either workflowId or minCreationTime
+        if workflow_id:
+            params['workflowId'] = workflow_id
+        elif min_creation_time:
+            params['minCreationTime'] = min_creation_time
+        else:
+            # Default to last 7 days if neither provided
+            from datetime import datetime, timedelta
+            seven_days_ago = (datetime.utcnow() - timedelta(days=7)).isoformat() + 'Z'
+            params['minCreationTime'] = seven_days_ago
         
         logger.info(f"Listing executions for instance {instance_id}")
         logger.info(f"Request URL: {url}")
