@@ -1,6 +1,7 @@
-import { Cloud, CloudOff, Loader, AlertCircle, Check } from 'lucide-react';
+import { Cloud, CloudOff, Loader, AlertCircle, Check, Info, Zap, Calendar, Shield } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
+import { useState } from 'react';
 import api from '../../services/api';
 
 interface AMCSyncStatusProps {
@@ -15,6 +16,7 @@ interface AMCSyncStatusProps {
 
 export default function AMCSyncStatus({ workflowId, initialStatus }: AMCSyncStatusProps) {
   const queryClient = useQueryClient();
+  const [showExplanation, setShowExplanation] = useState(false);
 
   // Query for current sync status
   const { data: syncStatus, isLoading } = useQuery({
@@ -104,11 +106,20 @@ export default function AMCSyncStatus({ workflowId, initialStatus }: AMCSyncStat
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center space-x-3">
           {getStatusIcon()}
           <div>
-            <h3 className="text-sm font-medium text-gray-900">AMC Sync Status</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-medium text-gray-900">AMC Sync Status</h3>
+              <button
+                onClick={() => setShowExplanation(!showExplanation)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                title="Learn more about AMC sync"
+              >
+                <Info className="h-4 w-4" />
+              </button>
+            </div>
             <p className="text-sm text-gray-500">{getStatusText()}</p>
             {amcWorkflowId && (
               <p className="text-xs text-gray-400 mt-1">AMC ID: {amcWorkflowId}</p>
@@ -136,7 +147,7 @@ export default function AMCSyncStatus({ workflowId, initialStatus }: AMCSyncStat
               ) : (
                 <>
                   <Cloud className="h-4 w-4 mr-2" />
-                  Sync to AMC
+                  Sync to AMC (Optional)
                 </>
               )}
             </button>
@@ -176,6 +187,36 @@ export default function AMCSyncStatus({ workflowId, initialStatus }: AMCSyncStat
         </div>
       </div>
       
+      {/* Explanation section */}
+      {showExplanation && (
+        <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+          <h4 className="text-sm font-semibold text-blue-900 mb-2">Why sync to AMC?</h4>
+          <div className="space-y-2 text-sm text-blue-800">
+            <div className="flex items-start gap-2">
+              <Zap className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <span className="font-medium">Better Performance:</span> Synced queries run faster as AMC can optimize and cache them
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <Calendar className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <span className="font-medium">Native Scheduling:</span> Use AMC's built-in scheduling features for automated runs
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <Shield className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <span className="font-medium">Version Control:</span> AMC tracks query versions and execution history
+              </div>
+            </div>
+          </div>
+          <p className="mt-3 text-xs text-blue-700 italic">
+            Note: Queries work perfectly fine without syncing. Sync is optional for enhanced features.
+          </p>
+        </div>
+      )}
+      
       {syncStatusText === 'sync_failed' && (
         <div className="mt-3 p-3 bg-red-50 rounded-md">
           <p className="text-sm text-red-700">
@@ -184,10 +225,26 @@ export default function AMCSyncStatus({ workflowId, initialStatus }: AMCSyncStat
         </div>
       )}
       
-      {isSynced && (
+      {isSynced && !showExplanation && (
         <div className="mt-3 p-3 bg-green-50 rounded-md">
-          <p className="text-sm text-green-700">
-            This workflow is synced to AMC and will execute as a saved workflow for better performance.
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <p className="text-sm text-green-700">
+                ✓ Synced to AMC for optimized performance
+              </p>
+              <p className="text-xs text-green-600 mt-1">
+                This query runs faster and can use AMC's native scheduling
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {!isSynced && !syncStatusText.includes('fail') && !showExplanation && (
+        <div className="mt-3 p-3 bg-gray-50 rounded-md">
+          <p className="text-xs text-gray-600">
+            <span className="font-medium">Optional:</span> Sync to AMC for faster execution and scheduling features.
+            Your query works fine without syncing.
           </p>
         </div>
       )}
