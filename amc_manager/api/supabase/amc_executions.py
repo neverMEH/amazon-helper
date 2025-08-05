@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from typing import Dict, Any, List
 import logging
 
-from ...services.amc_execution_service import AMCExecutionService
+from ...services.amc_execution_service import amc_execution_service
 from ...services.db_service import db_service
 from ...services.token_service import token_service
 from ...core.supabase_client import SupabaseManager
@@ -80,9 +80,7 @@ async def list_amc_executions(
         executions = response.get('executions', [])
         
         # Try to match with local executions to get workflow names
-        supabase = SupabaseManager.get_client(use_service_role=True)
-        execution_service = AMCExecutionService(supabase)
-        local_executions = execution_service.get_instance_executions(
+        local_executions = amc_execution_service.get_instance_executions(
             instance_id=instance['id'],  # Use internal UUID
             user_id=current_user['id']
         )
