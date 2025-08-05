@@ -712,6 +712,36 @@ class DatabaseService:
             return []
     
     @with_connection_retry
+    def get_user_by_id_sync(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """Get user by ID"""
+        try:
+            response = self.client.table('users').select('*').eq('id', user_id).execute()
+            return response.data[0] if response.data else None
+        except Exception as e:
+            logger.error(f"Error fetching user {user_id}: {e}")
+            return None
+    
+    @with_connection_retry
+    def update_user_sync(self, user_id: str, update_data: Dict[str, Any]) -> bool:
+        """Update user data"""
+        try:
+            response = self.client.table('users').update(update_data).eq('id', user_id).execute()
+            return bool(response.data)
+        except Exception as e:
+            logger.error(f"Error updating user {user_id}: {e}")
+            return False
+    
+    @with_connection_retry
+    def get_user_accounts_sync(self, user_id: str) -> List[Dict[str, Any]]:
+        """Get AMC accounts associated with a user"""
+        try:
+            response = self.client.table('amc_accounts').select('*').eq('user_id', user_id).execute()
+            return response.data
+        except Exception as e:
+            logger.error(f"Error fetching user accounts: {e}")
+            return []
+    
+    @with_connection_retry
     def get_workflow_by_amc_id_sync(self, amc_workflow_id: str, instance_id: str) -> Optional[Dict[str, Any]]:
         """Get workflow details by AMC workflow ID"""
         try:

@@ -54,12 +54,15 @@ export default function Layout() {
         <div className="absolute bottom-0 left-0 right-0 p-3">
           <div className="rounded-lg bg-gray-800 px-3 py-2">
             <div className="flex items-center justify-between">
-              <div className="flex items-center">
+              <Link 
+                to="/profile" 
+                className="flex items-center hover:bg-gray-700 rounded px-2 py-1 transition-colors"
+              >
                 <User className="h-5 w-5 text-gray-400" />
                 <span className="ml-2 text-sm text-gray-300">
                   {user?.email || 'User'}
                 </span>
-              </div>
+              </Link>
               <button
                 onClick={handleLogout}
                 className="text-gray-400 hover:text-white"

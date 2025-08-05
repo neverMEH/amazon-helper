@@ -10,6 +10,7 @@ import Campaigns from './components/campaigns/Campaigns';
 import WorkflowDetail from './components/workflows/WorkflowDetail';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import { AuthCallback } from './pages/AuthCallback';
+import Profile from './pages/Profile';
 
 // New Query Builder imports
 import QueryLibrary from './pages/QueryLibrary';
@@ -57,6 +58,9 @@ function App() {
               <Route path="/query-builder/new" element={<QueryBuilder />} />
               <Route path="/query-builder/template/:templateId" element={<QueryBuilder />} />
               <Route path="/query-builder/edit/:workflowId" element={<QueryBuilder />} />
+              
+              {/* Profile route */}
+              <Route path="/profile" element={<Profile />} />
             </Route>
           </Route>
         </Routes>

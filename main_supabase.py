@@ -115,6 +115,7 @@ from amc_manager.api.supabase.campaigns import router as campaigns_router
 from amc_manager.api.supabase.query_templates import router as query_templates_router
 from amc_manager.api.supabase.brands import router as brands_router
 from amc_manager.api.supabase.amc_executions import router as amc_executions_router
+from amc_manager.api.supabase.profile import router as profile_router
 
 # Add redirect for misconfigured callback URL (must be before router includes)
 @app.get("/api/auth/callback")
@@ -128,6 +129,7 @@ async def redirect_amazon_callback(code: str, state: str, scope: str = None):
 
 app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(amazon_auth_router, prefix="/api/auth/amazon", tags=["Amazon OAuth"])
+app.include_router(profile_router, prefix="/api/profile", tags=["Profile"])
 app.include_router(instances_router, prefix="/api/instances", tags=["AMC Instances"])
 app.include_router(workflows_router, prefix="/api/workflows", tags=["Workflows"])
 app.include_router(campaigns_router, prefix="/api/campaigns", tags=["Campaigns"])

@@ -52,41 +52,30 @@ async def amazon_login(redirect_uri: Optional[str] = None):
         # Store state temporarily (expires in 10 minutes)
         state_store[state] = {
             "created_at": datetime.utcnow(),
-            "redirect_uri": redirect_uri or "/"
+            "redirect_uri": redirect_uri or "/",
+            "is_reauth": False
         }
         
         # Clean up old states
         cutoff = datetime.utcnow() - timedelta(minutes=10)
         for k in list(state_store.keys()):
-            if state_store[k]["created_at"] < cutoff:
+            if 'created_at' in state_store[k] and state_store[k]["created_at"] < cutoff:
                 del state_store[k]
         
         # Build authorization URL
         base_url = "https://www.amazon.com/ap/oa"
         
-        # Ensure we're using the correct redirect URI
-        redirect_uri = settings.amazon_redirect_uri
-        
-        # Force correct redirect URI in production (Railway)
-        if os.getenv('RAILWAY_ENVIRONMENT'):
-            redirect_uri = 'https://web-production-95aa7.up.railway.app/api/auth/amazon/callback'
-            logger.info(f"Using Railway production redirect URI")
+        # Determine callback URL
+        if os.getenv('RAILWAY_PUBLIC_DOMAIN'):
+            callback_url = f"https://{os.getenv('RAILWAY_PUBLIC_DOMAIN')}/api/auth/amazon/callback"
         else:
-            # Check if we're using the wrong callback path
-            if '/api/auth/callback' in redirect_uri and '/api/auth/amazon/callback' not in redirect_uri:
-                redirect_uri = redirect_uri.replace('/api/auth/callback', '/api/auth/amazon/callback')
-                logger.warning(f"Fixed incorrect callback path in redirect URI: {redirect_uri}")
-            
-            # Override localhost URLs in non-debug mode
-            if 'localhost' in redirect_uri and not settings.debug:
-                redirect_uri = 'https://web-production-95aa7.up.railway.app/api/auth/amazon/callback'
-                logger.warning(f"Overriding localhost redirect URI with production URL")
+            callback_url = "http://localhost:8001/api/auth/amazon/callback"
         
         params = {
             'client_id': client_id,
             'scope': settings.amazon_scope or 'advertising::campaign_management',
             'response_type': 'code',
-            'redirect_uri': redirect_uri,
+            'redirect_uri': callback_url,
             'state': state
         }
         
@@ -94,7 +83,7 @@ async def amazon_login(redirect_uri: Optional[str] = None):
         auth_url = f"{base_url}?{param_string}"
         
         logger.info(f"Generated Amazon OAuth URL with state: {state[:10]}...")
-        logger.info(f"Redirect URI: {redirect_uri}")
+        logger.info(f"Redirect URI: {callback_url}")
         
         return {
             "auth_url": auth_url,
@@ -109,6 +98,96 @@ async def amazon_login(redirect_uri: Optional[str] = None):
             status_code=500, 
             detail=f"Failed to initiate login: {str(e)}"
         )
+
+@router.post("/reauth")
+async def amazon_reauth(
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """
+    Re-authenticate with Amazon (for logged-in users)
+    
+    Returns authorization URL for user to re-authenticate with Amazon
+    """
+    try:
+        # Check required configuration
+        client_id = settings.amazon_client_id
+        if not client_id or not settings.amazon_client_secret:
+            raise HTTPException(
+                status_code=500, 
+                detail="Amazon OAuth not configured"
+            )
+        
+        # Generate state for CSRF protection with user context
+        state = secrets.token_urlsafe(32)
+        state_store[state] = {
+            'timestamp': datetime.utcnow().isoformat(),
+            'user_id': current_user['id'],
+            'is_reauth': True
+        }
+        
+        # Determine callback URL
+        if os.getenv('RAILWAY_PUBLIC_DOMAIN'):
+            base_url = f"https://{os.getenv('RAILWAY_PUBLIC_DOMAIN')}"
+        else:
+            base_url = "http://localhost:8001"
+        
+        callback_url = f"{base_url}/api/auth/amazon/callback"
+        
+        # Build Amazon OAuth URL
+        auth_params = {
+            'application_id': client_id,
+            'state': state,
+            'redirect_uri': callback_url,
+            'scope': 'profile advertising::campaign_management'
+        }
+        
+        auth_url = f"https://www.amazon.com/ap/oa?{requests.compat.urlencode(auth_params)}"
+        
+        logger.info(f"Re-authentication initiated for user {current_user['id']}")
+        
+        return {
+            'authUrl': auth_url,
+            'message': 'Redirect user to Amazon for re-authentication'
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error initiating re-authentication: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/disconnect")
+async def disconnect_amazon(
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """
+    Disconnect Amazon account
+    
+    Removes Amazon authentication tokens from user account
+    """
+    try:
+        user_id = current_user['id']
+        
+        # Clear auth tokens
+        updated = db_service.update_user_sync(user_id, {
+            'auth_tokens': None
+        })
+        
+        if not updated:
+            raise HTTPException(status_code=500, detail="Failed to disconnect Amazon account")
+        
+        logger.info(f"Amazon account disconnected for user {user_id}")
+        
+        return {
+            'success': True,
+            'message': 'Amazon account disconnected successfully'
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error disconnecting Amazon account: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/callback")
