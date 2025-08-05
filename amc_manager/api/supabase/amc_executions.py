@@ -45,7 +45,7 @@ async def list_amc_executions(
             raise HTTPException(status_code=403, detail="Access denied to this instance")
         
         # Get valid token
-        valid_token = token_service.get_valid_token(current_user['id'])
+        valid_token = await token_service.get_valid_token(current_user['id'])
         
         if not valid_token:
             raise HTTPException(status_code=401, detail="No valid authentication token")
@@ -55,7 +55,7 @@ async def list_amc_executions(
         if not account:
             raise HTTPException(status_code=404, detail="AMC account not found")
         
-        entity_id = account['entity_id']
+        entity_id = account['account_id']
         marketplace_id = account['marketplace_id']
         
         # Use AMC API client to list executions
@@ -153,7 +153,7 @@ async def get_amc_execution_details(
             raise HTTPException(status_code=403, detail="Access denied to this instance")
         
         # Get valid token
-        valid_token = token_service.get_valid_token(current_user['id'])
+        valid_token = await token_service.get_valid_token(current_user['id'])
         
         if not valid_token:
             raise HTTPException(status_code=401, detail="No valid authentication token")
@@ -163,7 +163,7 @@ async def get_amc_execution_details(
         if not account:
             raise HTTPException(status_code=404, detail="AMC account not found")
         
-        entity_id = account['entity_id']
+        entity_id = account['account_id']
         marketplace_id = account['marketplace_id']
         
         # Use AMC API client to get execution status
