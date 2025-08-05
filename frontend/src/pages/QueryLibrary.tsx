@@ -62,10 +62,10 @@ export default function QueryLibrary() {
       filtered = filtered.filter(t => t.category === selectedCategory);
     }
 
-    // Filter by favorites
-    if (showFavorites) {
-      filtered = filtered.filter(t => t.isFavorite);
-    }
+    // Filter by favorites (temporarily disabled until backend support)
+    // if (showFavorites) {
+    //   filtered = filtered.filter(t => t.isFavorite);
+    // }
 
     return filtered;
   }, [templates, searchQuery, selectedCategory, showFavorites]);
@@ -290,7 +290,7 @@ interface TemplateCardProps {
 }
 
 function TemplateCard({ template, onUse }: TemplateCardProps) {
-  const [isFavorite, setIsFavorite] = useState(template.isFavorite || false);
+  const [isFavorite, setIsFavorite] = useState(false);
 
   const handleToggleFavorite = async (e: React.MouseEvent) => {
     e.stopPropagation();

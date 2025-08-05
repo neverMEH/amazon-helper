@@ -13,8 +13,7 @@ import {
   AlertCircle,
   Calendar,
   Cloud,
-  CloudOff,
-  MoreVertical
+  CloudOff
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../services/api';
@@ -48,7 +47,6 @@ export default function MyQueries() {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
-  const [selectedWorkflow, setSelectedWorkflow] = useState<string | null>(null);
 
   // Fetch workflows
   const { data: workflows = [], isLoading } = useQuery<Workflow[]>({
@@ -79,7 +77,7 @@ export default function MyQueries() {
       const response = await api.post(`/workflows/${workflowId}/execute`);
       return response.data;
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast.success('Query execution started');
       // Navigate to execution details if needed
     },
@@ -114,9 +112,11 @@ export default function MyQueries() {
     }
   };
 
-  const handleSchedule = (workflowId: string) => {
+  const handleSchedule = () => {
     // TODO: Open schedule modal
-    toast.info('Schedule feature coming soon');
+    toast('Schedule feature coming soon', {
+      icon: 'ℹ️'
+    });
   };
 
   const getStatusIcon = (status: string) => {
@@ -134,9 +134,17 @@ export default function MyQueries() {
 
   const getSyncIcon = (workflow: Workflow) => {
     if (workflow.isSyncedToAmc) {
-      return <Cloud className="h-4 w-4 text-blue-500" title="Synced to AMC" />;
+      return (
+        <span title="Synced to AMC">
+          <Cloud className="h-4 w-4 text-blue-500" />
+        </span>
+      );
     }
-    return <CloudOff className="h-4 w-4 text-gray-400" title="Not synced to AMC" />;
+    return (
+      <span title="Not synced to AMC">
+        <CloudOff className="h-4 w-4 text-gray-400" />
+      </span>
+    );
   };
 
   return (
@@ -297,7 +305,7 @@ export default function MyQueries() {
                         <Edit2 className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => handleSchedule(workflow.workflowId)}
+                        onClick={() => handleSchedule()}
                         className="text-gray-600 hover:text-gray-900"
                         title="Schedule"
                       >

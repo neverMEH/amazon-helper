@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Check, AlertTriangle, Database, Clock, Mail, FileText, DollarSign, Info } from 'lucide-react';
+import { Check, AlertTriangle, Database, Clock, FileText, DollarSign, Info } from 'lucide-react';
 
 interface QueryReviewStepProps {
   state: any;
@@ -7,7 +7,7 @@ interface QueryReviewStepProps {
   instances: any[];
 }
 
-export default function QueryReviewStep({ state, setState, instances }: QueryReviewStepProps) {
+export default function QueryReviewStep({ state, instances }: QueryReviewStepProps) {
   const [estimatedCost, setEstimatedCost] = useState<number | null>(null);
   const [estimatedRuntime, setEstimatedRuntime] = useState<number | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);

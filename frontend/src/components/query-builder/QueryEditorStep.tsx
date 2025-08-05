@@ -30,7 +30,7 @@ export default function QueryEditorStep({ state, setState }: QueryEditorStepProp
   useEffect(() => {
     const paramPattern = /\{\{(\w+)\}\}/g;
     const matches = state.sqlQuery.matchAll(paramPattern);
-    const params = Array.from(matches, m => m[1]);
+    const params = Array.from(matches, (m: RegExpMatchArray) => m[1]);
     setDetectedParams([...new Set(params)]);
     
     // Update parameters with defaults if new ones detected
@@ -262,10 +262,7 @@ export default function QueryEditorStep({ state, setState }: QueryEditorStepProp
 
         <div className="flex-1 p-4">
           <SQLEditor
-            value={state.sqlQuery}
-            onChange={(value) => setState((prev: any) => ({ ...prev, sqlQuery: value }))}
-            height="100%"
-            placeholder="-- Enter your AMC SQL query here
+            value={state.sqlQuery || `-- Enter your AMC SQL query here
 -- Example:
 SELECT 
     campaign_id,
@@ -275,7 +272,9 @@ FROM amazon_attributed_events
 WHERE 
     event_dt >= '{{start_date}}'
     AND event_dt <= '{{end_date}}'
-GROUP BY campaign_id"
+GROUP BY campaign_id`}
+            onChange={(value) => setState((prev: any) => ({ ...prev, sqlQuery: value }))}
+            height="100%"
           />
         </div>
 

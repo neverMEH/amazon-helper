@@ -27,7 +27,7 @@ interface QueryBuilderState {
   exportSettings: {
     name: string;
     email: string;
-    format: 'csv' | 'parquet' | 'json';
+    format: 'CSV' | 'PARQUET' | 'JSON';
     password?: string;
   };
   

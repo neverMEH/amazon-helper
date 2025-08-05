@@ -7,9 +7,7 @@ import Dashboard from './components/Dashboard';
 import Instances from './components/instances/Instances';
 import InstanceDetail from './components/instances/InstanceDetail';
 import Campaigns from './components/campaigns/Campaigns';
-import Workflows from './components/workflows/Workflows';
 import WorkflowDetail from './components/workflows/WorkflowDetail';
-import QueryTemplates from './components/query-templates/QueryTemplates';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import { AuthCallback } from './pages/AuthCallback';
 
