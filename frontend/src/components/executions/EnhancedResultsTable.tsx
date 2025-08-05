@@ -12,11 +12,17 @@ interface Props {
     accountName: string;
   };
   brands?: string[];
+  executionContext?: {
+    workflowName: string;
+    executionId: string;
+    startTime?: string;
+    endTime?: string;
+  };
 }
 
 type SortDirection = 'asc' | 'desc' | null;
 
-export default function EnhancedResultsTable({ data, instanceInfo, brands }: Props) {
+export default function EnhancedResultsTable({ data, instanceInfo, brands, executionContext }: Props) {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
@@ -93,6 +99,61 @@ export default function EnhancedResultsTable({ data, instanceInfo, brands }: Pro
 
   const totalPages = Math.ceil(sortedData.length / pageSize);
 
+  // Generate export filename
+  const generateExportFilename = (extension: string) => {
+    const parts = [];
+    
+    // Add instance name or brand
+    if (brands && brands.length > 0) {
+      // Use first brand, replace spaces and special chars
+      parts.push(brands[0].replace(/[^a-zA-Z0-9]/g, '_'));
+    } else if (instanceInfo?.instanceName) {
+      parts.push(instanceInfo.instanceName.replace(/[^a-zA-Z0-9]/g, '_'));
+    }
+    
+    // Add workflow/query name
+    if (executionContext?.workflowName) {
+      parts.push(executionContext.workflowName.replace(/[^a-zA-Z0-9]/g, '_'));
+    }
+    
+    // Add date range if available
+    if (executionContext?.startTime) {
+      const startDate = new Date(executionContext.startTime);
+      const endDate = executionContext?.endTime ? new Date(executionContext.endTime) : new Date();
+      
+      // Format as YYYYMMDD
+      const formatDate = (date: Date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}${month}${day}`;
+      };
+      
+      const startStr = formatDate(startDate);
+      const endStr = formatDate(endDate);
+      
+      if (startStr === endStr) {
+        parts.push(startStr);
+      } else {
+        parts.push(`${startStr}_to_${endStr}`);
+      }
+      
+      // Add time
+      const hours = String(endDate.getHours()).padStart(2, '0');
+      const minutes = String(endDate.getMinutes()).padStart(2, '0');
+      parts.push(`${hours}${minutes}`);
+    } else {
+      // Fallback to current timestamp
+      const now = new Date();
+      const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      parts.push(timestamp);
+    }
+    
+    // Join parts and add extension
+    const filename = parts.filter(p => p).join('_') || 'export';
+    return `${filename}.${extension}`;
+  };
+
   // Handle column sort
   const handleSort = (column: string) => {
     if (sortColumn === column) {
@@ -141,7 +202,7 @@ export default function EnhancedResultsTable({ data, instanceInfo, brands }: Pro
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `execution-results-${new Date().toISOString()}.csv`;
+      a.download = generateExportFilename('csv');
       a.click();
       URL.revokeObjectURL(url);
       toast.success('Data exported to CSV');
@@ -166,7 +227,7 @@ export default function EnhancedResultsTable({ data, instanceInfo, brands }: Pro
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `execution-results-${new Date().toISOString()}.json`;
+      a.download = generateExportFilename('json');
       a.click();
       URL.revokeObjectURL(url);
       toast.success('Data exported to JSON');
@@ -181,11 +242,32 @@ export default function EnhancedResultsTable({ data, instanceInfo, brands }: Pro
         ? sortedData.filter((_, idx) => selectedRows.has(idx))
         : sortedData;
       
-      const text = selectedData.map(row =>
-        columns.filter(col => visibleColumns.has(col))
-          .map(col => row[col]?.toString() || '')
-          .join('\t')
-      ).join('\n');
+      const headers = columns.filter(col => visibleColumns.has(col));
+      
+      // Build metadata header
+      const metadata = [];
+      if (brands && brands.length > 0) {
+        metadata.push(`# Brand: ${brands.join(', ')}`);
+      }
+      if (instanceInfo?.instanceName) {
+        metadata.push(`# Instance: ${instanceInfo.instanceName}`);
+      }
+      if (executionContext?.workflowName) {
+        metadata.push(`# Query: ${executionContext.workflowName}`);
+      }
+      if (executionContext?.startTime) {
+        metadata.push(`# Executed: ${new Date(executionContext.startTime).toLocaleString()}`);
+      }
+      
+      // Build text with headers and data
+      const text = [
+        ...metadata,
+        metadata.length > 0 ? '' : null, // Empty line if metadata exists
+        headers.join('\t'),
+        ...selectedData.map(row =>
+          headers.map(col => row[col]?.toString() || '').join('\t')
+        )
+      ].filter(line => line !== null).join('\n');
       
       navigator.clipboard.writeText(text);
       toast.success(`Copied ${selectedData.length} rows to clipboard`);

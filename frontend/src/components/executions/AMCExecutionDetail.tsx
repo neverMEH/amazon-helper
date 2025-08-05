@@ -133,6 +133,12 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                               data={execution.resultData}
                               instanceInfo={execution.instanceInfo}
                               brands={execution.brands}
+                              executionContext={{
+                                workflowName: execution.workflowInfo?.name || execution.workflowName || 'query',
+                                executionId: execution.executionId,
+                                startTime: execution.startTime,
+                                endTime: execution.endTime || new Date().toISOString()
+                              }}
                             />
                           </div>
                         )}
