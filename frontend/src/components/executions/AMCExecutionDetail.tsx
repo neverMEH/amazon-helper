@@ -1,9 +1,9 @@
-import React, { Fragment } from 'react';
+import { Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { useQuery } from '@tanstack/react-query';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { X } from 'lucide-react';
 import { amcExecutionService } from '../../services/amcExecutionService';
-import ResultsTable from '../workflows/ResultsTable';
+import ResultsTable from './ResultsTable';
 
 interface Props {
   instanceId: string;
@@ -60,7 +60,7 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                     onClick={onClose}
                   >
                     <span className="sr-only">Close</span>
-                    <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                    <X className="h-6 w-6" aria-hidden="true" />
                   </button>
                 </div>
 
@@ -96,9 +96,9 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                               <dt className="text-sm font-medium text-gray-500">Status</dt>
                               <dd className="mt-1 text-sm">
                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                  ${execution.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                    execution.status === 'failed' ? 'bg-red-100 text-red-800' :
-                                    execution.status === 'running' ? 'bg-blue-100 text-blue-800' :
+                                  ${execution.status === 'SUCCEEDED' ? 'bg-green-100 text-green-800' :
+                                    execution.status === 'FAILED' ? 'bg-red-100 text-red-800' :
+                                    execution.status === 'RUNNING' ? 'bg-blue-100 text-blue-800' :
                                     'bg-yellow-100 text-yellow-800'}`}>
                                   {execution.amcStatus || execution.status}
                                 </span>
@@ -151,7 +151,7 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                           </div>
                         )}
 
-                        {execution.status === 'completed' && !execution.resultData && (
+                        {execution.status === 'SUCCEEDED' && !execution.resultData && (
                           <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
                             <p className="text-sm text-blue-700">
                               Execution completed successfully. Results may take a moment to load.

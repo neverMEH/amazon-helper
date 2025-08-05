@@ -1,14 +1,13 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { format } from 'date-fns';
 import { 
-  CheckCircleIcon, 
-  XCircleIcon, 
-  ClockIcon, 
-  ExclamationCircleIcon,
-  ChevronRightIcon,
-  ArrowPathIcon
-} from '@heroicons/react/24/outline';
+  CheckCircle, 
+  XCircle, 
+  Clock, 
+  AlertCircle,
+  ChevronRight,
+  RefreshCw
+} from 'lucide-react';
 import { amcExecutionService } from '../../services/amcExecutionService';
 import type { AMCExecution } from '../../types/amcExecution';
 import AMCExecutionDetail from './AMCExecutionDetail';
@@ -30,16 +29,16 @@ export default function AMCExecutionList({ instanceId }: Props) {
   const getStatusIcon = (status: AMCExecution['status']) => {
     switch (status) {
       case 'SUCCEEDED':
-        return <CheckCircleIcon className="h-5 w-5 text-green-500" />;
+        return <CheckCircle className="h-5 w-5 text-green-500" />;
       case 'FAILED':
-        return <XCircleIcon className="h-5 w-5 text-red-500" />;
+        return <XCircle className="h-5 w-5 text-red-500" />;
       case 'CANCELLED':
-        return <ExclamationCircleIcon className="h-5 w-5 text-gray-500" />;
+        return <AlertCircle className="h-5 w-5 text-gray-500" />;
       case 'RUNNING':
-        return <ClockIcon className="h-5 w-5 text-blue-500 animate-pulse" />;
+        return <Clock className="h-5 w-5 text-blue-500 animate-pulse" />;
       case 'PENDING':
       default:
-        return <ClockIcon className="h-5 w-5 text-yellow-500" />;
+        return <Clock className="h-5 w-5 text-yellow-500" />;
     }
   };
 
@@ -62,7 +61,7 @@ export default function AMCExecutionList({ instanceId }: Props) {
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
     try {
-      return format(new Date(dateString), 'MMM d, yyyy h:mm a');
+      return new Date(dateString).toLocaleString();
     } catch {
       return dateString;
     }
@@ -94,7 +93,7 @@ export default function AMCExecutionList({ instanceId }: Props) {
           onClick={() => refetch()}
           className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
-          <ArrowPathIcon className="h-4 w-4 mr-1" />
+          <RefreshCw className="h-4 w-4 mr-1" />
           Refresh
         </button>
       </div>
@@ -138,7 +137,7 @@ export default function AMCExecutionList({ instanceId }: Props) {
                           </p>
                         )}
                       </div>
-                      <ChevronRightIcon className="h-5 w-5 text-gray-400" />
+                      <ChevronRight className="h-5 w-5 text-gray-400" />
                     </div>
                   </div>
                   {execution.triggeredBy && (
