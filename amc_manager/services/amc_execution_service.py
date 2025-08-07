@@ -94,18 +94,23 @@ class AMCExecutionService:
             # Track that this is a workflow execution (for backwards compatibility)
             execution_mode = 'saved_workflow'
             
-            # Get the latest version of the workflow for tracking
-            client = SupabaseManager.get_client(use_service_role=True)
-            version_response = client.table('workflow_versions')\
-                .select('id, version_number')\
-                .eq('workflow_id', workflow_id)\
-                .order('version_number', desc=True)\
-                .limit(1)\
-                .execute()
-            
+            # Get the latest version of the workflow for tracking (if versioning table exists)
             workflow_version_id = None
-            if version_response.data and len(version_response.data) > 0:
-                workflow_version_id = version_response.data[0]['id']
+            try:
+                client = SupabaseManager.get_client(use_service_role=True)
+                version_response = client.table('workflow_versions')\
+                    .select('id, version_number')\
+                    .eq('workflow_id', workflow_id)\
+                    .order('version_number', desc=True)\
+                    .limit(1)\
+                    .execute()
+                
+                if version_response.data and len(version_response.data) > 0:
+                    workflow_version_id = version_response.data[0]['id']
+            except Exception as e:
+                # Table might not exist yet - this is okay, versioning is optional
+                logger.info(f"Workflow versioning not available yet: {e}")
+                workflow_version_id = None
             
             # Create execution record with version tracking
             execution_data = {
@@ -116,9 +121,12 @@ class AMCExecutionService:
                 "triggered_by": triggered_by,
                 "started_at": datetime.now(timezone.utc).isoformat(),
                 "execution_mode": execution_mode,
-                "amc_workflow_id": workflow.get('amc_workflow_id'),
-                "workflow_version_id": workflow_version_id  # Track which version was executed
+                "amc_workflow_id": workflow.get('amc_workflow_id')
             }
+            
+            # Only add version ID if versioning is available
+            if workflow_version_id:
+                execution_data["workflow_version_id"] = workflow_version_id
             
             execution = self.db.create_execution_sync(execution_data)
             if not execution:
