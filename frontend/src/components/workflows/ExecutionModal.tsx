@@ -292,8 +292,16 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
                     
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <span className="text-gray-500">Execution ID:</span>
+                        <span className="text-gray-500">Internal Execution ID:</span>
                         <p className="font-mono text-xs mt-1">{status.execution_id}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">AMC Execution ID:</span>
+                        {status.amc_execution_id ? (
+                          <p className="font-mono text-xs mt-1 text-green-700">{status.amc_execution_id}</p>
+                        ) : (
+                          <p className="text-xs mt-1 text-orange-600 italic">Not available yet</p>
+                        )}
                       </div>
                       <div>
                         <span className="text-gray-500">Started:</span>
@@ -331,6 +339,14 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
                     {status.error_message && (
                       <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
                         <p className="text-sm text-red-800">{status.error_message}</p>
+                      </div>
+                    )}
+
+                    {status.amc_execution_id && (
+                      <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                        <p className="text-xs text-blue-700">
+                          <strong>Tip:</strong> Use the AMC Execution ID to find this execution in the Amazon Marketing Cloud console.
+                        </p>
                       </div>
                     )}
                   </div>

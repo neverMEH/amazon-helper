@@ -24,6 +24,7 @@ interface ExecutionStatus {
   error_message?: string;
   row_count?: number;
   triggered_by: string;
+  amc_execution_id?: string;
 }
 
 interface ExecutionDetails {
@@ -161,8 +162,16 @@ export default function ExecutionDetailModal({ isOpen, onClose, executionId }: E
 
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="text-gray-500">Execution ID:</span>
+                  <span className="text-gray-500">Internal Execution ID:</span>
                   <p className="font-mono text-xs mt-1">{executionId}</p>
+                </div>
+                <div>
+                  <span className="text-gray-500">AMC Execution ID:</span>
+                  {status?.amc_execution_id ? (
+                    <p className="font-mono text-xs mt-1 text-green-700">{status.amc_execution_id}</p>
+                  ) : (
+                    <p className="text-xs mt-1 text-orange-600 italic">Not available</p>
+                  )}
                 </div>
                 <div>
                   <span className="text-gray-500">Triggered By:</span>

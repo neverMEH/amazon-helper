@@ -118,6 +118,9 @@ export default function ExecutionHistory({ workflowId, instanceId }: ExecutionHi
                 Execution ID
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                AMC ID
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Started
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -153,6 +156,18 @@ export default function ExecutionHistory({ workflowId, instanceId }: ExecutionHi
                     </code>
                     <ExternalLink className="h-3 w-3 ml-2 text-gray-400" />
                   </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {execution.amc_execution_id ? (
+                    <div className="flex items-center">
+                      <code className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded" title={execution.amc_execution_id}>
+                        {execution.amc_execution_id.slice(0, 8)}...
+                      </code>
+                      <span className="ml-1 text-green-600" title="AMC execution tracked">✓</span>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-orange-600 italic">No AMC ID</span>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {execution.started_at ? new Date(execution.started_at).toLocaleString() : '-'}
