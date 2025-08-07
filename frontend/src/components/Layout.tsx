@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Database, Tag, BookOpen, FileText, LogOut, User } from 'lucide-react';
+import { LayoutDashboard, Database, Tag, BookOpen, FileText, LogOut, User, History } from 'lucide-react';
 import { authService } from '../services/auth';
 
 const navigation = [
@@ -8,6 +8,7 @@ const navigation = [
   { name: 'Campaigns', href: '/campaigns', icon: Tag },
   { name: 'Query Library', href: '/query-library', icon: BookOpen },
   { name: 'My Queries', href: '/my-queries', icon: FileText },
+  { name: 'Executions', href: '/executions', icon: History },
 ];
 
 export default function Layout() {

@@ -16,6 +16,7 @@ import Profile from './pages/Profile';
 import QueryLibrary from './pages/QueryLibrary';
 import QueryBuilder from './pages/QueryBuilder';
 import MyQueries from './pages/MyQueries';
+import Executions from './pages/Executions';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,6 +46,7 @@ function App() {
               <Route path="/instances" element={<Instances />} />
               <Route path="/instances/:instanceId" element={<InstanceDetail />} />
               <Route path="/campaigns" element={<Campaigns />} />
+              <Route path="/executions" element={<Executions />} />
               
               {/* Legacy routes - redirect to new ones */}
               <Route path="/workflows" element={<Navigate to="/my-queries" replace />} />
