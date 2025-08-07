@@ -84,21 +84,30 @@ class AMCExecutionService:
                     raise ValueError("No AMC instance associated with workflow")
                 logger.info(f"Using workflow's default instance: {instance.get('instance_id', 'unknown')}")
             
-            # Determine execution mode based on whether workflow is synced to AMC
-            execution_mode = 'saved_workflow' if workflow.get('amc_workflow_id') else 'ad_hoc'
+            # All queries now go through workflows - no more ad-hoc mode
+            # Always substitute parameters since we're treating all as managed workflows
+            sql_query = self._prepare_sql_query(
+                workflow['sql_query'],
+                execution_parameters or workflow.get('parameters', {})
+            )
             
-            # Prepare SQL query - only substitute parameters for ad-hoc queries
-            # For saved workflows, AMC will handle parameter substitution
-            if execution_mode == 'ad_hoc':
-                sql_query = self._prepare_sql_query(
-                    workflow['sql_query'],
-                    execution_parameters or workflow.get('parameters', {})
-                )
-            else:
-                # For saved workflows, keep the original query with placeholders
-                sql_query = workflow['sql_query']
+            # Track that this is a workflow execution (for backwards compatibility)
+            execution_mode = 'saved_workflow'
             
-            # Create execution record
+            # Get the latest version of the workflow for tracking
+            client = SupabaseManager.get_client(use_service_role=True)
+            version_response = client.table('workflow_versions')\
+                .select('id, version_number')\
+                .eq('workflow_id', workflow_id)\
+                .order('version_number', desc=True)\
+                .limit(1)\
+                .execute()
+            
+            workflow_version_id = None
+            if version_response.data and len(version_response.data) > 0:
+                workflow_version_id = version_response.data[0]['id']
+            
+            # Create execution record with version tracking
             execution_data = {
                 "workflow_id": workflow_id,
                 "status": "pending",
@@ -107,10 +116,8 @@ class AMCExecutionService:
                 "triggered_by": triggered_by,
                 "started_at": datetime.now(timezone.utc).isoformat(),
                 "execution_mode": execution_mode,
-                "amc_workflow_id": workflow.get('amc_workflow_id')
-                # Note: instance_id column must be added to workflow_executions table via migration
-                # Once added, uncomment the line below:
-                # "instance_id": instance['instance_id']
+                "amc_workflow_id": workflow.get('amc_workflow_id'),
+                "workflow_version_id": workflow_version_id  # Track which version was executed
             }
             
             execution = self.db.create_execution_sync(execution_data)
@@ -234,7 +241,7 @@ class AMCExecutionService:
         execution_id: str,
         user_id: str,
         execution_parameters: Optional[Dict[str, Any]] = None,
-        execution_mode: str = 'ad_hoc',
+        execution_mode: str = 'saved_workflow',
         amc_workflow_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """

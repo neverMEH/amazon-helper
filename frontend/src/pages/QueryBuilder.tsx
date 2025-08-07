@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight, Check, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { debounce } from 'lodash';
 import QueryEditorStep from '../components/query-builder/QueryEditorStep';
 import QueryConfigurationStep from '../components/query-builder/QueryConfigurationStep';
 import QueryReviewStep from '../components/query-builder/QueryReviewStep';
@@ -41,11 +42,35 @@ const WIZARD_STEPS = [
   { id: 'review', title: 'Review & Execute', component: QueryReviewStep }
 ];
 
+// Generate smart workflow name based on query content
+function generateWorkflowName(sqlQuery: string): string {
+  const query = sqlQuery.toLowerCase();
+  const date = new Date().toISOString().split('T')[0];
+  
+  // Identify query type
+  if (query.includes('conversion') || query.includes('path')) {
+    return `Conversion Path Analysis - ${date}`;
+  } else if (query.includes('campaign')) {
+    return `Campaign Analysis - ${date}`;
+  } else if (query.includes('audience') || query.includes('segment')) {
+    return `Audience Segmentation - ${date}`;
+  } else if (query.includes('overlap')) {
+    return `Overlap Analysis - ${date}`;
+  } else if (query.includes('performance')) {
+    return `Performance Metrics - ${date}`;
+  } else if (query.includes('attribution')) {
+    return `Attribution Analysis - ${date}`;
+  } else {
+    return `Query Development - ${date}`;
+  }
+}
+
 export default function QueryBuilder() {
   const { templateId, workflowId } = useParams();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   const [isExecuting, setIsExecuting] = useState(false);
+  const [currentWorkflowId, setCurrentWorkflowId] = useState<string | undefined>(workflowId);
   
   // Initialize state
   const [queryState, setQueryState] = useState<QueryBuilderState>({
@@ -120,56 +145,86 @@ export default function QueryBuilder() {
 
   // Create/Update workflow mutation
   const saveMutation = useMutation({
-    mutationFn: async (asDraft: boolean = false) => {
+    mutationFn: async (options: { silent?: boolean; asDraft?: boolean } = {}) => {
+      // Generate smart name if not provided
+      const workflowName = queryState.name || generateWorkflowName(queryState.sqlQuery);
+      
       const payload = {
-        name: queryState.name,
-        description: queryState.description,
+        name: workflowName,
+        description: queryState.description || 'Query under development',
         instance_id: queryState.instanceId,
         sql_query: queryState.sqlQuery,
         parameters: queryState.parameters,
-        tags: ['query-builder'],
-        status: asDraft ? 'draft' : 'active'
+        tags: ['query-builder', 'iterative-development'],
+        status: options.asDraft ? 'draft' : 'active'
       };
 
-      if (workflowId) {
-        return await api.put(`/workflows/${workflowId}`, payload);
+      if (currentWorkflowId) {
+        return await api.put(`/workflows/${currentWorkflowId}`, payload);
       } else {
         return await api.post('/workflows/', payload);
       }
     },
-    onSuccess: (response) => {
-      toast.success(workflowId ? 'Query updated successfully' : 'Query saved successfully');
-      if (!workflowId) {
-        // Navigate to the new workflow
-        navigate(`/query-builder/edit/${response.data.workflow_id || response.data.workflowId}`);
+    onSuccess: (response, variables) => {
+      if (!variables?.silent) {
+        toast.success(currentWorkflowId ? 'Query updated' : 'Query saved');
+      }
+      if (!currentWorkflowId) {
+        const newWorkflowId = response.data.workflow_id || response.data.workflowId;
+        setCurrentWorkflowId(newWorkflowId);
+        // Update URL without full navigation to prevent losing state
+        window.history.replaceState(null, '', `/query-builder/edit/${newWorkflowId}`);
       }
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to save query');
+    onError: (error: any, variables) => {
+      if (!variables?.silent) {
+        toast.error(error.response?.data?.detail || 'Failed to save query');
+      }
     }
   });
+
+  // Auto-save functionality - debounced to avoid too many saves
+  const autoSave = useCallback(
+    debounce(async () => {
+      if (queryState.sqlQuery && queryState.instanceId) {
+        await saveMutation.mutateAsync({ silent: true });
+      }
+    }, 3000), // Save after 3 seconds of no changes
+    [queryState.sqlQuery, queryState.instanceId, currentWorkflowId]
+  );
+
+  // Trigger auto-save when query changes
+  useEffect(() => {
+    if (queryState.sqlQuery && queryState.instanceId) {
+      autoSave();
+    }
+  }, [queryState.sqlQuery, queryState.instanceId]);
 
   // Execute workflow mutation
   const executeMutation = useMutation({
     mutationFn: async () => {
-      // First save the workflow if not saved yet
-      let wfId = workflowId;
+      // Ensure workflow is saved before executing
+      let wfId = currentWorkflowId;
       if (!wfId) {
-        const saveResponse = await saveMutation.mutateAsync(false);
+        const saveResponse = await saveMutation.mutateAsync({ silent: false });
         wfId = saveResponse.data.workflow_id || saveResponse.data.workflowId;
+      } else {
+        // Save latest changes before executing
+        await saveMutation.mutateAsync({ silent: true });
       }
 
-      // Execute the workflow with output format
+      // Execute the workflow with parameters
       const response = await api.post(`/workflows/${wfId}/execute`, {
+        instance_id: queryState.instanceId,
         ...queryState.parameters,
         output_format: queryState.exportSettings.format || 'CSV'
       });
       return { ...response.data, workflowId: wfId };
     },
     onSuccess: (data) => {
-      toast.success('Query execution started');
-      // Navigate to workflow detail page to see execution
-      navigate(`/workflows/${data.workflowId}`);
+      toast.success('Query execution started - tracking iteration');
+      // Navigate to workflow detail page to see execution history
+      navigate(`/workflows/${data.workflowId}?tab=executions`);
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.detail || 'Failed to execute query');
