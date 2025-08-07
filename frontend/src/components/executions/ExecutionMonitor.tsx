@@ -6,8 +6,7 @@ import {
   AlertTriangle, 
   CheckCircle, 
   Clock, 
-  Database, 
-  ExternalLink,
+  Database,
   Eye,
   EyeOff
 } from 'lucide-react';
@@ -152,13 +151,6 @@ const ExecutionMonitor: React.FC<ExecutionMonitorProps> = ({
       setLastRefresh(new Date());
     }
   }, [workflowData, crossRefData]);
-
-  const formatDuration = (seconds?: number) => {
-    if (!seconds) return 'N/A';
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}m ${secs}s`;
-  };
 
   const formatTimestamp = (timestamp?: string) => {
     if (!timestamp) return 'N/A';
