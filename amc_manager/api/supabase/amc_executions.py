@@ -88,10 +88,7 @@ async def list_amc_executions(
             logger.info(f"Sample execution data: {executions[0]}")
         
         # Fetch execution details from our database to enrich the AMC data
-        from ...services.db_service import db_service
-        from ...services.supabase_manager import SupabaseManager
-        
-        # Get database client
+        # Get database client (SupabaseManager already imported at top)
         client = SupabaseManager.get_client(use_service_role=True)
         
         # Build list of AMC execution IDs to query
@@ -248,7 +245,6 @@ async def get_amc_execution_details(
         brands = db_service.get_brands_for_instance_sync(instance_id)
         
         # Try to fetch execution details from our database
-        from ...services.supabase_manager import SupabaseManager
         client = SupabaseManager.get_client(use_service_role=True)
         
         db_execution = None
