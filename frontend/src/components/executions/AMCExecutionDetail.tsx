@@ -172,7 +172,7 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                                   Created
                                 </dt>
                                 <dd className="mt-1 text-sm text-gray-900">
-                                  {new Date(execution.createdAt || execution.startTime).toLocaleString()}
+                                  {new Date(execution.createdAt || execution.startTime!).toLocaleString()}
                                 </dd>
                               </div>
                             )}
@@ -188,7 +188,7 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                               <div>
                                 <dt className="text-sm font-medium text-gray-500">Completed</dt>
                                 <dd className="mt-1 text-sm text-gray-900">
-                                  {new Date(execution.completedAt || execution.endTime).toLocaleString()}
+                                  {new Date(execution.completedAt || execution.endTime!).toLocaleString()}
                                 </dd>
                               </div>
                             )}
