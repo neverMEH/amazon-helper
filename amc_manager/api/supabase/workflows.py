@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Body
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from ...services.db_service import db_service
 from ...services.token_service import token_service
@@ -788,3 +788,288 @@ def remove_workflow_from_amc(
     except Exception as e:
         logger.error(f"Error removing workflow from AMC: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to remove workflow: {str(e)}")
+
+
+@router.get("/{workflow_id}/execution-status")
+def get_workflow_execution_status(
+    workflow_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Get detailed execution status for a workflow, showing both internal and AMC execution IDs.
+    This helps debug executions that exist in one system but not the other.
+    """
+    try:
+        # Get workflow to verify ownership
+        workflow = db_service.get_workflow_by_id_sync(workflow_id)
+        if not workflow:
+            raise HTTPException(status_code=404, detail="Workflow not found")
+        
+        if workflow['user_id'] != current_user['id']:
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        # Get all executions for this workflow from database
+        client = SupabaseManager.get_client(use_service_role=True)
+        
+        db_executions_response = client.table('workflow_executions')\
+            .select('*')\
+            .eq('workflow_id', workflow['id'])\
+            .order('started_at', desc=True)\
+            .limit(20)\
+            .execute()
+        
+        db_executions = db_executions_response.data
+        
+        # Categorize executions
+        execution_status = {
+            'workflow_id': workflow_id,
+            'workflow_name': workflow['name'],
+            'instance_id': workflow.get('instance_id'),
+            'total_executions': len(db_executions),
+            'running_executions': [],
+            'recent_executions': [],
+            'missing_amc_ids': [],
+            'execution_summary': {
+                'pending': 0,
+                'running': 0,
+                'completed': 0,
+                'failed': 0,
+                'missing_amc_id': 0
+            }
+        }
+        
+        for exec in db_executions:
+            exec_info = {
+                'internal_execution_id': exec.get('execution_id'),
+                'amc_execution_id': exec.get('amc_execution_id'),
+                'status': exec.get('status'),
+                'progress': exec.get('progress', 0),
+                'started_at': exec.get('started_at'),
+                'completed_at': exec.get('completed_at'),
+                'duration_seconds': exec.get('duration_seconds'),
+                'error_message': exec.get('error_message'),
+                'row_count': exec.get('row_count'),
+                'triggered_by': exec.get('triggered_by', 'manual')
+            }
+            
+            # Add to appropriate categories
+            if exec.get('status') in ['pending', 'running']:
+                execution_status['running_executions'].append(exec_info)
+            
+            if not exec.get('amc_execution_id'):
+                execution_status['missing_amc_ids'].append(exec_info)
+            
+            execution_status['recent_executions'].append(exec_info)
+            
+            # Update summary counts
+            status = exec.get('status', 'unknown')
+            if status in execution_status['execution_summary']:
+                execution_status['execution_summary'][status] += 1
+            
+            if not exec.get('amc_execution_id'):
+                execution_status['execution_summary']['missing_amc_id'] += 1
+        
+        # Add diagnostic information
+        execution_status['diagnostics'] = {
+            'has_running_executions': len(execution_status['running_executions']) > 0,
+            'has_missing_amc_ids': len(execution_status['missing_amc_ids']) > 0,
+            'recommendations': []
+        }
+        
+        # Generate recommendations
+        if execution_status['running_executions']:
+            if any(not exec.get('amc_execution_id') for exec in execution_status['running_executions']):
+                execution_status['diagnostics']['recommendations'].append({
+                    'type': 'missing_amc_id',
+                    'message': 'Some running executions are missing AMC execution IDs. This usually means the AMC API call failed during execution creation.',
+                    'action': 'Check the backend logs for AMC API errors around the execution start time.'
+                })
+            else:
+                execution_status['diagnostics']['recommendations'].append({
+                    'type': 'check_amc_console',
+                    'message': 'Your executions have AMC IDs but may not be visible in AMC console yet.',
+                    'action': 'Wait 1-2 minutes for AMC to register the executions, then check the AMC console again.'
+                })
+        
+        if execution_status['missing_amc_ids']:
+            execution_status['diagnostics']['recommendations'].append({
+                'type': 'authentication_issue',
+                'message': f"{len(execution_status['missing_amc_ids'])} executions are missing AMC execution IDs.",
+                'action': 'This could indicate authentication issues or AMC API connectivity problems. Check if your Amazon tokens are still valid.'
+            })
+        
+        return execution_status
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting execution status for workflow {workflow_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get execution status: {str(e)}")
+
+
+@router.get("/executions/cross-reference")
+async def cross_reference_executions(
+    instance_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Cross-reference executions between internal database and AMC console.
+    This helps identify executions that exist in one system but not the other.
+    """
+    try:
+        # Verify user has access to this instance
+        user_instances = db_service.get_user_instances_sync(current_user['id'])
+        if not any(inst['instance_id'] == instance_id for inst in user_instances):
+            raise HTTPException(status_code=403, detail="Access denied to this instance")
+        
+        # Get recent executions from database for this instance
+        client = SupabaseManager.get_client(use_service_role=True)
+        
+        # Get workflows for this instance
+        workflows_response = client.table('workflows')\
+            .select('id, workflow_id, name')\
+            .eq('instance_id', instance_id)\
+            .eq('user_id', current_user['id'])\
+            .execute()
+        
+        workflow_ids = [w['id'] for w in workflows_response.data]
+        
+        if not workflow_ids:
+            return {
+                'success': True,
+                'instance_id': instance_id,
+                'message': 'No workflows found for this instance',
+                'database_executions': [],
+                'amc_executions': [],
+                'cross_reference_results': {
+                    'matched': [],
+                    'database_only': [],
+                    'amc_only': [],
+                    'missing_amc_ids': []
+                }
+            }
+        
+        # Get recent executions for these workflows
+        yesterday = datetime.now(timezone.utc) - timedelta(days=1)
+        
+        db_executions_response = client.table('workflow_executions')\
+            .select('*, workflows!inner(workflow_id, name)')\
+            .in_('workflow_id', workflow_ids)\
+            .gte('started_at', yesterday.isoformat())\
+            .order('started_at', desc=True)\
+            .execute()
+        
+        db_executions = db_executions_response.data
+        
+        # Try to get AMC executions
+        amc_executions = []
+        try:
+            # Get valid token
+            valid_token = await token_service.get_valid_token(current_user['id'])
+            if valid_token:
+                # Get instance details
+                instance = db_service.get_instance_details_sync(instance_id)
+                if instance and instance.get('amc_accounts'):
+                    account = instance['amc_accounts']
+                    
+                    # Get AMC executions
+                    from ...services.amc_api_client import AMCAPIClient
+                    api_client = AMCAPIClient()
+                    
+                    response = api_client.list_executions(
+                        instance_id=instance_id,
+                        access_token=valid_token,
+                        entity_id=account['account_id'],
+                        marketplace_id=account['marketplace_id'],
+                        limit=50
+                    )
+                    
+                    if response.get('success'):
+                        amc_executions = response.get('executions', [])
+        
+        except Exception as e:
+            logger.warning(f"Failed to fetch AMC executions: {e}")
+        
+        # Cross-reference the executions
+        cross_ref_results = {
+            'matched': [],
+            'database_only': [],
+            'amc_only': [],
+            'missing_amc_ids': []
+        }
+        
+        # Create lookup maps
+        db_by_amc_id = {}
+        amc_by_id = {}
+        
+        for db_exec in db_executions:
+            amc_exec_id = db_exec.get('amc_execution_id')
+            if amc_exec_id:
+                db_by_amc_id[amc_exec_id] = db_exec
+            else:
+                cross_ref_results['missing_amc_ids'].append({
+                    'internal_execution_id': db_exec.get('execution_id'),
+                    'workflow_name': db_exec.get('workflows', {}).get('name', 'Unknown'),
+                    'status': db_exec.get('status'),
+                    'started_at': db_exec.get('started_at')
+                })
+        
+        for amc_exec in amc_executions:
+            exec_id = amc_exec.get('workflowExecutionId') or amc_exec.get('executionId')
+            if exec_id:
+                amc_by_id[exec_id] = amc_exec
+        
+        # Find matches and differences
+        for db_exec in db_executions:
+            amc_exec_id = db_exec.get('amc_execution_id')
+            if amc_exec_id and amc_exec_id in amc_by_id:
+                # Matched execution
+                amc_exec = amc_by_id[amc_exec_id]
+                cross_ref_results['matched'].append({
+                    'internal_execution_id': db_exec.get('execution_id'),
+                    'amc_execution_id': amc_exec_id,
+                    'workflow_name': db_exec.get('workflows', {}).get('name', 'Unknown'),
+                    'database_status': db_exec.get('status'),
+                    'amc_status': amc_exec.get('status'),
+                    'started_at': db_exec.get('started_at')
+                })
+            elif amc_exec_id:
+                # In database but not found in AMC (might be too old or failed to create)
+                cross_ref_results['database_only'].append({
+                    'internal_execution_id': db_exec.get('execution_id'),
+                    'amc_execution_id': amc_exec_id,
+                    'workflow_name': db_exec.get('workflows', {}).get('name', 'Unknown'),
+                    'status': db_exec.get('status'),
+                    'started_at': db_exec.get('started_at')
+                })
+        
+        # Find AMC executions not in database
+        for amc_exec in amc_executions:
+            exec_id = amc_exec.get('workflowExecutionId') or amc_exec.get('executionId')
+            if exec_id and exec_id not in db_by_amc_id:
+                cross_ref_results['amc_only'].append({
+                    'amc_execution_id': exec_id,
+                    'workflow_id': amc_exec.get('workflowId'),
+                    'amc_status': amc_exec.get('status'),
+                    'created_time': amc_exec.get('createdTime')
+                })
+        
+        return {
+            'success': True,
+            'instance_id': instance_id,
+            'database_executions_count': len(db_executions),
+            'amc_executions_count': len(amc_executions),
+            'cross_reference_results': cross_ref_results,
+            'summary': {
+                'matched_executions': len(cross_ref_results['matched']),
+                'database_only': len(cross_ref_results['database_only']),
+                'amc_only': len(cross_ref_results['amc_only']),
+                'missing_amc_ids': len(cross_ref_results['missing_amc_ids'])
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error cross-referencing executions: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to cross-reference executions: {str(e)}")
