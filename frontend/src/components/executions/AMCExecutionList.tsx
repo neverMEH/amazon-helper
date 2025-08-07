@@ -67,6 +67,25 @@ export default function AMCExecutionList({ instanceId }: Props) {
     }
   };
 
+  const formatDuration = (seconds?: number) => {
+    if (!seconds) return '';
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}m ${remainingSeconds}s`;
+  };
+
+  const getQueryType = (sqlQuery?: string) => {
+    if (!sqlQuery) return null;
+    const query = sqlQuery.toLowerCase();
+    if (query.includes('conversion') || query.includes('path')) return 'Attribution';
+    if (query.includes('campaign')) return 'Campaign';
+    if (query.includes('audience') || query.includes('segment')) return 'Audience';
+    if (query.includes('overlap')) return 'Overlap';
+    if (query.includes('performance')) return 'Performance';
+    return 'Analysis';
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-8">
@@ -112,15 +131,27 @@ export default function AMCExecutionList({ instanceId }: Props) {
                   className="w-full px-4 py-4 sm:px-6 hover:bg-gray-50 focus:outline-none focus:bg-gray-50 transition duration-150"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center">
+                    <div className="flex items-center flex-1">
                       {getStatusIcon(execution.status)}
-                      <div className="ml-4 text-left">
-                        <p className="text-sm font-medium text-gray-900">
-                          {execution.workflowName || 'Ad Hoc Query'}
-                        </p>
-                        <p className="text-xs text-gray-500">
+                      <div className="ml-4 text-left flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-gray-900">
+                            {execution.workflowName || 'Ad Hoc Query'}
+                          </p>
+                          {execution.sqlQuery && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                              {getQueryType(execution.sqlQuery)}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
                           ID: {execution.workflowExecutionId}
                         </p>
+                        {execution.workflowDescription && (
+                          <p className="text-xs text-gray-600 mt-1 line-clamp-1">
+                            {execution.workflowDescription}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center">
@@ -129,22 +160,38 @@ export default function AMCExecutionList({ instanceId }: Props) {
                           {getStatusText(execution.status)}
                         </p>
                         <p className="text-xs text-gray-500">
-                          Started: {formatDate(execution.startTime)}
+                          {execution.createdAt ? 
+                            `Created: ${formatDate(execution.createdAt)}` :
+                            `Started: ${formatDate(execution.startTime)}`
+                          }
                         </p>
-                        {execution.endTime && (
+                        {execution.completedAt && (
                           <p className="text-xs text-gray-500">
-                            Ended: {formatDate(execution.endTime)}
+                            Completed: {formatDate(execution.completedAt)}
+                          </p>
+                        )}
+                        {execution.durationSeconds && (
+                          <p className="text-xs text-gray-600 font-medium">
+                            Duration: {formatDuration(execution.durationSeconds)}
+                          </p>
+                        )}
+                        {execution.rowCount !== undefined && execution.rowCount !== null && (
+                          <p className="text-xs text-gray-600">
+                            Rows: {execution.rowCount.toLocaleString()}
                           </p>
                         )}
                       </div>
                       <ChevronRight className="h-5 w-5 text-gray-400" />
                     </div>
                   </div>
-                  {execution.triggeredBy && (
-                    <div className="mt-2 text-xs text-gray-500 text-left">
-                      Triggered by: {execution.triggeredBy}
-                    </div>
-                  )}
+                  <div className="mt-2 flex items-center gap-4 text-xs text-gray-500 text-left">
+                    {execution.triggeredBy && (
+                      <span>Triggered by: {execution.triggeredBy}</span>
+                    )}
+                    {execution.executionParameters && Object.keys(execution.executionParameters).length > 0 && (
+                      <span>Parameters: {Object.keys(execution.executionParameters).length}</span>
+                    )}
+                  </div>
                 </button>
               </li>
             ))}

@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { X } from 'lucide-react';
+import { X, Code, Database, Calendar, User, Hash, ChevronDown, ChevronRight } from 'lucide-react';
 import { amcExecutionService } from '../../services/amcExecutionService';
 import EnhancedResultsTable from './EnhancedResultsTable';
+import SQLHighlight from '../common/SQLHighlight';
 
 interface Props {
   instanceId: string;
@@ -11,6 +13,9 @@ interface Props {
 }
 
 export default function AMCExecutionDetail({ instanceId, executionId, isOpen, onClose }: Props) {
+  const [showQuery, setShowQuery] = useState(false);
+  const [showParameters, setShowParameters] = useState(false);
+  
   const { data, isLoading, error } = useQuery({
     queryKey: ['amc-execution-detail', instanceId, executionId],
     queryFn: () => amcExecutionService.getExecutionDetails(instanceId, executionId),
@@ -66,10 +71,73 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
 
                 {execution && (
                   <div className="mt-4 space-y-4">
+                    {/* Query Details Section */}
+                    {(execution.sqlQuery || execution.workflowInfo?.sqlQuery) && (
+                      <div className="border border-gray-200 rounded-lg">
+                        <button
+                          onClick={() => setShowQuery(!showQuery)}
+                          className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="flex items-center">
+                            <Code className="h-5 w-5 text-gray-400 mr-2" />
+                            <span className="text-sm font-medium text-gray-900">SQL Query</span>
+                          </div>
+                          {showQuery ? (
+                            <ChevronDown className="h-5 w-5 text-gray-400" />
+                          ) : (
+                            <ChevronRight className="h-5 w-5 text-gray-400" />
+                          )}
+                        </button>
+                        {showQuery && (
+                          <div className="px-4 pb-4">
+                            <SQLHighlight sql={execution.sqlQuery || execution.workflowInfo?.sqlQuery || ''} />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Execution Parameters Section */}
+                    {execution.executionParameters && Object.keys(execution.executionParameters).length > 0 && (
+                      <div className="border border-gray-200 rounded-lg">
+                        <button
+                          onClick={() => setShowParameters(!showParameters)}
+                          className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="flex items-center">
+                            <Database className="h-5 w-5 text-gray-400 mr-2" />
+                            <span className="text-sm font-medium text-gray-900">Execution Parameters</span>
+                            <span className="ml-2 text-xs text-gray-500">({Object.keys(execution.executionParameters).length})</span>
+                          </div>
+                          {showParameters ? (
+                            <ChevronDown className="h-5 w-5 text-gray-400" />
+                          ) : (
+                            <ChevronRight className="h-5 w-5 text-gray-400" />
+                          )}
+                        </button>
+                        {showParameters && (
+                          <div className="px-4 pb-4">
+                            <div className="bg-gray-50 rounded-md p-3">
+                              {Object.entries(execution.executionParameters).map(([key, value]) => (
+                                <div key={key} className="flex justify-between py-1 text-sm">
+                                  <span className="font-medium text-gray-600">{key}:</span>
+                                  <span className="text-gray-900">{JSON.stringify(value)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Execution Metadata */}
                     <div className="bg-gray-50 px-4 py-3 sm:px-6 rounded-lg">
-                      <dl className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+                      <h4 className="text-sm font-medium text-gray-900 mb-3">Execution Details</h4>
+                      <dl className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
                             <div>
-                              <dt className="text-sm font-medium text-gray-500">Execution ID</dt>
+                              <dt className="text-sm font-medium text-gray-500 flex items-center">
+                                <Hash className="h-4 w-4 mr-1" />
+                                Execution ID
+                              </dt>
                               <dd className="mt-1 text-sm text-gray-900 font-mono">
                                 {execution.executionId}
                               </dd>
@@ -86,19 +154,60 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                                 </span>
                               </dd>
                             </div>
-                            {execution.startTime && (
+                            {execution.triggeredBy && (
                               <div>
-                                <dt className="text-sm font-medium text-gray-500">Start Time</dt>
+                                <dt className="text-sm font-medium text-gray-500 flex items-center">
+                                  <User className="h-4 w-4 mr-1" />
+                                  Triggered By
+                                </dt>
                                 <dd className="mt-1 text-sm text-gray-900">
-                                  {new Date(execution.startTime).toLocaleString()}
+                                  {execution.triggeredBy}
                                 </dd>
                               </div>
                             )}
-                            {execution.endTime && (
+                            {(execution.createdAt || execution.startTime) && (
                               <div>
-                                <dt className="text-sm font-medium text-gray-500">End Time</dt>
+                                <dt className="text-sm font-medium text-gray-500 flex items-center">
+                                  <Calendar className="h-4 w-4 mr-1" />
+                                  Created
+                                </dt>
                                 <dd className="mt-1 text-sm text-gray-900">
-                                  {new Date(execution.endTime).toLocaleString()}
+                                  {new Date(execution.createdAt || execution.startTime).toLocaleString()}
+                                </dd>
+                              </div>
+                            )}
+                            {execution.startedAt && (
+                              <div>
+                                <dt className="text-sm font-medium text-gray-500">Started</dt>
+                                <dd className="mt-1 text-sm text-gray-900">
+                                  {new Date(execution.startedAt).toLocaleString()}
+                                </dd>
+                              </div>
+                            )}
+                            {(execution.completedAt || execution.endTime) && (
+                              <div>
+                                <dt className="text-sm font-medium text-gray-500">Completed</dt>
+                                <dd className="mt-1 text-sm text-gray-900">
+                                  {new Date(execution.completedAt || execution.endTime).toLocaleString()}
+                                </dd>
+                              </div>
+                            )}
+                            {execution.durationSeconds && (
+                              <div>
+                                <dt className="text-sm font-medium text-gray-500">Duration</dt>
+                                <dd className="mt-1 text-sm text-gray-900">
+                                  {execution.durationSeconds < 60 
+                                    ? `${execution.durationSeconds}s`
+                                    : `${Math.floor(execution.durationSeconds / 60)}m ${execution.durationSeconds % 60}s`
+                                  }
+                                </dd>
+                              </div>
+                            )}
+                            {execution.rowCount !== undefined && execution.rowCount !== null && (
+                              <div>
+                                <dt className="text-sm font-medium text-gray-500">Rows Returned</dt>
+                                <dd className="mt-1 text-sm text-gray-900">
+                                  {execution.rowCount.toLocaleString()}
                                 </dd>
                               </div>
                             )}
@@ -119,10 +228,10 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                           </dl>
                         </div>
 
-                        {execution.error && (
+                        {(execution.error || execution.errorMessage) && (
                           <div className="bg-red-50 border border-red-200 rounded-md p-4">
                             <h4 className="text-sm font-medium text-red-800">Error</h4>
-                            <p className="mt-1 text-sm text-red-700">{execution.error}</p>
+                            <p className="mt-1 text-sm text-red-700">{execution.error || execution.errorMessage}</p>
                           </div>
                         )}
 

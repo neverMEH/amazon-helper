@@ -5,10 +5,17 @@ export interface AMCExecution {
   endTime?: string;
   workflowId?: string;
   workflowName?: string | null;
+  workflowDescription?: string;
+  sqlQuery?: string;
+  executionParameters?: Record<string, any>;
   localExecutionId?: string;
   triggeredBy?: string;
   instanceId: string;
   error?: string;
+  rowCount?: number;
+  durationSeconds?: number;
+  createdAt?: string;
+  completedAt?: string;
 }
 
 export interface AMCExecutionDetail extends AMCExecution {
@@ -17,7 +24,8 @@ export interface AMCExecutionDetail extends AMCExecution {
   progress: number;
   resultData?: any;
   downloadUrls?: string[];
-  error?: string;
+  errorMessage?: string;
+  startedAt?: string;
   instanceInfo?: {
     instanceId: string;
     instanceName: string;
@@ -31,5 +39,9 @@ export interface AMCExecutionDetail extends AMCExecution {
     id: string;
     name: string;
     description: string;
+    sqlQuery?: string;
+    parameters?: Record<string, any>;
+    createdAt?: string;
+    updatedAt?: string;
   };
 }

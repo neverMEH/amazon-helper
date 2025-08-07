@@ -7,12 +7,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Amazon Marketing Cloud (AMC) Manager - a full-stack application for managing AMC instances, creating and executing SQL queries, and tracking campaign performance across multiple brands.
 
 Core features:
-- AMC instance management with brand associations
-- Query template system for reusable AMC SQL queries with parameters
-- Workflow creation and execution with real-time status tracking  
+- AMC instance management with searchable, filterable interface
+- Query builder with template library for reusable AMC SQL queries
+- Query execution with real-time status tracking and data visualization
 - Campaign tracking with automatic brand filtering
-- Scheduled report generation with CRON expressions
-- JWT authentication with encrypted token storage
+- Enhanced execution results with charts, tables, and export capabilities
+- JWT authentication with encrypted OAuth token storage
 
 ## Development Commands
 
@@ -72,8 +72,13 @@ npx playwright test --ui  # Interactive mode
   - `SupabaseService`: Base class with automatic reconnection after 30-minute timeout
   - `db_service.py`: Database operations and query helpers
   - `amc_execution_service.py`: Workflow execution (mock/real modes)
+  - `amc_api_client.py`: Direct AMC API integration with proper auth headers
   - `query_template_service.py`: Query template CRUD operations
   - `instance_service.py`: AMC instance and brand management
+  - `brand_service.py`: Brand management and associations
+  - `campaign_service.py`: Campaign data synchronization
+  - `token_service.py`: Token encryption/decryption with Fernet
+  - `data_analysis_service.py`: Pattern detection and data analysis
   - `WorkflowService`: Workflow operations with execution tracking
   - `ExecutionService`: Handles AMC query execution lifecycle
 - **API Endpoints**: RESTful design in `amc_manager/api/supabase/`
@@ -84,20 +89,36 @@ npx playwright test --ui  # Interactive mode
 ### Frontend Architecture  
 - **React + TypeScript**: Component-based UI with strict typing
 - **Routing**: React Router v7 with protected routes
+  - `/dashboard` - Main dashboard
+  - `/instances` - Searchable AMC instances list
+  - `/instances/:id` - Instance detail with queries tab
+  - `/query-builder/new` - Create new query
+  - `/query-builder/edit/:id` - Edit existing query
+  - `/my-queries` - User's saved queries
+  - `/query-library` - Browse query templates
+  - `/query-templates` - Manage templates
+  - `/profile` - User profile with re-authentication
 - **State Management**: TanStack Query (React Query) v5 for server state
   - 5-minute cache duration (staleTime: 5 * 60 * 1000)
   - Automatic retries with exponential backoff
+  - Note: Use `gcTime` instead of deprecated `cacheTime`
 - **Styling**: Tailwind CSS with @tailwindcss/forms and @tailwindcss/typography
 - **API Client**: Axios with interceptors for auth and error handling
 - **Code Editor**: Monaco Editor for SQL syntax highlighting
+- **Data Visualization**: Recharts for charts, react-window for virtualization
 - **Key Components**:
+  - `QueryBuilder`: Main query creation interface
   - `QueryTemplates`: Full CRUD UI for template management
   - `QueryTemplateModal`: Create/edit modal with parameter detection
-  - `QueryTemplateSelector`: Template browser for workflow creation
-  - `WorkflowForm`: Create/edit workflows with template integration
+  - `InstanceSelector`: Searchable dropdown with brand display
   - `ExecutionModal`: Real-time execution monitoring (2-second polling)
-  - `InstanceWorkflows`: Instance-specific workflow management
+  - `ExecutionDetailModal`: Results with table/charts/AI views
+  - `DataVisualization`: Auto-generated charts based on data types
+  - `VirtualizedTable`: Performance-optimized for large datasets
+  - `EnhancedResultsTable`: Advanced filtering, sorting, export
+  - `InstanceWorkflows`: Instance-specific query management
   - `BrandSelector`: Autocomplete brand selection with creation
+  - `AMCSyncStatus`: Optional AMC workflow sync with benefits display
 
 ### Database Schema (Supabase)
 Key tables:
@@ -135,6 +156,36 @@ headers = {
 if token_expired:
     new_tokens = refresh_oauth_tokens(refresh_token)
     # Tokens are automatically encrypted before storage
+
+# Date format for AMC API - CRITICAL
+# Use this format (without timezone):
+params['minCreationTime'] = datetime.strftime('%Y-%m-%dT%H:%M:%S')
+# NOT this (causes "Must provide either workflowId or minCreationTime" error):
+params['minCreationTime'] = datetime.isoformat() + 'Z'
+```
+
+#### CSV Data Processing
+```python
+# Transform CSV from array of arrays to objects with column names
+def download_and_parse_csv(self, url, access_token):
+    # ... download CSV ...
+    reader = csv.reader(StringIO(text))
+    headers = next(reader)
+    rows = list(reader)
+    
+    # Transform to objects (required for frontend display)
+    data_objects = []
+    for row in rows:
+        row_object = {}
+        for i, header in enumerate(headers):
+            row_object[header] = row[i] if i < len(row) else None
+        data_objects.append(row_object)
+    
+    return {
+        'columns': [{'name': h, 'type': 'string'} for h in headers],
+        'rows': rows,  # Keep for compatibility
+        'data': data_objects  # Use this for table display
+    }
 ```
 
 #### FastAPI Route Trailing Slashes
@@ -249,12 +300,16 @@ workflow_data.instance_id = instance.id;  // Store internal UUID
   - Solution: Use `instance.instanceId` in frontend forms
 - **404 on Query Templates**: Wrong API path
   - Solution: Use `/query-templates` not `/queries/templates`
+- **AMC Execution Fails**: Date format must exclude timezone
+  - Solution: Format dates as `YYYY-MM-DD` without `+00:00` suffix
 
 ### TypeScript Errors  
 - **Type must be imported using type-only import**: verbatimModuleSyntax enabled
   - Solution: Change `import { Type }` to `import type { Type }`
 - **Cannot find module**: Check relative import paths
   - Solution: Use `../` for parent directory imports
+- **React Query Deprecated Props**: Use gcTime instead of cacheTime
+  - Solution: Replace `cacheTime: 5 * 60 * 1000` with `gcTime: 5 * 60 * 1000`
 
 ### Database Issues
 - **Supabase Timeout After 30 Minutes**: Connection expires
@@ -267,6 +322,8 @@ workflow_data.instance_id = instance.id;  // Store internal UUID
   - Example: `from ...services.query_template_service import QueryTemplateService`
 - **JWT Decode Errors**: Use `jwt.DecodeError` not `jwt.JWTError`
 - **CORS Issues**: Backend serves frontend in production, proxy in dev
+- **CSV Results Processing**: Transform array format to objects for proper display
+  - Use `transformCsvData` helper in `frontend/src/utils/csvHelpers.ts`
 
 ## Query Templates Feature
 
@@ -329,3 +386,90 @@ HAVING total_impressions > {{min_impressions}}
 - Add clear descriptions for templates
 - Use categories for organization
 - Make templates public for team sharing
+
+## Performance Features
+
+### Virtual Scrolling
+- **VirtualizedTable Component**: Handles large datasets efficiently
+  - Uses react-window for row virtualization
+  - Supports 10,000+ rows without performance degradation
+  - Auto-calculates column widths
+
+### Lazy Loading
+- **React Suspense Integration**: Components load on demand
+  - DataVisualization component loads only when needed
+  - ExecutionDetailModal loads data progressively
+  - Image and chart lazy loading
+
+### Data Caching
+- **React Query Optimization**:
+  - 5-minute cache with `staleTime: 5 * 60 * 1000`
+  - Garbage collection with `gcTime: 30 * 60 * 1000`
+  - Automatic background refetch on window focus
+  - Query invalidation on mutations
+
+### Searchable Instances
+- **Comprehensive Filtering**: Handle 100+ instances efficiently
+  - Multi-field search (name, ID, brands, account)
+  - Filter by region, type, status, brand
+  - Memoized filtering with useMemo
+  - Debounced search input
+
+## Data Visualization
+
+### Recharts Integration
+- **DataVisualization Component**: Auto-generates charts from data
+  - Detects data types and suggests appropriate charts
+  - Time series for date columns
+  - Bar charts for categorical data
+  - Pie charts for distribution analysis
+  - Scatter plots for correlations
+
+### Chart Features
+- Interactive tooltips and legends
+- Responsive design with auto-sizing
+- Export to PNG/SVG
+- Custom color schemes
+- Support for multiple Y-axes
+
+## Git Workflows
+
+### Feature Development
+```bash
+# Create feature branch
+git checkout -b feature/your-feature-name
+
+# Make changes and commit
+git add .
+git commit -m "feat: add new feature"
+
+# Push to remote
+git push -u origin feature/your-feature-name
+```
+
+### Commit Message Format
+- `feat:` New feature
+- `fix:` Bug fix
+- `docs:` Documentation changes
+- `style:` Code style changes
+- `refactor:` Code refactoring
+- `test:` Test additions/changes
+- `chore:` Build process or auxiliary tool changes
+
+## Additional Resources
+
+### Template Library Planning
+- See `/docs/template-library-plan.md` for comprehensive AMC instructional query template system design
+- Includes SP/DSP overlap analysis template
+- 6-phase implementation roadmap
+
+### Dependencies
+- **Frontend**: See `frontend/package.json` for complete list
+  - Key additions: recharts, react-window, @types/react-window
+- **Backend**: See `requirements_supabase.txt`
+  - FastAPI, Supabase, cryptography for token encryption
+
+### Monitoring
+- Check execution logs: `python scripts/check_execution_logs.py`
+- Database performance: Apply indexes with `scripts/apply_performance_indexes.py`
+- API performance: FastAPI automatic docs at `/docs`

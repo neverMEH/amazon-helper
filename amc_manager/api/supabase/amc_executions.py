@@ -87,19 +87,68 @@ async def list_amc_executions(
         if executions:
             logger.info(f"Sample execution data: {executions[0]}")
         
-        # For now, return the AMC executions directly
-        # The AMC API returns workflow executions (past runs), not workflow definitions
+        # Fetch execution details from our database to enrich the AMC data
+        from ...services.db_service import db_service
+        from ...services.supabase_manager import SupabaseManager
+        
+        # Get database client
+        client = SupabaseManager.get_client(use_service_role=True)
+        
+        # Build list of AMC execution IDs to query
+        amc_execution_ids = []
+        for exec in executions:
+            exec_id = exec.get('workflowExecutionId') or exec.get('executionId')
+            if exec_id:
+                amc_execution_ids.append(exec_id)
+        
+        # Fetch our database records for these executions
+        db_executions = {}
+        if amc_execution_ids:
+            try:
+                db_response = client.table('workflow_executions')\
+                    .select('*, workflows!inner(workflow_id, name, description, sql_query, parameters)')\
+                    .in_('amc_execution_id', amc_execution_ids)\
+                    .execute()
+                
+                # Create a map of amc_execution_id -> database record
+                for db_exec in db_response.data:
+                    if db_exec.get('amc_execution_id'):
+                        db_executions[db_exec['amc_execution_id']] = db_exec
+            except Exception as e:
+                logger.warning(f"Failed to fetch database execution records: {e}")
+        
+        # Enhance executions with database information
         enhanced_executions = []
         for amc_exec in executions:
-            # Ensure we have essential fields for frontend display
+            exec_id = amc_exec.get('workflowExecutionId') or amc_exec.get('executionId')
+            db_exec = db_executions.get(exec_id)
+            
+            # Build enhanced execution object
             enhanced_exec = {
                 **amc_exec,
                 'instanceId': instance_id,
-                # Ensure workflowExecutionId exists (some APIs might use different field names)
-                'workflowExecutionId': amc_exec.get('workflowExecutionId') or amc_exec.get('executionId') or amc_exec.get('id'),
-                # Default workflowName for ad-hoc queries
-                'workflowName': amc_exec.get('workflowName') or 'Ad-hoc Query'
+                'workflowExecutionId': exec_id or amc_exec.get('id'),
             }
+            
+            # Add database information if available
+            if db_exec:
+                workflow = db_exec.get('workflows', {})
+                enhanced_exec.update({
+                    'workflowName': workflow.get('name') or amc_exec.get('workflowName') or 'Query',
+                    'workflowDescription': workflow.get('description'),
+                    'sqlQuery': workflow.get('sql_query'),
+                    'executionParameters': db_exec.get('execution_parameters'),
+                    'triggeredBy': db_exec.get('triggered_by', 'Manual'),
+                    'rowCount': db_exec.get('row_count'),
+                    'durationSeconds': db_exec.get('duration_seconds'),
+                    'createdAt': db_exec.get('created_at'),
+                    'completedAt': db_exec.get('completed_at'),
+                })
+            else:
+                # Use default values for executions not in our database
+                enhanced_exec['workflowName'] = amc_exec.get('workflowName') or 'Ad-hoc Query'
+                enhanced_exec['triggeredBy'] = amc_exec.get('triggeredBy', 'External')
+            
             enhanced_executions.append(enhanced_exec)
         
         return {
@@ -198,40 +247,69 @@ async def get_amc_execution_details(
         # Get associated brands for the instance
         brands = db_service.get_brands_for_instance_sync(instance_id)
         
-        # Get workflow details if execution is linked to a workflow
+        # Try to fetch execution details from our database
+        from ...services.supabase_manager import SupabaseManager
+        client = SupabaseManager.get_client(use_service_role=True)
+        
+        db_execution = None
         workflow_info = None
-        if status_response.get('workflowId'):
-            try:
-                workflow = db_service.get_workflow_by_amc_id_sync(
-                    status_response.get('workflowId'),
-                    instance_id
-                )
-                if workflow:
-                    workflow_info = {
-                        'id': workflow.get('id'),
-                        'name': workflow.get('name'),
-                        'description': workflow.get('description')
-                    }
-            except Exception as e:
-                logger.warning(f"Failed to get workflow info: {e}")
+        
+        try:
+            # First try to find by AMC execution ID
+            db_response = client.table('workflow_executions')\
+                .select('*, workflows!inner(workflow_id, name, description, sql_query, parameters, created_at, updated_at)')\
+                .eq('amc_execution_id', execution_id)\
+                .single()\
+                .execute()
+            
+            if db_response.data:
+                db_execution = db_response.data
+                workflow = db_execution.get('workflows', {})
+                workflow_info = {
+                    'id': workflow.get('workflow_id'),
+                    'name': workflow.get('name'),
+                    'description': workflow.get('description'),
+                    'sqlQuery': workflow.get('sql_query'),
+                    'parameters': workflow.get('parameters'),
+                    'createdAt': workflow.get('created_at'),
+                    'updatedAt': workflow.get('updated_at')
+                }
+        except Exception as e:
+            logger.warning(f"Failed to get execution from database: {e}")
         
         # Build enhanced execution response
+        execution_detail = {
+            **status_response,
+            "resultData": result_data,
+            "instanceInfo": {
+                "instanceId": instance.get('instance_id'),
+                "instanceName": instance.get('instance_name'),
+                "region": instance.get('region', 'us-east-1'),
+                "accountId": account.get('account_id'),
+                "accountName": account.get('account_name', 'N/A'),
+                "marketplaceId": marketplace_id
+            },
+            "brands": brands,
+            "workflowInfo": workflow_info
+        }
+        
+        # Add database execution details if available
+        if db_execution:
+            execution_detail.update({
+                'sqlQuery': workflow_info.get('sqlQuery') if workflow_info else None,
+                'executionParameters': db_execution.get('execution_parameters'),
+                'triggeredBy': db_execution.get('triggered_by', 'Manual'),
+                'rowCount': db_execution.get('row_count'),
+                'durationSeconds': db_execution.get('duration_seconds'),
+                'createdAt': db_execution.get('created_at'),
+                'startedAt': db_execution.get('started_at'),
+                'completedAt': db_execution.get('completed_at'),
+                'errorMessage': db_execution.get('error_message')
+            })
+        
         return {
             "success": True,
-            "execution": {
-                **status_response,
-                "resultData": result_data,
-                "instanceInfo": {
-                    "instanceId": instance.get('instance_id'),
-                    "instanceName": instance.get('instance_name'),
-                    "region": instance.get('region', 'us-east-1'),
-                    "accountId": account.get('account_id'),
-                    "accountName": account.get('account_name', 'N/A'),
-                    "marketplaceId": marketplace_id
-                },
-                "brands": brands,
-                "workflowInfo": workflow_info
-            }
+            "execution": execution_detail
         }
         
     except HTTPException:
