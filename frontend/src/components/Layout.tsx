@@ -25,7 +25,7 @@ export default function Layout() {
       {/* Sidebar */}
       <div className="fixed inset-y-0 left-0 w-64 bg-gray-900">
         <div className="flex h-16 items-center px-6">
-          <h1 className="text-xl font-semibold text-white">AMC Manager</h1>
+          <h1 className="text-xl font-semibold text-white">Recom AMP</h1>
         </div>
 
         <nav className="mt-6 px-3">

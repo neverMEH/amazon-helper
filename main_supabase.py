@@ -22,7 +22,7 @@ logger = get_logger(__name__)
 async def lifespan(app: FastAPI):
     """Application lifespan events"""
     # Startup
-    logger.info("Starting AMC Manager application with Supabase...")
+    logger.info("Starting Recom AMP application with Supabase...")
     
     # Test Supabase connection
     try:
@@ -51,14 +51,14 @@ async def lifespan(app: FastAPI):
     yield
     
     # Shutdown
-    logger.info("Shutting down AMC Manager application...")
+    logger.info("Shutting down Recom AMP application...")
     await token_refresh_service.stop()
 
 
 # Create FastAPI app
 app = FastAPI(
-    title="Amazon Marketing Cloud Manager",
-    description="Manage AMC instances, build queries, and track executions",
+    title="Recom AMP",
+    description="Amazon Marketing Cloud query development and execution platform",
     version="0.2.0",
     lifespan=lifespan
 )

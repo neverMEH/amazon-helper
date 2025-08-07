@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Amazon Marketing Cloud (AMC) Manager - a full-stack application for managing AMC instances, creating and executing SQL queries, and tracking campaign performance across multiple brands.
+Recom AMP - Amazon Marketing Cloud query development and execution platform for managing AMC instances, creating and executing SQL queries with iterative workflow tracking, and building a comprehensive query library.
 
 Core features:
 - AMC instance management with searchable, filterable interface

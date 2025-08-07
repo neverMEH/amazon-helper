@@ -1,4 +1,4 @@
-"""Amazon Marketing Cloud Manager - Minimal Init"""
+"""Recom AMP - Amazon Marketing Cloud Query Platform - Minimal Init"""
 
 # Version
 __version__ = "0.2.0"

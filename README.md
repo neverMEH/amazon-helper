@@ -1,6 +1,6 @@
-# AMC Manager
+# Recom AMP
 
-A full-stack application for managing Amazon Marketing Cloud (AMC) instances with editable brand tags and campaign filtering.
+Amazon Marketing Cloud query development and execution platform with iterative workflow management.
 
 ## Features
 
