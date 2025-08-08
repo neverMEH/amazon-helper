@@ -55,6 +55,10 @@ class AMCExecutionService:
             # Get workflow details
             workflow = self._get_workflow_with_instance(workflow_id)
             if not workflow:
+                logger.error(f"Workflow not found with UUID: {workflow_id}")
+                # Check if it's a truncated ID issue
+                if len(workflow_id) < 36:  # UUID should be 36 chars
+                    logger.error(f"Workflow ID appears truncated: {workflow_id} (length: {len(workflow_id)})")
                 raise ValueError(f"Workflow {workflow_id} not found")
             
             # Verify user has access
@@ -100,8 +104,18 @@ class AMCExecutionService:
                 # Auto-create AMC workflow if it doesn't exist
                 logger.info(f"No AMC workflow ID found, auto-creating workflow in AMC")
                 
-                # Generate AMC-compliant workflow ID
-                amc_workflow_id = f"wf_{re.sub(r'[^a-zA-Z0-9]', '_', workflow_id[:20])}"
+                # Use the workflow's workflow_id field if available, otherwise generate one
+                if workflow.get('workflow_id'):
+                    # Use existing workflow_id from database (already in AMC-compliant format)
+                    amc_workflow_id = workflow['workflow_id']
+                    logger.info(f"Using existing workflow_id from database: {amc_workflow_id}")
+                else:
+                    # Generate AMC-compliant workflow ID from workflow name or UUID
+                    workflow_name = workflow.get('name', workflow_id)
+                    # Ensure AMC-compliant format: alphanumeric and underscores only
+                    clean_name = re.sub(r'[^a-zA-Z0-9]', '_', workflow_name[:30])
+                    amc_workflow_id = f"wf_{clean_name}"
+                    logger.info(f"Generated new AMC workflow ID: {amc_workflow_id} from name: {workflow_name}")
                 
                 # Get valid token for workflow creation
                 valid_token = asyncio.run(token_service.get_valid_token(user_id))
