@@ -1,4 +1,5 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Component } from 'react';
+import type { ErrorInfo, ReactNode } from 'react';
 
 interface Props {
   children: ReactNode;
@@ -32,7 +33,9 @@ class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log error to console in development
-    if (process.env.NODE_ENV === 'development') {
+    // Check if we're in development by looking at the URL
+    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (isDevelopment) {
       console.error('ErrorBoundary caught error:', error, errorInfo);
     }
     
@@ -92,7 +95,7 @@ class ErrorBoundary extends Component<Props, State> {
                   </p>
                 </div>
                 
-                {process.env.NODE_ENV === 'development' && this.state.error && (
+                {(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && this.state.error && (
                   <details className="mt-4 text-left">
                     <summary className="cursor-pointer text-sm text-gray-600 hover:text-gray-900">
                       Error details (development only)
