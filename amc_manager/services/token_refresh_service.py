@@ -42,6 +42,8 @@ class TokenRefreshService:
             user = db_service.get_user_by_id_sync(user_id)
             if not user or not user.get('auth_tokens'):
                 logger.debug(f"No tokens found for user {user_id}")
+                # Remove user from tracking if they have no tokens
+                self.remove_user(user_id)
                 return False
             
             auth_tokens = user['auth_tokens']
@@ -65,7 +67,11 @@ class TokenRefreshService:
                     logger.info(f"Successfully refreshed token for user {user_id}")
                     return True
                 else:
-                    logger.error(f"Failed to refresh token for user {user_id}")
+                    # Token refresh failed - likely due to decryption issues
+                    logger.error(f"Failed to refresh token for user {user_id} - removing from tracking")
+                    # Remove user from tracking to prevent repeated failures
+                    self.remove_user(user_id)
+                    # Note: The token service already clears invalid tokens in get_valid_token
                     return False
             else:
                 logger.debug(f"Token for user {user_id} still valid for {time_until_expiry:.0f}s")
@@ -73,6 +79,10 @@ class TokenRefreshService:
                 
         except Exception as e:
             logger.error(f"Error refreshing token for user {user_id}: {e}")
+            # Remove user from tracking on persistent errors
+            if "decrypt" in str(e).lower() or "invalid token" in str(e).lower():
+                logger.info(f"Removing user {user_id} from tracking due to token issues")
+                self.remove_user(user_id)
             return False
     
     async def refresh_all_tokens(self):

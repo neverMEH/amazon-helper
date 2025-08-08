@@ -46,13 +46,17 @@ async def lifespan(app: FastAPI):
     await token_refresh_service.start()
     logger.info("✓ Token refresh service started")
     
-    # Load all active users for token refresh tracking
+    # Load only users with valid tokens for token refresh tracking
     try:
-        users_response = client.table('users').select('id').execute()
+        users_response = client.table('users').select('id, auth_tokens').execute()
         if users_response.data:
+            users_with_tokens = 0
             for user in users_response.data:
-                token_refresh_service.add_user(user['id'])
-            logger.info(f"✓ Added {len(users_response.data)} users to token refresh tracking")
+                # Only track users who have auth tokens
+                if user.get('auth_tokens'):
+                    token_refresh_service.add_user(user['id'])
+                    users_with_tokens += 1
+            logger.info(f"✓ Added {users_with_tokens} users with tokens to refresh tracking (out of {len(users_response.data)} total)")
     except Exception as e:
         logger.warning(f"Could not load users for token refresh: {e}")
     
