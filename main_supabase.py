@@ -172,7 +172,15 @@ app.include_router(query_templates_router, prefix="/api/query-templates", tags=[
 app.include_router(brands_router, prefix="/api/brands", tags=["Brands"])
 app.include_router(amc_executions_router, prefix="/api/amc-executions", tags=["AMC Executions"])
 
-logger.info("All API routers loaded successfully")
+# Apply rate limiting to specific endpoints
+for route in app.routes:
+    if hasattr(route, "path"):
+        if route.path == "/api/auth/login" and route.methods == {"POST"}:
+            route.endpoint = limiter.limit("5 per minute")(route.endpoint)
+        elif route.path == "/api/auth/refresh" and route.methods == {"POST"}:
+            route.endpoint = limiter.limit("10 per minute")(route.endpoint)
+
+logger.info("All API routers loaded successfully with rate limiting")
 
 # Serve static files if built frontend exists
 frontend_dist = Path("frontend/dist")

@@ -6,7 +6,6 @@ from typing import Dict, Any, Optional
 import jwt
 from datetime import datetime, timedelta
 import asyncio
-from slowapi import limiter
 
 from ...config import settings
 from ...services.db_service import db_service
@@ -57,7 +56,6 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
 
 
 @router.post("/login")
-@limiter.limit("5 per minute")
 def login(request: Request, email: str, password: Optional[str] = None):
     """
     Simple login endpoint for testing
@@ -110,7 +108,6 @@ def get_current_user_info(current_user: Dict[str, Any] = Depends(get_current_use
 
 
 @router.post("/refresh")
-@limiter.limit("10 per minute")
 def refresh_token(request: Request, current_user: Dict[str, Any] = Depends(get_current_user)):
     """Refresh access token"""
     access_token = create_access_token(current_user['id'], current_user['email'])
