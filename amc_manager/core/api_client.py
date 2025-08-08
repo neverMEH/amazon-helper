@@ -33,16 +33,16 @@ class HttpMethod(Enum):
 class AMCAPIClient:
     """Amazon Marketing Cloud API Client with rate limiting and retry logic"""
     
-    def __init__(self, profile_id: str, marketplace_id: str):
+    def __init__(self, entity_id: str, marketplace_id: str):
         """
         Initialize AMC API Client
         
         Args:
-            profile_id: Amazon Advertising profile ID
+            entity_id: Amazon Advertising entity ID (advertiser account ID)
             marketplace_id: Amazon marketplace ID
         """
         self.base_url = settings.amc_api_base_url
-        self.profile_id = profile_id
+        self.entity_id = entity_id
         self.marketplace_id = marketplace_id
         self.session = requests.Session()
         self._setup_session()
@@ -52,7 +52,7 @@ class AMCAPIClient:
         self.session.headers.update({
             'Content-Type': 'application/json',
             'Amazon-Advertising-API-ClientId': settings.amazon_client_id,
-            'Amazon-Advertising-API-AdvertiserId': self.profile_id,
+            'Amazon-Advertising-API-AdvertiserId': self.entity_id,
             'Amazon-Advertising-API-MarketplaceId': self.marketplace_id
         })
         

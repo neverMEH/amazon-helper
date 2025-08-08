@@ -52,7 +52,10 @@ async def list_amc_executions(
         valid_token = await token_service.get_valid_token(current_user['id'])
         
         if not valid_token:
-            raise HTTPException(status_code=401, detail="No valid authentication token")
+            raise HTTPException(
+                status_code=401, 
+                detail="Authentication token is invalid or expired. Please re-authenticate in your profile settings."
+            )
         
         # Get AMC account details
         account = instance.get('amc_accounts')
@@ -76,10 +79,26 @@ async def list_amc_executions(
         )
         
         if not response.get('success'):
-            raise HTTPException(
-                status_code=500,
-                detail=f"Failed to fetch AMC executions: {response.get('error')}"
-            )
+            error_msg = response.get('error', 'Unknown error')
+            # Check for common authentication/authorization issues
+            if '403' in str(error_msg) or 'Unauthorized' in str(error_msg):
+                # Try to clear tokens to force re-authentication
+                logger.warning(f"Got 403/Unauthorized for user {current_user['id']}, clearing tokens")
+                try:
+                    from ...services.db_service import db_service
+                    await db_service.update_user(current_user['id'], {'auth_tokens': None})
+                except Exception as e:
+                    logger.error(f"Failed to clear tokens: {e}")
+                
+                raise HTTPException(
+                    status_code=401,
+                    detail="AMC API authorization failed. Your authentication may have expired. Please re-authenticate in your profile settings."
+                )
+            else:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to fetch AMC executions: {error_msg}"
+                )
         
         executions = response.get('executions', [])
         
@@ -194,7 +213,10 @@ async def get_amc_execution_details(
         valid_token = await token_service.get_valid_token(current_user['id'])
         
         if not valid_token:
-            raise HTTPException(status_code=401, detail="No valid authentication token")
+            raise HTTPException(
+                status_code=401, 
+                detail="Authentication token is invalid or expired. Please re-authenticate in your profile settings."
+            )
         
         # Get AMC account details
         account = instance.get('amc_accounts')

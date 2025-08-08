@@ -55,25 +55,22 @@ async def get_current_user(
 
 
 async def get_api_client(
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    instance_id: Optional[str] = None
 ) -> AMCAPIClient:
     """
     Get configured AMC API client for the current user
-    """
-    # Get user's primary profile and marketplace
-    profile_id = current_user.get_primary_profile_id()
-    if not profile_id:
-        raise HTTPException(
-            status_code=400,
-            detail="User has no advertising profiles configured"
-        )
-        
-    marketplace_id = current_user.marketplace_ids[0] if current_user.marketplace_ids else "ATVPDKIKX0DER"  # Default to US
     
-    # Create API client
-    return AMCAPIClient(
-        profile_id=profile_id,
-        marketplace_id=marketplace_id
+    Note: This requires the instance_id to be passed to properly configure
+    the entity_id for AMC API calls. The entity_id must match the account
+    associated with the AMC instance.
+    """
+    # For now, return None as this client needs instance-specific configuration
+    # The actual AMCAPIClient in services/amc_api_client.py should be used
+    # which properly retrieves entity_id from the instance's associated account
+    raise HTTPException(
+        status_code=501,
+        detail="Legacy AMCAPIClient not supported. Use amc_manager.services.amc_api_client.AMCAPIClient instead"
     )
 
 

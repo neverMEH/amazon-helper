@@ -491,6 +491,9 @@ class AMCAPIClient:
         logger.info(f"Listing executions for instance {instance_id}")
         logger.info(f"Request URL: {url}")
         logger.info(f"Query params: {params}")
+        logger.info(f"Entity ID being used: {entity_id}")
+        logger.info(f"Marketplace ID being used: {marketplace_id}")
+        logger.info(f"Token preview: {access_token[:30]}..." if len(access_token) > 30 else f"Token: {access_token}")
         
         try:
             response = requests.get(
@@ -511,9 +514,16 @@ class AMCAPIClient:
                 }
             else:
                 logger.error(f"Failed to list executions: Status {response.status_code}, Response: {response_data}")
+                error_message = response_data.get('message') or response_data.get('details') or f'API Error: {response.status_code}'
+                
+                # Include status code in error for better handling
+                if response.status_code == 403:
+                    error_message = f"Status 403, Response: {response_data}"
+                
                 return {
                     "success": False,
-                    "error": response_data.get('message', f'API Error: {response.status_code}')
+                    "error": error_message,
+                    "status_code": response.status_code
                 }
                 
         except Exception as e:

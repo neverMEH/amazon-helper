@@ -192,6 +192,13 @@ class TokenService:
                 access_token = self.decrypt_token(auth_tokens['access_token'])
             except Exception as e:
                 logger.error(f"Error decrypting access token: {e}")
+                logger.error("Token encryption key may have changed. Clearing tokens to force re-authentication.")
+                # Clear the invalid tokens so the user will be prompted to re-authenticate
+                try:
+                    await db_service.update_user(user_id, {'auth_tokens': None})
+                    logger.info(f"Cleared invalid tokens for user {user_id}")
+                except Exception as clear_error:
+                    logger.error(f"Failed to clear invalid tokens: {clear_error}")
                 return None
             
             # Check if token is expired
