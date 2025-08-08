@@ -291,6 +291,78 @@ workflow_data.instance_id = instance.id;  // Store internal UUID
 - Automatic connection refresh after 30-minute timeout
 - Gzip compression for API responses > 1KB
 
+## Security Best Practices
+
+### Input Validation
+- **Pydantic Schemas**: All API endpoints use Pydantic models for input validation
+  - Authentication: `amc_manager/schemas/auth.py` - validates login requests
+  - Workflows: `amc_manager/schemas/workflow.py` - validates SQL queries and parameters
+  - Automatic type checking and field validation
+  - Custom validators for dangerous SQL patterns
+
+### SQL Injection Prevention
+- **Parameter Escaping**: All SQL parameters are escaped in `amc_execution_service.py`
+  - Single quotes escaped as `''` to prevent injection
+  - Dangerous keywords blocked: DROP, DELETE FROM, INSERT INTO, UPDATE, ALTER, etc.
+  - List parameters properly formatted with individual escaping
+- **Query Validation**: Workflow schemas check for dangerous operations
+  - DELETE/UPDATE without WHERE clause blocked
+  - TRUNCATE TABLE and DROP operations prohibited
+  - Parameterized queries with `{{parameter}}` syntax
+
+### Rate Limiting
+- **API Protection**: Rate limits on sensitive endpoints using slowapi
+  - Login: 5 requests per minute per IP
+  - Token refresh: 10 requests per minute per IP
+  - Default: 100 requests per minute for other endpoints
+  - Configuration in `main_supabase.py` with `Limiter`
+
+### Security Headers
+- **HTTP Security Headers**: Middleware adds protective headers
+  - `X-Content-Type-Options: nosniff` - Prevents MIME sniffing
+  - `X-Frame-Options: DENY` - Prevents clickjacking
+  - `X-XSS-Protection: 1; mode=block` - XSS protection
+  - `Referrer-Policy: strict-origin-when-cross-origin` - Controls referrer info
+  - `Strict-Transport-Security` (HSTS) - Forces HTTPS in production
+
+### Token Security
+- **Encryption**: OAuth tokens encrypted with Fernet symmetric encryption
+  - Tokens encrypted before database storage
+  - Automatic key generation if not provided
+  - Environment variable: `FERNET_KEY`
+  - Encryption/decryption in `token_service.py`
+
+### CORS Configuration
+- **Environment-Specific**: Different settings for dev/production
+  - Production: Restricted to specific domains via `ALLOWED_ORIGINS`
+  - Development: Allows localhost for testing
+  - Credentials allowed for authenticated requests
+
+## Performance Optimizations
+
+### Database Query Optimization
+- **Selective Column Fetching**: Replaced `SELECT *` with specific columns
+  - Reduces data transfer and memory usage
+  - Examples in `db_service.py` - all queries specify exact columns
+- **Query Limits**: Added appropriate LIMIT clauses
+  - Default limit of 1000 for list operations
+  - Single row fetches use `limit(1)`
+- **Connection Pooling**: Automatic reconnection after 30-minute timeout
+  - Prevents stale connections in `DatabaseService`
+
+### Request Timeouts
+- **API Call Timeouts**: Configured timeouts prevent hanging requests
+  - AMC API calls: 30-60 second timeout
+  - Token refresh: 30 second timeout
+  - Health checks: 2 second timeout
+  - CSV downloads: 60 second timeout
+
+### Frontend Performance
+- **Error Boundaries**: React ErrorBoundary component for graceful failures
+  - Catches component errors and displays fallback UI
+  - Retry mechanism for transient failures
+  - Development mode shows detailed error info
+
 ## Known Issues and Solutions
 
 ### API Errors

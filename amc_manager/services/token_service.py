@@ -40,10 +40,18 @@ class TokenService:
             fernet = Fernet(key)
             logger.info("Fernet encryption initialized successfully")
             return fernet
-        except Exception as e:
-            logger.error(f"Failed to initialize Fernet encryption: {e}")
+        except ValueError as e:
+            logger.error(f"Invalid Fernet key format: {e}")
             logger.error("This will prevent token encryption/decryption from working!")
             return None
+        except TypeError as e:
+            logger.error(f"Type error in encryption setup: {e}")
+            logger.error("This will prevent token encryption/decryption from working!")
+            return None
+        except Exception as e:
+            logger.error(f"Unexpected error initializing encryption: {type(e).__name__}: {e}")
+            logger.error("This will prevent token encryption/decryption from working!")
+            raise  # Re-raise unexpected errors for debugging
     
     def encrypt_token(self, token: str) -> str:
         """Encrypt a token for storage"""

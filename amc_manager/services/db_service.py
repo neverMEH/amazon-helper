@@ -64,7 +64,7 @@ class DatabaseService:
     def get_user_by_email_sync(self, email: str) -> Optional[Dict[str, Any]]:
         """Get user by email - sync version"""
         try:
-            response = self.client.table('users').select('*').eq('email', email).execute()
+            response = self.client.table('users').select('id, email, name, is_active, created_at, auth_tokens').eq('email', email).limit(1).execute()
             return response.data[0] if response.data else None
         except Exception as e:
             logger.error(f"Error fetching user by email: {e}")
@@ -74,7 +74,7 @@ class DatabaseService:
     def get_user_by_id_sync(self, user_id: str) -> Optional[Dict[str, Any]]:
         """Get user by ID - sync version"""
         try:
-            response = self.client.table('users').select('*').eq('id', user_id).execute()
+            response = self.client.table('users').select('id, email, name, is_active, created_at, auth_tokens').eq('id', user_id).limit(1).execute()
             return response.data[0] if response.data else None
         except Exception as e:
             logger.error(f"Error fetching user by ID: {e}")
@@ -122,7 +122,7 @@ class DatabaseService:
     def get_user_campaigns_sync(self, user_id: str, brand_tag: Optional[str] = None) -> List[Dict[str, Any]]:
         """Get campaigns for user - sync version"""
         try:
-            query = self.client.table('campaign_mappings').select('*').eq('user_id', user_id)
+            query = self.client.table('campaign_mappings').select('id, user_id, profile_id, brand_tag, campaign_id, campaign_name, impressions, clicks, spend, created_at').eq('user_id', user_id).limit(1000)
             if brand_tag:
                 query = query.eq('brand_tag', brand_tag)
             response = query.execute()
@@ -227,7 +227,7 @@ class DatabaseService:
     def get_query_templates_sync(self, user_id: Optional[str] = None, is_public: bool = True) -> List[Dict[str, Any]]:
         """Get query templates - sync version"""
         try:
-            query = self.client.table('query_templates').select('*')
+            query = self.client.table('query_templates').select('template_id, name, description, sql_template, parameters_schema, category, tags, is_public, usage_count, created_at').limit(500)
             
             if user_id:
                 # Get user's templates or public ones
@@ -244,7 +244,7 @@ class DatabaseService:
     def get_template_by_id_sync(self, template_id: str) -> Optional[Dict[str, Any]]:
         """Get query template by ID - sync version"""
         try:
-            response = self.client.table('query_templates').select('*').eq('template_id', template_id).execute()
+            response = self.client.table('query_templates').select('template_id, name, description, sql_template, parameters_schema, category, tags, is_public, usage_count').eq('template_id', template_id).limit(1).execute()
             return response.data[0] if response.data else None
         except Exception as e:
             logger.error(f"Error fetching template: {e}")
@@ -478,7 +478,7 @@ class DatabaseService:
     async def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
         """Get user by email"""
         try:
-            response = self.client.table('users').select('*').eq('email', email).execute()
+            response = self.client.table('users').select('id, email, name, is_active, created_at, auth_tokens').eq('email', email).limit(1).execute()
             return response.data[0] if response.data else None
         except Exception as e:
             logger.error(f"Error fetching user by email: {e}")
@@ -487,7 +487,7 @@ class DatabaseService:
     async def get_user_by_id(self, user_id: str) -> Optional[Dict[str, Any]]:
         """Get user by ID"""
         try:
-            response = self.client.table('users').select('*').eq('id', user_id).execute()
+            response = self.client.table('users').select('id, email, name, is_active, created_at, auth_tokens').eq('id', user_id).limit(1).execute()
             return response.data[0] if response.data else None
         except Exception as e:
             logger.error(f"Error fetching user by ID: {e}")
@@ -635,7 +635,7 @@ class DatabaseService:
     async def get_user_campaigns(self, user_id: str, brand_tag: Optional[str] = None) -> List[Dict[str, Any]]:
         """Get campaigns for a user, optionally filtered by brand"""
         try:
-            query = self.client.table('campaign_mappings').select('*').eq('user_id', user_id)
+            query = self.client.table('campaign_mappings').select('id, user_id, profile_id, brand_tag, campaign_id, campaign_name, impressions, clicks, spend, created_at').eq('user_id', user_id).limit(1000)
             
             if brand_tag:
                 query = query.eq('brand_tag', brand_tag)
@@ -665,7 +665,7 @@ class DatabaseService:
     async def get_query_templates(self, user_id: Optional[str] = None, is_public: bool = True) -> List[Dict[str, Any]]:
         """Get query templates"""
         try:
-            query = self.client.table('query_templates').select('*')
+            query = self.client.table('query_templates').select('template_id, name, description, sql_template, parameters_schema, category, tags, is_public, usage_count, created_at').limit(500)
             
             if user_id:
                 # Get user's templates or public ones
@@ -682,7 +682,7 @@ class DatabaseService:
     async def get_template_by_id(self, template_id: str) -> Optional[Dict[str, Any]]:
         """Get query template by ID"""
         try:
-            response = self.client.table('query_templates').select('*').eq('template_id', template_id).execute()
+            response = self.client.table('query_templates').select('template_id, name, description, sql_template, parameters_schema, category, tags, is_public, usage_count').eq('template_id', template_id).limit(1).execute()
             return response.data[0] if response.data else None
         except Exception as e:
             logger.error(f"Error fetching template: {e}")
@@ -715,7 +715,7 @@ class DatabaseService:
     def get_user_by_id_sync(self, user_id: str) -> Optional[Dict[str, Any]]:
         """Get user by ID"""
         try:
-            response = self.client.table('users').select('*').eq('id', user_id).execute()
+            response = self.client.table('users').select('id, email, name, is_active, created_at, auth_tokens').eq('id', user_id).limit(1).execute()
             return response.data[0] if response.data else None
         except Exception as e:
             logger.error(f"Error fetching user {user_id}: {e}")

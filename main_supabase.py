@@ -1,11 +1,14 @@
 """Minimal FastAPI application with Supabase integration"""
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 import uvicorn
 import os
 from pathlib import Path
@@ -17,6 +20,11 @@ from amc_manager.services.token_refresh_service import token_refresh_service
 
 logger = get_logger(__name__)
 
+# Initialize rate limiter
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=["100 per minute"]
+)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -63,8 +71,20 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Configure CORS
-allowed_origins = os.getenv('ALLOWED_ORIGINS', 'http://localhost:5173,http://localhost:8001').split(',')
+# Add rate limiter to app state
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Configure CORS with environment-specific settings
+if settings.environment == "production":
+    # In production, only allow specific origins
+    allowed_origins = os.getenv('ALLOWED_ORIGINS', '').split(',')
+    if not allowed_origins or allowed_origins == ['']:
+        allowed_origins = ["https://your-domain.com"]  # Replace with actual domain
+else:
+    # In development, allow localhost
+    allowed_origins = os.getenv('ALLOWED_ORIGINS', 'http://localhost:5173,http://localhost:8001').split(',')
+    
 if os.getenv('FRONTEND_URL'):
     allowed_origins.append(os.getenv('FRONTEND_URL'))
 
@@ -72,12 +92,27 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
 # Add Gzip compression middleware
 app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+# Add security headers middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    
+    # Only add HSTS in production
+    if settings.environment == "production":
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    
+    return response
 
 
 # Health check endpoint

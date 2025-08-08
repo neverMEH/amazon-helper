@@ -11,6 +11,7 @@ import WorkflowDetail from './components/workflows/WorkflowDetail';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import { AuthCallback } from './pages/AuthCallback';
 import Profile from './pages/Profile';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // New Query Builder imports
 import QueryLibrary from './pages/QueryLibrary';
@@ -33,9 +34,10 @@ const queryClient = new QueryClient({
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <Router>
-        <Routes>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/auth/success" element={<AuthCallback />} />
           <Route path="/auth/error" element={<AuthCallback />} />
@@ -88,6 +90,7 @@ function App() {
         }}
       />
     </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

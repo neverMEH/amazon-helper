@@ -33,6 +33,7 @@ croniter==2.0.1
 
 # Rate limiting
 ratelimit==2.2.1
+slowapi==0.1.9
 
 # Testing (optional)
 pytest==7.4.4

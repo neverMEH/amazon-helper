@@ -1,11 +1,12 @@
 """Authentication API endpoints using Supabase"""
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Dict, Any, Optional
 import jwt
 from datetime import datetime, timedelta
 import asyncio
+from slowapi import limiter
 
 from ...config import settings
 from ...services.db_service import db_service
@@ -56,7 +57,8 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
 
 
 @router.post("/login")
-def login(email: str, password: Optional[str] = None):
+@limiter.limit("5 per minute")
+def login(request: Request, email: str, password: Optional[str] = None):
     """
     Simple login endpoint for testing
     In production, this would integrate with Amazon OAuth
@@ -108,7 +110,8 @@ def get_current_user_info(current_user: Dict[str, Any] = Depends(get_current_use
 
 
 @router.post("/refresh")
-def refresh_token(current_user: Dict[str, Any] = Depends(get_current_user)):
+@limiter.limit("10 per minute")
+def refresh_token(request: Request, current_user: Dict[str, Any] = Depends(get_current_user)):
     """Refresh access token"""
     access_token = create_access_token(current_user['id'], current_user['email'])
     

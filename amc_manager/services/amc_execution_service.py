@@ -5,13 +5,14 @@ import time
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone
 import re
-from string import Template
 import asyncio
 
 from ..core.logger_simple import get_logger
 from ..core.supabase_client import SupabaseManager
 from .db_service import db_service
 from .token_service import token_service
+from .token_refresh_service import token_refresh_service
+from .amc_api_client import AMCAPIClient
 
 logger = get_logger(__name__)
 
@@ -84,15 +85,62 @@ class AMCExecutionService:
                     raise ValueError("No AMC instance associated with workflow")
                 logger.info(f"Using workflow's default instance: {instance.get('instance_id', 'unknown')}")
             
-            # All queries now go through workflows - no more ad-hoc mode
-            # Always substitute parameters since we're treating all as managed workflows
+            # Always substitute parameters for the SQL query
             sql_query = self._prepare_sql_query(
                 workflow['sql_query'],
                 execution_parameters or workflow.get('parameters', {})
             )
             
-            # Track that this is a workflow execution (for backwards compatibility)
+            # All executions now use saved workflows (no more ad-hoc mode)
             execution_mode = 'saved_workflow'
+            
+            # Get or create AMC workflow ID
+            amc_workflow_id = workflow.get('amc_workflow_id')
+            if not amc_workflow_id and self.use_real_api:
+                # Auto-create AMC workflow if it doesn't exist
+                logger.info(f"No AMC workflow ID found, auto-creating workflow in AMC")
+                
+                # Generate AMC-compliant workflow ID
+                amc_workflow_id = f"wf_{re.sub(r'[^a-zA-Z0-9]', '_', workflow_id[:20])}"
+                
+                # Get valid token for workflow creation
+                valid_token = asyncio.run(token_service.get_valid_token(user_id))
+                if valid_token:
+                    # Get AMC account details
+                    account = instance.get('amc_accounts')
+                    if account:
+                        entity_id = account['account_id']
+                        marketplace_id = account.get('marketplace_id', 'ATVPDKIKX0DER')
+                        
+                        # Create workflow in AMC
+                        api_client = AMCAPIClient()
+                        
+                        create_response = api_client.create_workflow(
+                            instance_id=instance['instance_id'],
+                            workflow_id=amc_workflow_id,
+                            sql_query=sql_query,
+                            access_token=valid_token,
+                            entity_id=entity_id,
+                            marketplace_id=marketplace_id,
+                            output_format='CSV'
+                        )
+                        
+                        if create_response.get('success'):
+                            logger.info(f"Successfully auto-created AMC workflow: {amc_workflow_id}")
+                            # Update database with AMC workflow ID
+                            update_data = {
+                                'amc_workflow_id': amc_workflow_id,
+                                'is_synced_to_amc': True,
+                                'amc_sync_status': 'synced',
+                                'last_synced_at': datetime.now(timezone.utc).isoformat()
+                            }
+                            self.db.update_workflow_sync(workflow_id, update_data)
+                            workflow['amc_workflow_id'] = amc_workflow_id
+                        else:
+                            logger.warning(f"Failed to auto-create AMC workflow: {create_response.get('error')}")
+                            # Continue anyway - will fall back to ad-hoc if needed
+                else:
+                    logger.warning("No valid token for auto-creating AMC workflow")
             
             # Get the latest version of the workflow for tracking (if versioning table exists)
             workflow_version_id = None
@@ -121,7 +169,7 @@ class AMCExecutionService:
                 "triggered_by": triggered_by,
                 "started_at": datetime.now(timezone.utc).isoformat(),
                 "execution_mode": execution_mode,
-                "amc_workflow_id": workflow.get('amc_workflow_id')
+                "amc_workflow_id": amc_workflow_id  # Use the potentially auto-created ID
             }
             
             # Only add version ID if versioning is available
@@ -142,7 +190,7 @@ class AMCExecutionService:
                     user_id=user_id,
                     execution_parameters=execution_parameters,
                     execution_mode=execution_mode,
-                    amc_workflow_id=workflow.get('amc_workflow_id')
+                    amc_workflow_id=amc_workflow_id  # Use the potentially auto-created ID
                 )
             else:
                 execution_result = self._simulate_amc_execution(
@@ -225,15 +273,36 @@ class AMCExecutionService:
         if missing_params:
             raise ValueError(f"Missing required parameters: {', '.join(missing_params)}")
         
-        # Substitute parameters
+        # Substitute parameters with SQL injection prevention
         query = sql_template
+        dangerous_keywords = ['DROP', 'DELETE FROM', 'INSERT INTO', 'UPDATE', 'ALTER', 
+                            'CREATE', 'EXEC', 'EXECUTE', 'TRUNCATE', 'GRANT', 'REVOKE']
+        
         for param, value in parameters.items():
             # Handle different value types
             if isinstance(value, (list, tuple)):
-                # Convert list to SQL array format
-                value_str = "({})".format(','.join(f"'{v}'" for v in value))
+                # Validate and escape each list item
+                escaped_values = []
+                for v in value:
+                    if isinstance(v, str):
+                        # Escape single quotes
+                        v_escaped = v.replace("'", "''")
+                        # Check for dangerous SQL keywords
+                        for keyword in dangerous_keywords:
+                            if keyword in v_escaped.upper():
+                                raise ValueError(f"Dangerous SQL keyword '{keyword}' detected in parameter '{param}'")
+                        escaped_values.append(f"'{v_escaped}'")
+                    else:
+                        escaped_values.append(str(v))
+                value_str = "({})".format(','.join(escaped_values))
             elif isinstance(value, str):
-                value_str = f"'{value}'"
+                # Escape single quotes to prevent SQL injection
+                value_escaped = value.replace("'", "''")
+                # Check for dangerous SQL keywords
+                for keyword in dangerous_keywords:
+                    if keyword in value_escaped.upper():
+                        raise ValueError(f"Dangerous SQL keyword '{keyword}' detected in parameter '{param}'")
+                value_str = f"'{value_escaped}'"
             else:
                 value_str = str(value)
             
@@ -260,7 +329,6 @@ class AMCExecutionService:
         """
         try:
             # Ensure token is fresh before workflow execution
-            from .token_refresh_service import token_refresh_service
             asyncio.run(token_refresh_service.refresh_before_workflow(user_id))
             
             # Get user's full token data
@@ -327,8 +395,6 @@ class AMCExecutionService:
             logger.info(f"Executing on instance {instance_id} with entity {entity_id}")
             
             # Create workflow execution via AMC API
-            from .amc_api_client import AMCAPIClient
-            
             # Initialize API client with correct service
             api_client = AMCAPIClient()
             
@@ -336,8 +402,8 @@ class AMCExecutionService:
             self._update_execution_progress(execution_id, 'running', 10)
             
             try:
-                # Create workflow execution using the appropriate method based on execution mode
-                if execution_mode == 'saved_workflow' and amc_workflow_id:
+                # Always execute using workflow ID (no more ad-hoc)
+                if amc_workflow_id:
                     # Execute using saved workflow ID
                     logger.info(f"Executing saved workflow {amc_workflow_id}")
                     response = api_client.create_workflow_execution(
@@ -350,8 +416,9 @@ class AMCExecutionService:
                         output_format=execution_parameters.get('output_format', 'CSV') if execution_parameters else 'CSV'
                     )
                 else:
-                    # Execute as ad-hoc with full SQL query
-                    logger.info("Executing ad-hoc workflow")
+                    # Fallback: Execute as ad-hoc if workflow creation failed
+                    # This should rarely happen, only if auto-creation failed above
+                    logger.warning("No AMC workflow ID available, falling back to ad-hoc execution")
                     response = api_client.create_workflow_execution(
                         instance_id=instance_id,
                         sql_query=sql_query,
@@ -575,7 +642,6 @@ class AMCExecutionService:
                 return self.get_execution_status(execution_id, user_id)
             
             # Check status with AMC
-            from .amc_api_client import AMCAPIClient
             api_client = AMCAPIClient()
             
             # Add a delay on first check to allow AMC to register the execution
