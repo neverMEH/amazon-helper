@@ -85,7 +85,6 @@ async def list_amc_executions(
                 # Try to clear tokens to force re-authentication
                 logger.warning(f"Got 403/Unauthorized for user {current_user['id']}, clearing tokens")
                 try:
-                    from ...services.db_service import db_service
                     await db_service.update_user(current_user['id'], {'auth_tokens': None})
                 except Exception as e:
                     logger.error(f"Failed to clear tokens: {e}")
