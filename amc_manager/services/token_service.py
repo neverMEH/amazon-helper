@@ -202,10 +202,15 @@ class TokenService:
                 return None
             
             # Check if token is expired
-            expires_at = datetime.fromisoformat(auth_tokens.get('expires_at', ''))
-            if expires_at > datetime.utcnow() + timedelta(minutes=5):
-                # Token is still valid (with 5-minute buffer)
-                return access_token
+            try:
+                expires_at = datetime.fromisoformat(auth_tokens.get('expires_at', ''))
+                if expires_at > datetime.utcnow() + timedelta(minutes=5):
+                    # Token is still valid (with 5-minute buffer)
+                    return access_token
+            except ValueError:
+                # If the timestamp is malformed, assume the token is expired and proceed
+                # to refresh logic instead of failing outright.
+                logger.warning("Invalid token expiration timestamp; refreshing token.")
             
             # Token is expired or about to expire, refresh it
             logger.info("Access token expired, attempting refresh...")
