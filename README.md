@@ -90,7 +90,7 @@ See [DEPLOY_RAILWAY.md](DEPLOY_RAILWAY.md) for detailed deployment instructions.
 cd /root/amazon-helper
 python -m venv venv
 source venv/bin/activate
-pip install -r requirements_supabase.txt
+pip install -r requirements.txt
 python main_supabase.py
 ```
 
