@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import yaml
 
 from ..core import get_logger
@@ -19,7 +19,7 @@ router = APIRouter()
 class QueryBuildRequest(BaseModel):
     template_name: Optional[str] = None
     base_query: Optional[str] = None
-    parameters: Optional[Dict[str, Any]] = {}
+    parameters: Optional[Dict[str, Any]] = Field(default_factory=dict)
     yaml_config: Optional[str] = None
 
 
@@ -31,11 +31,11 @@ class QueryTemplateSave(BaseModel):
     name: str
     query: str
     description: str
-    parameters: Optional[Dict[str, Any]] = {}
-    tags: Optional[List[str]] = []
+    parameters: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    tags: Optional[List[str]] = Field(default_factory=list)
     category: Optional[str] = None
     is_public: bool = False
-    example_parameters: Optional[Dict[str, Any]] = {}
+    example_parameters: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 
 @router.get("/templates")
