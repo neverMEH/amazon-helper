@@ -56,7 +56,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
 
 
 @router.post("/login")
-def login(request: Request, email: str, password: Optional[str] = None):
+async def login(request: Request, email: str, password: Optional[str] = None):
     """
     Simple login endpoint for testing
     In production, this would integrate with Amazon OAuth
@@ -79,7 +79,7 @@ def login(request: Request, email: str, password: Optional[str] = None):
     
     # Trigger token refresh on login (for Amazon OAuth tokens if they exist)
     try:
-        asyncio.create_task(token_refresh_service.refresh_on_login(user['id']))
+        await token_refresh_service.refresh_on_login(user['id'])
     except Exception as e:
         logger.warning(f"Could not trigger token refresh on login: {e}")
     
