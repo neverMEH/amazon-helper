@@ -52,6 +52,13 @@ async def list_amc_executions(
         valid_token = await token_service.get_valid_token(current_user['id'])
         
         if not valid_token:
+            # Clear any invalid tokens
+            try:
+                client = SupabaseManager.get_client(use_service_role=True)
+                client.table('users').update({'auth_tokens': None}).eq('id', current_user['id']).execute()
+            except Exception as e:
+                logger.error(f"Failed to clear invalid tokens: {e}")
+            
             raise HTTPException(
                 status_code=401, 
                 detail="Authentication token is invalid or expired. Please re-authenticate in your profile settings."
@@ -64,6 +71,10 @@ async def list_amc_executions(
         
         entity_id = account['account_id']
         marketplace_id = account['marketplace_id']
+        
+        # Log the entity ID being used for debugging
+        logger.info(f"Using entity_id: {entity_id} for instance: {instance_id}")
+        logger.info(f"Token starts with: {valid_token[:20]}..." if len(str(valid_token)) > 20 else f"Token: {valid_token}")
         
         # Use AMC API client to list executions
         from ...services.amc_api_client import AMCAPIClient
@@ -82,17 +93,36 @@ async def list_amc_executions(
             error_msg = response.get('error', 'Unknown error')
             # Check for common authentication/authorization issues
             if '403' in str(error_msg) or 'Unauthorized' in str(error_msg):
-                # Try to clear tokens to force re-authentication
-                logger.warning(f"Got 403/Unauthorized for user {current_user['id']}, clearing tokens")
-                try:
-                    await db_service.update_user(current_user['id'], {'auth_tokens': None})
-                except Exception as e:
-                    logger.error(f"Failed to clear tokens: {e}")
+                # Log more details about the 403 error
+                logger.error(f"Got 403 error for user {current_user['id']}")
+                logger.error(f"Instance: {instance_id}, Entity ID: {entity_id}")
+                logger.error(f"Full error: {error_msg}")
                 
-                raise HTTPException(
-                    status_code=401,
-                    detail="AMC API authorization failed. Your authentication may have expired. Please re-authenticate in your profile settings."
-                )
+                # Check if it's a permission issue vs token issue
+                if "entity" in str(error_msg).lower() or "advertiser" in str(error_msg).lower():
+                    # Entity ID mismatch - user doesn't have access to this advertiser
+                    raise HTTPException(
+                        status_code=403,
+                        detail=f"You don't have permission to access advertiser {entity_id}. Please ensure your Amazon account has access to this advertiser."
+                    )
+                else:
+                    # Token issue - clear tokens to force re-authentication
+                    logger.warning(f"Clearing tokens for user {current_user['id']} due to 403 error")
+                    try:
+                        # Clear tokens in database
+                        client = SupabaseManager.get_client(use_service_role=True)
+                        client.table('users').update({'auth_tokens': None}).eq('id', current_user['id']).execute()
+                        
+                        # Remove from token refresh tracking
+                        from ...services.token_refresh_service import token_refresh_service
+                        token_refresh_service.remove_user(current_user['id'])
+                    except Exception as e:
+                        logger.error(f"Failed to clear tokens: {e}")
+                    
+                    raise HTTPException(
+                        status_code=401,
+                        detail="AMC API authorization failed. Your authentication has expired. Please re-authenticate in your profile settings."
+                    )
             else:
                 raise HTTPException(
                     status_code=500,
@@ -212,6 +242,13 @@ async def get_amc_execution_details(
         valid_token = await token_service.get_valid_token(current_user['id'])
         
         if not valid_token:
+            # Clear any invalid tokens
+            try:
+                client = SupabaseManager.get_client(use_service_role=True)
+                client.table('users').update({'auth_tokens': None}).eq('id', current_user['id']).execute()
+            except Exception as e:
+                logger.error(f"Failed to clear invalid tokens: {e}")
+            
             raise HTTPException(
                 status_code=401, 
                 detail="Authentication token is invalid or expired. Please re-authenticate in your profile settings."
