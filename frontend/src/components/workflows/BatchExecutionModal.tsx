@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Play, CheckCircle, AlertCircle, Clock, Loader2, Database, Download } from 'lucide-react';
 import { workflowService, type BatchStatus, type BatchResults } from '../../services/workflowService';
 import ParameterEditor from './ParameterEditor';
