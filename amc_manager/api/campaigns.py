@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 
 from ..core import AMCAPIClient, get_logger
@@ -19,7 +19,7 @@ router = APIRouter()
 class CampaignBrandTag(BaseModel):
     campaign_id: str
     brand_tag: str
-    metadata: Optional[Dict[str, Any]] = {}
+    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 
 class BrandConfigCreate(BaseModel):
@@ -27,9 +27,9 @@ class BrandConfigCreate(BaseModel):
     brand_name: str
     description: Optional[str] = None
     yaml_parameters: Optional[str] = None
-    default_parameters: Optional[Dict[str, Any]] = {}
-    primary_asins: Optional[List[str]] = []
-    campaign_name_patterns: Optional[List[str]] = []
+    default_parameters: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    primary_asins: Optional[List[str]] = Field(default_factory=list)
+    campaign_name_patterns: Optional[List[str]] = Field(default_factory=list)
 
 
 @router.get("/dsp")

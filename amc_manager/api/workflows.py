@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ..core import AMCAPIClient, get_logger
 from ..models import get_db, User, Workflow
@@ -20,8 +20,8 @@ class WorkflowCreate(BaseModel):
     description: Optional[str] = None
     instance_id: str
     sql_query: str
-    parameters: Optional[Dict[str, Any]] = {}
-    tags: Optional[List[str]] = []
+    parameters: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    tags: Optional[List[str]] = Field(default_factory=list)
 
 
 class WorkflowUpdate(BaseModel):
@@ -34,13 +34,13 @@ class WorkflowUpdate(BaseModel):
 
 
 class WorkflowExecute(BaseModel):
-    parameters: Optional[Dict[str, Any]] = {}
+    parameters: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 
 class ScheduleCreate(BaseModel):
     cron_expression: str
     timezone: str = "UTC"
-    default_parameters: Optional[Dict[str, Any]] = {}
+    default_parameters: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 
 @router.post("/")
