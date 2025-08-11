@@ -78,6 +78,7 @@ npx playwright test --ui  # Interactive mode
   - `brand_service.py`: Brand management and associations
   - `campaign_service.py`: Campaign data synchronization
   - `token_service.py`: Token encryption/decryption with Fernet
+  - `token_refresh_service.py`: Background service for automatic token refresh
   - `data_analysis_service.py`: Pattern detection and data analysis
   - `WorkflowService`: Workflow operations with execution tracking
   - `ExecutionService`: Handles AMC query execution lifecycle
@@ -131,9 +132,12 @@ Key tables:
 - `workflows`: Query definitions and parameters
   - `sql_query`: AMC SQL query with {{parameter}} placeholders
   - `parameters`: JSONB field for parameter values
+  - `workflow_id`: AMC-compliant identifier (format: `wf_XXXXXXXX`)
 - `workflow_executions`: Execution history and results
   - Tracks status: pending, running, completed, failed
   - Stores AMC execution IDs and result locations
+  - `execution_id`: Internal execution ID (format: `exec_XXXXXXXX`)
+  - `amc_execution_id`: AMC's execution ID for polling status
 - `query_templates`: Reusable query templates
   - `template_id`: Unique identifier (e.g., "conversion-path-analysis")
   - `parameters_schema`: JSONB schema for template parameters
@@ -141,6 +145,18 @@ Key tables:
 - `campaign_mappings`: Campaign data with brand associations
 
 ### Critical Implementation Details
+
+#### Workflow and Execution IDs
+```python
+# Different IDs serve different purposes:
+# 1. workflow_id: Internal DB identifier (wf_XXXXXXXX)
+# 2. amc_workflow_id: AMC saved workflow ID
+# 3. execution_id: Internal execution tracking (exec_XXXXXXXX)
+# 4. amc_execution_id: AMC's execution ID for status polling
+
+# CRITICAL: Use workflow['id'] (UUID) for backend operations
+# Use workflow['workflow_id'] for AMC API calls
+```
 
 #### AMC API Authentication
 ```python
@@ -162,6 +178,19 @@ if token_expired:
 params['minCreationTime'] = datetime.strftime('%Y-%m-%dT%H:%M:%S')
 # NOT this (causes "Must provide either workflowId or minCreationTime" error):
 params['minCreationTime'] = datetime.isoformat() + 'Z'
+```
+
+#### Token Encryption and Management
+```python
+# Tokens are encrypted with Fernet before storage
+# CRITICAL: Never change FERNET_KEY once tokens are stored
+# If decryption fails, tokens are automatically cleared
+# Users will be prompted to re-authenticate
+
+# Token refresh service automatically:
+# - Refreshes tokens before expiry (15-minute buffer)
+# - Removes users with invalid tokens from tracking
+# - Runs every 10 minutes
 ```
 
 #### CSV Data Processing
@@ -291,78 +320,6 @@ workflow_data.instance_id = instance.id;  // Store internal UUID
 - Automatic connection refresh after 30-minute timeout
 - Gzip compression for API responses > 1KB
 
-## Security Best Practices
-
-### Input Validation
-- **Pydantic Schemas**: All API endpoints use Pydantic models for input validation
-  - Authentication: `amc_manager/schemas/auth.py` - validates login requests
-  - Workflows: `amc_manager/schemas/workflow.py` - validates SQL queries and parameters
-  - Automatic type checking and field validation
-  - Custom validators for dangerous SQL patterns
-
-### SQL Injection Prevention
-- **Parameter Escaping**: All SQL parameters are escaped in `amc_execution_service.py`
-  - Single quotes escaped as `''` to prevent injection
-  - Dangerous keywords blocked: DROP, DELETE FROM, INSERT INTO, UPDATE, ALTER, etc.
-  - List parameters properly formatted with individual escaping
-- **Query Validation**: Workflow schemas check for dangerous operations
-  - DELETE/UPDATE without WHERE clause blocked
-  - TRUNCATE TABLE and DROP operations prohibited
-  - Parameterized queries with `{{parameter}}` syntax
-
-### Rate Limiting
-- **API Protection**: Rate limits on sensitive endpoints using slowapi
-  - Login: 5 requests per minute per IP
-  - Token refresh: 10 requests per minute per IP
-  - Default: 100 requests per minute for other endpoints
-  - Configuration in `main_supabase.py` with `Limiter`
-
-### Security Headers
-- **HTTP Security Headers**: Middleware adds protective headers
-  - `X-Content-Type-Options: nosniff` - Prevents MIME sniffing
-  - `X-Frame-Options: DENY` - Prevents clickjacking
-  - `X-XSS-Protection: 1; mode=block` - XSS protection
-  - `Referrer-Policy: strict-origin-when-cross-origin` - Controls referrer info
-  - `Strict-Transport-Security` (HSTS) - Forces HTTPS in production
-
-### Token Security
-- **Encryption**: OAuth tokens encrypted with Fernet symmetric encryption
-  - Tokens encrypted before database storage
-  - Automatic key generation if not provided
-  - Environment variable: `FERNET_KEY`
-  - Encryption/decryption in `token_service.py`
-
-### CORS Configuration
-- **Environment-Specific**: Different settings for dev/production
-  - Production: Restricted to specific domains via `ALLOWED_ORIGINS`
-  - Development: Allows localhost for testing
-  - Credentials allowed for authenticated requests
-
-## Performance Optimizations
-
-### Database Query Optimization
-- **Selective Column Fetching**: Replaced `SELECT *` with specific columns
-  - Reduces data transfer and memory usage
-  - Examples in `db_service.py` - all queries specify exact columns
-- **Query Limits**: Added appropriate LIMIT clauses
-  - Default limit of 1000 for list operations
-  - Single row fetches use `limit(1)`
-- **Connection Pooling**: Automatic reconnection after 30-minute timeout
-  - Prevents stale connections in `DatabaseService`
-
-### Request Timeouts
-- **API Call Timeouts**: Configured timeouts prevent hanging requests
-  - AMC API calls: 30-60 second timeout
-  - Token refresh: 30 second timeout
-  - Health checks: 2 second timeout
-  - CSV downloads: 60 second timeout
-
-### Frontend Performance
-- **Error Boundaries**: React ErrorBoundary component for graceful failures
-  - Catches component errors and displays fallback UI
-  - Retry mechanism for transient failures
-  - Development mode shows detailed error info
-
 ## Known Issues and Solutions
 
 ### API Errors
@@ -370,10 +327,14 @@ workflow_data.instance_id = instance.id;  // Store internal UUID
   - Solution: Use `/workflows/` not `/workflows` for POST
 - **403 Forbidden on Workflow Creation**: Ensure using instanceId not internal UUID
   - Solution: Use `instance.instanceId` in frontend forms
+- **403 on Execution Listing**: Token encryption key mismatch or invalid entity ID
+  - Solution: Users need to re-authenticate in profile settings
 - **404 on Query Templates**: Wrong API path
   - Solution: Use `/query-templates` not `/queries/templates`
 - **AMC Execution Fails**: Date format must exclude timezone
   - Solution: Format dates as `YYYY-MM-DD` without `+00:00` suffix
+- **Workflow ID Not Found**: Workflow ID truncation issue
+  - Solution: Fixed - now uses full `workflow_id` field from database
 
 ### TypeScript Errors  
 - **Type must be imported using type-only import**: verbatimModuleSyntax enabled
@@ -389,6 +350,12 @@ workflow_data.instance_id = instance.id;  // Store internal UUID
 - **Empty Results After Idle**: Stale cache
   - Solution: React Query refetches on window focus
 
+### Token Issues
+- **Token Decryption Failures**: Fernet key mismatch
+  - Solution: Tokens automatically cleared, user prompted to re-authenticate
+- **Token Refresh Errors**: Invalid tokens in refresh service
+  - Solution: Service automatically removes users with invalid tokens from tracking
+
 ### Development Tips
 - **Module Not Found in Backend**: Check imports match actual file structure
   - Example: `from ...services.query_template_service import QueryTemplateService`
@@ -396,113 +363,7 @@ workflow_data.instance_id = instance.id;  // Store internal UUID
 - **CORS Issues**: Backend serves frontend in production, proxy in dev
 - **CSV Results Processing**: Transform array format to objects for proper display
   - Use `transformCsvData` helper in `frontend/src/utils/csvHelpers.ts`
-
-## Query Templates Feature
-
-### Overview
-Query templates allow users to create reusable AMC SQL queries with parameters that can be filled in during workflow creation.
-
-### Implementation Details
-
-#### Backend Components
-- **Service**: `amc_manager/services/query_template_service.py`
-  - Full CRUD operations with access control
-  - Public/private template support
-  - Usage tracking for analytics
-- **API Routes**: `amc_manager/api/supabase/query_templates.py`
-  - RESTful endpoints at `/api/query-templates/`
-  - Template building endpoint for parameter substitution
-  - Category management endpoints
-
-#### Frontend Components  
-- **Main UI**: `frontend/src/components/query-templates/QueryTemplates.tsx`
-  - Table view with search, filter, and sort
-  - Create/Edit/Delete operations
-  - Category and visibility filters
-- **Modal**: `frontend/src/components/query-templates/QueryTemplateModal.tsx`
-  - Monaco editor for SQL editing
-  - Real-time parameter detection
-  - Parameter schema builder
-- **Selector**: `frontend/src/components/workflows/QueryTemplateSelector.tsx`
-  - Template browser in workflow creation
-  - Search and category filtering
-  - Preview with parameter highlighting
-
-#### Template Syntax
-```sql
--- Use double curly braces for parameters
-SELECT 
-    campaign_id,
-    SUM(impressions) as total_impressions
-FROM campaign_data
-WHERE 
-    event_date >= '{{start_date}}'
-    AND event_date <= '{{end_date}}'
-    AND brand_id = '{{brand_id}}'
-GROUP BY campaign_id
-HAVING total_impressions > {{min_impressions}}
-```
-
-#### Usage Flow
-1. User creates template with parameters
-2. Template saved with parameter schema
-3. User selects template in workflow creation
-4. Parameters auto-populate with defaults
-5. User adjusts parameter values
-6. Workflow created with filled template
-7. Template usage count incremented
-
-### Best Practices
-- Use descriptive parameter names
-- Provide default values in schema
-- Add clear descriptions for templates
-- Use categories for organization
-- Make templates public for team sharing
-
-## Performance Features
-
-### Virtual Scrolling
-- **VirtualizedTable Component**: Handles large datasets efficiently
-  - Uses react-window for row virtualization
-  - Supports 10,000+ rows without performance degradation
-  - Auto-calculates column widths
-
-### Lazy Loading
-- **React Suspense Integration**: Components load on demand
-  - DataVisualization component loads only when needed
-  - ExecutionDetailModal loads data progressively
-  - Image and chart lazy loading
-
-### Data Caching
-- **React Query Optimization**:
-  - 5-minute cache with `staleTime: 5 * 60 * 1000`
-  - Garbage collection with `gcTime: 30 * 60 * 1000`
-  - Automatic background refetch on window focus
-  - Query invalidation on mutations
-
-### Searchable Instances
-- **Comprehensive Filtering**: Handle 100+ instances efficiently
-  - Multi-field search (name, ID, brands, account)
-  - Filter by region, type, status, brand
-  - Memoized filtering with useMemo
-  - Debounced search input
-
-## Data Visualization
-
-### Recharts Integration
-- **DataVisualization Component**: Auto-generates charts from data
-  - Detects data types and suggests appropriate charts
-  - Time series for date columns
-  - Bar charts for categorical data
-  - Pie charts for distribution analysis
-  - Scatter plots for correlations
-
-### Chart Features
-- Interactive tooltips and legends
-- Responsive design with auto-sizing
-- Export to PNG/SVG
-- Custom color schemes
-- Support for multiple Y-axes
+- **Local Variable Errors**: Check for duplicate imports shadowing module-level imports
 
 ## Git Workflows
 
@@ -545,3 +406,10 @@ git push -u origin feature/your-feature-name
 - Check execution logs: `python scripts/check_execution_logs.py`
 - Database performance: Apply indexes with `scripts/apply_performance_indexes.py`
 - API performance: FastAPI automatic docs at `/docs`
+
+### Recent Fixes (2025-08-08)
+- Fixed workflow ID truncation causing execution failures
+- Resolved 403 authorization errors from token encryption key mismatch
+- Improved token refresh service to handle decryption failures gracefully
+- Fixed local variable access errors from duplicate imports
+- See `FIXES-2025-08-08.md` for detailed information

@@ -7,6 +7,7 @@ from datetime import datetime, timezone, timedelta
 
 from ...services.db_service import db_service
 from ...services.token_service import token_service
+from ...services.batch_execution_service import BatchExecutionService
 from ...core.logger_simple import get_logger
 from ...core.supabase_client import SupabaseManager
 from .auth import get_current_user
@@ -1073,3 +1074,272 @@ async def cross_reference_executions(
     except Exception as e:
         logger.error(f"Error cross-referencing executions: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to cross-reference executions: {str(e)}")
+
+
+# Batch Execution Models
+class BatchExecuteRequest(BaseModel):
+    """Request model for batch execution"""
+    instance_ids: List[str]
+    parameters: Dict[str, Any] = {}
+    instance_parameters: Optional[Dict[str, Dict[str, Any]]] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+
+# Batch Execution Endpoints
+@router.post("/{workflow_id}/batch-execute")
+async def batch_execute_workflow(
+    workflow_id: str,
+    request: BatchExecuteRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Execute a workflow across multiple AMC instances as a batch.
+    
+    Args:
+        workflow_id: The workflow UUID to execute
+        request: Batch execution request containing instance IDs and parameters
+        current_user: Authenticated user
+        
+    Returns:
+        Batch execution details with individual execution IDs
+    """
+    # Input validation
+    MAX_BATCH_SIZE = 100  # Match the service constant
+    
+    if not request.instance_ids:
+        raise HTTPException(status_code=400, detail="At least one instance ID must be provided")
+    
+    if len(request.instance_ids) > MAX_BATCH_SIZE:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Batch size exceeds maximum of {MAX_BATCH_SIZE} instances"
+        )
+    
+    try:
+        # Verify user has access to the workflow
+        client = SupabaseManager.get_client(use_service_role=True)
+        workflow_response = client.table('workflows')\
+            .select('*')\
+            .eq('id', workflow_id)\
+            .eq('user_id', current_user['id'])\
+            .single()\
+            .execute()
+        
+        if not workflow_response.data:
+            raise HTTPException(status_code=404, detail="Workflow not found")
+        
+        # Verify user has access to all instances
+        user_instances = db_service.get_user_instances_sync(current_user['id'])
+        user_instance_ids = [inst['id'] for inst in user_instances]
+        
+        for instance_id in request.instance_ids:
+            if instance_id not in user_instance_ids:
+                raise HTTPException(
+                    status_code=403, 
+                    detail=f"Access denied to instance"  # Don't expose instance ID
+                )
+        
+        # Initialize batch execution service
+        batch_service = BatchExecutionService()
+        
+        # Execute batch
+        result = await batch_service.execute_batch(
+            workflow_id=workflow_id,
+            instance_ids=request.instance_ids,
+            parameters=request.parameters,
+            instance_parameters=request.instance_parameters,
+            name=request.name,
+            description=request.description,
+            user_id=current_user['id']
+        )
+        
+        return {
+            'success': True,
+            'batch': result
+        }
+        
+    except HTTPException:
+        raise
+    except ValueError as e:
+        # Handle validation errors from service
+        logger.warning(f"Validation error in batch execution: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error executing batch workflow: {e}")
+        # Don't expose internal error details
+        raise HTTPException(status_code=500, detail="Failed to execute batch workflow")
+
+
+@router.get("/batch/{batch_id}/status")
+async def get_batch_execution_status(
+    batch_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Get the status of a batch execution including all individual executions.
+    
+    Args:
+        batch_id: The batch execution ID (format: batch_XXXXXXXX)
+        current_user: Authenticated user
+        
+    Returns:
+        Batch status with individual execution details
+    """
+    try:
+        # Verify user has access to this batch
+        client = SupabaseManager.get_client(use_service_role=True)
+        batch_response = client.table('batch_executions')\
+            .select('*')\
+            .eq('batch_id', batch_id)\
+            .eq('user_id', current_user['id'])\
+            .single()\
+            .execute()
+        
+        if not batch_response.data:
+            raise HTTPException(status_code=404, detail="Batch execution not found")
+        
+        # Get batch status
+        batch_service = BatchExecutionService()
+        status = await batch_service.get_batch_status(batch_id)
+        
+        return {
+            'success': True,
+            'batch_status': status
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting batch status: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get batch status: {str(e)}")
+
+
+@router.get("/batch/{batch_id}/results")
+async def get_batch_execution_results(
+    batch_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Get aggregated results from a batch execution.
+    
+    Args:
+        batch_id: The batch execution ID (format: batch_XXXXXXXX)
+        current_user: Authenticated user
+        
+    Returns:
+        Aggregated results with per-instance breakdown
+    """
+    try:
+        # Verify user has access to this batch
+        client = SupabaseManager.get_client(use_service_role=True)
+        batch_response = client.table('batch_executions')\
+            .select('*')\
+            .eq('batch_id', batch_id)\
+            .eq('user_id', current_user['id'])\
+            .single()\
+            .execute()
+        
+        if not batch_response.data:
+            raise HTTPException(status_code=404, detail="Batch execution not found")
+        
+        # Get batch results
+        batch_service = BatchExecutionService()
+        results = await batch_service.get_batch_results(batch_id)
+        
+        return {
+            'success': True,
+            'batch_results': results
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting batch results: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get batch results: {str(e)}")
+
+
+@router.post("/batch/{batch_id}/cancel")
+async def cancel_batch_execution(
+    batch_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Cancel a batch execution and all its child executions.
+    
+    Args:
+        batch_id: The batch execution ID to cancel
+        current_user: Authenticated user
+        
+    Returns:
+        Cancellation status
+    """
+    try:
+        # Verify user has access to this batch
+        client = SupabaseManager.get_client(use_service_role=True)
+        batch_response = client.table('batch_executions')\
+            .select('*')\
+            .eq('batch_id', batch_id)\
+            .eq('user_id', current_user['id'])\
+            .single()\
+            .execute()
+        
+        if not batch_response.data:
+            raise HTTPException(status_code=404, detail="Batch execution not found")
+        
+        # Cancel the batch
+        batch_service = BatchExecutionService()
+        cancelled = await batch_service.cancel_batch_execution(batch_id)
+        
+        return {
+            'success': cancelled,
+            'message': 'Batch execution cancelled successfully' if cancelled else 'Failed to cancel batch'
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error cancelling batch execution: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to cancel batch: {str(e)}")
+
+
+@router.get("/batch/list")
+async def list_batch_executions(
+    workflow_id: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: int = 20,
+    offset: int = 0,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    List batch executions with optional filters.
+    
+    Args:
+        workflow_id: Optional workflow UUID to filter by
+        status: Optional status to filter by
+        limit: Maximum number of results
+        offset: Offset for pagination
+        current_user: Authenticated user
+        
+    Returns:
+        List of batch execution records
+    """
+    try:
+        batch_service = BatchExecutionService()
+        batches = await batch_service.list_batch_executions(
+            workflow_id=workflow_id,
+            user_id=current_user['id'],
+            status=status,
+            limit=limit,
+            offset=offset
+        )
+        
+        return {
+            'success': True,
+            'batch_executions': batches,
+            'total': len(batches)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error listing batch executions: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to list batch executions: {str(e)}")
