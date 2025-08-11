@@ -17,3 +17,10 @@ INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
 INFO:     127.0.0.1:43584 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-08-11 23:12:01 - main_supabase - INFO - Shutting down Recom AMP application...
+2025-08-11 23:12:01 - amc_manager.services.token_refresh_service - INFO - Token refresh loop cancelled
+2025-08-11 23:12:01 - amc_manager.services.token_refresh_service - INFO - Token refresh service stopped
+INFO:     Application shutdown complete.
+INFO:     Finished server process [980691]

@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Plus, 
   Search, 
-  Play, 
+  Eye, 
   Edit2, 
   Trash2, 
   Clock, 
@@ -63,28 +63,14 @@ export default function MyQueries() {
       await api.delete(`/workflows/${workflowId}`);
     },
     onSuccess: () => {
-      toast.success('Query deleted successfully');
+      toast.success('Workflow deleted successfully');
       queryClient.invalidateQueries({ queryKey: ['workflows'] });
     },
     onError: () => {
-      toast.error('Failed to delete query');
+      toast.error('Failed to delete workflow');
     }
   });
 
-  // Execute workflow mutation
-  const executeMutation = useMutation({
-    mutationFn: async (workflowId: string) => {
-      const response = await api.post(`/workflows/${workflowId}/execute`);
-      return response.data;
-    },
-    onSuccess: () => {
-      toast.success('Query execution started');
-      // Navigate to execution details if needed
-    },
-    onError: () => {
-      toast.error('Failed to execute query');
-    }
-  });
 
   // Filter workflows
   const filteredWorkflows = workflows.filter(workflow => {
@@ -102,12 +88,12 @@ export default function MyQueries() {
     navigate(`/query-builder/edit/${workflowId}`);
   };
 
-  const handleExecute = async (workflowId: string) => {
-    await executeMutation.mutateAsync(workflowId);
+  const handleView = (workflowId: string) => {
+    navigate(`/workflows/${workflowId}`);
   };
 
   const handleDelete = async (workflowId: string) => {
-    if (confirm('Are you sure you want to delete this query?')) {
+    if (confirm('Are you sure you want to delete this workflow?')) {
       await deleteMutation.mutateAsync(workflowId);
     }
   };
@@ -153,9 +139,9 @@ export default function MyQueries() {
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">My Queries</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Workflows</h1>
             <p className="mt-1 text-sm text-gray-600">
-              Manage and execute your saved AMC queries
+              Manage and execute your saved AMC workflows
             </p>
           </div>
           <button
@@ -163,7 +149,7 @@ export default function MyQueries() {
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
           >
             <Plus className="h-4 w-4 mr-2" />
-            New Query
+            New Workflow
           </button>
         </div>
       </div>
@@ -175,7 +161,7 @@ export default function MyQueries() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search queries..."
+              placeholder="Search workflows..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
@@ -290,12 +276,11 @@ export default function MyQueries() {
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2">
                       <button
-                        onClick={() => handleExecute(workflow.workflowId)}
-                        disabled={executeMutation.isPending}
+                        onClick={() => handleView(workflow.workflowId)}
                         className="text-blue-600 hover:text-blue-900"
-                        title="Execute"
+                        title="View"
                       >
-                        <Play className="h-4 w-4" />
+                        <Eye className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleEdit(workflow.workflowId)}
@@ -344,11 +329,11 @@ export default function MyQueries() {
               d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
             />
           </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No queries found</h3>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">No workflows found</h3>
           <p className="mt-1 text-sm text-gray-500">
             {searchQuery
               ? 'Try adjusting your search criteria'
-              : 'Get started by creating your first query'}
+              : 'Get started by creating your first workflow'}
           </p>
           <div className="mt-6">
             <button
@@ -356,7 +341,7 @@ export default function MyQueries() {
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Create New Query
+              Create New Workflow
             </button>
           </div>
         </div>

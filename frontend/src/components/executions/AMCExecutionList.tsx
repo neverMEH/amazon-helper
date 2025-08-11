@@ -35,6 +35,16 @@ export default function AMCExecutionList({ instanceId, workflowId, showInstanceB
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [instanceFilter, setInstanceFilter] = useState<string>('all');
   
+  // Check token status first
+  const { data: tokenStatus } = useQuery({
+    queryKey: ['token-status'],
+    queryFn: async () => {
+      const response = await api.get('/auth/token-status');
+      return response.data;
+    },
+    staleTime: 60 * 1000, // Check every minute
+  });
+  
   // Fetch all instances if we need to show instance badges
   const { data: instances } = useQuery<Instance[]>({
     queryKey: ['amc-instances'],
@@ -49,31 +59,39 @@ export default function AMCExecutionList({ instanceId, workflowId, showInstanceB
   // Fetch executions based on context (instance-specific or all)
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['amc-executions', instanceId, workflowId],
+    enabled: tokenStatus?.hasValidToken === true, // Only fetch if we have valid tokens
     queryFn: async () => {
       if (instanceId) {
         // Instance-specific executions
         return amcExecutionService.listExecutions(instanceId);
       } else if (instances && instances.length > 0) {
-        // Fetch executions for all instances
-        const allExecutions = await Promise.all(
-          instances.map(async (instance) => {
-            try {
-              const result = await amcExecutionService.listExecutions(instance.instanceId);
-              // Add instance info to each execution
-              return result.executions.map(exec => ({
-                ...exec,
-                instanceInfo: {
-                  id: instance.instanceId,
-                  name: instance.name,
-                  region: instance.region
-                }
-              }));
-            } catch (error) {
-              console.error(`Failed to fetch executions for instance ${instance.instanceId}:`, error);
-              return [];
-            }
-          })
-        );
+        // Limit parallel requests to prevent overwhelming the backend
+        const BATCH_SIZE = 5; // Process 5 instances at a time
+        const allExecutions = [];
+        
+        for (let i = 0; i < instances.length; i += BATCH_SIZE) {
+          const batch = instances.slice(i, i + BATCH_SIZE);
+          const batchResults = await Promise.all(
+            batch.map(async (instance) => {
+              try {
+                const result = await amcExecutionService.listExecutions(instance.instanceId);
+                // Add instance info to each execution
+                return result.executions.map(exec => ({
+                  ...exec,
+                  instanceInfo: {
+                    id: instance.instanceId,
+                    name: instance.name,
+                    region: instance.region
+                  }
+                }));
+              } catch (error) {
+                console.error(`Failed to fetch executions for instance ${instance.instanceId}:`, error);
+                return [];
+              }
+            })
+          );
+          allExecutions.push(...batchResults);
+        }
         
         // Flatten and sort by date
         const flatExecutions = allExecutions.flat().sort((a, b) => {
@@ -86,8 +104,7 @@ export default function AMCExecutionList({ instanceId, workflowId, showInstanceB
       }
       return { executions: [] };
     },
-    refetchInterval: 30000,
-    enabled: !!instanceId || (!!instances && instances.length > 0)
+    refetchInterval: 30000
   });
 
   const getStatusIcon = (status: AMCExecution['status']) => {
@@ -207,6 +224,23 @@ export default function AMCExecutionList({ instanceId, workflowId, showInstanceB
     return Array.from(instanceMap.values());
   }, [data?.executions, instanceId]);
 
+  // Check if we're missing tokens
+  if (tokenStatus?.requiresAuthentication) {
+    return (
+      <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+        <div className="flex">
+          <AlertCircle className="h-5 w-5 text-yellow-400 mr-2 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-yellow-800">Authentication Required</p>
+            <p className="text-sm text-yellow-700 mt-1">
+              Please authenticate with Amazon Advertising API in your profile settings to view AMC executions.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-8">

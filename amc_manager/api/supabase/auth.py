@@ -118,6 +118,25 @@ def refresh_token(request: Request, current_user: Dict[str, Any] = Depends(get_c
     }
 
 
+@router.get("/token-status")
+async def get_token_status(current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Check if user has valid OAuth tokens for AMC API access"""
+    from ...services.token_service import token_service
+    
+    try:
+        valid_token = await token_service.get_valid_token(current_user['id'])
+        return {
+            "hasValidToken": bool(valid_token),
+            "requiresAuthentication": not bool(valid_token)
+        }
+    except Exception as e:
+        logger.error(f"Error checking token status: {e}")
+        return {
+            "hasValidToken": False,
+            "requiresAuthentication": True
+        }
+
+
 @router.post("/logout")
 def logout():
     """Logout endpoint (client-side token removal)"""

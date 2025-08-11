@@ -21,14 +21,21 @@ api.interceptors.request.use(
   }
 );
 
-// Handle auth errors
+// Handle auth errors with debouncing to prevent logout cascade
+let logoutTimer: ReturnType<typeof setTimeout> | null = null;
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      // Debounce logout to prevent multiple redirects
+      if (!logoutTimer) {
+        logoutTimer = setTimeout(() => {
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('user');
+          window.location.href = '/login';
+          logoutTimer = null;
+        }, 100); // Small delay to batch multiple 401s
+      }
     }
     return Promise.reject(error);
   }
