@@ -231,7 +231,7 @@ export default function QueryLibrary() {
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
               >
                 <Code className="h-4 w-4 mr-2" />
-                New Query
+                New Workflow
               </button>
             </div>
           </div>
@@ -264,7 +264,7 @@ export default function QueryLibrary() {
               <p className="mt-1 text-sm text-gray-500">
                 {searchQuery
                   ? 'Try adjusting your search criteria'
-                  : 'Get started by creating a new query'}
+                  : 'Get started by creating a new workflow'}
               </p>
               <div className="mt-6">
                 <button
@@ -272,7 +272,7 @@ export default function QueryLibrary() {
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
                 >
                   <Code className="h-4 w-4 mr-2" />
-                  Create New Query
+                  Create New Workflow
                 </button>
               </div>
             </div>
@@ -337,7 +337,7 @@ function TemplateCard({ template, onUse }: TemplateCardProps) {
         className="w-full inline-flex items-center justify-center px-3 py-2 border border-blue-600 text-sm font-medium rounded-md text-blue-600 bg-white hover:bg-blue-50"
       >
         <Play className="h-4 w-4 mr-2" />
-        Use Template
+        Create Workflow
       </button>
     </div>
   );

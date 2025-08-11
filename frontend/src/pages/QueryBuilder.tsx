@@ -167,7 +167,7 @@ export default function QueryBuilder() {
     },
     onSuccess: (response, variables) => {
       if (!variables?.silent) {
-        toast.success(currentWorkflowId ? 'Query updated' : 'Query saved');
+        toast.success(currentWorkflowId ? 'Workflow updated' : 'Workflow saved');
       }
       if (!currentWorkflowId) {
         const newWorkflowId = response.data.workflow_id || response.data.workflowId;
@@ -178,7 +178,7 @@ export default function QueryBuilder() {
     },
     onError: (error: any, variables) => {
       if (!variables?.silent) {
-        toast.error(error.response?.data?.detail || 'Failed to save query');
+        toast.error(error.response?.data?.detail || 'Failed to save workflow');
       }
     }
   });
@@ -200,36 +200,6 @@ export default function QueryBuilder() {
     }
   }, [queryState.sqlQuery, queryState.instanceId]);
 
-  // Execute workflow mutation
-  const executeMutation = useMutation({
-    mutationFn: async () => {
-      // Ensure workflow is saved before executing
-      let wfId = currentWorkflowId;
-      if (!wfId) {
-        const saveResponse = await saveMutation.mutateAsync({ silent: false });
-        wfId = saveResponse.data.workflow_id || saveResponse.data.workflowId;
-      } else {
-        // Save latest changes before executing
-        await saveMutation.mutateAsync({ silent: true });
-      }
-
-      // Execute the workflow with parameters
-      const response = await api.post(`/workflows/${wfId}/execute`, {
-        instance_id: queryState.instanceId,
-        ...queryState.parameters,
-        output_format: queryState.exportSettings.format || 'CSV'
-      });
-      return { ...response.data, workflowId: wfId };
-    },
-    onSuccess: (data) => {
-      toast.success('Query execution started - tracking iteration');
-      // Navigate to workflow detail page to see execution history
-      navigate(`/workflows/${data.workflowId}?tab=executions`);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to execute query');
-    }
-  });
 
   const handleNext = () => {
     if (currentStep < WIZARD_STEPS.length - 1) {
@@ -243,10 +213,18 @@ export default function QueryBuilder() {
     }
   };
 
-  const handleExecute = async () => {
+  const handleCreateWorkflow = async () => {
     setIsExecuting(true);
     try {
-      await executeMutation.mutateAsync();
+      // Save the workflow first
+      const response = await saveMutation.mutateAsync({ asDraft: false });
+      const workflowId = response.data.workflow_id || response.data.workflowId || currentWorkflowId;
+      
+      // Navigate to the workflow detail page
+      toast.success('Workflow created successfully');
+      navigate(`/workflows/${workflowId}`);
+    } catch (error) {
+      toast.error('Failed to create workflow');
     } finally {
       setIsExecuting(false);
     }
@@ -266,7 +244,7 @@ export default function QueryBuilder() {
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-semibold text-gray-900">
-            {workflowId ? 'Edit Query' : templateId ? 'Create from Template' : 'New Query'}
+            {workflowId ? 'Edit Workflow' : templateId ? 'Create from Template' : 'New Workflow'}
           </h1>
           <button
             onClick={handleCancel}
@@ -371,11 +349,11 @@ export default function QueryBuilder() {
                   Save as Draft
                 </button>
                 <button
-                  onClick={handleExecute}
+                  onClick={handleCreateWorkflow}
                   disabled={isExecuting || !queryState.instanceId || !queryState.sqlQuery}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isExecuting ? 'Executing...' : 'Execute Query'}
+                  {isExecuting ? 'Creating...' : 'Create Workflow'}
                 </button>
               </>
             )}
