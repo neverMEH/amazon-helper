@@ -9,7 +9,8 @@ import {
   RefreshCw,
   Search,
   Filter,
-  Server
+  Server,
+  Cloud
 } from 'lucide-react';
 import { amcExecutionService } from '../../services/amcExecutionService';
 import type { AMCExecution } from '../../types/amcExecution';
@@ -20,13 +21,6 @@ interface Props {
   instanceId?: string;  // Optional - if not provided, shows all executions
   workflowId?: string;  // Optional - if provided, shows executions for specific workflow
   showInstanceBadge?: boolean; // Show instance name as a badge
-}
-
-interface Instance {
-  id: string;
-  instanceId: string;
-  name: string;
-  region: string;
 }
 
 export default function AMCExecutionList({ instanceId, workflowId, showInstanceBadge = false }: Props) {
@@ -45,64 +39,39 @@ export default function AMCExecutionList({ instanceId, workflowId, showInstanceB
     staleTime: 60 * 1000, // Check every minute
   });
   
-  // Fetch all instances if we need to show instance badges
-  const { data: instances } = useQuery<Instance[]>({
-    queryKey: ['amc-instances'],
-    queryFn: async () => {
-      const response = await api.get('/instances');
-      return response.data;
-    },
-    enabled: showInstanceBadge || !instanceId,
-    staleTime: 5 * 60 * 1000,
-  });
 
   // Fetch executions based on context (instance-specific or all)
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['amc-executions', instanceId, workflowId],
-    enabled: tokenStatus?.hasValidToken === true, // Only fetch if we have valid tokens
+    // No longer require tokens for fetching from database
     queryFn: async () => {
       if (instanceId) {
-        // Instance-specific executions
-        return amcExecutionService.listExecutions(instanceId);
-      } else if (instances && instances.length > 0) {
-        // Limit parallel requests to prevent overwhelming the backend
-        const BATCH_SIZE = 5; // Process 5 instances at a time
-        const allExecutions = [];
-        
-        for (let i = 0; i < instances.length; i += BATCH_SIZE) {
-          const batch = instances.slice(i, i + BATCH_SIZE);
-          const batchResults = await Promise.all(
-            batch.map(async (instance) => {
-              try {
-                const result = await amcExecutionService.listExecutions(instance.instanceId);
-                // Add instance info to each execution
-                return result.executions.map(exec => ({
-                  ...exec,
-                  instanceInfo: {
-                    id: instance.instanceId,
-                    name: instance.name,
-                    region: instance.region
-                  }
-                }));
-              } catch (error) {
-                console.error(`Failed to fetch executions for instance ${instance.instanceId}:`, error);
-                return [];
-              }
-            })
-          );
-          allExecutions.push(...batchResults);
+        // Instance-specific executions - fetch from stored data first
+        try {
+          const response = await api.get(`/amc-executions/stored/${instanceId}`, {
+            params: { limit: 50, sync_if_empty: false }
+          });
+          return response.data;
+        } catch (error) {
+          console.error(`Failed to fetch stored executions for instance ${instanceId}:`, error);
+          // Fallback to AMC API if stored fetch fails and we have tokens
+          if (tokenStatus?.hasValidToken) {
+            return amcExecutionService.listExecutions(instanceId);
+          }
+          return { executions: [] };
         }
-        
-        // Flatten and sort by date
-        const flatExecutions = allExecutions.flat().sort((a, b) => {
-          const dateA = new Date(a.createdAt || a.startTime || 0).getTime();
-          const dateB = new Date(b.createdAt || b.startTime || 0).getTime();
-          return dateB - dateA;
-        });
-        
-        return { executions: flatExecutions };
+      } else {
+        // Fetch all executions from database in a single efficient call
+        try {
+          const response = await api.get('/amc-executions/all/stored', {
+            params: { limit: 100 }
+          });
+          return response.data;
+        } catch (error) {
+          console.error('Failed to fetch all stored executions:', error);
+          return { executions: [] };
+        }
       }
-      return { executions: [] };
     },
     refetchInterval: 30000
   });
@@ -173,7 +142,7 @@ export default function AMCExecutionList({ instanceId, workflowId, showInstanceB
     
     // Filter by workflow if specified
     if (workflowId) {
-      executions = executions.filter(exec => 
+      executions = executions.filter((exec: any) => 
         exec.workflowId === workflowId || 
         exec.workflowName?.toLowerCase().includes(workflowId.toLowerCase())
       );
@@ -181,12 +150,12 @@ export default function AMCExecutionList({ instanceId, workflowId, showInstanceB
     
     // Filter by status
     if (statusFilter !== 'all') {
-      executions = executions.filter(exec => exec.status === statusFilter);
+      executions = executions.filter((exec: any) => exec.status === statusFilter);
     }
     
     // Filter by instance
     if (instanceFilter !== 'all' && !instanceId) {
-      executions = executions.filter(exec => 
+      executions = executions.filter((exec: any) => 
         (exec as any).instanceInfo?.id === instanceFilter
       );
     }
@@ -194,7 +163,7 @@ export default function AMCExecutionList({ instanceId, workflowId, showInstanceB
     // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      executions = executions.filter(exec => 
+      executions = executions.filter((exec: any) => 
         exec.workflowName?.toLowerCase().includes(query) ||
         exec.workflowExecutionId.toLowerCase().includes(query) ||
         exec.workflowDescription?.toLowerCase().includes(query) ||
@@ -207,7 +176,7 @@ export default function AMCExecutionList({ instanceId, workflowId, showInstanceB
 
   // Get unique statuses for filter
   const uniqueStatuses = useMemo(() => {
-    const statuses = new Set(data?.executions?.map(exec => exec.status) || []);
+    const statuses = new Set(data?.executions?.map((exec: any) => exec.status) || []);
     return Array.from(statuses);
   }, [data?.executions]);
 
@@ -215,7 +184,7 @@ export default function AMCExecutionList({ instanceId, workflowId, showInstanceB
   const uniqueInstances = useMemo(() => {
     if (instanceId) return [];
     const instanceMap = new Map();
-    data?.executions?.forEach(exec => {
+    data?.executions?.forEach((exec: any) => {
       const info = (exec as any).instanceInfo;
       if (info) {
         instanceMap.set(info.id, info);
@@ -262,14 +231,42 @@ export default function AMCExecutionList({ instanceId, workflowId, showInstanceB
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h3 className="text-lg font-medium text-gray-900">
           {instanceId ? 'AMC Execution History' : 'All AMC Executions'}
+          {data?.source && (
+            <span className="ml-2 text-xs text-gray-500">
+              (from {data.source})
+            </span>
+          )}
         </h3>
-        <button
-          onClick={() => refetch()}
-          className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        >
-          <RefreshCw className="h-4 w-4 mr-1" />
-          Refresh
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => refetch()}
+            className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            <RefreshCw className="h-4 w-4 mr-1" />
+            Refresh
+          </button>
+          {tokenStatus?.hasValidToken && instanceId && (
+            <button
+              onClick={async () => {
+                try {
+                  // Force sync from AMC API
+                  await api.get(`/amc-executions/${instanceId}`, {
+                    params: { limit: 50 }
+                  });
+                  // Refetch to get updated data
+                  refetch();
+                } catch (error) {
+                  console.error('Failed to sync from AMC:', error);
+                }
+              }}
+              className="inline-flex items-center px-3 py-1.5 border border-blue-300 shadow-sm text-sm font-medium rounded-md text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              title="Sync latest data from AMC API"
+            >
+              <Cloud className="h-4 w-4 mr-1" />
+              Sync from AMC
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Search and Filter Bar */}
@@ -296,9 +293,9 @@ export default function AMCExecutionList({ instanceId, workflowId, showInstanceB
               className="pl-10 pr-8 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
             >
               <option value="all">All Statuses</option>
-              {uniqueStatuses.map(status => (
+              {uniqueStatuses.map((status: any) => (
                 <option key={status} value={status}>
-                  {getStatusText(status)}
+                  {getStatusText(status as AMCExecution['status'])}
                 </option>
               ))}
             </select>
@@ -313,7 +310,7 @@ export default function AMCExecutionList({ instanceId, workflowId, showInstanceB
                 className="pl-10 pr-8 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
               >
                 <option value="all">All Instances</option>
-                {uniqueInstances.map(instance => (
+                {uniqueInstances.map((instance: any) => (
                   <option key={instance.id} value={instance.id}>
                     {instance.name}
                   </option>
@@ -343,7 +340,7 @@ export default function AMCExecutionList({ instanceId, workflowId, showInstanceB
       ) : (
         <div className="bg-white shadow overflow-hidden sm:rounded-md">
           <ul className="divide-y divide-gray-200">
-            {filteredExecutions.map((execution) => {
+            {filteredExecutions.map((execution: any) => {
               const execWithInstance = execution as any;
               return (
                 <li key={execution.workflowExecutionId}>
@@ -353,7 +350,7 @@ export default function AMCExecutionList({ instanceId, workflowId, showInstanceB
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center flex-1">
-                        {getStatusIcon(execution.status)}
+                        {getStatusIcon(execution.status as AMCExecution['status'])}
                         <div className="ml-4 text-left flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <p className="text-sm font-medium text-gray-900">
@@ -429,7 +426,7 @@ export default function AMCExecutionList({ instanceId, workflowId, showInstanceB
 
       {selectedExecutionId && (
         <AMCExecutionDetail
-          instanceId={instanceId || ((filteredExecutions.find(e => e.workflowExecutionId === selectedExecutionId) as any)?.instanceInfo?.id)}
+          instanceId={instanceId || ((filteredExecutions.find((e: any) => e.workflowExecutionId === selectedExecutionId) as any)?.instanceInfo?.id)}
           executionId={selectedExecutionId}
           isOpen={!!selectedExecutionId}
           onClose={() => setSelectedExecutionId(null)}

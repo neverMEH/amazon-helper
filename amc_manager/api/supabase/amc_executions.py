@@ -18,6 +18,238 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+@router.get("/all/stored")
+async def list_all_stored_executions(
+    limit: int = 100,
+    instance_ids: str = None,  # Comma-separated list of instance IDs
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    List all workflow executions for a user from local database.
+    This is much more efficient than calling AMC API for each instance.
+    
+    Args:
+        limit: Maximum number of executions to return
+        instance_ids: Optional comma-separated list of instance IDs to filter
+        current_user: The authenticated user
+        
+    Returns:
+        List of all executions from database across all user's instances
+    """
+    try:
+        client = SupabaseManager.get_client(use_service_role=True)
+        
+        # Get all workflows for the user with instance information
+        workflows_response = client.table('workflows')\
+            .select('id, workflow_id, name, amc_workflow_id, instance_id, amc_instances(instance_id, instance_name)')\
+            .eq('user_id', current_user['id'])\
+            .execute()
+        
+        # Filter by instance IDs if provided
+        instance_filter = []
+        if instance_ids:
+            instance_filter = instance_ids.split(',')
+        
+        # Get executions for all workflows
+        all_executions = []
+        for workflow in workflows_response.data:
+            # Skip if instance filter is applied and this instance is not in the filter
+            if instance_filter and workflow.get('amc_instances', {}).get('instance_id') not in instance_filter:
+                continue
+            
+            # Get executions for this workflow
+            executions_response = client.table('workflow_executions')\
+                .select('*')\
+                .eq('workflow_id', workflow['id'])\
+                .order('started_at', desc=True)\
+                .limit(20)\
+                .execute()  # Limit per workflow to avoid too much data
+            
+            for execution in executions_response.data:
+                all_executions.append({
+                    'workflowExecutionId': execution.get('execution_id'),
+                    'workflowId': workflow.get('amc_workflow_id') or workflow.get('workflow_id'),
+                    'workflowName': workflow.get('name'),
+                    'status': execution.get('status', 'PENDING').upper(),
+                    'startTime': execution.get('started_at'),
+                    'endTime': execution.get('completed_at'),
+                    'sqlQuery': execution.get('sql_query'),
+                    'triggeredBy': execution.get('triggered_by', 'manual'),
+                    'amcExecutionId': execution.get('amc_execution_id'),
+                    'rowCount': execution.get('row_count'),
+                    'errorMessage': execution.get('error_message'),
+                    'instanceInfo': {
+                        'id': workflow.get('amc_instances', {}).get('instance_id'),
+                        'name': workflow.get('amc_instances', {}).get('instance_name')
+                    } if workflow.get('amc_instances') else None,
+                    'isStoredLocally': True
+                })
+        
+        # Sort all executions by start time
+        all_executions.sort(key=lambda x: x.get('startTime', ''), reverse=True)
+        
+        # Apply overall limit
+        all_executions = all_executions[:limit]
+        
+        return {
+            'success': True,
+            'executions': all_executions,
+            'total': len(all_executions),
+            'source': 'database',
+            'message': 'Fetched from local database for better performance'
+        }
+        
+    except Exception as e:
+        logger.error(f"Error listing all stored executions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/stored/{instance_id}")
+async def list_stored_executions(
+    instance_id: str,
+    limit: int = 50,
+    sync_if_empty: bool = True,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    List AMC workflow executions from local database first.
+    Only syncs with AMC API if no data exists or explicitly requested.
+    
+    Args:
+        instance_id: The AMC instance ID
+        limit: Maximum number of executions to return
+        sync_if_empty: Whether to sync from AMC if no local data exists
+        current_user: The authenticated user
+        
+    Returns:
+        List of executions from database, potentially synced from AMC
+    """
+    try:
+        # Verify user has access to this instance
+        user_instances = db_service.get_user_instances_sync(current_user['id'])
+        if not any(inst['instance_id'] == instance_id for inst in user_instances):
+            raise HTTPException(status_code=403, detail="Access denied to this instance")
+        
+        # First, try to get executions from our database
+        client = SupabaseManager.get_client(use_service_role=True)
+        
+        # Get workflows for this instance that belong to the user
+        workflows_response = client.table('workflows')\
+            .select('id, workflow_id, name, amc_workflow_id')\
+            .eq('user_id', current_user['id'])\
+            .execute()
+        
+        # Get instance's internal ID
+        instance_data = next((inst for inst in user_instances if inst['instance_id'] == instance_id), None)
+        if instance_data:
+            # Filter workflows for this instance
+            instance_workflows = []
+            for workflow in workflows_response.data:
+                # Check if workflow belongs to this instance
+                workflow_instance = client.table('workflows')\
+                    .select('instance_id')\
+                    .eq('id', workflow['id'])\
+                    .execute()
+                
+                if workflow_instance.data and workflow_instance.data[0].get('instance_id') == instance_data.get('id'):
+                    instance_workflows.append(workflow)
+        else:
+            instance_workflows = []
+        
+        # Get all executions for these workflows
+        all_executions = []
+        for workflow in instance_workflows:
+            executions_response = client.table('workflow_executions')\
+                .select('*')\
+                .eq('workflow_id', workflow['id'])\
+                .order('started_at', desc=True)\
+                .limit(limit)\
+                .execute()
+            
+            for execution in executions_response.data:
+                # Format execution data
+                all_executions.append({
+                    'workflowExecutionId': execution.get('execution_id'),
+                    'workflowId': workflow.get('amc_workflow_id') or workflow.get('workflow_id'),
+                    'workflowName': workflow.get('name'),
+                    'status': execution.get('status', 'PENDING').upper(),
+                    'startTime': execution.get('started_at'),
+                    'endTime': execution.get('completed_at'),
+                    'sqlQuery': execution.get('sql_query'),
+                    'triggeredBy': execution.get('triggered_by', 'manual'),
+                    'amcExecutionId': execution.get('amc_execution_id'),
+                    'rowCount': execution.get('row_count'),
+                    'errorMessage': execution.get('error_message'),
+                    'isStoredLocally': True
+                })
+        
+        # Sort by start time
+        all_executions.sort(key=lambda x: x.get('startTime', ''), reverse=True)
+        
+        # If no local data and sync requested, fetch from AMC
+        if not all_executions and sync_if_empty:
+            logger.info(f"No local executions found for instance {instance_id}, syncing from AMC")
+            
+            # Get instance details for AMC API call
+            instance = db_service.get_instance_details_sync(instance_id)
+            if not instance:
+                raise HTTPException(status_code=404, detail="Instance not found")
+            
+            account = instance.get('amc_accounts')
+            if not account:
+                logger.warning(f"No AMC account found for instance {instance_id}")
+                return {
+                    'success': True,
+                    'executions': [],
+                    'total': 0,
+                    'source': 'local'
+                }
+            
+            # Get valid token
+            valid_token = await token_service.get_valid_token(current_user['id'])
+            if not valid_token:
+                logger.warning("No valid authentication token available")
+                return {
+                    'success': True,
+                    'executions': [],
+                    'total': 0,
+                    'source': 'local',
+                    'error': 'Authentication required'
+                }
+            
+            # Fetch from AMC API
+            from ...services.amc_api_client import AMCAPIClient
+            api_client = AMCAPIClient()
+            
+            response = api_client.list_executions(
+                instance_id=instance_id,
+                access_token=valid_token,
+                entity_id=account['account_id'],
+                marketplace_id=account['marketplace_id'],
+                limit=limit
+            )
+            
+            if response.get('success'):
+                all_executions = response.get('executions', [])
+                # Mark as from AMC
+                for exec in all_executions:
+                    exec['isStoredLocally'] = False
+                
+                # TODO: Store these executions in database for future use
+                logger.info(f"Synced {len(all_executions)} executions from AMC for instance {instance_id}")
+        
+        return {
+            'success': True,
+            'executions': all_executions[:limit],
+            'total': len(all_executions),
+            'source': 'local' if any(e.get('isStoredLocally') for e in all_executions) else 'amc'
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error listing stored executions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/{instance_id}")
 async def list_amc_executions(
     instance_id: str,
