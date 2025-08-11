@@ -311,11 +311,6 @@ export default function MultiInstanceSelector({
                           <span className="font-medium text-sm">
                             {instance.instanceName}
                           </span>
-                          {instance.instanceId?.includes('sandbox') && (
-                            <span className="px-1.5 py-0.5 text-xs bg-yellow-100 text-yellow-700 rounded">
-                              Sandbox
-                            </span>
-                          )}
                         </div>
                         
                         {/* Brands */}

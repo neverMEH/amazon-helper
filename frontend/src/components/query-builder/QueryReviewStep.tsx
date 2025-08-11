@@ -39,9 +39,6 @@ export default function QueryReviewStep({ state, instances }: QueryReviewStepPro
     if (!state.name) {
       newWarnings.push('Query name is not set. Consider adding a descriptive name.');
     }
-    if (selectedInstance?.instanceId?.includes('sandbox')) {
-      newWarnings.push('Using sandbox instance. Results may be limited.');
-    }
     if (!state.exportSettings.email) {
       newWarnings.push('No email configured. You won\'t receive export notifications.');
     }

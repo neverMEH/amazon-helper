@@ -22,14 +22,8 @@ class AMCExecutionService:
     
     def __init__(self):
         self.db = db_service
-        # Configuration flag to use real AMC API vs simulation
-        # Set via environment variable AMC_USE_REAL_API=true
-        import os
-        self.use_real_api = os.getenv('AMC_USE_REAL_API', 'false').lower() == 'true'
-        if self.use_real_api:
-            logger.info("AMC Execution Service configured to use REAL AMC API")
-        else:
-            logger.info("AMC Execution Service configured to use SIMULATED execution")
+        # Always use real AMC API - no test/simulation mode
+        logger.info("AMC Execution Service configured to use REAL AMC API")
         
     def execute_workflow(
         self,
@@ -100,7 +94,7 @@ class AMCExecutionService:
             
             # Get or create AMC workflow ID
             amc_workflow_id = workflow.get('amc_workflow_id')
-            if not amc_workflow_id and self.use_real_api:
+            if not amc_workflow_id:
                 # Auto-create AMC workflow if it doesn't exist
                 logger.info(f"No AMC workflow ID found, auto-creating workflow in AMC")
                 
@@ -195,24 +189,17 @@ class AMCExecutionService:
             if not execution:
                 raise ValueError("Failed to create execution record")
             
-            # Choose between real AMC API or simulation
-            if self.use_real_api:
-                execution_result = self._execute_real_amc_query(
-                    instance_id=instance['instance_id'],
-                    workflow_id=workflow_id,
-                    sql_query=sql_query,
-                    execution_id=execution['execution_id'],
-                    user_id=user_id,
-                    execution_parameters=execution_parameters,
-                    execution_mode=execution_mode,
-                    amc_workflow_id=amc_workflow_id  # Use the potentially auto-created ID
-                )
-            else:
-                execution_result = self._simulate_amc_execution(
-                    instance_id=instance['instance_id'],
-                    sql_query=sql_query,
-                    execution_id=execution['execution_id']
-                )
+            # Always use real AMC API
+            execution_result = self._execute_real_amc_query(
+                instance_id=instance['instance_id'],
+                workflow_id=workflow_id,
+                sql_query=sql_query,
+                execution_id=execution['execution_id'],
+                user_id=user_id,
+                execution_parameters=execution_parameters,
+                execution_mode=execution_mode,
+                amc_workflow_id=amc_workflow_id  # Use the potentially auto-created ID
+            )
             
             # Update execution with results
             update_data = {
@@ -546,111 +533,6 @@ class AMCExecutionService:
                 "status": "failed",
                 "error": str(e)
             }
-    
-    def _simulate_amc_execution(
-        self,
-        instance_id: str,
-        sql_query: str,
-        execution_id: str
-    ) -> Dict[str, Any]:
-        """
-        Simulate AMC execution for development
-        In production, this would call the actual AMC API
-        """
-        # Update status to running
-        self._update_execution_progress(execution_id, 'running', 10)
-        time.sleep(1)
-        
-        # Simulate progress updates
-        self._update_execution_progress(execution_id, 'running', 50)
-        time.sleep(1)
-        
-        # For CJA queries, return sample results with full data structure
-        if "customer journey" in sql_query.lower() or "conversion" in sql_query.lower():
-            columns = [
-                {"name": "journey_type", "type": "varchar"},
-                {"name": "first_touch_channel", "type": "varchar"},
-                {"name": "last_touch_channel", "type": "varchar"},
-                {"name": "unique_channels", "type": "integer"},
-                {"name": "touchpoint_bucket", "type": "varchar"},
-                {"name": "user_count", "type": "integer"},
-                {"name": "avg_journey_days", "type": "numeric"},
-                {"name": "avg_touchpoints", "type": "numeric"},
-                {"name": "avg_clicks", "type": "numeric"},
-                {"name": "percentage_of_users", "type": "numeric"}
-            ]
-            
-            rows = [
-                ["Converted", "Display", "Sponsored Ads Click", 3, "4-7 touchpoints", 1250, 5.2, 5.8, 2.3, 35.7],
-                ["Converted", "Sponsored Ads", "Display Click", 2, "1-3 touchpoints", 890, 2.1, 2.5, 1.8, 25.4],
-                ["Non-Converted", "Display", "Display", 1, "1-3 touchpoints", 567, 1.5, 1.8, 0.2, 16.2],
-                ["Converted", "DSP", "Sponsored Ads Click", 4, "8+ touchpoints", 432, 12.3, 9.2, 3.1, 12.3],
-                ["Non-Converted", "Sponsored Ads", "DSP", 2, "1-3 touchpoints", 321, 2.8, 2.1, 0.5, 9.2]
-            ]
-            
-            # Update to 90% before completion
-            self._update_execution_progress(execution_id, 'running', 90)
-            
-            # Store results in database and mark complete
-            results = {
-                "columns": columns,
-                "rows": rows,
-                "total_rows": len(rows),
-                "sample_size": len(rows),
-                "execution_details": {
-                    "query_runtime_seconds": 3.2,
-                    "data_scanned_gb": 0.145,
-                    "cost_estimate_usd": 0.0007
-                }
-            }
-            
-            logger.info(f"Generated results for execution {execution_id}: {len(columns)} columns, {len(rows)} rows")
-            
-            self._update_execution_completed(
-                execution_id=execution_id,
-                amc_execution_id=f"amc_exec_{execution_id}",
-                row_count=len(rows),
-                results=results
-            )
-            
-            return {
-                "status": "completed",
-                "amc_execution_id": f"amc_exec_{execution_id}",
-                "row_count": len(rows),
-                "results_url": f"s3://amc-results/{instance_id}/{execution_id}/results.csv"
-            }
-        
-        # Default simulation for other queries
-        self._update_execution_progress(execution_id, 'running', 90)
-        
-        columns = [{"name": "col1", "type": "varchar"}, {"name": "col2", "type": "integer"}]
-        rows = [["value1", 100], ["value2", 200]]
-        
-        results = {
-            "columns": columns,
-            "rows": rows,
-            "total_rows": 2,
-            "sample_size": 2,
-            "execution_details": {
-                "query_runtime_seconds": 1.5,
-                "data_scanned_gb": 0.05,
-                "cost_estimate_usd": 0.0002
-            }
-        }
-        
-        self._update_execution_completed(
-            execution_id=execution_id,
-            amc_execution_id=f"amc_exec_{execution_id}",
-            row_count=2,
-            results=results
-        )
-        
-        return {
-            "status": "completed",
-            "amc_execution_id": f"amc_exec_{execution_id}",
-            "row_count": 2,
-            "results_url": f"s3://amc-results/{instance_id}/{execution_id}/results.csv"
-        }
     
     def _update_execution_status(self, execution_id: str, update_data: Dict[str, Any]):
         """Update execution record status"""

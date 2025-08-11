@@ -53,6 +53,7 @@ class Settings(BaseSettings):
     # AMC
     amc_api_version: str = Field('v1', env='AMC_API_VERSION')
     amc_api_base_url: str = Field('https://advertising-api.amazon.com', env='AMC_API_BASE_URL')
+    amc_use_real_api: bool = Field(True, env='AMC_USE_REAL_API')
     
     # Rate limiting
     rate_limit_calls: int = 10

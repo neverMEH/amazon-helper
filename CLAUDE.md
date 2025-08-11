@@ -42,12 +42,12 @@ flake8 amc_manager/         # Lint
 mypy amc_manager/           # Type checking
 
 # Database scripts
-python test_supabase_simple.py              # Test connection
+python scripts/check_supabase_connection.py   # Check connection
 python scripts/import_initial_data.py       # Import initial data
 python scripts/apply_performance_indexes.py # Apply DB indexes
 
-# Test workflow execution (mock or real)
-python scripts/demo_execution.py    # Demo success/failure scenarios
+# Execute workflows via API
+# Use the API endpoints for workflow execution
 ```
 
 ### Frontend Development
@@ -71,7 +71,7 @@ npx playwright test --ui  # Interactive mode
 - **Service Layer Pattern**: Business logic isolated in `amc_manager/services/`
   - `SupabaseService`: Base class with automatic reconnection after 30-minute timeout
   - `db_service.py`: Database operations and query helpers
-  - `amc_execution_service.py`: Workflow execution (mock/real modes)
+  - `amc_execution_service.py`: Workflow execution with real AMC API
   - `amc_api_client.py`: Direct AMC API integration with proper auth headers
   - `query_template_service.py`: Query template CRUD operations
   - `instance_service.py`: AMC instance and brand management
@@ -257,7 +257,7 @@ workflow_data.instance_id = instance.id;  // Store internal UUID
 - `SUPABASE_SERVICE_ROLE_KEY`: Service role key for admin operations
 - `AMAZON_CLIENT_ID`: Amazon Advertising API client ID
 - `AMAZON_CLIENT_SECRET`: Client secret for OAuth
-- `AMC_USE_REAL_API`: Set to "true" for real AMC API calls (default: mock)
+- `AMC_USE_REAL_API`: Always set to "true" for real AMC API calls
 - `FERNET_KEY`: Encryption key for auth tokens (auto-generated if not set)
 
 ### Deployment (Railway)
@@ -307,10 +307,9 @@ workflow_data.instance_id = instance.id;  // Store internal UUID
 
 ## Testing Guidelines
 
-- **Mock Mode**: Default for development (no real AMC API calls)
-- **Sandbox Instances**: `amchnfozgta` or `amcfo8abayq` for testing
-- **Real API Mode**: Set `AMC_USE_REAL_API=true` environment variable
-- **Test Users**: Use nick@nevermeh.com for development
+- **Real API Mode**: Always uses real AMC API (AMC_USE_REAL_API=true)
+- **Development**: Use your own AMC instances for testing
+- **Authentication**: Login with your Amazon Advertising account
 
 ## Performance Optimizations
 
