@@ -12,6 +12,10 @@ from slowapi.errors import RateLimitExceeded
 import uvicorn
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 from amc_manager.config import settings
 from amc_manager.core.logger_simple import get_logger
