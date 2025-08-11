@@ -175,10 +175,16 @@ class AMCAPIClient:
                 logger.error(f"Failed to create execution: Status {response.status_code}, Response: {response_data}")
                 logger.error(f"Response text: {response.text}")
                 
-                # Check if this is a "workflow not found" error
-                if response.status_code == 404 or "does not exist" in str(error_msg).lower() or "not found" in str(error_msg).lower():
+                # Check if this is a "workflow not found" error - check both error_msg and full response
+                error_str = str(response_data).lower()
+                if (response.status_code == 404 or 
+                    "does not exist" in str(error_msg).lower() or 
+                    "not found" in str(error_msg).lower() or
+                    "does not exist" in error_str or
+                    "not found" in error_str):
                     # Raise an exception for workflow not found so it can be caught and handled
-                    raise ValueError(f"Status {response.status_code}, Response: {response_data}")
+                    logger.info(f"Detected workflow not found error, raising ValueError for upstream handling")
+                    raise ValueError(f"Workflow not found: {error_msg}")
                 
                 return {
                     "success": False,

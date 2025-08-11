@@ -432,10 +432,18 @@ class AMCExecutionService:
                             parameter_values=execution_parameters,  # Pass parameters for saved workflow
                             output_format=execution_parameters.get('output_format', 'CSV') if execution_parameters else 'CSV'
                         )
-                    except Exception as e:
+                        
+                        # Check if the response indicates the workflow doesn't exist
+                        if isinstance(response, dict) and not response.get('success'):
+                            error_msg = response.get('error', '')
+                            if "does not exist" in str(error_msg).lower() or "not found" in str(error_msg).lower():
+                                logger.info(f"Workflow {amc_workflow_id} not found (from response), will try to create it")
+                                raise ValueError(f"Workflow not found: {error_msg}")
+                    except (ValueError, Exception) as e:
                         # Check if the error is because the workflow doesn't exist in AMC
                         error_str = str(e)
-                        if "does not exist" in error_str.lower() or "not found" in error_str.lower():
+                        logger.info(f"Caught exception during workflow execution: {error_str}")
+                        if "does not exist" in error_str.lower() or "not found" in error_str.lower() or "workflow not found" in error_str.lower():
                             logger.warning(f"Workflow {amc_workflow_id} doesn't exist in AMC, will try to create it")
                             
                             # Try to create the workflow in AMC
