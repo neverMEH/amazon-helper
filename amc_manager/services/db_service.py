@@ -160,7 +160,7 @@ class DatabaseService:
         """Get workflow by ID - sync version"""
         try:
             response = self.client.table('workflows')\
-                .select('*, amc_instances(*)')\
+                .select('*, amc_instances(*, amc_accounts(*))')\
                 .eq('workflow_id', workflow_id)\
                 .execute()
             return response.data[0] if response.data else None
