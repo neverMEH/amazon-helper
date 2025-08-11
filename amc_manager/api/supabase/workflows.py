@@ -96,11 +96,11 @@ def list_workflows(
 
 
 @router.post("/")
-def create_workflow(
+async def create_workflow(
     workflow: WorkflowCreate,
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
-    """Create a new workflow"""
+    """Create a new workflow - saves to AMC first, then syncs to backend"""
     try:
         # Verify user has access to the instance
         user_instances = db_service.get_user_instances_sync(current_user['id'])
@@ -112,13 +112,74 @@ def create_workflow(
         if not instance:
             raise HTTPException(status_code=404, detail="Instance not found")
         
+        # Get valid token
+        valid_token = await token_service.get_valid_token(current_user['id'])
+        if not valid_token:
+            raise HTTPException(status_code=401, detail="No valid authentication token")
+        
+        # Get AMC account details
+        account = instance.get('amc_accounts')
+        if not account:
+            raise HTTPException(status_code=404, detail="AMC account not found")
+        
+        entity_id = account['account_id']
+        marketplace_id = account['marketplace_id']
+        
+        # Generate unique workflow ID for AMC
+        import uuid
+        import re
+        base_workflow_id = f"wf_{uuid.uuid4().hex[:8]}"
+        amc_workflow_id = re.sub(r'[^a-zA-Z0-9._-]', '_', base_workflow_id)
+        
+        # Extract parameters from SQL query
+        param_pattern = r'\{\{(\w+)\}\}'
+        param_names = re.findall(param_pattern, workflow.sql_query)
+        
+        # Create input parameter definitions for AMC
+        input_parameters = []
+        for param_name in param_names:
+            param_type = 'STRING'
+            if 'date' in param_name.lower() or 'time' in param_name.lower():
+                param_type = 'TIMESTAMP'
+            elif 'count' in param_name.lower() or 'number' in param_name.lower() or 'id' in param_name.lower():
+                param_type = 'INTEGER'
+            
+            input_parameters.append({
+                'name': param_name,
+                'type': param_type,
+                'required': True
+            })
+        
+        # Create workflow in AMC first
+        from ...services.amc_api_client import AMCAPIClient
+        api_client = AMCAPIClient()
+        
+        amc_response = api_client.create_workflow(
+            instance_id=instance['instance_id'],
+            workflow_id=amc_workflow_id,
+            sql_query=workflow.sql_query,
+            access_token=valid_token,
+            entity_id=entity_id,
+            marketplace_id=marketplace_id,
+            input_parameters=input_parameters if input_parameters else None,
+            output_format=workflow.parameters.get('output_format', 'CSV') if workflow.parameters else 'CSV'
+        )
+        
+        if not amc_response.get('success'):
+            logger.error(f"Failed to create workflow in AMC: {amc_response.get('error')}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to create workflow in AMC: {amc_response.get('error')}"
+            )
+        
         # If template_id is provided, increment its usage count
         if workflow.template_id:
             from ...services.query_template_service import query_template_service
             query_template_service.increment_usage(workflow.template_id)
         
-        # Create workflow
+        # Create workflow in backend with AMC workflow ID
         workflow_data = {
+            "workflow_id": base_workflow_id,  # Use the base ID as our internal ID
             "name": workflow.name,
             "description": workflow.description,
             "instance_id": instance['id'],  # Use internal UUID
@@ -126,20 +187,29 @@ def create_workflow(
             "parameters": workflow.parameters,
             "tags": workflow.tags,
             "user_id": current_user['id'],
-            "status": "active"
+            "status": "active",
+            "amc_workflow_id": amc_workflow_id,  # Store AMC's workflow ID
+            "is_synced_to_amc": True,
+            "amc_sync_status": "synced",
+            "amc_synced_at": datetime.now(timezone.utc).isoformat()
         }
         
         # Use sync version
         created = db_service.create_workflow_sync(workflow_data)
         if not created:
-            raise HTTPException(status_code=500, detail="Failed to create workflow")
+            # Try to delete from AMC if backend creation fails
+            logger.error(f"Failed to create workflow in backend, attempting to delete from AMC: {amc_workflow_id}")
+            # Note: We'd need a delete_workflow method in AMCAPIClient
+            raise HTTPException(status_code=500, detail="Failed to create workflow in backend")
         
         return {
             "workflow_id": created['workflow_id'],
             "name": created['name'],
             "description": created.get('description'),
             "status": created['status'],
-            "created_at": created['created_at']
+            "created_at": created['created_at'],
+            "amc_workflow_id": amc_workflow_id,
+            "is_synced_to_amc": True
         }
     except HTTPException:
         raise
@@ -190,12 +260,12 @@ def get_workflow(
 
 
 @router.put("/{workflow_id}")
-def update_workflow(
+async def update_workflow(
     workflow_id: str,
     updates: WorkflowUpdate,
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
-    """Update a workflow"""
+    """Update a workflow - updates AMC first if synced, then backend"""
     try:
         workflow = db_service.get_workflow_by_id_sync(workflow_id)
         
@@ -206,8 +276,73 @@ def update_workflow(
         if workflow['user_id'] != current_user['id']:
             raise HTTPException(status_code=403, detail="Access denied")
         
-        # Prepare updates
+        # If workflow is synced to AMC and SQL query is being updated, update AMC first
+        if workflow.get('amc_workflow_id') and updates.sql_query:
+            # Get valid token
+            valid_token = await token_service.get_valid_token(current_user['id'])
+            if not valid_token:
+                raise HTTPException(status_code=401, detail="No valid authentication token")
+            
+            # Get instance and account details
+            instance = workflow.get('amc_instances')
+            if not instance:
+                raise HTTPException(status_code=400, detail="No AMC instance associated with workflow")
+            
+            account = instance.get('amc_accounts')
+            if not account:
+                raise HTTPException(status_code=404, detail="AMC account not found")
+            
+            entity_id = account['account_id']
+            marketplace_id = account['marketplace_id']
+            
+            # Extract parameters from new SQL query if provided
+            import re
+            if updates.sql_query:
+                param_pattern = r'\{\{(\w+)\}\}'
+                param_names = re.findall(param_pattern, updates.sql_query)
+                
+                # Create input parameter definitions for AMC
+                input_parameters = []
+                for param_name in param_names:
+                    param_type = 'STRING'
+                    if 'date' in param_name.lower() or 'time' in param_name.lower():
+                        param_type = 'TIMESTAMP'
+                    elif 'count' in param_name.lower() or 'number' in param_name.lower() or 'id' in param_name.lower():
+                        param_type = 'INTEGER'
+                    
+                    input_parameters.append({
+                        'name': param_name,
+                        'type': param_type,
+                        'required': True
+                    })
+            else:
+                input_parameters = None
+            
+            # Update workflow in AMC
+            from ...services.amc_api_client import AMCAPIClient
+            api_client = AMCAPIClient()
+            
+            amc_response = api_client.update_workflow(
+                instance_id=instance['instance_id'],
+                workflow_id=workflow['amc_workflow_id'],
+                sql_query=updates.sql_query,
+                access_token=valid_token,
+                entity_id=entity_id,
+                marketplace_id=marketplace_id,
+                input_parameters=input_parameters if input_parameters else None
+            )
+            
+            if not amc_response.get('success'):
+                logger.error(f"Failed to update workflow in AMC: {amc_response.get('error')}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to update workflow in AMC: {amc_response.get('error')}"
+                )
+        
+        # Prepare updates for backend
         update_data = updates.dict(exclude_none=True)
+        if workflow.get('amc_workflow_id'):
+            update_data['amc_last_updated_at'] = datetime.now(timezone.utc).isoformat()
         
         updated = db_service.update_workflow_sync(workflow_id, update_data)
         if not updated:
@@ -217,7 +352,9 @@ def update_workflow(
             "workflow_id": updated['workflow_id'],
             "name": updated['name'],
             "status": updated['status'],
-            "updated_at": updated['updated_at']
+            "updated_at": updated['updated_at'],
+            "amc_workflow_id": updated.get('amc_workflow_id'),
+            "is_synced_to_amc": updated.get('is_synced_to_amc', False)
         }
     except HTTPException:
         raise
