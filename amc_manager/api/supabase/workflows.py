@@ -278,13 +278,15 @@ def execute_workflow(
         
         logger.info(f"Executing workflow {workflow_id} with instance_id: {instance_id}, parameters: {parameters}")
         
+        # The workflow_id parameter here is actually the workflow_id field (e.g., "wf_883e6982")
+        # not the UUID id field, so we need to query by workflow_id
         workflow = db_service.get_workflow_by_id_sync(workflow_id)
         
         if not workflow:
             logger.error(f"Workflow {workflow_id} not found")
             raise HTTPException(status_code=404, detail="Workflow not found")
         
-        logger.info(f"Found workflow: id={workflow['id']}, name={workflow['name']}, is_template={workflow.get('is_template', False)}")
+        logger.info(f"Found workflow: id={workflow['id']}, workflow_id={workflow['workflow_id']}, name={workflow['name']}, is_template={workflow.get('is_template', False)}")
         
         # Verify ownership
         if workflow['user_id'] != current_user['id']:

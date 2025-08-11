@@ -148,7 +148,8 @@ class AMCExecutionService:
                                 'amc_sync_status': 'synced',
                                 'last_synced_at': datetime.now(timezone.utc).isoformat()
                             }
-                            self.db.update_workflow_sync(workflow_id, update_data)
+                            # update_workflow_sync expects the workflow_id field value, not the UUID
+                            self.db.update_workflow_sync(workflow['workflow_id'], update_data)
                             workflow['amc_workflow_id'] = amc_workflow_id
                         else:
                             logger.warning(f"Failed to auto-create AMC workflow: {create_response.get('error')}")
@@ -416,23 +417,77 @@ class AMCExecutionService:
             self._update_execution_progress(execution_id, 'running', 10)
             
             try:
-                # Always execute using workflow ID (no more ad-hoc)
+                # Always try to execute using workflow ID first
+                response = None
                 if amc_workflow_id:
                     # Execute using saved workflow ID
                     logger.info(f"Executing saved workflow {amc_workflow_id}")
-                    response = api_client.create_workflow_execution(
-                        instance_id=instance_id,
-                        workflow_id=amc_workflow_id,
-                        access_token=valid_token,
-                        entity_id=entity_id,
-                        marketplace_id=marketplace_id,
-                        parameter_values=execution_parameters,  # Pass parameters for saved workflow
-                        output_format=execution_parameters.get('output_format', 'CSV') if execution_parameters else 'CSV'
-                    )
-                else:
-                    # Fallback: Execute as ad-hoc if workflow creation failed
-                    # This should rarely happen, only if auto-creation failed above
-                    logger.warning("No AMC workflow ID available, falling back to ad-hoc execution")
+                    try:
+                        response = api_client.create_workflow_execution(
+                            instance_id=instance_id,
+                            workflow_id=amc_workflow_id,
+                            access_token=valid_token,
+                            entity_id=entity_id,
+                            marketplace_id=marketplace_id,
+                            parameter_values=execution_parameters,  # Pass parameters for saved workflow
+                            output_format=execution_parameters.get('output_format', 'CSV') if execution_parameters else 'CSV'
+                        )
+                    except Exception as e:
+                        # Check if the error is because the workflow doesn't exist in AMC
+                        error_str = str(e)
+                        if "does not exist" in error_str.lower() or "not found" in error_str.lower():
+                            logger.warning(f"Workflow {amc_workflow_id} doesn't exist in AMC, will try to create it")
+                            
+                            # Try to create the workflow in AMC
+                            create_response = api_client.create_workflow(
+                                instance_id=instance_id,
+                                workflow_id=amc_workflow_id,
+                                sql_query=sql_query,
+                                access_token=valid_token,
+                                entity_id=entity_id,
+                                marketplace_id=marketplace_id,
+                                output_format='CSV'
+                            )
+                            
+                            if create_response.get('success'):
+                                logger.info(f"Successfully created workflow {amc_workflow_id} in AMC, retrying execution")
+                                # Update database to mark as synced
+                                update_data = {
+                                    'amc_workflow_id': amc_workflow_id,
+                                    'is_synced_to_amc': True,
+                                    'amc_sync_status': 'synced',
+                                    'last_synced_at': datetime.now(timezone.utc).isoformat()
+                                }
+                                self.db.update_workflow_sync(workflow['workflow_id'], update_data)
+                                
+                                # Retry execution with the newly created workflow
+                                response = api_client.create_workflow_execution(
+                                    instance_id=instance_id,
+                                    workflow_id=amc_workflow_id,
+                                    access_token=valid_token,
+                                    entity_id=entity_id,
+                                    marketplace_id=marketplace_id,
+                                    parameter_values=execution_parameters,
+                                    output_format=execution_parameters.get('output_format', 'CSV') if execution_parameters else 'CSV'
+                                )
+                            else:
+                                logger.warning(f"Failed to create workflow in AMC: {create_response.get('error')}, falling back to ad-hoc")
+                                # Fall back to ad-hoc execution
+                                response = api_client.create_workflow_execution(
+                                    instance_id=instance_id,
+                                    sql_query=sql_query,
+                                    access_token=valid_token,
+                                    entity_id=entity_id,
+                                    marketplace_id=marketplace_id,
+                                    output_format=execution_parameters.get('output_format', 'CSV') if execution_parameters else 'CSV'
+                                )
+                        else:
+                            # Other error, re-raise
+                            raise
+                
+                # If we still don't have a response, use ad-hoc execution
+                if not response:
+                    logger.warning("No AMC workflow ID available, using ad-hoc execution")
                     response = api_client.create_workflow_execution(
                         instance_id=instance_id,
                         sql_query=sql_query,

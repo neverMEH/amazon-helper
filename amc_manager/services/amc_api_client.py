@@ -171,13 +171,23 @@ class AMCAPIClient:
                         "error": "No execution ID found in API response"
                     }
             else:
+                error_msg = response_data.get('message') or response_data.get('details') or f'API Error: {response.status_code}'
                 logger.error(f"Failed to create execution: Status {response.status_code}, Response: {response_data}")
                 logger.error(f"Response text: {response.text}")
+                
+                # Check if this is a "workflow not found" error
+                if response.status_code == 404 or "does not exist" in str(error_msg).lower() or "not found" in str(error_msg).lower():
+                    # Raise an exception for workflow not found so it can be caught and handled
+                    raise ValueError(f"Status {response.status_code}, Response: {response_data}")
+                
                 return {
                     "success": False,
-                    "error": response_data.get('message', f'API Error: {response.status_code}')
+                    "error": error_msg
                 }
                 
+        except ValueError as e:
+            # Re-raise ValueError (workflow not found) so it can be caught upstream
+            raise
         except Exception as e:
             logger.error(f"Error creating workflow execution: {e}")
             return {
