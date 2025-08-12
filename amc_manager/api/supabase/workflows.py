@@ -71,7 +71,7 @@ def list_workflows(
             exec_response = client.table('workflow_executions')\
                 .select('workflow_id, started_at, status')\
                 .in_('workflow_id', workflow_ids)\
-                .order('started_at', desc=True)\
+                .order('started_at.desc')\
                 .execute()
             
             # Group by workflow_id and take the most recent
@@ -969,7 +969,7 @@ def get_workflow_execution_status(
         db_executions_response = client.table('workflow_executions')\
             .select('*')\
             .eq('workflow_id', workflow['id'])\
-            .order('started_at', desc=True)\
+            .order('started_at.desc')\
             .limit(20)\
             .execute()
         
@@ -1111,7 +1111,7 @@ async def cross_reference_executions(
             .select('*, workflows!inner(workflow_id, name)')\
             .in_('workflow_id', workflow_ids)\
             .gte('started_at', yesterday.isoformat())\
-            .order('started_at', desc=True)\
+            .order('started_at.desc')\
             .execute()
         
         db_executions = db_executions_response.data
