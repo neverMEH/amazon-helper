@@ -63,15 +63,16 @@ def list_workflows(
         
         # Get last execution for each workflow
         client = SupabaseManager.get_client()
-        workflow_ids = [w['workflow_id'] for w in workflows]
+        # Use the UUID 'id' field, not the string 'workflow_id'
+        workflow_uuids = [w['id'] for w in workflows]
         
         # Fetch last executions for all workflows in one query
         last_executions = {}
-        if workflow_ids:
+        if workflow_uuids:
             # Get all executions and sort in Python
             exec_response = client.table('workflow_executions')\
                 .select('workflow_id, started_at, status')\
-                .in_('workflow_id', workflow_ids)\
+                .in_('workflow_id', workflow_uuids)\
                 .execute()
             
             # Sort by started_at descending and group by workflow_id
@@ -81,9 +82,9 @@ def list_workflows(
             
             # Take the most recent execution for each workflow
             for exec in executions:
-                wf_id = exec['workflow_id']
-                if wf_id not in last_executions:
-                    last_executions[wf_id] = exec['started_at']
+                wf_uuid = exec['workflow_id']
+                if wf_uuid not in last_executions:
+                    last_executions[wf_uuid] = exec['started_at']
         
         # Filter by instance if provided
         if instance_id:
@@ -108,7 +109,7 @@ def list_workflows(
             "tags": w.get('tags', []),
             "createdAt": w.get('created_at', ''),
             "updatedAt": w.get('updated_at', ''),
-            "lastExecutedAt": last_executions.get(w['workflow_id'])  # Use correct field name
+            "lastExecutedAt": last_executions.get(w['id'])  # Use UUID to match executions
         } for w in workflows]
     except Exception as e:
         logger.error(f"Error listing workflows: {e}", exc_info=True)
