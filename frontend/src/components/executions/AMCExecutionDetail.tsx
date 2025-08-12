@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { X, Code, Database, Calendar, User, Hash, ChevronDown, ChevronRight, RefreshCw, Play, Loader } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { amcExecutionService } from '../../services/amcExecutionService';
 import EnhancedResultsTable from './EnhancedResultsTable';
 import SQLHighlight from '../common/SQLHighlight';
@@ -32,7 +33,7 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
   // Rerun mutation
   const rerunMutation = useMutation({
     mutationFn: async () => {
-      if (!execution?.workflowInfo?.workflowId) {
+      if (!execution?.workflowId) {
         throw new Error('Workflow ID not found');
       }
       
@@ -40,15 +41,14 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
       const { default: api } = await import('../../services/api');
       
       // Execute with the same parameters
-      const response = await api.post(`/workflows/${execution.workflowInfo.workflowId}/execute`, {
-        parameters: execution.parameters || {},
+      const response = await api.post(`/workflows/${execution.workflowId}/execute`, {
+        parameters: execution.executionParameters || {},
         instance_id: instanceId
       });
       
       return response.data;
     },
     onSuccess: (data) => {
-      const { toast } = require('react-hot-toast');
       toast.success('Workflow rerun initiated');
       setIsRerunning(false);
       
@@ -62,7 +62,6 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
       }
     },
     onError: (error: any) => {
-      const { toast } = require('react-hot-toast');
       toast.error(error.response?.data?.detail || 'Failed to rerun workflow');
       setIsRerunning(false);
     }
@@ -75,7 +74,6 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
 
   const handleRefresh = () => {
     refetch();
-    const { toast } = require('react-hot-toast');
     toast.success('Refreshing execution data...');
   };
 
@@ -106,7 +104,7 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                 <button
                   type="button"
                   onClick={handleRerun}
-                  disabled={isRerunning || !execution?.workflowInfo?.workflowId}
+                  disabled={isRerunning || !execution?.workflowId}
                   className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
                   title="Rerun with same parameters"
                 >
