@@ -4,6 +4,7 @@ import { X, Code, Database, Calendar, User, Hash, ChevronDown, ChevronRight } fr
 import { amcExecutionService } from '../../services/amcExecutionService';
 import EnhancedResultsTable from './EnhancedResultsTable';
 import SQLHighlight from '../common/SQLHighlight';
+import ExecutionErrorDetails from './ExecutionErrorDetails';
 
 interface Props {
   instanceId: string;
@@ -228,12 +229,11 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                           </dl>
                         </div>
 
-                        {(execution.error || execution.errorMessage) && (
-                          <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                            <h4 className="text-sm font-medium text-red-800">Error</h4>
-                            <p className="mt-1 text-sm text-red-700">{execution.error || execution.errorMessage}</p>
-                          </div>
-                        )}
+                        {/* Display detailed error information for failed executions */}
+                        <ExecutionErrorDetails 
+                          errorMessage={execution.error || execution.errorMessage}
+                          status={execution.status}
+                        />
 
                         {execution.resultData && (
                           <div>

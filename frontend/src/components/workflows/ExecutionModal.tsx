@@ -6,6 +6,7 @@ import api from '../../services/api';
 import JSONEditor from '../common/JSONEditor';
 import ParameterEditor from './ParameterEditor';
 import ResultsVisualization from './ResultsVisualization';
+import ExecutionErrorDetails from '../executions/ExecutionErrorDetails';
 
 interface ExecutionModalProps {
   isOpen: boolean;
@@ -336,9 +337,13 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
                       </div>
                     )}
 
+                    {/* Display detailed error information for failed executions */}
                     {status.error_message && (
-                      <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                        <p className="text-sm text-red-800">{status.error_message}</p>
+                      <div className="mt-4">
+                        <ExecutionErrorDetails 
+                          errorMessage={status.error_message}
+                          status={status.status}
+                        />
                       </div>
                     )}
 

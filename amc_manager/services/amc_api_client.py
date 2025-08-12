@@ -264,6 +264,24 @@ class AMCAPIClient:
                 'CANCELLED': 'failed'
             }
             
+            # Extract detailed error information
+            failure_reason = response_data.get('failureReason')
+            validation_errors = response_data.get('validationErrors', [])
+            error_details = None
+            
+            if failure_reason or validation_errors:
+                error_details = {
+                    "failureReason": failure_reason,
+                    "validationErrors": validation_errors,
+                    "errorCode": response_data.get('errorCode'),
+                    "errorMessage": response_data.get('errorMessage'),
+                    "errorDetails": response_data.get('errorDetails'),
+                    "queryValidation": response_data.get('queryValidation')
+                }
+                
+                # Log detailed error for debugging
+                logger.error(f"Execution {execution_id} failed with details: {json.dumps(error_details, indent=2)}")
+            
             return {
                 "success": True,
                 "executionId": execution_id,
@@ -273,7 +291,8 @@ class AMCAPIClient:
                 "startTime": response_data.get('startTime'),
                 "endTime": response_data.get('endTime'),
                 "outputLocation": response_data.get('outputLocation'),
-                "error": response_data.get('failureReason')
+                "error": failure_reason,
+                "errorDetails": error_details
             }
             
         except Exception as e:

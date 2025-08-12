@@ -685,11 +685,26 @@ class AMCExecutionService:
                         )
                 elif status == 'failed':
                     error_msg = status_response.get('error', 'Query execution failed')
+                    error_details = status_response.get('errorDetails', {})
+                    
+                    # Format detailed error message
+                    detailed_error = error_msg
+                    if error_details:
+                        if error_details.get('validationErrors'):
+                            detailed_error += "\n\nValidation Errors:\n" + "\n".join(error_details['validationErrors'])
+                        if error_details.get('errorCode'):
+                            detailed_error += f"\n\nError Code: {error_details['errorCode']}"
+                        if error_details.get('errorMessage') and error_details['errorMessage'] != error_msg:
+                            detailed_error += f"\n\nDetails: {error_details['errorMessage']}"
+                        if error_details.get('queryValidation'):
+                            detailed_error += f"\n\nQuery Validation: {error_details['queryValidation']}"
+                    
                     self._update_execution_completed(
                         execution_id=execution_id,
                         amc_execution_id=amc_execution_id,
                         row_count=0,
-                        error_message=error_msg
+                        error_message=detailed_error,
+                        error_details=error_details
                     )
             
             # Return current status
@@ -806,7 +821,8 @@ class AMCExecutionService:
         amc_execution_id: str,
         row_count: int = 0,
         error_message: Optional[str] = None,
-        results: Optional[Dict[str, Any]] = None
+        results: Optional[Dict[str, Any]] = None,
+        error_details: Optional[Dict[str, Any]] = None
     ):
         """Update execution status to completed or failed"""
         try:

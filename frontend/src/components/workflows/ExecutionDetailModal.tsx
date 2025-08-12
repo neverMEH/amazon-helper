@@ -5,6 +5,7 @@ import api from '../../services/api';
 import toast from 'react-hot-toast';
 import EnhancedResultsTable from '../executions/EnhancedResultsTable';
 import DataVisualization from '../executions/DataVisualization';
+import ExecutionErrorDetails from '../executions/ExecutionErrorDetails';
 // AI analysis will be integrated later
 // import { DataAnalysisService } from '../../services/dataAnalysisService';
 
@@ -214,9 +215,13 @@ export default function ExecutionDetailModal({ isOpen, onClose, executionId }: E
                 </div>
               )}
 
+              {/* Display detailed error information for failed executions */}
               {status?.error_message && (
-                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                  <p className="text-sm text-red-800">{status.error_message}</p>
+                <div className="mt-4">
+                  <ExecutionErrorDetails 
+                    errorMessage={status.error_message}
+                    status={status?.status}
+                  />
                 </div>
               )}
             </div>
