@@ -68,14 +68,19 @@ def list_workflows(
         # Fetch last executions for all workflows in one query
         last_executions = {}
         if workflow_ids:
+            # Get all executions and sort in Python
             exec_response = client.table('workflow_executions')\
                 .select('workflow_id, started_at, status')\
                 .in_('workflow_id', workflow_ids)\
-                .order('started_at.desc')\
                 .execute()
             
-            # Group by workflow_id and take the most recent
-            for exec in exec_response.data or []:
+            # Sort by started_at descending and group by workflow_id
+            executions = sorted(exec_response.data or [], 
+                              key=lambda x: x.get('started_at', ''), 
+                              reverse=True)
+            
+            # Take the most recent execution for each workflow
+            for exec in executions:
                 wf_id = exec['workflow_id']
                 if wf_id not in last_executions:
                     last_executions[wf_id] = exec['started_at']
@@ -966,14 +971,17 @@ def get_workflow_execution_status(
         # Get all executions for this workflow from database
         client = SupabaseManager.get_client(use_service_role=True)
         
+        # Get executions without order clause, sort in Python
         db_executions_response = client.table('workflow_executions')\
             .select('*')\
             .eq('workflow_id', workflow['id'])\
-            .order('started_at.desc')\
-            .limit(20)\
+            .limit(100)\
             .execute()
         
-        db_executions = db_executions_response.data
+        # Sort by started_at descending and take first 20
+        db_executions = sorted(db_executions_response.data or [], 
+                              key=lambda x: x.get('started_at', ''), 
+                              reverse=True)[:20]
         
         # Categorize executions
         execution_status = {
@@ -1107,14 +1115,17 @@ async def cross_reference_executions(
         # Get recent executions for these workflows
         yesterday = datetime.now(timezone.utc) - timedelta(days=1)
         
+        # Get recent executions without order, sort in Python
         db_executions_response = client.table('workflow_executions')\
             .select('*, workflows!inner(workflow_id, name)')\
             .in_('workflow_id', workflow_ids)\
             .gte('started_at', yesterday.isoformat())\
-            .order('started_at.desc')\
             .execute()
         
-        db_executions = db_executions_response.data
+        # Sort by started_at descending
+        db_executions = sorted(db_executions_response.data or [], 
+                              key=lambda x: x.get('started_at', ''), 
+                              reverse=True)
         
         # Try to get AMC executions
         amc_executions = []
