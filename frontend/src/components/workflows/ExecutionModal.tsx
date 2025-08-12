@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { X, Play, Loader, CheckCircle, XCircle, Download, Eye, BarChart, Code } from 'lucide-react';
+import { X, Play, Loader, CheckCircle, XCircle, Download, Eye, BarChart, Code, Search } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../../services/api';
 import JSONEditor from '../common/JSONEditor';
@@ -77,6 +77,8 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
   const [showResults, setShowResults] = useState(false);
   const [showVisualization, setShowVisualization] = useState(false);
   const [useAdvancedEditor, setUseAdvancedEditor] = useState(false);
+  const [instanceSearchQuery, setInstanceSearchQuery] = useState('');
+  const [showInstanceDropdown, setShowInstanceDropdown] = useState(false);
   const [dateRange, setDateRange] = useState<{ startDate: string; endDate: string; preset?: string }>({
     startDate: '',
     endDate: '',
@@ -92,6 +94,26 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
     },
     enabled: isOpen, // Always fetch to show instance details
   });
+
+  // Filter instances based on search query
+  const filteredInstances = useMemo(() => {
+    if (!instances) return [];
+    if (!instanceSearchQuery) return instances;
+    
+    const query = instanceSearchQuery.toLowerCase();
+    return instances.filter((instance: any) => 
+      instance.instanceName?.toLowerCase().includes(query) ||
+      instance.instanceId?.toLowerCase().includes(query) ||
+      instance.accountName?.toLowerCase().includes(query) ||
+      instance.region?.toLowerCase().includes(query)
+    );
+  }, [instances, instanceSearchQuery]);
+
+  // Get selected instance details
+  const selectedInstance = useMemo(() => {
+    if (!selectedInstanceId || !instances) return null;
+    return instances.find((i: any) => i.instanceId === selectedInstanceId);
+  }, [selectedInstanceId, instances]);
 
   // Reset state when modal opens
   useEffect(() => {
@@ -230,7 +252,7 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
           {!executionId ? (
             // Pre-execution: Parameter configuration
             <div className="space-y-6">
-              {/* Instance Selector */}
+              {/* Instance Selector with Search */}
               {!instanceId && (
                 <div>
                   <h3 className="text-lg font-medium mb-2">Target Instance</h3>
@@ -238,19 +260,88 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
                     Select the AMC instance where this workflow will be executed.
                   </p>
                   {instances && instances.length > 0 ? (
-                    <select
-                      value={selectedInstanceId || ''}
-                      onChange={(e) => setSelectedInstanceId(e.target.value)}
-                      className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-                      required
-                    >
-                      <option value="">Select an instance...</option>
-                      {instances.map((instance: any) => (
-                        <option key={instance.instanceId} value={instance.instanceId}>
-                          {instance.instanceName} ({instance.instanceId}) - {instance.accountName}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="relative">
+                      {/* Search Input */}
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <Search className="h-4 w-4 text-gray-400" />
+                        </div>
+                        <input
+                          type="text"
+                          value={selectedInstance ? `${selectedInstance.instanceName} (${selectedInstance.instanceId})` : instanceSearchQuery}
+                          onChange={(e) => {
+                            setInstanceSearchQuery(e.target.value);
+                            setSelectedInstanceId(undefined);
+                            setShowInstanceDropdown(true);
+                          }}
+                          onFocus={() => setShowInstanceDropdown(true)}
+                          placeholder="Search for an instance by name, ID, or account..."
+                          className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        />
+                        {selectedInstanceId && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedInstanceId(undefined);
+                              setInstanceSearchQuery('');
+                              setShowInstanceDropdown(true);
+                            }}
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                          >
+                            <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Dropdown List */}
+                      {showInstanceDropdown && !selectedInstanceId && (
+                        <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
+                          {filteredInstances.length > 0 ? (
+                            filteredInstances.map((instance: any) => (
+                              <button
+                                key={instance.instanceId}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedInstanceId(instance.instanceId);
+                                  setInstanceSearchQuery('');
+                                  setShowInstanceDropdown(false);
+                                }}
+                                className="w-full text-left px-3 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="text-sm font-medium text-gray-900">
+                                      {instance.instanceName}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                      ID: {instance.instanceId} • {instance.accountName}
+                                      {instance.region && ` • ${instance.region}`}
+                                    </p>
+                                  </div>
+                                  {instance.brands && instance.brands.length > 0 && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                      {instance.brands.length} {instance.brands.length === 1 ? 'brand' : 'brands'}
+                                    </span>
+                                  )}
+                                </div>
+                              </button>
+                            ))
+                          ) : (
+                            <div className="px-3 py-2 text-sm text-gray-500">
+                              No instances found matching "{instanceSearchQuery}"
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Click outside to close dropdown */}
+                      {showInstanceDropdown && (
+                        <div
+                          className="fixed inset-0 z-0"
+                          onClick={() => setShowInstanceDropdown(false)}
+                        />
+                      )}
+                    </div>
                   ) : (
                     <div className="mt-1 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
                       <p className="text-sm text-yellow-800">No AMC instances available. Please ensure you have access to at least one AMC instance.</p>
