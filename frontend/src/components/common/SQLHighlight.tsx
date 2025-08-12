@@ -79,7 +79,7 @@ export default function SQLHighlight({ sql, className = '' }: SQLHighlightProps)
       const regex = new RegExp(`\\b(${keyword})\\b`, 'gi');
       highlighted = highlighted.replace(
         regex,
-        (match, p1, offset) => {
+        (match, _p1, offset) => {
           if (isInComment(offset)) return match;
           return `<span class="text-blue-400 font-semibold">${match}</span>`;
         }
@@ -91,7 +91,7 @@ export default function SQLHighlight({ sql, className = '' }: SQLHighlightProps)
       const regex = new RegExp(`\\b(${func})\\b`, 'gi');
       highlighted = highlighted.replace(
         regex,
-        (match, p1, offset) => {
+        (match, _p1, offset) => {
           if (isInComment(offset)) return match;
           return `<span class="text-cyan-400">${match}</span>`;
         }
@@ -101,7 +101,7 @@ export default function SQLHighlight({ sql, className = '' }: SQLHighlightProps)
     // Highlight numbers - but not in comments
     highlighted = highlighted.replace(
       /\b(\d+\.?\d*)\b/g,
-      (match, p1, offset) => {
+      (match, _p1, offset) => {
         if (isInComment(offset)) return match;
         return `<span class="text-purple-400">${match}</span>`;
       }
