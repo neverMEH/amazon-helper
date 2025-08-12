@@ -421,9 +421,12 @@ class AMCAPIClient:
             Dict with parsed CSV data
         """
         try:
+            logger.info(f"Starting CSV download from: {csv_url[:100]}...")  # Log first 100 chars of URL
+            
             # Download the CSV file
             csv_response = requests.get(csv_url, timeout=60)
             if csv_response.status_code != 200:
+                logger.error(f"Failed to download CSV: Status {csv_response.status_code}")
                 return {
                     "success": False,
                     "error": f"Failed to download CSV: Status {csv_response.status_code}"
@@ -431,6 +434,14 @@ class AMCAPIClient:
             
             # Parse CSV content
             csv_content = csv_response.text
+            content_length = len(csv_content)
+            logger.info(f"Downloaded CSV content: {content_length} bytes")
+            
+            # Log first few lines for debugging (without sensitive data)
+            if content_length > 0:
+                preview_lines = csv_content.split('\n')[:3]
+                logger.info(f"CSV preview (first 3 lines): {preview_lines}")
+            
             csv_reader = csv.reader(io.StringIO(csv_content))
             
             # Get headers (first row)
@@ -438,6 +449,15 @@ class AMCAPIClient:
             
             # Get all rows
             rows = list(csv_reader)
+            
+            # Log parsing results
+            logger.info(f"Parsed CSV: {len(headers)} columns, {len(rows)} data rows")
+            if len(headers) > 0:
+                logger.info(f"Column headers: {headers}")
+            
+            # Check for empty results
+            if len(rows) == 0:
+                logger.warning("CSV file contains headers but no data rows - query may have returned empty results")
             
             # Convert rows to list of objects with column names as keys
             data_objects = []
@@ -460,7 +480,8 @@ class AMCAPIClient:
                 "metadata": {
                     "rowCount": len(rows),
                     "columnCount": len(columns),
-                    "dataSizeBytes": len(csv_content.encode('utf-8'))
+                    "dataSizeBytes": len(csv_content.encode('utf-8')),
+                    "isEmpty": len(rows) == 0
                 }
             }
             

@@ -354,15 +354,35 @@ export default function ExecutionDetailModal({ isOpen, onClose, executionId }: E
                         </div>
                       )}
 
-                      {(() => {
-                        // Transform data for visualization
-                        const transformedData = results.rows.map(row => {
-                          const obj: any = {};
-                          results.columns.forEach((col, idx) => {
-                            obj[col.name] = row[idx];
-                          });
-                          return obj;
-                        });
+                      {/* Check if query returned empty results */}
+                      {results.total_rows === 0 ? (
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+                          <AlertCircle className="h-12 w-12 mx-auto mb-3 text-yellow-600" />
+                          <h3 className="text-lg font-medium text-yellow-900 mb-2">Query Returned No Results</h3>
+                          <p className="text-sm text-yellow-700 mb-3">
+                            The query executed successfully but returned 0 rows. This could mean:
+                          </p>
+                          <ul className="text-sm text-yellow-700 text-left max-w-md mx-auto space-y-1 mb-4">
+                            <li>• No data matches your query criteria</li>
+                            <li>• The date range may not contain any data</li>
+                            <li>• Filters may be too restrictive</li>
+                            <li>• The AMC instance may not have data for this query</li>
+                          </ul>
+                          <div className="text-sm text-gray-600">
+                            Found {results.columns.length} columns: {results.columns.map(c => c.name).join(', ')}
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          {(() => {
+                            // Transform data for visualization
+                            const transformedData = results.rows.map(row => {
+                              const obj: any = {};
+                              results.columns.forEach((col, idx) => {
+                                obj[col.name] = row[idx];
+                              });
+                              return obj;
+                            });
 
                         // Extract instance and brand info
                         const instanceInfo = undefined; // Will be implemented with proper instance data
@@ -439,6 +459,8 @@ export default function ExecutionDetailModal({ isOpen, onClose, executionId }: E
                             );
                         }
                       })()}
+                        </>
+                      )}
                     </div>
                   ) : (
                     <div className="text-center py-8 text-gray-500">
