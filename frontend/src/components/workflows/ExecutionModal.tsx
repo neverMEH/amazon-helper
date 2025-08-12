@@ -7,6 +7,7 @@ import JSONEditor from '../common/JSONEditor';
 import ParameterEditor from './ParameterEditor';
 import ResultsVisualization from './ResultsVisualization';
 import ExecutionErrorDetails from '../executions/ExecutionErrorDetails';
+import DateRangeSelector from '../common/DateRangeSelector';
 
 interface ExecutionModalProps {
   isOpen: boolean;
@@ -63,6 +64,11 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
   const [showResults, setShowResults] = useState(false);
   const [showVisualization, setShowVisualization] = useState(false);
   const [useAdvancedEditor, setUseAdvancedEditor] = useState(false);
+  const [dateRange, setDateRange] = useState<{ startDate: string; endDate: string; preset?: string }>({
+    startDate: '',
+    endDate: '',
+    preset: '30'
+  });
   
   // Fetch available instances for the user
   const { data: instances } = useQuery({
@@ -134,7 +140,24 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
       toast.error('Please select an instance to execute the workflow on');
       return;
     }
-    executeMutation.mutate(parameters);
+    
+    if (!dateRange.startDate || !dateRange.endDate) {
+      toast.error('Please select a date range for the query');
+      return;
+    }
+    
+    // Merge date range parameters with existing parameters
+    const executionParams = {
+      ...parameters,
+      start_date: dateRange.startDate,
+      end_date: dateRange.endDate,
+      date_range_preset: dateRange.preset,
+      // Also add common AMC date parameters
+      startDate: dateRange.startDate,
+      endDate: dateRange.endDate
+    };
+    
+    executeMutation.mutate(executionParams);
   };
 
   const handleDownloadResults = async () => {
@@ -221,6 +244,13 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
                   </div>
                 </div>
               )}
+
+              {/* Date Range Selector */}
+              <DateRangeSelector
+                value={dateRange}
+                onChange={setDateRange}
+                className="mb-4"
+              />
 
               <div>
                 <div className="flex items-center justify-between mb-2">

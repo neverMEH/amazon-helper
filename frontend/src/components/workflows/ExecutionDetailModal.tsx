@@ -232,6 +232,21 @@ export default function ExecutionDetailModal({ isOpen, onClose, executionId }: E
             <div className="mb-6">
               <h3 className="text-lg font-medium mb-4">Execution Parameters</h3>
               <div className="bg-gray-50 rounded-lg p-4">
+                {/* Highlight date range if present */}
+                {(execution.execution_parameters.start_date || execution.execution_parameters.startDate) && (
+                  <div className="mb-3 p-3 bg-blue-50 rounded border border-blue-200">
+                    <p className="text-sm font-medium text-blue-900 mb-1">Date Range:</p>
+                    <p className="text-sm text-blue-800">
+                      {execution.execution_parameters.start_date || execution.execution_parameters.startDate} to{' '}
+                      {execution.execution_parameters.end_date || execution.execution_parameters.endDate}
+                      {execution.execution_parameters.date_range_preset && execution.execution_parameters.date_range_preset !== 'custom' && (
+                        <span className="ml-2 text-xs text-blue-600">
+                          (Last {execution.execution_parameters.date_range_preset} days)
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                )}
                 <pre className="text-sm text-gray-700 whitespace-pre-wrap">
                   {JSON.stringify(execution.execution_parameters, null, 2)}
                 </pre>
