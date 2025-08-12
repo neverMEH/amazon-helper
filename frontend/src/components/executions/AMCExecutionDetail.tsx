@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { X, Code, Database, Calendar, User, Hash, ChevronDown, ChevronRight } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { X, Code, Database, Calendar, User, Hash, ChevronDown, ChevronRight, RefreshCw, Play, Loader } from 'lucide-react';
 import { amcExecutionService } from '../../services/amcExecutionService';
 import EnhancedResultsTable from './EnhancedResultsTable';
 import SQLHighlight from '../common/SQLHighlight';
@@ -16,8 +16,10 @@ interface Props {
 export default function AMCExecutionDetail({ instanceId, executionId, isOpen, onClose }: Props) {
   const [showQuery, setShowQuery] = useState(false);
   const [showParameters, setShowParameters] = useState(false);
+  const [isRerunning, setIsRerunning] = useState(false);
+  const queryClient = useQueryClient();
   
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['amc-execution-detail', instanceId, executionId],
     queryFn: () => amcExecutionService.getExecutionDetails(instanceId, executionId),
     enabled: isOpen && !!executionId,
@@ -26,6 +28,56 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
   });
 
   const execution = data?.execution;
+
+  // Rerun mutation
+  const rerunMutation = useMutation({
+    mutationFn: async () => {
+      if (!execution?.workflowInfo?.workflowId) {
+        throw new Error('Workflow ID not found');
+      }
+      
+      // Import api service
+      const { default: api } = await import('../../services/api');
+      
+      // Execute with the same parameters
+      const response = await api.post(`/workflows/${execution.workflowInfo.workflowId}/execute`, {
+        parameters: execution.parameters || {},
+        instance_id: instanceId
+      });
+      
+      return response.data;
+    },
+    onSuccess: (data) => {
+      const { toast } = require('react-hot-toast');
+      toast.success('Workflow rerun initiated');
+      setIsRerunning(false);
+      
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['amc-execution-detail'] });
+      queryClient.invalidateQueries({ queryKey: ['amc-executions'] });
+      
+      // If we get a new execution ID, show it
+      if (data.execution_id) {
+        toast.success(`New execution started: ${data.execution_id}`);
+      }
+    },
+    onError: (error: any) => {
+      const { toast } = require('react-hot-toast');
+      toast.error(error.response?.data?.detail || 'Failed to rerun workflow');
+      setIsRerunning(false);
+    }
+  });
+
+  const handleRerun = () => {
+    setIsRerunning(true);
+    rerunMutation.mutate();
+  };
+
+  const handleRefresh = () => {
+    refetch();
+    const { toast } = require('react-hot-toast');
+    toast.success('Refreshing execution data...');
+  };
 
   if (!isOpen) return null;
 
@@ -42,14 +94,43 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
         <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
           <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-6xl sm:p-6">
             <div className="absolute right-0 top-0 hidden pr-4 pt-4 sm:block">
-              <button
-                type="button"
-                className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                onClick={onClose}
-              >
-                <span className="sr-only">Close</span>
-                <X className="h-6 w-6" aria-hidden="true" />
-              </button>
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={handleRefresh}
+                  className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                  title="Refresh execution data"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRerun}
+                  disabled={isRerunning || !execution?.workflowInfo?.workflowId}
+                  className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  title="Rerun with same parameters"
+                >
+                  {isRerunning ? (
+                    <>
+                      <Loader className="h-4 w-4 mr-1 animate-spin" />
+                      Rerunning...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-4 w-4 mr-1" />
+                      Rerun
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                  onClick={onClose}
+                >
+                  <span className="sr-only">Close</span>
+                  <X className="h-6 w-6" aria-hidden="true" />
+                </button>
+              </div>
             </div>
 
             <div className="sm:flex sm:items-start">
