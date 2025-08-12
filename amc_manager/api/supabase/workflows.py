@@ -63,13 +63,16 @@ def list_workflows(
         
         # Get last execution for each workflow
         client = SupabaseManager.get_client()
-        # Use the UUID 'id' field, not the string 'workflow_id'
-        workflow_uuids = [w['id'] for w in workflows]
+        
+        # CRITICAL: Use UUID 'id' field, not string 'workflow_id'
+        # workflow_executions.workflow_id is a foreign key to workflows.id (UUID)
+        # See /docs/ID_FIELD_REFERENCE.md for complete ID field documentation
+        workflow_uuids = [w['id'] for w in workflows]  # Extract UUIDs
         
         # Fetch last executions for all workflows in one query
         last_executions = {}
         if workflow_uuids:
-            # Get all executions and sort in Python
+            # Query executions using UUID foreign key relationship
             exec_response = client.table('workflow_executions')\
                 .select('workflow_id, started_at, status')\
                 .in_('workflow_id', workflow_uuids)\
@@ -109,7 +112,7 @@ def list_workflows(
             "tags": w.get('tags', []),
             "createdAt": w.get('created_at', ''),
             "updatedAt": w.get('updated_at', ''),
-            "lastExecutedAt": last_executions.get(w['id'])  # Use UUID to match executions
+            "lastExecutedAt": last_executions.get(w['id'])  # Use UUID (not workflow_id) to match executions
         } for w in workflows]
     except Exception as e:
         logger.error(f"Error listing workflows: {e}", exc_info=True)

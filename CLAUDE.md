@@ -147,15 +147,25 @@ Key tables:
 ### Critical Implementation Details
 
 #### Workflow and Execution IDs
-```python
-# Different IDs serve different purposes:
-# 1. workflow_id: Internal DB identifier (wf_XXXXXXXX)
-# 2. amc_workflow_id: AMC saved workflow ID
-# 3. execution_id: Internal execution tracking (exec_XXXXXXXX)
-# 4. amc_execution_id: AMC's execution ID for status polling
 
-# CRITICAL: Use workflow['id'] (UUID) for backend operations
-# Use workflow['workflow_id'] for AMC API calls
+⚠️ **CRITICAL: See `/docs/ID_FIELD_REFERENCE.md` for complete ID field documentation**
+
+```python
+# Database ID relationships - THIS IS CRITICAL:
+# workflows.id (UUID) - Primary key, used for foreign key relationships
+# workflows.workflow_id (TEXT) - AMC-compliant string ID (wf_XXXXXXXX)
+# workflow_executions.workflow_id (UUID) - Foreign key to workflows.id (NOT workflows.workflow_id!)
+
+# CORRECT usage for execution queries:
+workflow_uuids = [w['id'] for w in workflows]  # Use UUID
+exec_response = client.table('workflow_executions')\
+    .in_('workflow_id', workflow_uuids)\  # Foreign key expects UUID
+    .execute()
+
+# WRONG - This will cause "invalid input syntax for type uuid" error:
+# workflow_ids = [w['workflow_id'] for w in workflows]  # String IDs
+# exec_response = client.table('workflow_executions')\
+#     .in_('workflow_id', workflow_ids)\  # FAILS - expects UUID not string
 ```
 
 #### AMC API Authentication
