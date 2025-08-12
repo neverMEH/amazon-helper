@@ -512,6 +512,19 @@ class AMCExecutionService:
                 # Store the AMC execution ID in the database
                 self._update_execution_amc_id(execution_id, amc_execution_id)
                 
+                # Start monitoring the execution to fetch results when completed
+                from .execution_monitor_service import execution_monitor_service
+                import asyncio
+                asyncio.create_task(
+                    execution_monitor_service.start_monitoring(
+                        execution_id=execution_id,
+                        amc_execution_id=amc_execution_id,
+                        instance_id=instance_id,
+                        user_id=user_id
+                    )
+                )
+                logger.info(f"Started monitoring for execution {execution_id}")
+                
                 # Return immediately with pending status
                 # The frontend will poll for status updates
                 return {
