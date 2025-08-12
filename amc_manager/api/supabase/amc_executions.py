@@ -452,7 +452,7 @@ async def get_amc_execution_details(
     
     Args:
         instance_id: The AMC instance ID
-        execution_id: The AMC execution ID
+        execution_id: The AMC execution ID or internal execution ID (exec_*)
         current_user: The authenticated user
         
     Returns:
@@ -469,6 +469,46 @@ async def get_amc_execution_details(
         user_instances = db_service.get_user_instances_sync(current_user['id'])
         if not any(inst['instance_id'] == instance_id for inst in user_instances):
             raise HTTPException(status_code=403, detail="Access denied to this instance")
+        
+        # Check if this is an internal execution ID (starts with exec_)
+        # If so, look up the AMC execution ID from our database
+        amc_execution_id = execution_id
+        if execution_id.startswith('exec_'):
+            client = SupabaseManager.get_client(use_service_role=True)
+            try:
+                db_response = client.table('workflow_executions')\
+                    .select('amc_execution_id')\
+                    .eq('execution_id', execution_id)\
+                    .single()\
+                    .execute()
+                
+                if db_response.data:
+                    if db_response.data.get('amc_execution_id'):
+                        amc_execution_id = db_response.data['amc_execution_id']
+                        logger.info(f"Mapped internal ID {execution_id} to AMC ID {amc_execution_id}")
+                    else:
+                        # Execution exists but has no AMC ID (likely failed before AMC submission)
+                        logger.warning(f"Execution {execution_id} has no AMC execution ID")
+                        raise HTTPException(
+                            status_code=404,
+                            detail=f"Execution {execution_id} was not submitted to AMC (likely failed during preparation)"
+                        )
+                else:
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"Execution with ID {execution_id} not found in database"
+                    )
+            except Exception as e:
+                if "not found" in str(e).lower():
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"Execution with ID {execution_id} not found"
+                    )
+                logger.error(f"Error looking up AMC execution ID: {e}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to lookup execution: {str(e)}"
+                )
         
         # Get valid token
         valid_token = await token_service.get_valid_token(current_user['id'])
@@ -499,7 +539,7 @@ async def get_amc_execution_details(
         api_client = AMCAPIClient()
         
         status_response = api_client.get_execution_status(
-            execution_id=execution_id,
+            execution_id=amc_execution_id,  # Use the AMC execution ID
             access_token=valid_token,
             entity_id=entity_id,
             marketplace_id=marketplace_id,
@@ -516,7 +556,7 @@ async def get_amc_execution_details(
         result_data = None
         if status_response.get('status') == 'completed':
             download_response = api_client.get_download_urls(
-                execution_id=execution_id,
+                execution_id=amc_execution_id,  # Use the AMC execution ID
                 access_token=valid_token,
                 entity_id=entity_id,
                 marketplace_id=marketplace_id,
@@ -541,12 +581,21 @@ async def get_amc_execution_details(
         workflow_info = None
         
         try:
-            # First try to find by AMC execution ID
-            db_response = client.table('workflow_executions')\
-                .select('*, workflows!inner(workflow_id, name, description, sql_query, parameters, created_at, updated_at)')\
-                .eq('amc_execution_id', execution_id)\
-                .single()\
-                .execute()
+            # Look up by the appropriate field based on the ID type
+            if execution_id.startswith('exec_'):
+                # Use internal execution ID
+                db_response = client.table('workflow_executions')\
+                    .select('*, workflows!inner(workflow_id, name, description, sql_query, parameters, created_at, updated_at)')\
+                    .eq('execution_id', execution_id)\
+                    .single()\
+                    .execute()
+            else:
+                # Use AMC execution ID
+                db_response = client.table('workflow_executions')\
+                    .select('*, workflows!inner(workflow_id, name, description, sql_query, parameters, created_at, updated_at)')\
+                    .eq('amc_execution_id', amc_execution_id)\
+                    .single()\
+                    .execute()
             
             if db_response.data:
                 db_execution = db_response.data
