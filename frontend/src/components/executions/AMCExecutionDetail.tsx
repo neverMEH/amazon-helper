@@ -33,7 +33,9 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
   // Rerun mutation
   const rerunMutation = useMutation({
     mutationFn: async () => {
-      if (!execution?.workflowId) {
+      // Check for workflow ID in multiple possible locations
+      const workflowId = execution?.workflowId || execution?.workflowInfo?.id;
+      if (!workflowId) {
         throw new Error('Workflow ID not found');
       }
       
@@ -41,7 +43,7 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
       const { default: api } = await import('../../services/api');
       
       // Execute with the same parameters
-      const response = await api.post(`/workflows/${execution.workflowId}/execute`, {
+      const response = await api.post(`/workflows/${workflowId}/execute`, {
         parameters: execution.executionParameters || {},
         instance_id: instanceId
       });
@@ -104,7 +106,7 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                 <button
                   type="button"
                   onClick={handleRerun}
-                  disabled={isRerunning || !execution?.workflowId}
+                  disabled={isRerunning || (!execution?.workflowId && !execution?.workflowInfo?.id)}
                   className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
                   title="Rerun with same parameters"
                 >
