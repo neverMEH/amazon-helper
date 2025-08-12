@@ -400,6 +400,11 @@ git push -u origin feature/your-feature-name
 
 ## Additional Resources
 
+### Documentation
+- `/docs/ID_FIELD_REFERENCE.md` - Critical guide for database ID relationships
+- `/docs/WORKFLOW_INSTANCE_BINDING.md` - Workflow instance binding and copy feature
+- `/docs/template-library-plan.md` - AMC query template system design
+
 ### Template Library Planning
 - See `/docs/template-library-plan.md` for comprehensive AMC instructional query template system design
 - Includes SP/DSP overlap analysis template
