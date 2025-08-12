@@ -1,6 +1,7 @@
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Database, Tag, BookOpen, FileText, LogOut, User, History } from 'lucide-react';
 import { authService } from '../services/auth';
+import AuthStatusBanner from './common/AuthStatusBanner';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -78,6 +79,9 @@ export default function Layout() {
 
       {/* Main content */}
       <div className="pl-64">
+        {/* Auth Status Banner - appears at the very top when auth is disconnected */}
+        <AuthStatusBanner />
+        
         <main className="min-h-screen">
           <Outlet />
         </main>

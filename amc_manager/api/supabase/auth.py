@@ -122,18 +122,34 @@ def refresh_token(request: Request, current_user: Dict[str, Any] = Depends(get_c
 async def get_token_status(current_user: Dict[str, Any] = Depends(get_current_user)):
     """Check if user has valid OAuth tokens for AMC API access"""
     from ...services.token_service import token_service
+    from ...core.supabase_client import SupabaseManager
     
     try:
         valid_token = await token_service.get_valid_token(current_user['id'])
+        has_valid = bool(valid_token)
+        
+        message = None
+        if not has_valid:
+            # Check if user ever had tokens
+            client = SupabaseManager.get_client(use_service_role=True)
+            user_response = client.table('users').select('auth_tokens').eq('id', current_user['id']).single().execute()
+            
+            if user_response.data and user_response.data.get('auth_tokens'):
+                message = "Your Amazon authentication has expired. Please re-authenticate to continue."
+            else:
+                message = "You need to authenticate with Amazon Advertising API to access AMC features."
+        
         return {
-            "hasValidToken": bool(valid_token),
-            "requiresAuthentication": not bool(valid_token)
+            "hasValidToken": has_valid,
+            "requiresAuthentication": not has_valid,
+            "message": message
         }
     except Exception as e:
         logger.error(f"Error checking token status: {e}")
         return {
             "hasValidToken": False,
-            "requiresAuthentication": True
+            "requiresAuthentication": True,
+            "message": "Unable to verify authentication status. Please try re-authenticating."
         }
 
 
