@@ -70,7 +70,12 @@ export default function QueryBuilder() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   const [isExecuting, setIsExecuting] = useState(false);
-  const [currentWorkflowId, setCurrentWorkflowId] = useState<string | undefined>(workflowId);
+  
+  // Check if we're in copy mode
+  const isCopyMode = window.location.pathname.includes('/copy/');
+  const [currentWorkflowId, setCurrentWorkflowId] = useState<string | undefined>(
+    isCopyMode ? undefined : workflowId // Don't use original ID if copying
+  );
   
   // Initialize state
   const [queryState, setQueryState] = useState<QueryBuilderState>({
@@ -98,14 +103,14 @@ export default function QueryBuilder() {
     enabled: !!templateId
   });
 
-  // Load workflow if editing
+  // Load workflow if editing or copying
   const { data: workflow } = useQuery({
     queryKey: ['workflow', workflowId],
     queryFn: async () => {
       const response = await api.get(`/workflows/${workflowId}`);
       return response.data;
     },
-    enabled: !!workflowId
+    enabled: !!workflowId // Load for both edit and copy modes
   });
 
   // Load instances for configuration
@@ -132,16 +137,29 @@ export default function QueryBuilder() {
 
   useEffect(() => {
     if (workflow) {
-      setQueryState(prev => ({
-        ...prev,
-        sqlQuery: workflow.sqlQuery || workflow.sql_query,
-        name: workflow.name,
-        description: workflow.description || '',
-        instanceId: workflow.instance?.id || '',
-        parameters: workflow.parameters || {}
-      }));
+      if (isCopyMode) {
+        // In copy mode, create a new workflow with copied data but clear instance
+        setQueryState(prev => ({
+          ...prev,
+          sqlQuery: workflow.sqlQuery || workflow.sql_query,
+          name: `Copy of ${workflow.name}`,
+          description: workflow.description || '',
+          instanceId: '', // Clear instance so user must select a new one
+          parameters: workflow.parameters || {}
+        }));
+      } else {
+        // In edit mode, load all data including instance
+        setQueryState(prev => ({
+          ...prev,
+          sqlQuery: workflow.sqlQuery || workflow.sql_query,
+          name: workflow.name,
+          description: workflow.description || '',
+          instanceId: workflow.instance?.id || '',
+          parameters: workflow.parameters || {}
+        }));
+      }
     }
-  }, [workflow]);
+  }, [workflow, isCopyMode]);
 
   // Create/Update workflow mutation
   const saveMutation = useMutation({
@@ -244,7 +262,7 @@ export default function QueryBuilder() {
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-semibold text-gray-900">
-            {workflowId ? 'Edit Workflow' : templateId ? 'Create from Template' : 'New Workflow'}
+            {isCopyMode ? 'Copy Workflow' : workflowId ? 'Edit Workflow' : templateId ? 'Create from Template' : 'New Workflow'}
           </h1>
           <button
             onClick={handleCancel}

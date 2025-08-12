@@ -71,8 +71,9 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
   
   const workflowData = workflow || fetchedWorkflow;
   const [parameters, setParameters] = useState(workflowData?.parameters || {});
-  // Pre-fill the selected instance ID when provided
-  const [selectedInstanceId, setSelectedInstanceId] = useState<string | undefined>(instanceId);
+  // Use the workflow's tied instance or pre-fill from prop
+  const workflowInstanceId = workflowData?.instance?.id || instanceId;
+  const [selectedInstanceId, setSelectedInstanceId] = useState<string | undefined>(workflowInstanceId);
   const [executionId, setExecutionId] = useState<string | null>(null);
   const [showResults, setShowResults] = useState(false);
   const [showVisualization, setShowVisualization] = useState(false);
@@ -94,6 +95,13 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
     },
     enabled: isOpen, // Always fetch to show instance details
   });
+
+  // Update selected instance when workflow data changes
+  useEffect(() => {
+    if (workflowData?.instance?.id) {
+      setSelectedInstanceId(workflowData.instance.id);
+    }
+  }, [workflowData]);
 
   // Filter instances based on search query
   const filteredInstances = useMemo(() => {
@@ -252,12 +260,27 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
           {!executionId ? (
             // Pre-execution: Parameter configuration
             <div className="space-y-6">
-              {/* Instance Selector with Search */}
-              {!instanceId && (
+              {/* Instance Display - Show tied instance */}
+              {(workflowData?.instance || instanceId) ? (
                 <div>
                   <h3 className="text-lg font-medium mb-2">Target Instance</h3>
                   <p className="text-sm text-gray-600 mb-4">
-                    Select the AMC instance where this workflow will be executed.
+                    This workflow will be executed on its configured instance.
+                  </p>
+                  <div className="p-4 bg-gray-50 border border-gray-200 rounded-md">
+                    <p className="text-sm font-medium text-gray-900">
+                      {selectedInstance?.instanceName || workflowData?.instance?.name || 'Loading...'}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      ID: {selectedInstanceId || workflowData?.instance?.id}
+                    </p>
+                  </div>
+                </div>
+              ) : !instanceId && (
+                <div>
+                  <h3 className="text-lg font-medium mb-2">Target Instance</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    ⚠️ No instance configured for this workflow. Please copy the workflow and select an instance.
                   </p>
                   {instances && instances.length > 0 ? (
                     <div className="relative">
@@ -349,28 +372,6 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
                   )}
                 </div>
               )}
-              
-              {/* Show selected instance if provided */}
-              {instanceId && (
-                <div>
-                  <h3 className="text-lg font-medium mb-2">Target Instance</h3>
-                  <p className="text-sm text-gray-600">
-                    This workflow will be executed on the pre-selected instance.
-                  </p>
-                  <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-md">
-                    <p className="text-sm font-medium text-green-900">
-                      <CheckCircle className="inline h-4 w-4 mr-1 text-green-600" />
-                      Instance ID: {instanceId}
-                    </p>
-                    {instances?.find((i: any) => i.instanceId === instanceId) && (
-                      <p className="text-xs text-green-700 mt-1">
-                        {instances.find((i: any) => i.instanceId === instanceId)?.instanceName}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-
               {/* Date Range Selector */}
               <DateRangeSelector
                 value={dateRange}

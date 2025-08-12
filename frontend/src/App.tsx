@@ -62,6 +62,7 @@ function App() {
               <Route path="/query-builder/new" element={<QueryBuilder />} />
               <Route path="/query-builder/template/:templateId" element={<QueryBuilder />} />
               <Route path="/query-builder/edit/:workflowId" element={<QueryBuilder />} />
+              <Route path="/query-builder/copy/:workflowId" element={<QueryBuilder />} />
               
               {/* Profile route */}
               <Route path="/profile" element={<Profile />} />

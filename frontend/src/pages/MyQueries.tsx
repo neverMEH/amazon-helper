@@ -13,7 +13,8 @@ import {
   AlertCircle,
   Calendar,
   Cloud,
-  CloudOff
+  CloudOff,
+  Copy
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../services/api';
@@ -103,6 +104,11 @@ export default function MyQueries() {
     toast('Schedule feature coming soon', {
       icon: 'ℹ️'
     });
+  };
+
+  const handleCopy = (workflowId: string) => {
+    // Navigate to query builder with copy mode
+    navigate(`/query-builder/copy/${workflowId}`);
   };
 
   const getStatusIcon = (status: string) => {
@@ -298,6 +304,13 @@ export default function MyQueries() {
                         title="Edit"
                       >
                         <Edit2 className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleCopy(workflow.workflowId)}
+                        className="text-purple-600 hover:text-purple-900"
+                        title="Copy"
+                      >
+                        <Copy className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleSchedule()}
