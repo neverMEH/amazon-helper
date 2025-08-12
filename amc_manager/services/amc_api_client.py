@@ -357,15 +357,19 @@ class AMCAPIClient:
         
         # Download the first URL (should be the CSV results)
         csv_url = download_urls[0] if isinstance(download_urls[0], str) else download_urls[0].get('url')
+        logger.info(f"Downloading CSV from S3 for execution {execution_id}")
         
         try:
             # Download the CSV file
             csv_response = requests.get(csv_url, timeout=60)
             if csv_response.status_code != 200:
+                logger.error(f"Failed to download CSV: Status {csv_response.status_code}")
                 return {
                     "success": False,
                     "error": f"Failed to download CSV: Status {csv_response.status_code}"
                 }
+            
+            logger.info(f"Successfully downloaded CSV, size: {len(csv_response.text)} bytes")
             
             # Parse CSV content
             csv_content = csv_response.text
@@ -376,6 +380,8 @@ class AMCAPIClient:
             
             # Get all rows
             rows = list(csv_reader)
+            
+            logger.info(f"Parsed CSV: {len(headers)} columns, {len(rows)} rows")
             
             # Convert to our format with column metadata
             columns = [{"name": header, "type": "string"} for header in headers]
@@ -969,6 +975,8 @@ class AMCAPIClient:
         
         url = f"{self.base_url}/amc/reporting/{instance_id}/workflowExecutions/{execution_id}/downloadUrls"
         
+        logger.info(f"Getting download URLs for execution {execution_id} on instance {instance_id}")
+        
         headers = {
             'Amazon-Advertising-API-ClientId': settings.amazon_client_id,
             'Authorization': f'Bearer {access_token}',
@@ -1001,10 +1009,12 @@ class AMCAPIClient:
                 }
             
             # Return the download URLs
+            download_urls = response_data.get('downloadUrls', [])
+            logger.info(f"Got {len(download_urls)} download URLs for execution {execution_id}")
             return {
                 "success": True,
                 "executionId": execution_id,
-                "downloadUrls": response_data.get('downloadUrls', []),
+                "downloadUrls": download_urls,
                 "expires": response_data.get('expires')
             }
             

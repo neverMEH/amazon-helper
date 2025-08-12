@@ -665,6 +665,7 @@ class AMCExecutionService:
                 
                 # If completed, fetch results
                 if status == 'completed':
+                    logger.info(f"Execution {execution_id} completed, fetching results from S3...")
                     results_response = api_client.get_execution_results(
                         execution_id=amc_execution_id,
                         access_token=valid_token,
@@ -674,6 +675,9 @@ class AMCExecutionService:
                     )
                     
                     if results_response.get('success'):
+                        logger.info(f"Successfully fetched results for execution {execution_id}")
+                        logger.info(f"Results: {results_response.get('rowCount', 0)} rows, {len(results_response.get('columns', []))} columns")
+                        
                         result_data = {
                             "columns": results_response.get('columns', []),
                             "rows": results_response.get('rows', []),
@@ -682,12 +686,15 @@ class AMCExecutionService:
                             "execution_details": results_response.get('metadata', {})
                         }
                         
+                        logger.info(f"Storing results in database for execution {execution_id}...")
                         self._update_execution_completed(
                             execution_id=execution_id,
                             amc_execution_id=amc_execution_id,
                             row_count=result_data['total_rows'],
                             results=result_data
                         )
+                    else:
+                        logger.error(f"Failed to fetch results for execution {execution_id}: {results_response.get('error')}")
                 elif status == 'failed':
                     error_msg = status_response.get('error', 'Query execution failed')
                     error_details = status_response.get('errorDetails', {})
