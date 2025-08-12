@@ -48,17 +48,30 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
   const actualWorkflowId = workflow?.workflowId || propWorkflowId;
   
   // Fetch workflow details if only workflowId is provided
-  const { data: fetchedWorkflow } = useQuery({
+  const { data: fetchedWorkflow, isLoading: loadingWorkflow } = useQuery({
     queryKey: ['workflow', actualWorkflowId],
     queryFn: async () => {
-      const response = await api.get(`/workflows/${actualWorkflowId}`);
-      return response.data;
+      try {
+        const response = await api.get(`/workflows/${actualWorkflowId}`);
+        return response.data;
+      } catch (error: any) {
+        // If workflow not found in database (e.g., synced AMC workflow), create a minimal workflow object
+        if (error?.response?.status === 404) {
+          return {
+            workflowId: actualWorkflowId,
+            name: actualWorkflowId,
+            parameters: {}
+          };
+        }
+        throw error;
+      }
     },
     enabled: !!actualWorkflowId && !workflow,
   });
   
   const workflowData = workflow || fetchedWorkflow;
   const [parameters, setParameters] = useState(workflowData?.parameters || {});
+  // Pre-fill the selected instance ID when provided
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | undefined>(instanceId);
   const [executionId, setExecutionId] = useState<string | null>(null);
   const [showResults, setShowResults] = useState(false);
@@ -77,7 +90,7 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
       const response = await api.get('/instances');
       return response.data;
     },
-    enabled: isOpen && !instanceId, // Only fetch if no instanceId is provided
+    enabled: isOpen, // Always fetch to show instance details
   });
 
   // Reset state when modal opens
@@ -184,7 +197,21 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
     toast.success('Results downloaded');
   };
 
-  if (!isOpen || !workflowData) return null;
+  if (!isOpen) return null;
+  
+  // Show loading state while fetching workflow
+  if (loadingWorkflow) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg shadow-xl p-6">
+          <Loader className="h-8 w-8 animate-spin mx-auto text-gray-400" />
+          <p className="mt-2 text-sm text-gray-500">Loading workflow...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  if (!workflowData) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -237,10 +264,18 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
                 <div>
                   <h3 className="text-lg font-medium mb-2">Target Instance</h3>
                   <p className="text-sm text-gray-600">
-                    This workflow will be executed on the selected instance.
+                    This workflow will be executed on the pre-selected instance.
                   </p>
-                  <div className="mt-2 p-3 bg-gray-50 rounded-md">
-                    <p className="text-sm font-medium">Instance ID: {instanceId}</p>
+                  <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-md">
+                    <p className="text-sm font-medium text-green-900">
+                      <CheckCircle className="inline h-4 w-4 mr-1 text-green-600" />
+                      Instance ID: {instanceId}
+                    </p>
+                    {instances?.find((i: any) => i.instanceId === instanceId) && (
+                      <p className="text-xs text-green-700 mt-1">
+                        {instances.find((i: any) => i.instanceId === instanceId)?.instanceName}
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
