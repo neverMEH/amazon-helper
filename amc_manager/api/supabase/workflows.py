@@ -56,19 +56,33 @@ def list_workflows(
     """List all workflows for the current user"""
     try:
         logger.info(f"Listing workflows for user {current_user['id']}, instance_id filter: {instance_id}")
+        
+        # Get workflows with instance data
         workflows = db_service.get_user_workflows_sync(current_user['id'])
         logger.info(f"Found {len(workflows)} total workflows for user")
+        
+        # Get last execution for each workflow
+        client = SupabaseManager.get_client()
+        workflow_ids = [w['workflow_id'] for w in workflows]
+        
+        # Fetch last executions for all workflows in one query
+        last_executions = {}
+        if workflow_ids:
+            exec_response = client.table('workflow_executions')\
+                .select('workflow_id, started_at, status')\
+                .in_('workflow_id', workflow_ids)\
+                .order('started_at', desc=True)\
+                .execute()
+            
+            # Group by workflow_id and take the most recent
+            for exec in exec_response.data or []:
+                wf_id = exec['workflow_id']
+                if wf_id not in last_executions:
+                    last_executions[wf_id] = exec['started_at']
         
         # Filter by instance if provided
         if instance_id:
             logger.info(f"Filtering workflows by instance_id: {instance_id}")
-            # Check if any workflows have instance data
-            for w in workflows[:3]:  # Log first 3 for debugging
-                if 'amc_instances' in w:
-                    logger.info(f"  Workflow {w['workflow_id']} has instance: {w['amc_instances'].get('instance_id')}")
-                else:
-                    logger.info(f"  Workflow {w['workflow_id']} has NO instance data")
-            
             workflows = [w for w in workflows if 'amc_instances' in w and w['amc_instances'].get('instance_id') == instance_id]
             logger.info(f"After filtering: {len(workflows)} workflows for instance {instance_id}")
         
@@ -81,14 +95,15 @@ def list_workflows(
             "parameters": w.get('parameters', {}),
             "instance": {
                 "id": w['amc_instances']['instance_id'],
-                "name": w['amc_instances']['instance_name']
+                "instanceId": w['amc_instances']['instance_id'],  # Add this for compatibility
+                "instanceName": w['amc_instances']['instance_name']
             } if 'amc_instances' in w else None,
             "status": w.get('status', 'active'),
             "isTemplate": w.get('is_template', False),
             "tags": w.get('tags', []),
             "createdAt": w.get('created_at', ''),
             "updatedAt": w.get('updated_at', ''),
-            "lastExecuted": w.get('last_executed_at')
+            "lastExecutedAt": last_executions.get(w['workflow_id'])  # Use correct field name
         } for w in workflows]
     except Exception as e:
         logger.error(f"Error listing workflows: {e}", exc_info=True)

@@ -231,7 +231,17 @@ export default function MyQueries() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredWorkflows.map((workflow) => (
-                <tr key={workflow.id} className="hover:bg-gray-50">
+                <tr 
+                  key={workflow.id} 
+                  className="hover:bg-gray-50 cursor-pointer"
+                  onClick={(e) => {
+                    // Don't navigate if clicking on action buttons
+                    const target = e.target as HTMLElement;
+                    if (!target.closest('button') && !target.closest('.actions-cell')) {
+                      handleView(workflow.workflowId);
+                    }
+                  }}
+                >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className="text-sm font-medium text-gray-900">
@@ -273,7 +283,7 @@ export default function MyQueries() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     {getSyncIcon(workflow)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium actions-cell">
                     <div className="flex items-center justify-end space-x-2">
                       <button
                         onClick={() => handleView(workflow.workflowId)}
