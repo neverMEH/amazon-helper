@@ -514,7 +514,6 @@ class AMCExecutionService:
                 
                 # Start monitoring the execution to fetch results when completed
                 from .execution_monitor_service import execution_monitor_service
-                import asyncio
                 asyncio.create_task(
                     execution_monitor_service.start_monitoring(
                         execution_id=execution_id,
