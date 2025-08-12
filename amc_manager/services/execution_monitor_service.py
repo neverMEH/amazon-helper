@@ -6,7 +6,7 @@ import logging
 from typing import Dict, Any, Optional
 from datetime import datetime, timedelta
 
-from ..database.supabase_manager import SupabaseManager
+from ..core.supabase_client import SupabaseManager
 from .amc_api_client import AMCAPIClient
 from .token_service import TokenService
 
