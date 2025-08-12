@@ -611,8 +611,8 @@ class AMCExecutionService:
             # Add a delay on first check to allow AMC to register the execution
             if execution.get('status') == 'pending' and execution.get('progress', 0) < 20:
                 logger.info(f"First status check - execution status: {execution.get('status')}, progress: {execution.get('progress', 0)}")
-                logger.info("Waiting 45 seconds for AMC to register execution...")
-                time.sleep(45)
+                logger.info("Waiting 10 seconds for AMC to register execution...")
+                time.sleep(10)
                 logger.info("Delay complete, checking AMC status now")
             
             # Try status check with retry on first attempt
@@ -634,8 +634,8 @@ class AMCExecutionService:
                 # If execution not found and this is not the last attempt, wait and retry
                 error_msg = status_response.get('error', '')
                 if 'does not exist' in error_msg and attempt < max_retries - 1:
-                    logger.info(f"Execution not found on attempt {attempt + 1}, waiting 15 seconds before retry...")
-                    time.sleep(15)
+                    logger.info(f"Execution not found on attempt {attempt + 1}, waiting 10 seconds before retry...")
+                    time.sleep(10)
                     
                     # On second attempt, try listing executions to find it
                     if attempt == 1:
