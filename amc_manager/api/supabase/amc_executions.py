@@ -400,11 +400,27 @@ async def list_amc_executions(
             exec_id = amc_exec.get('workflowExecutionId') or amc_exec.get('executionId')
             db_exec = db_executions.get(exec_id)
             
+            # Normalize the status to be consistent across all views
+            # AMC returns PENDING, RUNNING, SUCCEEDED, FAILED
+            # We normalize to: pending, running, completed, failed
+            amc_status = amc_exec.get('status', 'UNKNOWN')
+            normalized_status = {
+                'PENDING': 'pending',
+                'RUNNING': 'running', 
+                'SUCCEEDED': 'completed',
+                'FAILED': 'failed',
+                'CANCELLED': 'failed',
+                'COMPLETED': 'completed'  # Sometimes AMC returns this
+            }.get(amc_status.upper(), amc_status.lower())
+            
             # Build enhanced execution object
             enhanced_exec = {
                 **amc_exec,
                 'instanceId': instance_id,
                 'workflowExecutionId': exec_id or amc_exec.get('id'),
+                'status': amc_status,  # Keep original AMC status for display
+                'normalizedStatus': normalized_status,  # Add normalized status for consistency
+                'amcStatus': amc_status  # Also keep original as amcStatus
             }
             
             # Add database information if available
@@ -553,8 +569,16 @@ async def get_amc_execution_details(
             )
         
         # If execution is completed, try to get download URLs
+        # Check both normalized status and AMC status for completion
         result_data = None
-        if status_response.get('status') == 'completed':
+        is_completed = (
+            status_response.get('status') == 'completed' or 
+            status_response.get('amcStatus') == 'SUCCEEDED' or
+            status_response.get('amcStatus') == 'COMPLETED'
+        )
+        
+        if is_completed:
+            logger.info(f"Execution {amc_execution_id} is completed, fetching download URLs")
             download_response = api_client.get_download_urls(
                 execution_id=amc_execution_id,  # Use the AMC execution ID
                 access_token=valid_token,
@@ -565,11 +589,19 @@ async def get_amc_execution_details(
             
             if download_response.get('success'):
                 urls = download_response.get('downloadUrls', [])
+                logger.info(f"Got {len(urls)} download URLs for execution {amc_execution_id}")
                 if urls:
                     # Download and parse the first CSV file
                     csv_response = api_client.download_and_parse_csv(urls[0])
                     if csv_response.get('success'):
                         result_data = csv_response.get('data')
+                        logger.info(f"Successfully fetched {len(result_data) if result_data else 0} rows for execution {amc_execution_id}")
+                    else:
+                        logger.warning(f"Failed to parse CSV for execution {amc_execution_id}: {csv_response.get('error')}")
+                else:
+                    logger.warning(f"No download URLs available for completed execution {amc_execution_id}")
+            else:
+                logger.warning(f"Failed to get download URLs for execution {amc_execution_id}: {download_response.get('error')}")
         
         # Get associated brands for the instance
         brands = db_service.get_brands_for_instance_sync(instance_id)
