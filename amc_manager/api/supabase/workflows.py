@@ -258,6 +258,27 @@ def get_workflow(
         if workflow['user_id'] != current_user['id']:
             raise HTTPException(status_code=403, detail="Access denied")
         
+        # Get last execution for this workflow
+        client = SupabaseManager.get_client()
+        last_execution = None
+        try:
+            # Get all executions and sort in Python to avoid order syntax issues
+            exec_response = client.table('workflow_executions')\
+                .select('started_at')\
+                .eq('workflow_id', workflow['id'])\
+                .limit(10)\
+                .execute()
+            
+            if exec_response.data:
+                # Sort by started_at and take the most recent
+                sorted_execs = sorted(exec_response.data, 
+                                    key=lambda x: x.get('started_at', ''), 
+                                    reverse=True)
+                if sorted_execs:
+                    last_execution = sorted_execs[0]['started_at']
+        except Exception as e:
+            logger.warning(f"Could not fetch last execution for workflow {workflow_id}: {e}")
+        
         return {
             "id": workflow['workflow_id'],
             "workflowId": workflow['workflow_id'],
@@ -274,7 +295,7 @@ def get_workflow(
             "tags": workflow.get('tags', []),
             "createdAt": workflow.get('created_at'),
             "updatedAt": workflow.get('updated_at'),
-            "lastExecuted": workflow.get('last_executed_at')
+            "lastExecuted": last_execution  # Use the fetched last execution timestamp
         }
     except HTTPException:
         raise
