@@ -13,7 +13,8 @@ export default function SQLHighlight({ sql, className = '' }: SQLHighlightProps)
     'CASE', 'WHEN', 'THEN', 'ELSE', 'END', 'AND', 'OR', 'NOT', 'IN', 'EXISTS',
     'BETWEEN', 'LIKE', 'IS', 'NULL', 'DISTINCT', 'COUNT', 'SUM', 'AVG', 'MIN',
     'MAX', 'CAST', 'CONVERT', 'COALESCE', 'NULLIF', 'PARTITION', 'OVER',
-    'ROW_NUMBER', 'RANK', 'DENSE_RANK', 'LAG', 'LEAD', 'FIRST_VALUE', 'LAST_VALUE'
+    'ROW_NUMBER', 'RANK', 'DENSE_RANK', 'LAG', 'LEAD', 'FIRST_VALUE', 'LAST_VALUE',
+    'ALL', 'ARRAY_SORT', 'COLLECT'
   ];
 
   const functions = [
@@ -23,8 +24,17 @@ export default function SQLHighlight({ sql, className = '' }: SQLHighlightProps)
   ];
 
   const highlightSQL = (query: string) => {
-    // First, escape HTML to prevent XSS
-    let highlighted = query
+    // First clean up any potential HTML artifacts
+    // Remove any class attributes that might have leaked in
+    let cleanQuery = query
+      .replace(/\s+\d+\s+font-semibold">/g, '') // Remove artifacts like "400 font-semibold">
+      .replace(/\s+\d+">/g, '') // Remove artifacts like '400">'
+      .replace(/">/g, '') // Remove dangling ">
+      .replace(/class="[^"]*"/g, '') // Remove any class attributes
+      .trim();
+
+    // Now escape HTML to prevent XSS
+    let highlighted = cleanQuery
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;');
@@ -116,19 +126,39 @@ export default function SQLHighlight({ sql, className = '' }: SQLHighlightProps)
     return highlighted;
   };
 
-  // Check if the SQL already contains HTML (shouldn't happen, but defensive)
-  const containsHTML = sql && (sql.includes('&lt;') || sql.includes('&gt;') || sql.includes('<span'));
+  // Clean up any HTML artifacts that might be in the SQL
+  if (!sql) {
+    return (
+      <pre className={`bg-gray-900 text-gray-100 p-4 rounded-md overflow-x-auto text-xs ${className}`}>
+        <code className="text-gray-500">-- No SQL query available</code>
+      </pre>
+    );
+  }
+
+  // Check if the SQL contains common HTML artifacts
+  const hasArtifacts = sql && (
+    sql.includes('font-semibold">') || 
+    sql.includes('400">') ||
+    sql.includes('class="') ||
+    sql.includes('<span') ||
+    sql.includes('&lt;') || 
+    sql.includes('&gt;')
+  );
   
-  if (containsHTML) {
-    console.warn('SQLHighlight received SQL that appears to contain HTML:', sql.substring(0, 100));
-    // Try to strip HTML tags and entities
+  if (hasArtifacts) {
+    console.warn('SQLHighlight cleaning HTML artifacts from SQL');
+    // Strip all HTML-like content before processing
     const cleanSQL = sql
       .replace(/<[^>]*>/g, '') // Remove HTML tags
+      .replace(/\s+\d+\s+font-[^"]*">/g, '') // Remove font class artifacts
+      .replace(/\s+\d+">/g, '') // Remove number artifacts
+      .replace(/">/g, '') // Remove dangling quotes
       .replace(/&lt;/g, '<')    // Unescape HTML entities
       .replace(/&gt;/g, '>')
       .replace(/&amp;/g, '&')
       .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'");
+      .replace(/&#39;/g, "'")
+      .trim();
     
     return (
       <pre className={`bg-gray-900 text-gray-100 p-4 rounded-md overflow-x-auto text-xs ${className}`}>
