@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { X, CheckCircle, XCircle, Loader, Clock, AlertCircle, Download, Eye, BarChart, Table, TrendingUp, Database } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { X, CheckCircle, XCircle, Loader, Clock, AlertCircle, Download, Eye, BarChart, Table, TrendingUp, Database, RefreshCw, Play } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import EnhancedResultsTable from '../executions/EnhancedResultsTable';
@@ -59,6 +59,8 @@ interface Results {
 export default function ExecutionDetailModal({ isOpen, onClose, executionId }: ExecutionDetailModalProps) {
   const [showResults, setShowResults] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'enhanced' | 'charts' | 'ai'>('enhanced');
+  const [isRerunning, setIsRerunning] = useState(false);
+  const queryClient = useQueryClient();
   // const analysisService = useMemo(() => new DataAnalysisService(), []);
 
   // Get execution details
@@ -93,6 +95,55 @@ export default function ExecutionDetailModal({ isOpen, onClose, executionId }: E
     },
     enabled: showResults && status?.status === 'completed',
   });
+
+  // Rerun mutation
+  const rerunMutation = useMutation({
+    mutationFn: async () => {
+      if (!execution?.workflow_id) {
+        throw new Error('Workflow ID not found');
+      }
+      
+      // Execute with the same parameters
+      const response = await api.post(`/workflows/${execution.workflow_id}/execute`, {
+        parameters: execution.execution_parameters || {},
+        instance_id: execution.execution_parameters?.instance_id
+      });
+      
+      return response.data;
+    },
+    onSuccess: (data) => {
+      toast.success('Workflow rerun initiated');
+      setIsRerunning(false);
+      
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['execution-detail', executionId] });
+      queryClient.invalidateQueries({ queryKey: ['execution-status', executionId] });
+      queryClient.invalidateQueries({ queryKey: ['execution-results', executionId] });
+      queryClient.invalidateQueries({ queryKey: ['executions'] });
+      
+      // If we get a new execution ID, we could optionally switch to viewing it
+      if (data.execution_id) {
+        toast.success(`New execution started: ${data.execution_id}`);
+      }
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to rerun workflow');
+      setIsRerunning(false);
+    }
+  });
+
+  const handleRerun = () => {
+    setIsRerunning(true);
+    rerunMutation.mutate();
+  };
+
+  const handleRefresh = () => {
+    // Refresh all queries related to this execution
+    queryClient.invalidateQueries({ queryKey: ['execution-detail', executionId] });
+    queryClient.invalidateQueries({ queryKey: ['execution-status', executionId] });
+    queryClient.invalidateQueries({ queryKey: ['execution-results', executionId] });
+    toast.success('Refreshing execution data...');
+  };
 
   const handleDownloadResults = async () => {
     if (!results) return;
@@ -140,12 +191,39 @@ export default function ExecutionDetailModal({ isOpen, onClose, executionId }: E
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
           <h2 className="text-xl font-semibold">Execution Details: {executionId}</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-500"
-          >
-            <X className="h-6 w-6" />
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={handleRefresh}
+              className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              title="Refresh execution data"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </button>
+            <button
+              onClick={handleRerun}
+              disabled={isRerunning || !execution}
+              className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              title="Rerun with same parameters"
+            >
+              {isRerunning ? (
+                <>
+                  <Loader className="h-4 w-4 mr-1 animate-spin" />
+                  Rerunning...
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4 mr-1" />
+                  Rerun
+                </>
+              )}
+            </button>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-500"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
         </div>
 
         <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 140px)' }}>
