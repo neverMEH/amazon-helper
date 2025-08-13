@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-import { ChevronRight, ChevronDown, Database, Table, Hash, Calendar, User, Package, DollarSign, Copy, Plus, Server, FileText } from 'lucide-react';
+import { ChevronRight, ChevronDown, Hash, Calendar, DollarSign, Copy, Plus, Server, FileText, Package } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import SQLEditor from '../common/SQLEditor';
-import { AMC_SCHEMA, getCategories } from '../../constants/amcSchema';
 import { dataSourceService } from '../../services/dataSourceService';
 import type { DataSource, SchemaField } from '../../types/dataSource';
 import { toast } from 'react-hot-toast';
@@ -13,23 +12,11 @@ interface QueryEditorStepProps {
   instances?: any[];
 }
 
-// Icon mapping for field types
-const iconMap: Record<string, any> = {
-  'calendar': Calendar,
-  'user': User,
-  'hash': Hash,
-  'package': Package,
-  'dollar-sign': DollarSign,
-  'table': Table
-};
-
 export default function QueryEditorStep({ state, setState }: QueryEditorStepProps) {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
-  const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set());
   const [expandedDataSources, setExpandedDataSources] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [detectedParams, setDetectedParams] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<'standard' | 'datasources'>('standard');
 
   // Fetch data sources from API
   const { data: dataSources = [], isLoading: dataSourcesLoading } = useQuery({
@@ -93,18 +80,6 @@ export default function QueryEditorStep({ state, setState }: QueryEditorStepProp
     });
   };
 
-  const toggleTable = (tableName: string) => {
-    setExpandedTables(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(tableName)) {
-        newSet.delete(tableName);
-      } else {
-        newSet.add(tableName);
-      }
-      return newSet;
-    });
-  };
-
   const toggleDataSource = async (schemaId: string) => {
     setExpandedDataSources(prev => {
       const newSet = new Set(prev);
@@ -132,8 +107,6 @@ export default function QueryEditorStep({ state, setState }: QueryEditorStepProp
     toast.success('Copied to clipboard');
   };
 
-  const categories = getCategories();
-
   // Group data sources by category
   const dataSourcesByCategory = dataSources.reduce((acc, ds) => {
     if (!acc[ds.category]) {
@@ -142,22 +115,6 @@ export default function QueryEditorStep({ state, setState }: QueryEditorStepProp
     acc[ds.category].push(ds);
     return acc;
   }, {} as Record<string, DataSource[]>);
-
-  // Filter tables based on search
-  const getFilteredTables = (category: string) => {
-    return Object.values(AMC_SCHEMA).filter(table => {
-      if (table.category !== category) return false;
-      if (!searchQuery) return true;
-      
-      const lowerSearch = searchQuery.toLowerCase();
-      return table.name.toLowerCase().includes(lowerSearch) ||
-        table.description?.toLowerCase().includes(lowerSearch) ||
-        table.fields.some(field => 
-          field.name.toLowerCase().includes(lowerSearch) ||
-          field.description?.toLowerCase().includes(lowerSearch)
-        );
-    });
-  };
 
   // Filter data sources based on search
   const getFilteredDataSources = (category: string) => {
@@ -188,243 +145,121 @@ export default function QueryEditorStep({ state, setState }: QueryEditorStepProp
       {/* Left Panel - Schema Explorer */}
       <div className="w-96 bg-gray-50 border-r border-gray-200 overflow-y-auto">
         <div className="p-4">
-          <h3 className="text-sm font-semibold text-gray-900 mb-3">Schema Explorer</h3>
-          
-          {/* Tab Switcher */}
-          <div className="flex space-x-1 mb-3 bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setActiveTab('standard')}
-              className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                activeTab === 'standard'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Table className="h-3 w-3 inline mr-1" />
-              Standard Tables
-            </button>
-            <button
-              onClick={() => setActiveTab('datasources')}
-              className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                activeTab === 'datasources'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Server className="h-3 w-3 inline mr-1" />
-              AMC Data Sources
-            </button>
-          </div>
+          <h3 className="text-sm font-semibold text-gray-900 mb-3">AMC Data Sources</h3>
           
           {/* Search */}
           <input
             type="text"
-            placeholder="Search tables and fields..."
+            placeholder="Search schemas and fields..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm mb-4"
           />
 
-          {/* Standard Tables */}
-          {activeTab === 'standard' && (
-            <div className="space-y-2">
-              {categories.map(category => {
-              const isExpanded = expandedCategories.has(category);
-              const tables = getFilteredTables(category);
-              
-              if (tables.length === 0 && searchQuery) return null;
-
-              return (
-                <div key={category}>
-                  <button
-                    onClick={() => toggleCategory(category)}
-                    className="w-full text-left px-2 py-1 hover:bg-gray-100 rounded flex items-center"
-                  >
-                    {isExpanded ? (
-                      <ChevronDown className="h-3 w-3 mr-1" />
-                    ) : (
-                      <ChevronRight className="h-3 w-3 mr-1" />
-                    )}
-                    <Database className="h-3 w-3 mr-2 text-gray-500" />
-                    <span className="text-sm font-medium">{category}</span>
-                    <span className="ml-auto text-xs text-gray-500">{tables.length}</span>
-                  </button>
-
-                  {isExpanded && (
-                    <div className="ml-4 mt-1 space-y-1">
-                      {tables.map(table => {
-                        const isTableExpanded = expandedTables.has(table.name);
-
-                        return (
-                          <div key={table.name}>
-                            <div className="flex items-center group">
-                              <button
-                                onClick={() => toggleTable(table.name)}
-                                className="flex-1 text-left px-2 py-1 hover:bg-gray-100 rounded flex items-center"
-                              >
-                                {isTableExpanded ? (
-                                  <ChevronDown className="h-3 w-3 mr-1" />
-                                ) : (
-                                  <ChevronRight className="h-3 w-3 mr-1" />
-                                )}
-                                <Table className="h-3 w-3 mr-2 text-gray-400" />
-                                <span className="text-xs font-mono">{table.name}</span>
-                              </button>
-                              <button
-                                onClick={() => handleAddToQuery(table.name)}
-                                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 rounded"
-                                title="Add to query"
-                              >
-                                <Plus className="h-3 w-3 text-gray-500" />
-                              </button>
-                            </div>
-
-                            {isTableExpanded && (
-                              <div className="ml-6 mt-1 space-y-0.5">
-                                {table.fields.map(field => {
-                                  const FieldIcon = iconMap[field.icon || 'hash'] || Hash;
-                                  
-                                  return (
-                                    <div
-                                      key={field.name}
-                                      className="flex items-center group px-2 py-0.5 hover:bg-gray-100 rounded"
-                                    >
-                                      <FieldIcon className="h-3 w-3 mr-2 text-gray-400" />
-                                      <span className="text-xs font-mono text-gray-700 flex-1">
-                                        {field.name}
-                                      </span>
-                                      <span className="text-xs text-gray-500 mr-2">
-                                        {field.type}
-                                      </span>
-                                      <button
-                                        onClick={() => handleCopyField(`${table.name}.${field.name}`)}
-                                        className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-gray-200 rounded"
-                                        title="Copy field name"
-                                      >
-                                        <Copy className="h-3 w-3 text-gray-500" />
-                                      </button>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-            </div>
-          )}
-
           {/* Data Sources */}
-          {activeTab === 'datasources' && (
-            <div className="space-y-2">
-              {dataSourcesLoading ? (
-                <div className="text-sm text-gray-500 text-center py-4">Loading data sources...</div>
-              ) : Object.keys(dataSourcesByCategory).length === 0 ? (
-                <div className="text-sm text-gray-500 text-center py-4">No data sources available</div>
-              ) : (
-                Object.entries(dataSourcesByCategory).map(([category]) => {
-                  const isExpanded = expandedCategories.has(`ds-${category}`);
-                  const filteredSources = getFilteredDataSources(category);
-                  
-                  if (filteredSources.length === 0 && searchQuery) return null;
+          <div className="space-y-2">
+            {dataSourcesLoading ? (
+              <div className="text-sm text-gray-500 text-center py-4">Loading data sources...</div>
+            ) : Object.keys(dataSourcesByCategory).length === 0 ? (
+              <div className="text-sm text-gray-500 text-center py-4">No data sources available</div>
+            ) : (
+              Object.entries(dataSourcesByCategory).map(([category]) => {
+                const isExpanded = expandedCategories.has(category);
+                const filteredSources = getFilteredDataSources(category);
+                
+                if (filteredSources.length === 0 && searchQuery) return null;
 
-                  return (
-                    <div key={`ds-${category}`}>
-                      <button
-                        onClick={() => toggleCategory(`ds-${category}`)}
-                        className="w-full text-left px-2 py-1 hover:bg-gray-100 rounded flex items-center"
-                      >
-                        {isExpanded ? (
-                          <ChevronDown className="h-3 w-3 mr-1" />
-                        ) : (
-                          <ChevronRight className="h-3 w-3 mr-1" />
-                        )}
-                        <Server className="h-3 w-3 mr-2 text-gray-500" />
-                        <span className="text-sm font-medium">{category}</span>
-                        <span className="ml-auto text-xs text-gray-500">{filteredSources.length}</span>
-                      </button>
-
-                      {isExpanded && (
-                        <div className="ml-4 mt-1 space-y-1">
-                          {filteredSources.map(ds => {
-                            const isDataSourceExpanded = expandedDataSources.has(ds.schema_id);
-                            const fields = dataSourceFields[ds.schema_id] || [];
-
-                            return (
-                              <div key={ds.schema_id}>
-                                <div className="flex items-center group">
-                                  <button
-                                    onClick={() => toggleDataSource(ds.schema_id)}
-                                    className="flex-1 text-left px-2 py-1 hover:bg-gray-100 rounded flex items-center"
-                                    title={ds.description}
-                                  >
-                                    {isDataSourceExpanded ? (
-                                      <ChevronDown className="h-3 w-3 mr-1" />
-                                    ) : (
-                                      <ChevronRight className="h-3 w-3 mr-1" />
-                                    )}
-                                    <FileText className="h-3 w-3 mr-2 text-gray-400" />
-                                    <span className="text-xs font-mono truncate">{ds.name}</span>
-                                  </button>
-                                  <button
-                                    onClick={() => handleAddToQuery(ds.schema_id)}
-                                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 rounded"
-                                    title="Add to query"
-                                  >
-                                    <Plus className="h-3 w-3 text-gray-500" />
-                                  </button>
-                                </div>
-
-                                {isDataSourceExpanded && (
-                                  <div className="ml-6 mt-1 space-y-0.5">
-                                    {fields.length === 0 ? (
-                                      <div className="text-xs text-gray-400 px-2 py-1">Loading fields...</div>
-                                    ) : (
-                                      fields.map(field => {
-                                        const FieldIcon = getFieldIcon(field.data_type);
-                                        
-                                        return (
-                                          <div
-                                            key={field.id}
-                                            className="flex items-center group px-2 py-0.5 hover:bg-gray-100 rounded"
-                                            title={field.description}
-                                          >
-                                            <FieldIcon className="h-3 w-3 mr-2 text-gray-400" />
-                                            <span className="text-xs font-mono text-gray-700 flex-1 truncate">
-                                              {field.field_name}
-                                            </span>
-                                            <span className="text-xs text-gray-500 mr-2">
-                                              {field.dimension_or_metric === 'Dimension' ? 'D' : 'M'}
-                                            </span>
-                                            <button
-                                              onClick={() => handleCopyField(`${ds.schema_id}.${field.field_name}`)}
-                                              className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-gray-200 rounded"
-                                              title="Copy field name"
-                                            >
-                                              <Copy className="h-3 w-3 text-gray-500" />
-                                            </button>
-                                          </div>
-                                        );
-                                      })
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
+                return (
+                  <div key={category}>
+                    <button
+                      onClick={() => toggleCategory(category)}
+                      className="w-full text-left px-2 py-1 hover:bg-gray-100 rounded flex items-center"
+                    >
+                      {isExpanded ? (
+                        <ChevronDown className="h-3 w-3 mr-1" />
+                      ) : (
+                        <ChevronRight className="h-3 w-3 mr-1" />
                       )}
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          )}
+                      <Server className="h-3 w-3 mr-2 text-gray-500" />
+                      <span className="text-sm font-medium">{category}</span>
+                      <span className="ml-auto text-xs text-gray-500">{filteredSources.length}</span>
+                    </button>
+
+                    {isExpanded && (
+                      <div className="ml-4 mt-1 space-y-1">
+                        {filteredSources.map(ds => {
+                          const isDataSourceExpanded = expandedDataSources.has(ds.schema_id);
+                          const fields = dataSourceFields[ds.schema_id] || [];
+
+                          return (
+                            <div key={ds.schema_id}>
+                              <div className="flex items-center group">
+                                <button
+                                  onClick={() => toggleDataSource(ds.schema_id)}
+                                  className="flex-1 text-left px-2 py-1 hover:bg-gray-100 rounded flex items-center"
+                                  title={ds.description}
+                                >
+                                  {isDataSourceExpanded ? (
+                                    <ChevronDown className="h-3 w-3 mr-1" />
+                                  ) : (
+                                    <ChevronRight className="h-3 w-3 mr-1" />
+                                  )}
+                                  <FileText className="h-3 w-3 mr-2 text-gray-400" />
+                                  <span className="text-xs font-mono truncate">{ds.name}</span>
+                                </button>
+                                <button
+                                  onClick={() => handleAddToQuery(ds.schema_id)}
+                                  className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 rounded"
+                                  title="Add to query"
+                                >
+                                  <Plus className="h-3 w-3 text-gray-500" />
+                                </button>
+                              </div>
+
+                              {isDataSourceExpanded && (
+                                <div className="ml-6 mt-1 space-y-0.5">
+                                  {fields.length === 0 ? (
+                                    <div className="text-xs text-gray-400 px-2 py-1">Loading fields...</div>
+                                  ) : (
+                                    fields.map(field => {
+                                      const FieldIcon = getFieldIcon(field.data_type);
+                                      
+                                      return (
+                                        <div
+                                          key={field.id}
+                                          className="flex items-center group px-2 py-0.5 hover:bg-gray-100 rounded"
+                                          title={field.description}
+                                        >
+                                          <FieldIcon className="h-3 w-3 mr-2 text-gray-400" />
+                                          <span className="text-xs font-mono text-gray-700 flex-1 truncate">
+                                            {field.field_name}
+                                          </span>
+                                          <span className="text-xs text-gray-500 mr-2">
+                                            {field.dimension_or_metric === 'Dimension' ? 'D' : 'M'}
+                                          </span>
+                                          <button
+                                            onClick={() => handleCopyField(`${ds.schema_id}.${field.field_name}`)}
+                                            className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-gray-200 rounded"
+                                            title="Copy field name"
+                                          >
+                                            <Copy className="h-3 w-3 text-gray-500" />
+                                          </button>
+                                        </div>
+                                      );
+                                    })
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       </div>
 
