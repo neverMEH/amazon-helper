@@ -5,7 +5,6 @@ import time
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone
 import re
-import asyncio
 
 from ..core.logger_simple import get_logger
 from ..core.supabase_client import SupabaseManager
@@ -25,7 +24,7 @@ class AMCExecutionService:
         # Always use real AMC API - no test/simulation mode
         logger.info("AMC Execution Service configured to use REAL AMC API")
         
-    def execute_workflow(
+    async def execute_workflow(
         self,
         workflow_id: str,
         user_id: str,
@@ -119,7 +118,7 @@ class AMCExecutionService:
                     logger.info(f"Generated new AMC workflow ID: {amc_workflow_id} from name: {workflow_name}")
                 
                 # Get valid token for workflow creation
-                valid_token = asyncio.run(token_service.get_valid_token(user_id))
+                valid_token = await token_service.get_valid_token(user_id)
                 if valid_token:
                     # Get AMC account details
                     account = instance.get('amc_accounts')
@@ -338,10 +337,10 @@ class AMCExecutionService:
         """
         try:
             # Ensure token is fresh before workflow execution
-            asyncio.run(token_refresh_service.refresh_before_workflow(user_id))
+            await token_refresh_service.refresh_before_workflow(user_id)
             
             # Get user's full token data
-            user = asyncio.run(db_service.get_user_by_id(user_id))
+            user = await db_service.get_user_by_id(user_id)
             if not user or not user.get('auth_tokens'):
                 logger.error(f"No tokens found for user {user_id}")
                 return {
@@ -373,7 +372,7 @@ class AMCExecutionService:
                 }
             
             # Get valid access token (this will refresh if needed)
-            valid_token = asyncio.run(token_service.get_valid_token(user_id))
+            valid_token = await token_service.get_valid_token(user_id)
             if not valid_token:
                 logger.error(f"No valid Amazon token for user {user_id}")
                 return {
@@ -565,7 +564,7 @@ class AMCExecutionService:
             logger.error(f"Error updating execution status: {e}")
             return None
     
-    def poll_and_update_execution(self, execution_id: str, user_id: str) -> Optional[Dict[str, Any]]:
+    async def poll_and_update_execution(self, execution_id: str, user_id: str) -> Optional[Dict[str, Any]]:
         """
         Poll AMC for execution status and update database
         This is called by the status endpoint to check real-time status
@@ -607,7 +606,7 @@ class AMCExecutionService:
             marketplace_id = instance['amc_accounts'].get('marketplace_id', 'ATVPDKIKX0DER')
             
             # Get valid token
-            valid_token = asyncio.run(token_service.get_valid_token(user_id))
+            valid_token = await token_service.get_valid_token(user_id)
             if not valid_token:
                 logger.error(f"No valid token for user {user_id}")
                 return self.get_execution_status(execution_id, user_id)

@@ -447,7 +447,7 @@ def delete_workflow(
 
 
 @router.post("/{workflow_id}/execute")
-def execute_workflow(
+async def execute_workflow(
     workflow_id: str,
     body: Dict[str, Any] = Body(default={}),
     current_user: Dict[str, Any] = Depends(get_current_user)
@@ -480,7 +480,7 @@ def execute_workflow(
         
         # Execute workflow using AMC execution service
         logger.info(f"Calling execution service with workflow UUID: {workflow['id']}")
-        result = amc_execution_service.execute_workflow(
+        result = await amc_execution_service.execute_workflow(
             workflow_id=workflow['id'],  # Use internal UUID
             user_id=current_user['id'],
             execution_parameters=parameters,
@@ -540,7 +540,7 @@ def list_workflow_executions(
 
 
 @router.get("/executions/{execution_id}/status")
-def get_execution_status(
+async def get_execution_status(
     execution_id: str,
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
@@ -549,7 +549,7 @@ def get_execution_status(
         from ...services.amc_execution_service import amc_execution_service
         
         # Poll AMC for latest status and update database
-        status = amc_execution_service.poll_and_update_execution(execution_id, current_user['id'])
+        status = await amc_execution_service.poll_and_update_execution(execution_id, current_user['id'])
         if not status:
             raise HTTPException(status_code=404, detail="Execution not found")
         

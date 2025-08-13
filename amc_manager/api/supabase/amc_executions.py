@@ -497,7 +497,7 @@ async def refresh_execution_status(
         from ...services.amc_execution_service import amc_execution_service
         
         # Poll and update the execution status
-        status = amc_execution_service.poll_and_update_execution(execution_id, current_user['id'])
+        status = await amc_execution_service.poll_and_update_execution(execution_id, current_user['id'])
         
         if not status:
             raise HTTPException(status_code=404, detail="Execution not found")
@@ -570,7 +570,7 @@ async def refresh_all_executions(
             
             try:
                 # Poll and update the execution
-                result = amc_execution_service.poll_and_update_execution(
+                result = await amc_execution_service.poll_and_update_execution(
                     execution_id=execution_id,
                     user_id=current_user['id']
                 )
