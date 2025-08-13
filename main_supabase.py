@@ -165,6 +165,7 @@ from amc_manager.api.supabase.query_templates import router as query_templates_r
 from amc_manager.api.supabase.brands import router as brands_router
 from amc_manager.api.supabase.amc_executions import router as amc_executions_router
 from amc_manager.api.supabase.profile import router as profile_router
+from amc_manager.api.supabase.data_sources import router as data_sources_router
 
 # Add redirect for misconfigured callback URL (must be before router includes)
 @app.get("/api/auth/callback")
@@ -185,6 +186,7 @@ app.include_router(campaigns_router, prefix="/api/campaigns", tags=["Campaigns"]
 app.include_router(query_templates_router, prefix="/api/query-templates", tags=["Query Templates"])
 app.include_router(brands_router, prefix="/api/brands", tags=["Brands"])
 app.include_router(amc_executions_router, prefix="/api/amc-executions", tags=["AMC Executions"])
+app.include_router(data_sources_router, prefix="/api", tags=["Data Sources"])
 
 # Apply rate limiting to specific endpoints
 for route in app.routes:

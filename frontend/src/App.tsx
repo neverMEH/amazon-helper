@@ -19,6 +19,10 @@ import QueryBuilder from './pages/QueryBuilder';
 import MyQueries from './pages/MyQueries';
 import Executions from './pages/Executions';
 
+// Data Sources imports
+import DataSources from './pages/DataSources';
+import DataSourceDetail from './pages/DataSourceDetail';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -63,6 +67,10 @@ function App() {
               <Route path="/query-builder/template/:templateId" element={<QueryBuilder />} />
               <Route path="/query-builder/edit/:workflowId" element={<QueryBuilder />} />
               <Route path="/query-builder/copy/:workflowId" element={<QueryBuilder />} />
+              
+              {/* Data Sources routes */}
+              <Route path="/data-sources" element={<DataSources />} />
+              <Route path="/data-sources/:schemaId" element={<DataSourceDetail />} />
               
               {/* Profile route */}
               <Route path="/profile" element={<Profile />} />
