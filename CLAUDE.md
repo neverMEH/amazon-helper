@@ -248,6 +248,27 @@ import { queryTemplateService } from '../services/queryTemplateService';  // Reg
 import { QueryTemplate } from '../types/queryTemplate';  // Error: must use type-only import
 ```
 
+#### Execution Modal Components
+```javascript
+// CRITICAL: Two different components for execution details
+// 1. AMCExecutionDetail - Primary component for viewing AMC executions
+//    Location: frontend/src/components/executions/AMCExecutionDetail.tsx
+//    Used in: Executions list, Instance workflows, anywhere AMC executions are shown
+//    Features: Rerun, Refresh, Full execution details from AMC API
+//
+// 2. ExecutionDetailModal - Legacy component for workflow executions
+//    Location: frontend/src/components/workflows/ExecutionDetailModal.tsx  
+//    Used in: Workflow detail page execution history
+//    Features: Basic execution viewing
+
+// AMCExecutionDetail expects workflowInfo.id for workflow ID:
+const workflowId = execution?.workflowId || execution?.workflowInfo?.id;
+
+// Execution parameters are at root level, not nested:
+execution.executionParameters // Correct
+execution.parameters // Wrong
+```
+
 #### Workflow Instance IDs
 ```javascript
 // Use instanceId (AMC ID) not id (internal UUID) for API calls
@@ -403,6 +424,7 @@ git push -u origin feature/your-feature-name
 ### Documentation
 - `/docs/ID_FIELD_REFERENCE.md` - Critical guide for database ID relationships
 - `/docs/WORKFLOW_INSTANCE_BINDING.md` - Workflow instance binding and copy feature
+- `/docs/EXECUTION_DETAILS_ENHANCEMENTS.md` - Rerun/refresh functionality in execution details
 - `/docs/template-library-plan.md` - AMC query template system design
 
 ### Template Library Planning
@@ -421,7 +443,16 @@ git push -u origin feature/your-feature-name
 - Database performance: Apply indexes with `scripts/apply_performance_indexes.py`
 - API performance: FastAPI automatic docs at `/docs`
 
-### Recent Fixes (2025-08-08)
+### Recent Fixes and Enhancements
+
+#### 2025-01-13
+- Added rerun and refresh buttons to AMCExecutionDetail modal
+- Fixed workflow ID field mapping (workflowInfo.id vs workflowId)
+- Resolved TypeScript compilation errors in execution components
+- Enhanced execution viewing with one-click rerun capability
+- See `/docs/EXECUTION_DETAILS_ENHANCEMENTS.md` for details
+
+#### 2025-08-08
 - Fixed workflow ID truncation causing execution failures
 - Resolved 403 authorization errors from token encryption key mismatch
 - Improved token refresh service to handle decryption failures gracefully
