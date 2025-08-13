@@ -3,7 +3,7 @@
  * Browse and search AMC schema documentation
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -14,16 +14,12 @@ import {
   Tag,
   Lock,
   Globe,
-  BookOpen,
-  Code,
-  Table,
   X
 } from 'lucide-react';
 import { dataSourceService } from '../services/dataSourceService';
-import type { DataSource, TagWithCount } from '../types/dataSource';
+import type { DataSource } from '../types/dataSource';
 
 export default function DataSources() {
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   
   // State from URL params
@@ -299,7 +295,7 @@ function DataSourceCard({ dataSource }: { dataSource: DataSource }) {
           <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
             {dataSource.name}
             {dataSource.is_paid_feature && (
-              <Lock className="h-4 w-4 text-yellow-600" title="AMC Paid Feature" />
+              <Lock className="h-4 w-4 text-yellow-600" />
             )}
           </h3>
           <p className="text-sm text-gray-500 mt-1">

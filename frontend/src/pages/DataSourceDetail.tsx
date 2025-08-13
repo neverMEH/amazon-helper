@@ -3,7 +3,7 @@
  * Display complete schema documentation with fields, examples, and sections
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import ReactMarkdown from 'react-markdown';
@@ -29,12 +29,11 @@ import {
   Calculator,
   FileText,
   Search,
-  Filter,
   ExternalLink
 } from 'lucide-react';
 import { dataSourceService } from '../services/dataSourceService';
 import SQLHighlight from '../components/common/SQLHighlight';
-import type { CompleteSchema, SchemaField, QueryExample } from '../types/dataSource';
+import type { SchemaField, QueryExample } from '../types/dataSource';
 
 export default function DataSourceDetail() {
   const { schemaId } = useParams<{ schemaId: string }>();
@@ -187,7 +186,7 @@ export default function DataSourceDetail() {
                       {schema.schema.name}
                     </h1>
                     {schema.schema.is_paid_feature && (
-                      <Lock className="h-4 w-4 text-yellow-600" title="AMC Paid Feature" />
+                      <Lock className="h-4 w-4 text-yellow-600" />
                     )}
                   </div>
                   <p className="text-sm text-gray-500">
