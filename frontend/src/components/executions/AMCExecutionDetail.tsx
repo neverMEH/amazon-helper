@@ -13,13 +13,15 @@ interface Props {
   executionId: string;
   isOpen: boolean;
   onClose: () => void;
+  onRerunSuccess?: (newExecutionId: string) => void;
 }
 
-export default function AMCExecutionDetail({ instanceId, executionId, isOpen, onClose }: Props) {
+export default function AMCExecutionDetail({ instanceId, executionId, isOpen, onClose, onRerunSuccess }: Props) {
   const [showQuery, setShowQuery] = useState(false);
   const [showParameters, setShowParameters] = useState(false);
   const [isRerunning, setIsRerunning] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'charts'>('table');
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const queryClient = useQueryClient();
   
   const { data, isLoading, error, refetch } = useQuery({
@@ -60,9 +62,28 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
       queryClient.invalidateQueries({ queryKey: ['amc-execution-detail'] });
       queryClient.invalidateQueries({ queryKey: ['amc-executions'] });
       
-      // If we get a new execution ID, show it
+      // If we get a new execution ID, navigate to it
       if (data.execution_id) {
-        toast.success(`New execution started: ${data.execution_id}`);
+        toast.success(`Opening new execution: ${data.execution_id}`);
+        
+        // Show transition state
+        setIsTransitioning(true);
+        
+        // If callback is provided, use it to navigate to new execution
+        if (onRerunSuccess) {
+          // Small delay for smooth transition
+          setTimeout(() => {
+            onRerunSuccess(data.execution_id);
+            setIsTransitioning(false);
+          }, 400);
+        } else {
+          // Fallback: close current modal and let parent handle
+          // This gives time for the list to refresh
+          setTimeout(() => {
+            onClose();
+            setIsTransitioning(false);
+          }, 500);
+        }
       }
     },
     onError: (error: any) => {
@@ -157,19 +178,22 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                   </div>
                 )}
 
-                {isLoading && (
-                  <div className="mt-4 flex justify-center">
+                {(isLoading || isTransitioning) && (
+                  <div className="mt-4 flex flex-col items-center justify-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                    {isTransitioning && (
+                      <p className="mt-2 text-sm text-gray-600">Loading new execution...</p>
+                    )}
                   </div>
                 )}
 
-                {error && (
+                {error && !isTransitioning && (
                   <div className="mt-4 bg-red-50 border border-red-200 rounded-md p-4">
                     <p className="text-sm text-red-600">Failed to load execution details</p>
                   </div>
                 )}
 
-                {execution && (
+                {execution && !isTransitioning && (
                   <div className="mt-4 space-y-4">
                     {/* Query Details Section */}
                     {(execution.sqlQuery || execution.workflowInfo?.sqlQuery) && (

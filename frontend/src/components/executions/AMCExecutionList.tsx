@@ -430,6 +430,11 @@ export default function AMCExecutionList({ instanceId, workflowId, showInstanceB
           executionId={selectedExecutionId}
           isOpen={!!selectedExecutionId}
           onClose={() => setSelectedExecutionId(null)}
+          onRerunSuccess={(newExecutionId) => {
+            // Directly switch to new execution without closing
+            // The transition state in AMCExecutionDetail handles the smooth transition
+            setSelectedExecutionId(newExecutionId);
+          }}
         />
       )}
     </div>
