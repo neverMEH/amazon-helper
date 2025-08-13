@@ -11,7 +11,7 @@ from .auth import get_current_user
 from ...services.data_source_service import DataSourceService
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/data-sources", tags=["Data Sources"])
+router = APIRouter(tags=["Data Sources"])
 
 
 @router.get("/", response_model=List[Dict[str, Any]])

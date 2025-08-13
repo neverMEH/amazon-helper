@@ -186,7 +186,7 @@ app.include_router(campaigns_router, prefix="/api/campaigns", tags=["Campaigns"]
 app.include_router(query_templates_router, prefix="/api/query-templates", tags=["Query Templates"])
 app.include_router(brands_router, prefix="/api/brands", tags=["Brands"])
 app.include_router(amc_executions_router, prefix="/api/amc-executions", tags=["AMC Executions"])
-app.include_router(data_sources_router, prefix="/api", tags=["Data Sources"])
+app.include_router(data_sources_router, prefix="/api/data-sources", tags=["Data Sources"])
 
 # Apply rate limiting to specific endpoints
 for route in app.routes:
