@@ -8,6 +8,7 @@ import ParameterEditor from './ParameterEditor';
 import ResultsVisualization from './ResultsVisualization';
 import ExecutionErrorDetails from '../executions/ExecutionErrorDetails';
 import DateRangeSelector from '../common/DateRangeSelector';
+import AMCExecutionDetail from '../executions/AMCExecutionDetail';
 
 interface ExecutionModalProps {
   isOpen: boolean;
@@ -80,6 +81,7 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
   const [useAdvancedEditor, setUseAdvancedEditor] = useState(false);
   const [instanceSearchQuery, setInstanceSearchQuery] = useState('');
   const [showInstanceDropdown, setShowInstanceDropdown] = useState(false);
+  const [showExecutionDetail, setShowExecutionDetail] = useState(false);
   const [dateRange, setDateRange] = useState<{ startDate: string; endDate: string; preset?: string }>({
     startDate: '',
     endDate: '',
@@ -522,13 +524,22 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
                     <h3 className="text-lg font-medium">Results</h3>
                     <div className="space-x-2">
                       {!showResults && (
-                        <button
-                          onClick={() => setShowResults(true)}
-                          className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                        >
-                          <Eye className="h-4 w-4 mr-2" />
-                          View Results
-                        </button>
+                        <>
+                          <button
+                            onClick={() => setShowResults(true)}
+                            className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            View Results Here
+                          </button>
+                          <button
+                            onClick={() => setShowExecutionDetail(true)}
+                            className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            Open Full Results
+                          </button>
+                        </>
                       )}
                       {showResults && results && (
                         <button
@@ -630,5 +641,15 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
         </div>
       </div>
     </div>
+
+    {/* AMC Execution Detail Modal */}
+    {showExecutionDetail && executionId && selectedInstanceId && (
+      <AMCExecutionDetail
+        instanceId={selectedInstanceId}
+        executionId={executionId}
+        isOpen={showExecutionDetail}
+        onClose={() => setShowExecutionDetail(false)}
+      />
+    )}
   );
 }
