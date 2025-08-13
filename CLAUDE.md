@@ -537,6 +537,32 @@ git push -u origin feature/your-feature-name
 ### Recent Fixes and Enhancements
 
 
+
+#### 2025-08-13 (Auto-Generated Update)
+
+**New Features:**
+- feat(AMP-9): Add working refresh button for execution statuses
+- docs: Add reference to auto-documentation system in CLAUDE.md
+- feat: Add automatic CLAUDE.md documentation update system
+  - New files: .github/workflows/update-docs.yml, docs/AUTO_DOCUMENTATION.md, scripts/update_claude_md.py
+- feat: Update application branding with recomAMP logo
+  - New files: frontend/public/branding/recomamp-icon.png, frontend/public/branding/recomamp-logo.png, frontend/public/favicon.png
+- feat: Add chart visualization to AMC execution details
+
+**Bug Fixes:**
+- docs: Auto-update CLAUDE.md with recent changes including AMP-16 fix
+- fix(AMP-16): Fix execution status display in list view
+- fix: Revert login screen to plain text RecomAMP branding
+- fix: Update AppLogo component to prioritize PNG over SVG
+- fix: Resolve TypeScript build errors in breadcrumb components
+
+**Performance Improvements:**
+- perf: Reduce execution status check delays from 45s to 10s
+- perf: Optimize execution fetching to use Supabase first
+
+**Security Updates:**
+- Handle invalid token expiry format
+- updated oauth
 #### 2025-08-13 (Auto-Generated Update)
 
 **New Features:**
