@@ -32,25 +32,19 @@ export default function AppLogo({
 		);
 	}
 
-	const svgSrc = variant === 'icon'
-		? '/branding/recomamp-icon.svg'
-		: '/branding/recomamp-logo.svg';
 	const pngSrc = variant === 'icon'
 		? '/branding/recomamp-icon.png'
 		: '/branding/recomamp-logo.png';
 
 	return (
-		<picture>
-			<source srcSet={svgSrc} type="image/svg+xml" />
-			<img
-				src={pngSrc}
-				alt="recomAMP"
-				height={height}
-				style={{ height, width: 'auto' }}
-				className={className}
-				onError={() => setIsBroken(true)}
-			/>
-		</picture>
+		<img
+			src={pngSrc}
+			alt="recomAMP"
+			height={height}
+			style={{ height, width: 'auto' }}
+			className={className}
+			onError={() => setIsBroken(true)}
+		/>
 	);
 }
 
