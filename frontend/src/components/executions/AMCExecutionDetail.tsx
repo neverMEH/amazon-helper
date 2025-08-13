@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, Code, Database, Calendar, User, Hash, ChevronDown, ChevronRight, RefreshCw, Play, Loader, Table, BarChart3 } from 'lucide-react';
+import { X, Code, Database, Calendar, User, Hash, ChevronDown, ChevronRight, RefreshCw, Play, Loader, Table, BarChart3, Maximize2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { amcExecutionService } from '../../services/amcExecutionService';
 import EnhancedResultsTable from './EnhancedResultsTable';
@@ -22,6 +22,7 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
   const [isRerunning, setIsRerunning] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'charts'>('table');
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isExpandedSQL, setIsExpandedSQL] = useState(false);
   const queryClient = useQueryClient();
   
   const { data, isLoading, error, refetch } = useQuery({
@@ -206,11 +207,25 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                             <Code className="h-5 w-5 text-gray-400 mr-2" />
                             <span className="text-sm font-medium text-gray-900">SQL Query</span>
                           </div>
-                          {showQuery ? (
-                            <ChevronDown className="h-5 w-5 text-gray-400" />
-                          ) : (
-                            <ChevronRight className="h-5 w-5 text-gray-400" />
-                          )}
+                          <div className="flex items-center space-x-2">
+                            {showQuery && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setIsExpandedSQL(true);
+                                }}
+                                className="p-1 hover:bg-gray-200 rounded transition-colors"
+                                title="Expand SQL editor"
+                              >
+                                <Maximize2 className="h-4 w-4 text-gray-500" />
+                              </button>
+                            )}
+                            {showQuery ? (
+                              <ChevronDown className="h-5 w-5 text-gray-400" />
+                            ) : (
+                              <ChevronRight className="h-5 w-5 text-gray-400" />
+                            )}
+                          </div>
                         </button>
                         {showQuery && (
                           <div className="px-4 pb-4">
@@ -448,6 +463,72 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
           </div>
         </div>
       </div>
+
+      {/* Expanded SQL Modal */}
+      {isExpandedSQL && (
+        <>
+          <div 
+            className="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity z-[60]"
+            onClick={() => setIsExpandedSQL(false)}
+          />
+          <div className="fixed inset-0 z-[70] overflow-y-auto p-4">
+            <div className="flex min-h-full items-center justify-center">
+              <div className="relative transform overflow-hidden rounded-lg bg-white shadow-2xl transition-all w-full max-w-7xl">
+                <div className="bg-white px-4 pb-4 pt-5 sm:p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                      <Code className="h-5 w-5 mr-2 text-gray-500" />
+                      SQL Query - Expanded View
+                    </h3>
+                    <button
+                      onClick={() => setIsExpandedSQL(false)}
+                      className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                    >
+                      <span className="sr-only">Close</span>
+                      <X className="h-6 w-6" aria-hidden="true" />
+                    </button>
+                  </div>
+                  
+                  {/* Instance and Query Name Info */}
+                  {execution && (
+                    <div className="mb-4 text-sm text-gray-600 space-y-1">
+                      {execution.instanceInfo && (
+                        <p>
+                          <span className="font-medium">Instance:</span> {execution.instanceInfo.instanceName} ({execution.instanceInfo.region})
+                        </p>
+                      )}
+                      {(execution.workflowInfo?.name || execution.workflowName) && (
+                        <p>
+                          <span className="font-medium">Query:</span> {execution.workflowInfo?.name || execution.workflowName}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  
+                  <div className="border rounded-lg overflow-hidden">
+                    <SQLEditor 
+                      value={execution?.sqlQuery || execution?.workflowInfo?.sqlQuery || ''} 
+                      onChange={() => {}}
+                      height="calc(80vh - 200px)"
+                      readOnly={true}
+                    />
+                  </div>
+                  
+                  <div className="mt-4 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setIsExpandedSQL(false)}
+                      className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 }
