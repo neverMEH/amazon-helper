@@ -53,10 +53,10 @@ python scripts/apply_performance_indexes.py # Apply DB indexes
 ### Frontend Development
 ```bash
 cd frontend
+npm install       # Install dependencies
 npm run dev       # Development server on port 5173
 npm run build     # Production build with TypeScript checking
 npm run lint      # ESLint checking
-npm run typecheck # Alias for tsc --noEmit
 npx tsc --noEmit  # TypeScript type checking only
 
 # E2E tests
@@ -120,6 +120,8 @@ npx playwright test --ui  # Interactive mode
   - `InstanceWorkflows`: Instance-specific query management
   - `BrandSelector`: Autocomplete brand selection with creation
   - `AMCSyncStatus`: Optional AMC workflow sync with benefits display
+  - `Breadcrumb`: Dynamic breadcrumb navigation component (NEW)
+  - `AuthStatusBanner`: Authentication status banner for disconnected auth
 
 ### Database Schema (Supabase)
 Key tables:
@@ -327,6 +329,26 @@ workflow_data.instance_id = instance.id;  // Store internal UUID
 - Single container serves both frontend and backend
 - Frontend files served from `/frontend/dist`
 
+## Project Structure Updates
+
+### Frontend Utilities
+- **`/frontend/src/utils/`**:
+  - `breadcrumbConfig.ts`: Breadcrumb route configuration and mapping
+  - `dateUtils.ts`: Date formatting and manipulation utilities
+
+### Common Components
+- **`/frontend/src/components/common/`**:
+  - `AppLogo.tsx`: Application logo component
+  - `AuthStatusBanner.tsx`: Authentication disconnection warning banner
+  - `Breadcrumb.tsx`: Dynamic breadcrumb navigation
+  - `BrandSelector.tsx`: Brand selection with autocomplete
+  - `BrandTag.tsx`: Brand display tag component
+  - `DateRangeSelector.tsx`: Date range picker for queries
+  - `JSONEditor.tsx`: JSON editing with Monaco Editor
+  - `LazyLoad.tsx`: Lazy loading wrapper component
+  - `SQLEditor.tsx`: SQL editing with syntax highlighting
+  - `SQLHighlight.tsx`: SQL syntax highlighting component
+
 ## Common Development Tasks
 
 ### Adding a New API Endpoint
@@ -464,9 +486,22 @@ git push -u origin feature/your-feature-name
 
 ### Dependencies
 - **Frontend**: See `frontend/package.json` for complete list
-  - Key additions: recharts, react-window, @types/react-window
-- **Backend**: See `requirements_supabase.txt`
-  - FastAPI, Supabase, cryptography for token encryption
+  - React 19.1.0 with React Router v7
+  - TanStack Query v5 for server state management
+  - Tailwind CSS with forms and typography plugins
+  - Monaco Editor for code editing
+  - Recharts for data visualization
+  - React Window for virtualized lists
+  - Lucide React for icons
+  - Date-fns for date utilities
+  - Axios for API calls
+  - React Hook Form for form management
+- **Backend**: See `requirements.txt`
+  - FastAPI for API framework
+  - Supabase for database and auth
+  - Cryptography (Fernet) for token encryption
+  - Boto3 for AWS services
+  - Pandas for data processing
 
 ### Monitoring
 - Check execution logs: `python scripts/check_execution_logs.py`
@@ -476,6 +511,11 @@ git push -u origin feature/your-feature-name
 ### Recent Fixes and Enhancements
 
 #### 2025-08-13
+- **NEW FEATURE: Breadcrumb Navigation (AMP-11)**
+  - Added breadcrumb navigation across all pages
+  - Dynamic route handling with instance/workflow name fetching
+  - Clean UI with home icon and chevron separators
+  - Components: `Breadcrumb.tsx` and `breadcrumbConfig.ts`
 - **CRITICAL FIX: AMC Execution Date Parameters**
   - Fixed queries returning 0 rows due to date parameter handling
   - API now properly extracts `startDate`/`endDate` from frontend
