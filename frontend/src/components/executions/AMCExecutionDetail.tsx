@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, Code, Database, Calendar, User, Hash, ChevronDown, ChevronRight, RefreshCw, Play, Loader } from 'lucide-react';
+import { X, Code, Database, Calendar, User, Hash, ChevronDown, ChevronRight, RefreshCw, Play, Loader, Table, BarChart3 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { amcExecutionService } from '../../services/amcExecutionService';
 import EnhancedResultsTable from './EnhancedResultsTable';
+import DataVisualization from './DataVisualization';
 import SQLHighlight from '../common/SQLHighlight';
 import ExecutionErrorDetails from './ExecutionErrorDetails';
 
@@ -18,6 +19,7 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
   const [showQuery, setShowQuery] = useState(false);
   const [showParameters, setShowParameters] = useState(false);
   const [isRerunning, setIsRerunning] = useState(false);
+  const [viewMode, setViewMode] = useState<'table' | 'charts'>('table');
   const queryClient = useQueryClient();
   
   const { data, isLoading, error, refetch } = useQuery({
@@ -334,18 +336,62 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
 
                         {execution.resultData && (
                           <div>
-                            <h4 className="text-sm font-medium text-gray-900 mb-2">Results</h4>
-                            <EnhancedResultsTable 
-                              data={execution.resultData}
-                              instanceInfo={execution.instanceInfo}
-                              brands={execution.brands}
-                              executionContext={{
-                                workflowName: execution.workflowInfo?.name || execution.workflowName || 'query',
-                                executionId: execution.executionId,
-                                startTime: execution.startTime,
-                                endTime: execution.endTime || new Date().toISOString()
-                              }}
-                            />
+                            <div className="flex items-center justify-between mb-4">
+                              <h4 className="text-sm font-medium text-gray-900">Results</h4>
+                              
+                              {/* View Mode Toggle */}
+                              <div className="flex rounded-md shadow-sm" role="group">
+                                <button
+                                  type="button"
+                                  onClick={() => setViewMode('table')}
+                                  className={`px-4 py-2 text-sm font-medium rounded-l-lg border ${
+                                    viewMode === 'table'
+                                      ? 'bg-indigo-600 text-white border-indigo-600 z-10'
+                                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                  }`}
+                                >
+                                  <Table className="h-4 w-4 inline-block mr-1" />
+                                  Table
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setViewMode('charts')}
+                                  className={`px-4 py-2 text-sm font-medium rounded-r-lg border-t border-r border-b ${
+                                    viewMode === 'charts'
+                                      ? 'bg-indigo-600 text-white border-indigo-600 z-10'
+                                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                  }`}
+                                >
+                                  <BarChart3 className="h-4 w-4 inline-block mr-1" />
+                                  Charts
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Conditional Rendering based on View Mode */}
+                            {viewMode === 'table' ? (
+                              <EnhancedResultsTable 
+                                data={execution.resultData}
+                                instanceInfo={execution.instanceInfo}
+                                brands={execution.brands}
+                                executionContext={{
+                                  workflowName: execution.workflowInfo?.name || execution.workflowName || 'query',
+                                  executionId: execution.executionId,
+                                  startTime: execution.startTime,
+                                  endTime: execution.endTime || new Date().toISOString()
+                                }}
+                              />
+                            ) : (
+                              <DataVisualization
+                                data={execution.resultData}
+                                columns={execution.resultData && execution.resultData.length > 0 
+                                  ? Object.keys(execution.resultData[0])
+                                  : []
+                                }
+                                title="Query Results Visualization"
+                                brands={execution.brands}
+                              />
+                            )}
                           </div>
                         )}
 
