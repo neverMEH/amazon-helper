@@ -74,20 +74,84 @@ class AMCAPIClient:
         timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
         output_location = f"s3://amc-results/{instance_id}/{timestamp}/"
         
+        # Extract date parameters from parameter_values
+        # Check for various date parameter formats
+        time_window_start = None
+        time_window_end = None
+        
+        if parameter_values:
+            # Look for date parameters in various formats
+            for start_key in ['startDate', 'start_date', 'timeWindowStart', 'beginDate']:
+                if start_key in parameter_values:
+                    time_window_start = parameter_values[start_key]
+                    logger.info(f"Found start date parameter '{start_key}': {time_window_start}")
+                    break
+            
+            for end_key in ['endDate', 'end_date', 'timeWindowEnd', 'finishDate']:
+                if end_key in parameter_values:
+                    time_window_end = parameter_values[end_key]
+                    logger.info(f"Found end date parameter '{end_key}': {time_window_end}")
+                    break
+        
+        # Parse and format dates for AMC API
+        if time_window_start:
+            try:
+                # Parse the date string (handle various formats)
+                if 'T' in str(time_window_start):
+                    # Already in ISO format, just ensure no timezone
+                    time_window_start = str(time_window_start).replace('Z', '').split('+')[0].split('.')[0]
+                else:
+                    # Date only format (YYYY-MM-DD), add time component
+                    time_window_start = f"{time_window_start}T00:00:00"
+                logger.info(f"Formatted start date for AMC: {time_window_start}")
+            except Exception as e:
+                logger.warning(f"Error parsing start date: {e}, using default")
+                time_window_start = None
+        
+        if time_window_end:
+            try:
+                # Parse the date string (handle various formats)
+                if 'T' in str(time_window_end):
+                    # Already in ISO format, just ensure no timezone
+                    time_window_end = str(time_window_end).replace('Z', '').split('+')[0].split('.')[0]
+                else:
+                    # Date only format (YYYY-MM-DD), add time component (end of day)
+                    time_window_end = f"{time_window_end}T23:59:59"
+                logger.info(f"Formatted end date for AMC: {time_window_end}")
+            except Exception as e:
+                logger.warning(f"Error parsing end date: {e}, using default")
+                time_window_end = None
+        
+        # Use default dates if not provided (14-21 days ago to account for AMC data lag)
+        if not time_window_start or not time_window_end:
+            logger.warning("Date parameters not found or invalid, using default date range (14-21 days ago for AMC data lag)")
+            from datetime import timedelta
+            # AMC has a 14-day data lag, so we need to query older data
+            end_date = datetime.utcnow() - timedelta(days=14)  # 14 days ago
+            start_date = end_date - timedelta(days=7)  # 21 days ago
+            time_window_start = start_date.replace(hour=0, minute=0, second=0, microsecond=0).strftime('%Y-%m-%dT%H:%M:%S')
+            time_window_end = end_date.replace(hour=23, minute=59, second=59, microsecond=0).strftime('%Y-%m-%dT%H:%M:%S')
+            logger.info(f"Using default date range (accounting for AMC data lag): {time_window_start} to {time_window_end}")
+        
         # Build payload based on execution mode
         if workflow_id:
             # Saved workflow execution
             payload = {
                 "workflowId": workflow_id,
                 "timeWindowType": "EXPLICIT",  # Use explicit time window
-                "timeWindowStart": datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0).strftime('%Y-%m-%dT%H:%M:%S'),
-                "timeWindowEnd": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S'),
+                "timeWindowStart": time_window_start,
+                "timeWindowEnd": time_window_end,
                 "timeWindowTimeZone": "America/New_York",
                 "outputFormat": output_format
             }
-            # Add parameter values if provided
+            # Add parameter values if provided (for workflow parameters, not time window)
             if parameter_values:
-                payload["parameterValues"] = parameter_values
+                # Create a copy without date parameters (they're handled by timeWindow fields)
+                workflow_params = {k: v for k, v in parameter_values.items() 
+                                 if k not in ['startDate', 'start_date', 'endDate', 'end_date', 
+                                            'timeWindowStart', 'timeWindowEnd', 'date_range_preset']}
+                if workflow_params:
+                    payload["parameterValues"] = workflow_params
         else:
             # Ad-hoc execution with SQL query
             payload = {
@@ -101,8 +165,8 @@ class AMCAPIClient:
                     }
                 },
                 "timeWindowType": "EXPLICIT",  # Use explicit time window
-                "timeWindowStart": datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0).strftime('%Y-%m-%dT%H:%M:%S'),
-                "timeWindowEnd": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S'),
+                "timeWindowStart": time_window_start,
+                "timeWindowEnd": time_window_end,
                 "timeWindowTimeZone": "America/New_York",
                 "outputFormat": output_format
             }
@@ -373,6 +437,12 @@ class AMCAPIClient:
             
             # Parse CSV content
             csv_content = csv_response.text
+            
+            # Log first few lines for debugging (without sensitive data)
+            if len(csv_content) > 0:
+                preview_lines = csv_content.split('\n')[:5]
+                logger.info(f"CSV preview (first 5 lines): {preview_lines}")
+            
             csv_reader = csv.reader(io.StringIO(csv_content))
             
             # Get headers (first row)
@@ -382,6 +452,12 @@ class AMCAPIClient:
             rows = list(csv_reader)
             
             logger.info(f"Parsed CSV: {len(headers)} columns, {len(rows)} rows")
+            
+            # Check for empty results
+            if len(rows) == 0:
+                logger.warning("CSV file contains headers but no data rows - query returned empty results")
+                logger.info(f"Headers found: {headers}")
+                logger.info("Possible causes: 1) Date range has no data, 2) Query filters too restrictive, 3) AMC data lag")
             
             # Convert to our format with column metadata
             columns = [{"name": header, "type": "string"} for header in headers]
@@ -457,7 +533,13 @@ class AMCAPIClient:
             
             # Check for empty results
             if len(rows) == 0:
-                logger.warning("CSV file contains headers but no data rows - query may have returned empty results")
+                logger.warning("CSV file contains headers but no data rows - query returned empty results")
+                logger.info("Common causes of empty AMC results:")
+                logger.info("1. Date range mismatch - check that timeWindowStart/End match your data availability")
+                logger.info("2. Query filters too restrictive - verify WHERE clauses")
+                logger.info("3. AMC data lag - recent data may not be available yet (24-48 hour lag)")
+                logger.info("4. Timezone issues - AMC uses America/New_York by default")
+                logger.info("5. Parameter substitution issues - check that parameters are correctly replaced in SQL")
             
             # Convert rows to list of objects with column names as keys
             data_objects = []

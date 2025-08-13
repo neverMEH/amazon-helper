@@ -83,11 +83,18 @@ class AMCExecutionService:
                     raise ValueError("No AMC instance associated with workflow")
                 logger.info(f"Using workflow's default instance: {instance.get('instance_id', 'unknown')}")
             
+            # Log execution parameters for debugging
+            logger.info(f"Execution parameters received: {execution_parameters}")
+            logger.info(f"Workflow default parameters: {workflow.get('parameters', {})}")
+            
             # Always substitute parameters for the SQL query
             sql_query = self._prepare_sql_query(
                 workflow['sql_query'],
                 execution_parameters or workflow.get('parameters', {})
             )
+            
+            # Log the prepared SQL for debugging (first 500 chars)
+            logger.info(f"Prepared SQL query (first 500 chars): {sql_query[:500] if sql_query else 'None'}")
             
             # All executions now use saved workflows (no more ad-hoc mode)
             execution_mode = 'saved_workflow'
