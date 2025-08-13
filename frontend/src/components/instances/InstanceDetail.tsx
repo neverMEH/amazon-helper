@@ -71,7 +71,7 @@ export default function InstanceDetail() {
   const tabs = [
     { id: 'overview' as TabType, name: 'Overview', icon: Database },
     { id: 'campaigns' as TabType, name: 'Campaigns', icon: Activity },
-    { id: 'queries' as TabType, name: 'Queries', icon: FileText },
+    { id: 'queries' as TabType, name: 'Workflows', icon: FileText },
     { id: 'executions' as TabType, name: 'Executions', icon: History },
   ];
 

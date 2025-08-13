@@ -82,7 +82,7 @@ export default function InstanceWorkflows({ instanceId }: InstanceWorkflowsProps
   if (isLoading) {
     return (
       <div className="p-6">
-        <div className="text-center text-gray-500">Loading queries...</div>
+        <div className="text-center text-gray-500">Loading workflows...</div>
       </div>
     );
   }
@@ -92,9 +92,9 @@ export default function InstanceWorkflows({ instanceId }: InstanceWorkflowsProps
       <div className="p-6">
         <div className="text-center py-12">
           <FileText className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No queries for this instance</h3>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">No workflows for this instance</h3>
           <p className="mt-1 text-sm text-gray-500">
-            Get started by creating a new query for this instance.
+            Get started by creating a new workflow for this instance.
           </p>
           <div className="mt-6 flex justify-center space-x-4">
             <button 
@@ -102,7 +102,7 @@ export default function InstanceWorkflows({ instanceId }: InstanceWorkflowsProps
               className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Create Query
+              Create Workflow
             </button>
             <button 
               onClick={() => navigate('/query-library')}
@@ -121,21 +121,21 @@ export default function InstanceWorkflows({ instanceId }: InstanceWorkflowsProps
     <>
       <div className="p-6">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium text-gray-900">Queries</h3>
+          <h3 className="text-lg font-medium text-gray-900">Workflows</h3>
           <div className="flex space-x-2">
             <button 
               onClick={() => navigate('/query-builder/new', { state: { instanceId } })}
               className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
             >
               <Plus className="h-4 w-4 mr-1" />
-              Create Query
+              Create Workflow
             </button>
             <button 
               onClick={() => navigate('/query-library')}
               className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
             >
               <FileText className="h-4 w-4 mr-1" />
-              Query Library
+              Workflow Library
             </button>
           </div>
         </div>
@@ -188,14 +188,14 @@ export default function InstanceWorkflows({ instanceId }: InstanceWorkflowsProps
                   <button
                     onClick={() => handleExecute(query.workflowId)}
                     className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
-                    title="Execute Query"
+                    title="Execute Workflow"
                   >
                     <PlayCircle className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => navigate(`/query-builder/edit/${query.workflowId}`)}
                     className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                    title="Edit Query"
+                    title="Edit Workflow"
                   >
                     <Edit2 className="h-4 w-4" />
                   </button>
