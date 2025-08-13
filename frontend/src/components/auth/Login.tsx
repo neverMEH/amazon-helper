@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Lock, Mail, AlertCircle } from 'lucide-react';
 import { authService } from '../../services/auth';
-import AppLogo from '../common/AppLogo';
 import type { LoginCredentials } from '../../services/auth';
 
 export default function Login() {
@@ -31,8 +30,7 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="flex flex-col items-center">
-          <AppLogo variant="icon" height={64} className="mb-3" />
-          <AppLogo variant="wordmark" height={24} className="mt-1" />
+          <div className="text-4xl font-bold text-indigo-600 mb-2">RecomAMP</div>
           <p className="mt-3 text-center text-sm text-gray-600">
             Sign in to your account
           </p>
