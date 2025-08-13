@@ -182,12 +182,42 @@ headers = {
 if token_expired:
     new_tokens = refresh_oauth_tokens(refresh_token)
     # Tokens are automatically encrypted before storage
+```
+
+#### AMC Date Parameter Handling (CRITICAL - Fixed 2025-08-13)
+```python
+# AMC has a 14-day data lag - queries for recent data return 0 rows
+# The API now properly extracts date parameters from frontend:
+# - Looks for: startDate, start_date, endDate, end_date
+# - Formats dates without timezone suffix (AMC requirement)
+# - Defaults to 14-21 days ago if no dates provided
+
+# CORRECT date handling (implemented in amc_api_client.py):
+if not time_window_start or not time_window_end:
+    # Account for AMC's 14-day data lag
+    end_date = datetime.utcnow() - timedelta(days=14)  # 14 days ago
+    start_date = end_date - timedelta(days=7)  # 21 days ago
+    time_window_start = start_date.strftime('%Y-%m-%dT%H:%M:%S')  # No 'Z'!
+    time_window_end = end_date.strftime('%Y-%m-%dT%H:%M:%S')
 
 # Date format for AMC API - CRITICAL
 # Use this format (without timezone):
-params['minCreationTime'] = datetime.strftime('%Y-%m-%dT%H:%M:%S')
-# NOT this (causes "Must provide either workflowId or minCreationTime" error):
-params['minCreationTime'] = datetime.isoformat() + 'Z'
+params['timeWindowStart'] = '2025-07-15T00:00:00'
+# NOT this (causes empty results or errors):
+params['timeWindowStart'] = '2025-07-15T00:00:00Z'  # 'Z' breaks it!
+```
+
+#### Execution Status Polling (Added 2025-08-13)
+```python
+# Automatic status polling service runs every 15 seconds
+# Updates pending/running executions from AMC API
+# Located in: amc_manager/services/execution_status_poller.py
+
+# Manual refresh available via API:
+POST /api/executions/refresh-status/{execution_id}
+
+# Polling only checks executions from last 2 hours to avoid old ones
+# Status progression: pending -> running -> completed/failed
 ```
 
 #### Token Encryption and Management
@@ -444,6 +474,18 @@ git push -u origin feature/your-feature-name
 - API performance: FastAPI automatic docs at `/docs`
 
 ### Recent Fixes and Enhancements
+
+#### 2025-08-13
+- **CRITICAL FIX: AMC Execution Date Parameters**
+  - Fixed queries returning 0 rows due to date parameter handling
+  - API now properly extracts `startDate`/`endDate` from frontend
+  - Defaults to 14-21 days ago to account for AMC's data lag
+  - See `/docs/AMC_EXECUTION_FIX.md` for details
+- **CRITICAL FIX: Execution Status Polling**
+  - Added automatic status polling service (`ExecutionStatusPoller`)
+  - Polls pending/running executions every 15 seconds
+  - Fixed issue where all executions remained "pending" indefinitely
+  - Added manual refresh endpoint: `/api/executions/refresh-status/{execution_id}`
 
 #### 2025-01-13
 - Added rerun and refresh buttons to AMCExecutionDetail modal
