@@ -27,9 +27,6 @@ interface QueryBuilderState {
   // Export settings
   exportSettings: {
     name: string;
-    email: string;
-    format: 'CSV' | 'PARQUET' | 'JSON';
-    password?: string;
   };
   
   // Parameters extracted from query
@@ -89,9 +86,7 @@ export default function QueryBuilder() {
       appendThresholdColumns: false
     },
     exportSettings: {
-      name: '',
-      email: '',
-      format: 'CSV'
+      name: ''
     },
     parameters: {}
   });

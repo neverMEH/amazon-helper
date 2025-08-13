@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Check, AlertTriangle, Database, Clock, FileText, DollarSign, Info } from 'lucide-react';
+import { AlertTriangle, Database, Clock, FileText, DollarSign, Info } from 'lucide-react';
 
 interface QueryReviewStepProps {
   state: any;
@@ -38,9 +38,6 @@ export default function QueryReviewStep({ state, instances }: QueryReviewStepPro
     const newWarnings = [];
     if (!state.name) {
       newWarnings.push('Query name is not set. Consider adding a descriptive name.');
-    }
-    if (!state.exportSettings.email) {
-      newWarnings.push('No email configured. You won\'t receive export notifications.');
     }
     if (Object.keys(state.parameters).length > 5) {
       newWarnings.push('Query has many parameters. Ensure all values are correct.');
@@ -138,26 +135,15 @@ export default function QueryReviewStep({ state, instances }: QueryReviewStepPro
             <div className="space-y-2">
               <div>
                 <p className="text-xs text-gray-500">Export Name</p>
-                <p className="text-sm text-gray-900">
-                  {state.exportSettings.name || 'Unnamed Export'}
+                <p className="text-sm text-gray-900 break-all">
+                  {state.exportSettings.name || 'Auto-generated on execution'}
                 </p>
               </div>
-              <div>
-                <p className="text-xs text-gray-500">Format</p>
-                <p className="text-sm text-gray-900">{state.exportSettings.format}</p>
+              <div className="pt-2 border-t border-gray-100">
+                <p className="text-xs text-gray-400">
+                  All formats (CSV, Parquet, JSON) are available
+                </p>
               </div>
-              {state.exportSettings.email && (
-                <div>
-                  <p className="text-xs text-gray-500">Email</p>
-                  <p className="text-sm text-gray-900">{state.exportSettings.email}</p>
-                </div>
-              )}
-              {state.exportSettings.password && (
-                <div className="flex items-center text-xs text-green-600">
-                  <Check className="h-3 w-3 mr-1" />
-                  Password protected
-                </div>
-              )}
             </div>
           </div>
 
