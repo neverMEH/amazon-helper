@@ -11,7 +11,7 @@ interface DynamicData {
 
 export function getBreadcrumbConfig(
   pathname: string, 
-  params: Record<string, string | undefined>,
+  _params: Record<string, string | undefined>,
   dynamicData: DynamicData
 ): BreadcrumbItem[] {
   const breadcrumbs: BreadcrumbItem[] = [];

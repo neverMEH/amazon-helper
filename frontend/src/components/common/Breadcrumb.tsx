@@ -1,9 +1,9 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { ChevronRight, Home } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
-import { getBreadcrumbConfig, BreadcrumbItem } from '../../utils/breadcrumbConfig';
+import { getBreadcrumbConfig } from '../../utils/breadcrumbConfig';
 
 interface DynamicBreadcrumbData {
   instanceName?: string;
@@ -14,7 +14,6 @@ interface DynamicBreadcrumbData {
 export default function Breadcrumb() {
   const location = useLocation();
   const params = useParams();
-  const pathSegments = location.pathname.split('/').filter(Boolean);
 
   // Fetch dynamic data for breadcrumbs
   const { data: instanceData } = useQuery({
