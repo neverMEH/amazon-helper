@@ -138,6 +138,22 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                 <h3 className="text-lg font-semibold leading-6 text-gray-900">
                   Execution Details
                 </h3>
+                
+                {/* Display Instance and Workflow Name */}
+                {execution && (
+                  <div className="mt-2 space-y-1">
+                    {execution.instanceInfo && (
+                      <p className="text-sm text-gray-600">
+                        <span className="font-medium">Instance:</span> {execution.instanceInfo.instanceName} ({execution.instanceInfo.region})
+                      </p>
+                    )}
+                    {(execution.workflowInfo?.name || execution.workflowName) && (
+                      <p className="text-sm text-gray-600">
+                        <span className="font-medium">Query:</span> {execution.workflowInfo?.name || execution.workflowName}
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {isLoading && (
                   <div className="mt-4 flex justify-center">
