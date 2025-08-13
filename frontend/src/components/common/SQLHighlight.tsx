@@ -4,6 +4,24 @@ interface SQLHighlightProps {
 }
 
 export default function SQLHighlight({ sql, className = '' }: SQLHighlightProps) {
+  // Pre-clean the SQL before processing to handle any embedded artifacts
+  const preCleanSQL = (input: string): string => {
+    if (!input) return '';
+    
+    // Aggressively remove all HTML-like artifacts before processing
+    return input
+      // Remove specific patterns we're seeing in the data
+      .replace(/\b\d+\s*font-[^">]*">/g, '') // "400 font-semibold">
+      .replace(/\b\d+">"[^"]*"/g, '') // 400">"text-green-400"
+      .replace(/"text-[^"]*"/g, '') // "text-green-400"
+      .replace(/\b\d+">'/g, "'") // 400">' -> just '
+      .replace(/"\s*>/g, '') // "> artifacts
+      // Clean up the results
+      .replace(/\s{2,}/g, ' ') // Multiple spaces to single
+      .replace(/>\s*'/g, "'") // >' -> '
+      .trim();
+  };
+  
   // SQL keywords for highlighting
   const keywords = [
     'SELECT', 'FROM', 'WHERE', 'JOIN', 'LEFT', 'RIGHT', 'INNER', 'OUTER', 'ON',
@@ -33,14 +51,21 @@ export default function SQLHighlight({ sql, className = '' }: SQLHighlightProps)
       .replace(/&#39;/g, "'")
       .replace(/&nbsp;/g, ' ');
     
-    // Remove any HTML tags and artifacts
+    // Remove any HTML tags and artifacts - more aggressive cleaning
     cleanQuery = cleanQuery
       .replace(/<[^>]*>/g, '') // Remove all HTML tags
-      .replace(/\s+\d+\s+font-[^"]*">/g, '') // Remove font class artifacts
-      .replace(/\s+\d+">/g, '') // Remove number artifacts
+      // Remove specific artifacts we're seeing
+      .replace(/\d+\s*font-semibold">/g, '') // Remove "400 font-semibold">
+      .replace(/\d+">"/g, '') // Remove '400">"'
+      .replace(/text-[a-z-]+\d*">/g, '') // Remove text-color classes like "text-green-400">
+      .replace(/"text-[a-z-]+\d*">/g, '') // Remove quoted text classes
+      .replace(/\d+">/g, '') // Remove number artifacts like '400">'
+      // More general cleanup patterns
+      .replace(/\s+font-[^"]*">/g, '') // Remove font class artifacts
       .replace(/">/g, '') // Remove dangling quotes
       .replace(/class="[^"]*"/g, '') // Remove any class attributes
       .replace(/style="[^"]*"/g, '') // Remove any style attributes
+      .replace(/\s{2,}/g, ' ') // Collapse multiple spaces
       .trim();
 
     // Format the SQL for better readability
@@ -153,12 +178,13 @@ export default function SQLHighlight({ sql, className = '' }: SQLHighlightProps)
     );
   }
 
-  // Always process the SQL through our cleaning and formatting logic
-  // This ensures consistent formatting whether or not artifacts are detected
+  // Always pre-clean and then process the SQL through our formatting logic
+  const cleanedSQL = preCleanSQL(sql);
+  
   return (
     <pre className={`bg-gray-900 text-gray-100 p-4 rounded-md overflow-x-auto text-xs font-mono ${className}`}>
       <code 
-        dangerouslySetInnerHTML={{ __html: highlightSQL(sql) }} 
+        dangerouslySetInnerHTML={{ __html: highlightSQL(cleanedSQL) }} 
         style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
       />
     </pre>

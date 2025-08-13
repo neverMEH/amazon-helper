@@ -23,6 +23,7 @@ npm run lint
 
 # TypeScript type checking (no npm script, use directly)
 npx tsc --noEmit
+npx tsc --noEmit --watch      # Watch mode during development
 
 # Preview production build
 npm run preview
@@ -32,6 +33,7 @@ npx playwright test                     # Run all tests
 npx playwright test --ui               # Interactive mode
 npx playwright test test-name.spec.ts  # Specific test file
 npx playwright test -g "test name"     # Specific test by name
+npx playwright test --debug            # Debug mode with inspector
 ```
 
 ## Architecture
@@ -131,6 +133,7 @@ const queryClient = new QueryClient({
 // Local state: useState for UI state
 // Forms: React Hook Form with controlled inputs
 // Modals: Local state with isOpen/onClose pattern
+// Navigation state: React Router's state prop for passing data
 ```
 
 ## Key Architectural Decisions
@@ -159,13 +162,23 @@ State flows down through props, updates bubble up through setState callbacks.
 ### Execution Modal Hierarchy
 Two separate execution viewing systems:
 - **AMCExecutionDetail**: Primary component for AMC executions (with rerun/refresh)
+  - Supports `onRerunSuccess` callback for auto-navigation to new execution
+  - Polls execution status every 5 seconds while open
+  - Has view mode toggle between table and charts
 - **ExecutionDetailModal**: Legacy component for workflow executions
 
 ### Export Name Auto-Generation
 Export names follow pattern: `[Query Name] - [Instance] - [Date Range] - [DateTime]`
-- Auto-generated on parameter change
+- Auto-generated on parameter change via useEffect
 - User-editable but not required
 - Removed email/format/password fields per AMP-1
+
+### SQL Formatting (SQLHighlight Component)
+The `SQLHighlight` component handles SQL display with:
+- HTML entity decoding (`&lt;`, `&gt;`, `&amp;`)
+- HTML artifact removal (tags, classes, styles)
+- Auto-formatting with line breaks after keywords
+- Syntax highlighting for keywords, functions, strings, parameters
 
 ## Common Pitfalls and Solutions
 
@@ -198,11 +211,27 @@ import { QueryTemplate } from '../types/queryTemplate';       // ✗ Error
 '2025-07-15'             // ✗ Missing time component
 ```
 
-### Navigation After Actions
+### Navigation Patterns
 ```typescript
 // Use React Router's navigate, not window.location
-navigate('/workflows')           // ✓ Preserves SPA behavior
-window.location.href = '/workflows'  // ✗ Full page reload
+navigate('/workflows')                              // ✓ Preserves SPA behavior
+navigate('/query-builder/new', { state: { data }}) // ✓ Pass data via state
+window.location.href = '/workflows'                // ✗ Full page reload
+
+// Navigation to non-existent routes
+navigate(`/workflows/${id}`)     // ✓ Correct route exists
+navigate(`/my-queries/${id}`)    // ✗ Route doesn't exist (fixed in AMP-21)
+```
+
+### Execution Rerun Pattern
+```typescript
+// AMCExecutionDetail supports callback for auto-navigation after rerun
+<AMCExecutionDetail
+  onRerunSuccess={(newExecutionId) => {
+    // Automatically switch to new execution
+    setExecutionId(newExecutionId);
+  }}
+/>
 ```
 
 ## Testing Strategy
@@ -227,6 +256,7 @@ Tests are in `tests/e2e/` directory:
 - **Query Caching**: 5-minute staleTime prevents redundant fetches
 - **Debounced Search**: 300ms delay on search inputs
 - **Memoization**: React.memo for expensive render components
+- **Polling Optimization**: 5-second interval for execution status, only when modal open
 
 ## Build and Deployment
 
@@ -259,3 +289,28 @@ Tests are in `tests/e2e/` directory:
 - Run `npx tsc --noEmit` for full check
 - Check for type-only import requirements
 - Verify prop interface naming conventions
+
+### SQL Display Issues
+- Check SQLHighlight component for HTML artifacts
+- Verify SQL is not pre-formatted with HTML
+- Look for encoding issues in backend response
+
+## Recent Issue Fixes
+
+### AMP-1: Export Name Auto-Generation
+- Export name now auto-generates with format
+- Removed unused email, format, password fields
+- User can still customize the generated name
+
+### AMP-19: SQL Query Formatting
+- Fixed HTML artifacts in SQL display
+- Added auto-formatting with line breaks
+- Improved syntax highlighting
+
+### AMP-21: View Button Navigation
+- Fixed View button in InstanceWorkflows
+- Changed navigation from `/my-queries/${id}` to `/workflows/${id}`
+
+### AMP-17: Auto-Open After Rerun
+- AMCExecutionDetail now supports `onRerunSuccess` callback
+- Modal automatically transitions to new execution after rerun
