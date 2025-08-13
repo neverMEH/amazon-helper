@@ -80,6 +80,7 @@ npx playwright test --ui  # Interactive mode
   - `token_service.py`: Token encryption/decryption with Fernet
   - `token_refresh_service.py`: Background service for automatic token refresh
   - `data_analysis_service.py`: Pattern detection and data analysis
+  - `execution_status_poller.py`: Background service polling execution statuses every 15 seconds
   - `WorkflowService`: Workflow operations with execution tracking
   - `ExecutionService`: Handles AMC query execution lifecycle
 - **API Endpoints**: RESTful design in `amc_manager/api/supabase/`
@@ -113,14 +114,16 @@ npx playwright test --ui  # Interactive mode
   - `QueryTemplateModal`: Create/edit modal with parameter detection
   - `InstanceSelector`: Searchable dropdown with brand display
   - `ExecutionModal`: Real-time execution monitoring (2-second polling)
-  - `ExecutionDetailModal`: Results with table/charts/AI views
+  - `AMCExecutionDetail`: Primary component for viewing AMC executions with rerun/refresh
+  - `ExecutionDetailModal`: Legacy component for workflow executions
   - `DataVisualization`: Auto-generated charts based on data types
   - `VirtualizedTable`: Performance-optimized for large datasets
   - `EnhancedResultsTable`: Advanced filtering, sorting, export
   - `InstanceWorkflows`: Instance-specific query management
   - `BrandSelector`: Autocomplete brand selection with creation
   - `AMCSyncStatus`: Optional AMC workflow sync with benefits display
-  - `Breadcrumb`: Dynamic breadcrumb navigation component (NEW)
+  - `Breadcrumb`: Dynamic breadcrumb navigation component
+  - `AppLogo`: Application branding with PNG fallback support
   - `AuthStatusBanner`: Authentication status banner for disconnected auth
 
 ### Database Schema (Supabase)
@@ -220,6 +223,11 @@ POST /api/executions/refresh-status/{execution_id}
 
 # Polling only checks executions from last 2 hours to avoid old ones
 # Status progression: pending -> running -> completed/failed
+
+# Background service integration:
+from amc_manager.services.execution_status_poller import ExecutionStatusPoller
+poller = ExecutionStatusPoller()
+poller.start()  # Starts background polling thread
 ```
 
 #### Token Encryption and Management
@@ -286,7 +294,7 @@ import { QueryTemplate } from '../types/queryTemplate';  // Error: must use type
 // 1. AMCExecutionDetail - Primary component for viewing AMC executions
 //    Location: frontend/src/components/executions/AMCExecutionDetail.tsx
 //    Used in: Executions list, Instance workflows, anywhere AMC executions are shown
-//    Features: Rerun, Refresh, Full execution details from AMC API
+//    Features: Rerun, Refresh, Full execution details from AMC API, Chart visualization
 //
 // 2. ExecutionDetailModal - Legacy component for workflow executions
 //    Location: frontend/src/components/workflows/ExecutionDetailModal.tsx  
@@ -299,6 +307,21 @@ const workflowId = execution?.workflowId || execution?.workflowInfo?.id;
 // Execution parameters are at root level, not nested:
 execution.executionParameters // Correct
 execution.parameters // Wrong
+
+// NEW: Auto-open new execution after rerun
+<AMCExecutionDetail
+  instanceId={instanceId}
+  executionId={executionId}
+  isOpen={isOpen}
+  onClose={() => setIsOpen(false)}
+  onRerunSuccess={(newExecutionId) => {
+    // Automatically switch to new execution
+    setExecutionId(newExecutionId);
+  }}
+/>
+
+// View mode toggle for charts/table
+const [viewMode, setViewMode] = useState<'table' | 'charts'>('table');
 ```
 
 #### Workflow Instance IDs
@@ -335,6 +358,7 @@ workflow_data.instance_id = instance.id;  // Store internal UUID
 - **`/frontend/src/utils/`**:
   - `breadcrumbConfig.ts`: Breadcrumb route configuration and mapping
   - `dateUtils.ts`: Date formatting and manipulation utilities
+  - `csvHelpers.ts`: CSV data transformation utilities (if exists)
 
 ### Common Components
 - **`/frontend/src/components/common/`**:
@@ -511,11 +535,26 @@ git push -u origin feature/your-feature-name
 ### Recent Fixes and Enhancements
 
 #### 2025-08-13
+- **NEW FEATURE: Auto-Open Execution Modal After Rerun (AMP-17)**
+  - Added `onRerunSuccess` callback prop to AMCExecutionDetail component
+  - Modal automatically transitions to new execution after rerun
+  - Smooth loading states with "Loading new execution..." message
+  - Users no longer need to manually navigate to find new executions
 - **NEW FEATURE: Breadcrumb Navigation (AMP-11)**
   - Added breadcrumb navigation across all pages
   - Dynamic route handling with instance/workflow name fetching
   - Clean UI with home icon and chevron separators
   - Components: `Breadcrumb.tsx` and `breadcrumbConfig.ts`
+- **NEW FEATURE: Chart Visualization in Execution Details**
+  - Added view mode toggle between "Table" and "Charts" in AMCExecutionDetail
+  - Integration with DataVisualization component for automatic chart generation
+  - Support for time series, bar charts, pie charts, and scatter plots
+  - Key metrics cards with trend indicators
+- **NEW FEATURE: Application Branding Update**
+  - Added AppLogo component with PNG logo support
+  - Graceful fallback to text branding if images fail to load
+  - Logo files stored in `public/branding/` directory
+  - Supports both wordmark and icon variants
 - **CRITICAL FIX: AMC Execution Date Parameters**
   - Fixed queries returning 0 rows due to date parameter handling
   - API now properly extracts `startDate`/`endDate` from frontend
