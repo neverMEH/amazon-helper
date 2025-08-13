@@ -196,7 +196,7 @@ class AMCExecutionService:
                 raise ValueError("Failed to create execution record")
             
             # Always use real AMC API
-            execution_result = self._execute_real_amc_query(
+            execution_result = await self._execute_real_amc_query(
                 instance_id=instance['instance_id'],
                 workflow_id=workflow_id,
                 sql_query=sql_query,
@@ -318,7 +318,7 @@ class AMCExecutionService:
         
         return query
     
-    def _execute_real_amc_query(
+    async def _execute_real_amc_query(
         self,
         instance_id: str,
         workflow_id: str,
