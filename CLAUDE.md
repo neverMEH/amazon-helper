@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> **📝 Auto-Documentation**: This file can be automatically updated with repository changes using `./update_docs.sh`. See [AUTO_DOCUMENTATION.md](docs/AUTO_DOCUMENTATION.md) for details.
+
 ## Project Overview
 
 Recom AMP - Amazon Marketing Cloud query development and execution platform for managing AMC instances, creating and executing SQL queries with iterative workflow tracking, and building a comprehensive query library.
