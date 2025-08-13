@@ -165,6 +165,7 @@ Two separate execution viewing systems:
   - Supports `onRerunSuccess` callback for auto-navigation to new execution
   - Polls execution status every 5 seconds while open
   - Has view mode toggle between table and charts
+  - **NEW**: Expand button for SQL editor to view in full-screen modal
 - **ExecutionDetailModal**: Legacy component for workflow executions
 
 ### Export Name Auto-Generation
@@ -173,12 +174,14 @@ Export names follow pattern: `[Query Name] - [Instance] - [Date Range] - [DateTi
 - User-editable but not required
 - Removed email/format/password fields per AMP-1
 
-### SQL Formatting (SQLHighlight Component)
-The `SQLHighlight` component handles SQL display with:
-- HTML entity decoding (`&lt;`, `&gt;`, `&amp;`)
-- HTML artifact removal (tags, classes, styles)
-- Auto-formatting with line breaks after keywords
-- Syntax highlighting for keywords, functions, strings, parameters
+### SQL Display Features
+The execution details modal now includes:
+- **SQLEditor Component**: Monaco Editor for syntax-highlighted SQL display
+- **Expand Feature**: Maximize button to open SQL in full-screen modal
+  - 80vh height editor for maximum visibility
+  - Shows instance and query context
+  - Higher z-index (60-70) to overlay main modal
+- **Collapsible Sections**: Query and parameters sections with chevron toggles
 
 ## Common Pitfalls and Solutions
 
@@ -291,9 +294,10 @@ Tests are in `tests/e2e/` directory:
 - Verify prop interface naming conventions
 
 ### SQL Display Issues
-- Check SQLHighlight component for HTML artifacts
-- Verify SQL is not pre-formatted with HTML
-- Look for encoding issues in backend response
+- Check SQLEditor component integration
+- Verify Monaco Editor loading
+- Look for readOnly prop settings
+- Check expand modal z-index layering
 
 ## Recent Issue Fixes
 
@@ -303,9 +307,9 @@ Tests are in `tests/e2e/` directory:
 - User can still customize the generated name
 
 ### AMP-19: SQL Query Formatting
+- Replaced SQLHighlight with SQLEditor (Monaco)
 - Fixed HTML artifacts in SQL display
-- Added auto-formatting with line breaks
-- Improved syntax highlighting
+- Added proper syntax highlighting via Monaco
 
 ### AMP-21: View Button Navigation
 - Fixed View button in InstanceWorkflows
@@ -314,3 +318,9 @@ Tests are in `tests/e2e/` directory:
 ### AMP-17: Auto-Open After Rerun
 - AMCExecutionDetail now supports `onRerunSuccess` callback
 - Modal automatically transitions to new execution after rerun
+
+### SQL Editor Expand Feature (Latest)
+- Added maximize button to SQL query section
+- Opens SQL in full-screen modal (80vh height)
+- Shows instance and query context in expanded view
+- Higher z-index layering for proper modal stacking
