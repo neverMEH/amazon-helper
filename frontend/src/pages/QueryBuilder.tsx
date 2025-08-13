@@ -117,6 +117,29 @@ export default function QueryBuilder() {
     }
   });
 
+  // Load from sessionStorage if available (for examples from data sources)
+  useEffect(() => {
+    if (!templateId && !workflowId) {
+      const draft = sessionStorage.getItem('queryBuilderDraft');
+      if (draft) {
+        try {
+          const parsedDraft = JSON.parse(draft);
+          setQueryState(prev => ({
+            ...prev,
+            sqlQuery: parsedDraft.sql_query || '',
+            name: parsedDraft.name || '',
+            description: parsedDraft.description || '',
+            parameters: parsedDraft.parameters || {}
+          }));
+          // Clear the draft after loading
+          sessionStorage.removeItem('queryBuilderDraft');
+        } catch (error) {
+          console.error('Failed to load draft from sessionStorage:', error);
+        }
+      }
+    }
+  }, []); // Only run once on mount
+
   // Initialize from template or workflow
   useEffect(() => {
     if (template) {
