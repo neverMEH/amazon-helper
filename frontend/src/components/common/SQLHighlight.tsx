@@ -4,24 +4,6 @@ interface SQLHighlightProps {
 }
 
 export default function SQLHighlight({ sql, className = '' }: SQLHighlightProps) {
-  // Pre-clean the SQL before processing to handle any embedded artifacts
-  const preCleanSQL = (input: string): string => {
-    if (!input) return '';
-    
-    // Aggressively remove all HTML-like artifacts before processing
-    return input
-      // Remove specific patterns we're seeing in the data
-      .replace(/\b\d+\s*font-[^">]*">/g, '') // "400 font-semibold">
-      .replace(/\b\d+">"[^"]*"/g, '') // 400">"text-green-400"
-      .replace(/"text-[^"]*"/g, '') // "text-green-400"
-      .replace(/\b\d+">'/g, "'") // 400">' -> just '
-      .replace(/"\s*>/g, '') // "> artifacts
-      // Clean up the results
-      .replace(/\s{2,}/g, ' ') // Multiple spaces to single
-      .replace(/>\s*'/g, "'") // >' -> '
-      .trim();
-  };
-  
   // SQL keywords for highlighting
   const keywords = [
     'SELECT', 'FROM', 'WHERE', 'JOIN', 'LEFT', 'RIGHT', 'INNER', 'OUTER', 'ON',
@@ -178,13 +160,11 @@ export default function SQLHighlight({ sql, className = '' }: SQLHighlightProps)
     );
   }
 
-  // Always pre-clean and then process the SQL through our formatting logic
-  const cleanedSQL = preCleanSQL(sql);
-  
+  // Process the SQL through our cleaning and formatting logic
   return (
     <pre className={`bg-gray-900 text-gray-100 p-4 rounded-md overflow-x-auto text-xs font-mono ${className}`}>
       <code 
-        dangerouslySetInnerHTML={{ __html: highlightSQL(cleanedSQL) }} 
+        dangerouslySetInnerHTML={{ __html: highlightSQL(sql) }} 
         style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
       />
     </pre>

@@ -5,7 +5,7 @@ import { toast } from 'react-hot-toast';
 import { amcExecutionService } from '../../services/amcExecutionService';
 import EnhancedResultsTable from './EnhancedResultsTable';
 import DataVisualization from './DataVisualization';
-import SQLHighlight from '../common/SQLHighlight';
+import SQLEditor from '../common/SQLEditor';
 import ExecutionErrorDetails from './ExecutionErrorDetails';
 
 interface Props {
@@ -214,7 +214,12 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                         </button>
                         {showQuery && (
                           <div className="px-4 pb-4">
-                            <SQLHighlight sql={execution.sqlQuery || execution.workflowInfo?.sqlQuery || ''} />
+                            <SQLEditor 
+                              value={execution.sqlQuery || execution.workflowInfo?.sqlQuery || ''} 
+                              onChange={() => {}} // Read-only, no changes needed
+                              height="300px"
+                              readOnly={true}
+                            />
                           </div>
                         )}
                       </div>
