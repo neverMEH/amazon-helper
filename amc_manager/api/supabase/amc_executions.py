@@ -513,6 +513,96 @@ async def refresh_execution_status(
         logger.error(f"Error refreshing execution status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/refresh-all")
+async def refresh_all_executions(
+    instance_id: str = None,
+    limit: int = 50,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Refresh status for all pending/running executions
+    
+    Args:
+        instance_id: Optional - filter by instance ID
+        limit: Maximum number of executions to refresh (default 50)
+        current_user: The authenticated user
+        
+    Returns:
+        Summary of refreshed executions
+    """
+    try:
+        from ...services.amc_execution_service import amc_execution_service
+        client = SupabaseManager.get_client(use_service_role=True)
+        
+        # Build the query for pending/running executions
+        query = client.table('workflow_executions')\
+            .select('execution_id, status, workflow_id, workflows!inner(user_id, instance_id, amc_instances!inner(instance_id))')\
+            .in_('status', ['pending', 'running'])\
+            .eq('workflows.user_id', current_user['id'])\
+            .order('started_at', desc=True)\
+            .limit(limit)
+        
+        # Filter by instance if provided
+        if instance_id:
+            query = query.eq('workflows.amc_instances.instance_id', instance_id)
+        
+        response = query.execute()
+        
+        if not response.data:
+            return {
+                "success": True,
+                "message": "No pending or running executions to refresh",
+                "refreshed": 0,
+                "updated": 0
+            }
+        
+        # Track refresh statistics
+        refreshed = 0
+        updated = 0
+        failed = 0
+        updates = []
+        
+        logger.info(f"Refreshing {len(response.data)} pending/running executions")
+        
+        for execution in response.data:
+            execution_id = execution['execution_id']
+            old_status = execution['status']
+            
+            try:
+                # Poll and update the execution
+                result = amc_execution_service.poll_and_update_execution(
+                    execution_id=execution_id,
+                    user_id=current_user['id']
+                )
+                
+                refreshed += 1
+                
+                if result and result.get('status') != old_status:
+                    updated += 1
+                    updates.append({
+                        "execution_id": execution_id,
+                        "old_status": old_status,
+                        "new_status": result.get('status')
+                    })
+                    logger.info(f"Updated {execution_id}: {old_status} -> {result.get('status')}")
+                    
+            except Exception as e:
+                logger.error(f"Failed to refresh execution {execution_id}: {e}")
+                failed += 1
+        
+        return {
+            "success": True,
+            "message": f"Refreshed {refreshed} executions, {updated} status changes",
+            "refreshed": refreshed,
+            "updated": updated,
+            "failed": failed,
+            "updates": updates
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in refresh_all_executions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/{instance_id}/{execution_id}")
 async def get_amc_execution_details(
     instance_id: str,

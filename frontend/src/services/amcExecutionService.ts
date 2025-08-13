@@ -25,5 +25,27 @@ export const amcExecutionService = {
   }> {
     const response = await api.get(`/amc-executions/${instanceId}/${executionId}`);
     return response.data;
+  },
+
+  /**
+   * Refresh status for all pending/running executions
+   */
+  async refreshAllExecutions(instanceId?: string, limit: number = 50): Promise<{
+    success: boolean;
+    message: string;
+    refreshed: number;
+    updated: number;
+    failed: number;
+    updates: Array<{
+      execution_id: string;
+      old_status: string;
+      new_status: string;
+    }>;
+  }> {
+    const response = await api.post('/amc-executions/refresh-all', {
+      instance_id: instanceId,
+      limit
+    });
+    return response.data;
   }
 };

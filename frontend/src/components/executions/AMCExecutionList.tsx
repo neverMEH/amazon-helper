@@ -10,8 +10,10 @@ import {
   Search,
   Filter,
   Server,
-  Cloud
+  Cloud,
+  Loader
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { amcExecutionService } from '../../services/amcExecutionService';
 import type { AMCExecution } from '../../types/amcExecution';
 import AMCExecutionDetail from './AMCExecutionDetail';
@@ -28,6 +30,7 @@ export default function AMCExecutionList({ instanceId, workflowId, showInstanceB
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [instanceFilter, setInstanceFilter] = useState<string>('all');
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Check token status first
   const { data: tokenStatus } = useQuery({
@@ -239,11 +242,50 @@ export default function AMCExecutionList({ instanceId, workflowId, showInstanceB
         </h3>
         <div className="flex gap-2">
           <button
-            onClick={() => refetch()}
-            className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            onClick={async () => {
+              setIsRefreshing(true);
+              try {
+                // First refresh statuses from AMC
+                const refreshResult = await amcExecutionService.refreshAllExecutions(instanceId);
+                
+                if (refreshResult.success) {
+                  if (refreshResult.updated > 0) {
+                    toast.success(`Updated ${refreshResult.updated} execution status${refreshResult.updated > 1 ? 'es' : ''}`);
+                  } else if (refreshResult.refreshed > 0) {
+                    toast.success(`Checked ${refreshResult.refreshed} execution${refreshResult.refreshed > 1 ? 's' : ''}, all up to date`);
+                  } else {
+                    toast.success('No pending executions to refresh');
+                  }
+                  
+                  // Log detailed updates for debugging
+                  if (refreshResult.updates && refreshResult.updates.length > 0) {
+                    console.log('Execution status updates:', refreshResult.updates);
+                  }
+                }
+                
+                // Then refetch the list to show updated data
+                await refetch();
+              } catch (error) {
+                console.error('Failed to refresh executions:', error);
+                toast.error('Failed to refresh execution statuses');
+              } finally {
+                setIsRefreshing(false);
+              }
+            }}
+            disabled={isRefreshing}
+            className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <RefreshCw className="h-4 w-4 mr-1" />
-            Refresh
+            {isRefreshing ? (
+              <>
+                <Loader className="h-4 w-4 mr-1 animate-spin" />
+                Refreshing...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Refresh
+              </>
+            )}
           </button>
           {tokenStatus?.hasValidToken && instanceId && (
             <button
