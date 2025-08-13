@@ -21,7 +21,7 @@ import Executions from './pages/Executions';
 
 // Data Sources imports
 import DataSources from './pages/DataSources';
-import DataSourceDetail from './pages/DataSourceDetail';
+import DataSourceDetailV2 from './pages/DataSourceDetailV2';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -70,7 +70,7 @@ function App() {
               
               {/* Data Sources routes */}
               <Route path="/data-sources" element={<DataSources />} />
-              <Route path="/data-sources/:schemaId" element={<DataSourceDetail />} />
+              <Route path="/data-sources/:schemaId" element={<DataSourceDetailV2 />} />
               
               {/* Profile route */}
               <Route path="/profile" element={<Profile />} />

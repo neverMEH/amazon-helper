@@ -3,7 +3,7 @@
  * Display complete schema documentation with fields, examples, and sections
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import ReactMarkdown from 'react-markdown';
@@ -33,6 +33,8 @@ import {
 } from 'lucide-react';
 import { dataSourceService } from '../services/dataSourceService';
 import SQLEditor from '../components/common/SQLEditor';
+import { TableOfContents } from '../components/data-sources/TableOfContents';
+import { FieldExplorer } from '../components/data-sources/FieldExplorer';
 import type { SchemaField, QueryExample } from '../types/dataSource';
 
 export default function DataSourceDetail() {
@@ -42,9 +44,7 @@ export default function DataSourceDetail() {
   const [activeSection, setActiveSection] = useState('overview');
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['overview']));
   const [copiedExample, setCopiedExample] = useState<string | null>(null);
-  const [fieldSearch, setFieldSearch] = useState('');
-  const [fieldTypeFilter, setFieldTypeFilter] = useState<'all' | 'Dimension' | 'Metric'>('all');
-  const [thresholdFilter, setThresholdFilter] = useState<string>('all');
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // Fetch complete schema
   const { data: schema, isLoading, error } = useQuery({
@@ -54,42 +54,63 @@ export default function DataSourceDetail() {
     staleTime: 10 * 60 * 1000
   });
 
-  // Handle deep linking
-  useEffect(() => {
-    const hash = location.hash.replace('#', '');
-    if (hash) {
-      setActiveSection(hash);
-      setExpandedSections(new Set([hash]));
-      // Scroll to section after a short delay
-      setTimeout(() => {
-        const element = document.getElementById(hash);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 100);
+  // Handle section navigation
+  const handleSectionClick = (sectionId: string) => {
+    setActiveSection(sectionId);
+    const element = document.getElementById(sectionId);
+    if (element) {
+      const offset = 80; // Account for sticky header
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.scrollY - offset;
+      
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
     }
-  }, [location.hash]);
+  };
 
-  // Filter fields
-  const filteredFields = schema?.fields.filter(field => {
-    const matchesSearch = !fieldSearch || 
-      field.field_name.toLowerCase().includes(fieldSearch.toLowerCase()) ||
-      field.description.toLowerCase().includes(fieldSearch.toLowerCase());
-    
-    const matchesType = fieldTypeFilter === 'all' || field.dimension_or_metric === fieldTypeFilter;
-    
-    const matchesThreshold = thresholdFilter === 'all' || field.aggregation_threshold === thresholdFilter;
-    
-    return matchesSearch && matchesType && matchesThreshold;
-  }) || [];
+  // Build TOC items
+  const tocItems = schema ? [
+    { id: 'overview', title: 'Overview', level: 1 },
+    { id: 'schema', title: `Fields (${schema.fields.length})`, level: 1 },
+    { id: 'examples', title: `Examples (${schema.examples.length})`, level: 1 },
+    { id: 'relationships', title: 'Relationships', level: 1 },
+    ...schema.sections.map(section => ({
+      id: section.id,
+      title: section.section_type.replace(/_/g, ' ').split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' '),
+      level: 2
+    }))
+  ] : [];
 
-  // Group fields by category
-  const groupedFields = filteredFields.reduce((acc, field) => {
-    const category = field.field_category || 'General';
-    if (!acc[category]) acc[category] = [];
-    acc[category].push(field);
-    return acc;
-  }, {} as Record<string, SchemaField[]>);
+  // Observe active section based on scroll
+  useEffect(() => {
+    const observerOptions = {
+      root: null,
+      rootMargin: '-80px 0px -70% 0px',
+      threshold: 0
+    };
+
+    const observerCallback = (entries: IntersectionObserverEntry[]) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          setActiveSection(entry.target.id);
+        }
+      });
+    };
+
+    const observer = new IntersectionObserver(observerCallback, observerOptions);
+
+    // Observe all sections
+    tocItems.forEach(item => {
+      const element = document.getElementById(item.id);
+      if (element) observer.observe(element);
+    });
+
+    return () => observer.disconnect();
+  }, [tocItems]);
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => {
@@ -169,8 +190,8 @@ export default function DataSourceDetail() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="bg-white border-b sticky top-0 z-20">
+        <div className="px-6">
           <div className="py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -205,46 +226,28 @@ export default function DataSourceDetail() {
               </div>
             </div>
 
-            {/* Navigation Tabs */}
-            <div className="mt-4 flex gap-1 border-b">
-              {[
-                { id: 'overview', label: 'Overview', icon: BookOpen },
-                { id: 'schema', label: `Fields (${schema.fields.length})`, icon: Table },
-                { id: 'examples', label: `Examples (${schema.examples.length})`, icon: Code },
-                { id: 'relationships', label: 'Relationships', icon: Link2 }
-              ].map(tab => {
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => {
-                      setActiveSection(tab.id);
-                      window.location.hash = tab.id;
-                    }}
-                    className={`flex items-center gap-2 px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
-                      activeSection === tab.id
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
           </div>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Overview Section */}
-        {activeSection === 'overview' && (
-          <div className="space-y-6">
-            {/* Description */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold mb-4">Description</h2>
+      {/* Two-Panel Layout */}
+      <div className="flex gap-8 px-6 py-8">
+        {/* Left Sidebar - TOC */}
+        <aside className="w-64 flex-shrink-0 hidden lg:block">
+          <TableOfContents
+            sections={tocItems}
+            activeSection={activeSection}
+            onSectionClick={handleSectionClick}
+          />
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 min-w-0" ref={contentRef}>
+          <div className="space-y-8">
+            {/* Overview Section */}
+            <section id="overview" className="scroll-mt-24">
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h2 className="text-xl font-semibold mb-4">Overview</h2>
               <p className="text-gray-600">{schema.schema.description}</p>
               
               {/* Data Sources */}
