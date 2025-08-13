@@ -87,6 +87,13 @@ npx playwright test --ui  # Interactive mode
 
 ## Critical Implementation Details
 
+### Query Builder Schema Explorer
+- **Data Sources Only**: Schema explorer now exclusively shows AMC data sources from database
+- **Dynamic Loading**: Fields are lazy-loaded when expanding a data source
+- **Categories**: Data sources grouped by category (Attribution Tables, Conversion Tables, etc.)
+- **Field Indicators**: Shows D (Dimension) or M (Metric) for each field
+- **Search**: Filters both schemas and fields across all categories
+
 ### ID Field Duality
 ```typescript
 // AMC uses two ID systems:

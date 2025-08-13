@@ -153,7 +153,13 @@ The system uses two different ID systems that must be carefully managed:
 
 ### Query Builder Wizard Flow
 Three-step wizard with state management in parent:
-1. **QueryEditorStep**: Monaco Editor for SQL with parameter extraction
+1. **QueryEditorStep**: SQL editor with AMC schema explorer
+   - **Schema Explorer**: Shows AMC data sources from database (no hardcoded tables)
+   - **Dynamic Loading**: Fields lazy-loaded when expanding data sources
+   - **Categories**: Grouped by category (Attribution, Conversion, Audience tables, etc.)
+   - **Field Info**: Shows dimension (D) or metric (M) indicators
+   - **Search**: Filters schemas and fields across all categories
+   - **Monaco Editor**: SQL editing with parameter detection
 2. **QueryConfigurationStep**: Instance selection, parameters, export settings
 3. **QueryReviewStep**: Final review with cost estimation
 
