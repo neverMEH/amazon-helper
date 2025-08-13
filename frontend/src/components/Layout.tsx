@@ -3,6 +3,7 @@ import { LayoutDashboard, Database, Tag, BookOpen, FileText, LogOut, User, Histo
 import { authService } from '../services/auth';
 import AuthStatusBanner from './common/AuthStatusBanner';
 import Breadcrumb from './common/Breadcrumb';
+import AppLogo from './common/AppLogo';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -28,7 +29,7 @@ export default function Layout() {
       {/* Sidebar */}
       <div className="fixed inset-y-0 left-0 w-64 bg-gray-900">
         <div className="flex h-16 items-center px-6">
-          <h1 className="text-xl font-semibold text-white">Recom AMP</h1>
+          <AppLogo className="text-xl font-semibold text-white" height={24} />
         </div>
 
         <nav className="mt-6 px-3">
