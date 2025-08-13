@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Dict, List, Any, Optional
 import logging
 
-from ..dependencies import get_current_user
+from .auth import get_current_user
 from ...services.data_source_service import DataSourceService
 
 logger = logging.getLogger(__name__)

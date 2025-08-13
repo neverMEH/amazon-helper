@@ -8,7 +8,7 @@ from typing import Dict, List, Any, Optional
 from datetime import datetime
 import logging
 
-from ..services.db_service import SupabaseService
+from .db_service import DatabaseService as SupabaseService
 
 logger = logging.getLogger(__name__)
 
