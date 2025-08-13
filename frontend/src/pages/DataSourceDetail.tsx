@@ -32,7 +32,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { dataSourceService } from '../services/dataSourceService';
-import SQLHighlight from '../components/common/SQLHighlight';
+import SQLEditor from '../components/common/SQLEditor';
 import type { SchemaField, QueryExample } from '../types/dataSource';
 
 export default function DataSourceDetail() {
@@ -480,7 +480,12 @@ export default function DataSourceDetail() {
                     </div>
                   </div>
                   <div className="p-6">
-                    <SQLHighlight sql={example.sql_query} />
+                    <SQLEditor 
+                      value={example.sql_query} 
+                      onChange={() => {}} 
+                      readOnly={true}
+                      height="200px"
+                    />
                   </div>
                 </div>
               ))
