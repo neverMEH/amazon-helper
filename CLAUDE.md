@@ -6,6 +6,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 RecomAMP - Amazon Marketing Cloud (AMC) query development and execution platform for managing AMC instances, creating and executing SQL queries with iterative workflow tracking, and building a comprehensive query library.
 
+## Working Features (as of 2025-08-13)
+
+### ✅ Core Functionality
+- **Authentication**: OAuth2 login with Amazon Advertising API, token encryption with Fernet
+- **AMC Instance Management**: Add, edit, remove instances with proper validation
+- **Query Builder**: 3-step wizard with Monaco editor, parameter detection, schema browser
+- **Workflow Execution**: Create, save, execute workflows with real-time status polling
+- **Execution Monitoring**: Background polling service (15-second intervals) with progress tracking
+- **Results Viewing**: Inline results display and full AMCExecutionDetail modal
+- **Data Sources**: Browse AMC schema documentation with SQL examples
+- **Query Library**: Template browsing with categories and search
+
+### ✅ Recent Fixes (2025-08-13)
+- **Schema Explorer**: Dynamic loading of AMC data sources from database in query builder
+- **Query Population**: Examples from data sources now populate in editor via sessionStorage
+- **View Results Navigation**: Added "Open Full Results" button alongside inline viewer
+- **Async/Await Issues**: Fixed event loop conflicts in execution service
+- **React Fragment Syntax**: Corrected JSX structure in ExecutionModal
+
 ## Development Commands
 
 ### Quick Start
@@ -84,6 +103,36 @@ npx playwright test --ui  # Interactive mode
 - API client in `services/api.ts` with auth interceptor
 - Service pattern for API calls (e.g., `workflowService.ts`)
 - Modal components use `isOpen/onClose` pattern
+
+## Recent Changes (2025-08-13)
+
+### Frontend Enhancements
+1. **Query Builder Schema Integration**
+   - Removed hardcoded standard tables
+   - Added dynamic AMC data source loading from API
+   - Schema explorer shows actual AMC tables from database
+
+2. **Query Example Population**
+   - SessionStorage integration for passing data between components
+   - DataSourceDetail stores example in sessionStorage
+   - QueryBuilder loads from sessionStorage on mount
+
+3. **Execution Results Modal**
+   - Added AMCExecutionDetail modal integration
+   - "Open Full Results" button for detailed view
+   - Proper z-index layering for modal stacking
+
+### Backend Fixes
+1. **Async/Await Patterns**
+   - Made `execute_workflow` async (no asyncio.run)
+   - Made `poll_and_update_execution` async
+   - Made `_execute_real_amc_query` async
+   - API endpoints properly await service methods
+
+2. **Execution Status Polling**
+   - Background service polls every 15 seconds
+   - Automatic status updates for pending/running executions
+   - 2-hour cutoff to avoid polling old executions
 
 ## Critical Implementation Details
 
@@ -170,6 +219,24 @@ Key tables in Supabase:
 3. **React Query keys**: Keep consistent for caching
 4. **AMC date format**: No timezone suffix
 5. **Execution IDs**: Use UUID for foreign keys, not string workflow_id
+6. **Async/Await in FastAPI**: Don't use asyncio.run() when already in async context
+7. **React Fragments**: Use `<>...</>` or explicit Fragment when returning multiple elements
+8. **SessionStorage**: Clear after loading to prevent stale data
+9. **Modal Z-Index**: Ensure proper layering when stacking modals
+
+## Known Issues & Limitations
+
+### Current Limitations
+- Mock AMC API responses when `AMC_USE_REAL_API=false`
+- Limited to basic SQL query execution (no advanced AMC features)
+- No workflow scheduling (manual execution only)
+- No collaborative features or sharing
+
+### Areas for Improvement
+- Add query result caching
+- Implement workflow version history
+- Add more visualization options for results
+- Enhance error recovery mechanisms
 
 ## Deployment
 
@@ -177,3 +244,30 @@ Railway deployment via Dockerfile:
 - Frontend built during image creation
 - Single container serves both frontend (from `/frontend/dist`) and backend
 - Frontend proxies `/api` to backend in development
+
+## Testing Guidelines
+
+### Frontend Testing
+```bash
+cd frontend
+npm run test          # Unit tests
+npx playwright test   # E2E tests
+npx tsc --noEmit     # Type checking
+```
+
+### Backend Testing
+```bash
+pytest tests/                    # All tests
+pytest tests/test_api_auth.py   # Specific test file
+python -m pytest -v              # Verbose output
+```
+
+### Manual Testing Checklist
+1. ✅ Login with Amazon OAuth
+2. ✅ Add/edit AMC instance
+3. ✅ Create query from template
+4. ✅ Edit query in builder with schema browser
+5. ✅ Execute workflow with parameters
+6. ✅ View execution progress
+7. ✅ View results in modal
+8. ✅ Browse data sources and examples

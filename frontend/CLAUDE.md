@@ -6,6 +6,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 React-based frontend for the RecomAMP (Amazon Marketing Cloud) platform, providing query building, execution monitoring, and data visualization capabilities for AMC instances.
 
+## Working Features (as of 2025-08-13)
+
+### ✅ UI Components
+- **Query Builder**: 3-step wizard with Monaco SQL editor
+- **Schema Explorer**: Dynamic AMC data sources from database
+- **Execution Modal**: Progress tracking with inline and full results views
+- **Data Sources Browser**: Category-based with SQL examples
+- **Instance Manager**: Add, edit, remove AMC instances
+- **Query Library**: Template browsing with search
+
+### ✅ Recent UI Improvements (2025-08-13)
+- **Dynamic Schema Loading**: Removed hardcoded tables, loads from API
+- **SessionStorage Integration**: Examples populate in query editor
+- **Dual Results View**: "View Results Here" (inline) and "Open Full Results" (modal)
+- **React Fragment Fixes**: Proper JSX structure in ExecutionModal
+- **Modal Z-Index Layering**: Correct stacking for nested modals
+
 ## Development Commands
 
 ```bash
@@ -136,6 +153,51 @@ const queryClient = new QueryClient({
 // Navigation state: React Router's state prop for passing data
 ```
 
+## Recent Changes (2025-08-13)
+
+### Query Builder Enhancements
+1. **Schema Explorer Updates**
+   - File: `src/components/query-builder/QueryEditorStep.tsx`
+   - Removed all hardcoded standard tables
+   - Added data source fetching from API
+   - Integrated with `dataSourceService.listDataSources()`
+
+2. **Query Example Population**
+   - File: `src/pages/QueryBuilder.tsx`
+   - Added useEffect to load from sessionStorage
+   - Clears sessionStorage after loading to prevent stale data
+   - Works with examples from DataSourceDetail component
+
+3. **Execution Results Modal**
+   - File: `src/components/workflows/ExecutionModal.tsx`
+   - Added AMCExecutionDetail modal integration
+   - Fixed React Fragment syntax errors
+   - Added "Open Full Results" button alongside inline viewer
+   - Proper modal z-index layering (z-50 for main, higher for nested)
+
+### SessionStorage Usage Pattern
+```typescript
+// DataSourceDetail stores example:
+sessionStorage.setItem('queryBuilderDraft', JSON.stringify({
+  sql_query: example.sql_query,
+  name: example.name,
+  description: example.description,
+  parameters: example.parameters || {}
+}));
+
+// QueryBuilder loads and clears:
+useEffect(() => {
+  if (!templateId && !workflowId) {
+    const draft = sessionStorage.getItem('queryBuilderDraft');
+    if (draft) {
+      const parsedDraft = JSON.parse(draft);
+      setQueryState(prev => ({...prev, ...parsedDraft}));
+      sessionStorage.removeItem('queryBuilderDraft');
+    }
+  }
+}, []);
+```
+
 ## Key Architectural Decisions
 
 ### ID Field Duality
@@ -190,6 +252,32 @@ The execution details modal now includes:
 - **Collapsible Sections**: Query and parameters sections with chevron toggles
 
 ## Common Pitfalls and Solutions
+
+### React Fragment Usage
+```typescript
+// CORRECT: Wrap multiple elements in Fragment
+return (
+  <>
+    <div className="modal">...</div>
+    {showDetail && <DetailModal />}
+  </>
+);
+
+// WRONG: Multiple elements without wrapper
+return (
+  <div className="modal">...</div>  // Error!
+  {showDetail && <DetailModal />}
+);
+```
+
+### Modal Z-Index Stacking
+```typescript
+// Main modal: z-50
+<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+
+// Nested modal: Higher z-index
+<AMCExecutionDetail className="z-60" />  // Appears above main modal
+```
 
 ### API Trailing Slashes
 ```typescript
