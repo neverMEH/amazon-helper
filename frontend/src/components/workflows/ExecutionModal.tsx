@@ -641,16 +641,17 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
           )}
         </div>
       </div>
+    </div>
 
-      {/* AMC Execution Detail Modal */}
-      {showExecutionDetail && executionId && selectedInstanceId && (
-        <AMCExecutionDetail
-          instanceId={selectedInstanceId}
-          executionId={executionId}
-          isOpen={showExecutionDetail}
-          onClose={() => setShowExecutionDetail(false)}
-        />
-      )}
+    {/* AMC Execution Detail Modal */}
+    {showExecutionDetail && executionId && selectedInstanceId && (
+      <AMCExecutionDetail
+        instanceId={selectedInstanceId}
+        executionId={executionId}
+        isOpen={showExecutionDetail}
+        onClose={() => setShowExecutionDetail(false)}
+      />
+    )}
     </>
   );
 }
