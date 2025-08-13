@@ -327,7 +327,7 @@ export default function QueryEditorStep({ state, setState }: QueryEditorStepProp
               ) : Object.keys(dataSourcesByCategory).length === 0 ? (
                 <div className="text-sm text-gray-500 text-center py-4">No data sources available</div>
               ) : (
-                Object.entries(dataSourcesByCategory).map(([category, sources]) => {
+                Object.entries(dataSourcesByCategory).map(([category]) => {
                   const isExpanded = expandedCategories.has(`ds-${category}`);
                   const filteredSources = getFilteredDataSources(category);
                   
