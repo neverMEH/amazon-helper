@@ -21,6 +21,7 @@ from amc_manager.config import settings
 from amc_manager.core.logger_simple import get_logger
 from amc_manager.core.supabase_client import SupabaseManager
 from amc_manager.services.token_refresh_service import token_refresh_service
+from amc_manager.services.execution_status_poller import execution_status_poller
 
 logger = get_logger(__name__)
 
@@ -50,6 +51,10 @@ async def lifespan(app: FastAPI):
     await token_refresh_service.start()
     logger.info("✓ Token refresh service started")
     
+    # Start execution status poller
+    await execution_status_poller.start()
+    logger.info("✓ Execution status poller started")
+    
     # Load only users with valid tokens for token refresh tracking
     try:
         users_response = client.table('users').select('id, auth_tokens').execute()
@@ -69,6 +74,7 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("Shutting down Recom AMP application...")
     await token_refresh_service.stop()
+    await execution_status_poller.stop()
 
 
 # Create FastAPI app

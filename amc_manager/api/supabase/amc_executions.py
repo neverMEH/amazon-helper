@@ -457,6 +457,42 @@ async def list_amc_executions(
         logger.error(f"Error listing AMC executions: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@router.post("/refresh-status/{execution_id}")
+async def refresh_execution_status(
+    execution_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Manually refresh the status of a specific execution
+    
+    Args:
+        execution_id: The execution ID to refresh
+        current_user: The authenticated user
+        
+    Returns:
+        Updated execution status
+    """
+    try:
+        from ...services.amc_execution_service import amc_execution_service
+        
+        # Poll and update the execution status
+        status = amc_execution_service.poll_and_update_execution(execution_id, current_user['id'])
+        
+        if not status:
+            raise HTTPException(status_code=404, detail="Execution not found")
+        
+        return {
+            "success": True,
+            "execution": status
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error refreshing execution status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/{instance_id}/{execution_id}")
 async def get_amc_execution_details(
     instance_id: str,
