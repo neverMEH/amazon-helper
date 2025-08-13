@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
-import { ChevronRight, ChevronDown, Database, Table, Hash, Calendar, User, Package, DollarSign, Copy, Plus } from 'lucide-react';
+import { ChevronRight, ChevronDown, Database, Table, Hash, Calendar, User, Package, DollarSign, Copy, Plus, Server, FileText } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import SQLEditor from '../common/SQLEditor';
 import { AMC_SCHEMA, getCategories } from '../../constants/amcSchema';
+import { dataSourceService } from '../../services/dataSourceService';
+import type { DataSource, SchemaField } from '../../types/dataSource';
 import { toast } from 'react-hot-toast';
 
 interface QueryEditorStepProps {
@@ -23,8 +26,31 @@ const iconMap: Record<string, any> = {
 export default function QueryEditorStep({ state, setState }: QueryEditorStepProps) {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set());
+  const [expandedDataSources, setExpandedDataSources] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [detectedParams, setDetectedParams] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<'standard' | 'datasources'>('standard');
+
+  // Fetch data sources from API
+  const { data: dataSources = [], isLoading: dataSourcesLoading } = useQuery({
+    queryKey: ['data-sources'],
+    queryFn: () => dataSourceService.listDataSources(),
+  });
+
+  // Fetch fields for expanded data sources
+  const [dataSourceFields, setDataSourceFields] = useState<Record<string, SchemaField[]>>({});
+  
+  // Load fields when a data source is expanded
+  const loadDataSourceFields = async (schemaId: string) => {
+    if (!dataSourceFields[schemaId]) {
+      try {
+        const fields = await dataSourceService.getSchemaFields(schemaId);
+        setDataSourceFields(prev => ({ ...prev, [schemaId]: fields }));
+      } catch (error) {
+        console.error('Failed to load fields for', schemaId, error);
+      }
+    }
+  };
 
   // Detect parameters in SQL query
   useEffect(() => {
@@ -79,6 +105,20 @@ export default function QueryEditorStep({ state, setState }: QueryEditorStepProp
     });
   };
 
+  const toggleDataSource = async (schemaId: string) => {
+    setExpandedDataSources(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(schemaId)) {
+        newSet.delete(schemaId);
+      } else {
+        newSet.add(schemaId);
+        // Load fields when expanding
+        loadDataSourceFields(schemaId);
+      }
+      return newSet;
+    });
+  };
+
   const handleAddToQuery = (text: string) => {
     // Insert at cursor position in SQL editor
     const currentQuery = state.sqlQuery;
@@ -93,6 +133,15 @@ export default function QueryEditorStep({ state, setState }: QueryEditorStepProp
   };
 
   const categories = getCategories();
+
+  // Group data sources by category
+  const dataSourcesByCategory = dataSources.reduce((acc, ds) => {
+    if (!acc[ds.category]) {
+      acc[ds.category] = [];
+    }
+    acc[ds.category].push(ds);
+    return acc;
+  }, {} as Record<string, DataSource[]>);
 
   // Filter tables based on search
   const getFilteredTables = (category: string) => {
@@ -110,12 +159,62 @@ export default function QueryEditorStep({ state, setState }: QueryEditorStepProp
     });
   };
 
+  // Filter data sources based on search
+  const getFilteredDataSources = (category: string) => {
+    const sources = dataSourcesByCategory[category] || [];
+    if (!searchQuery) return sources;
+    
+    const lowerSearch = searchQuery.toLowerCase();
+    return sources.filter(ds => 
+      ds.name.toLowerCase().includes(lowerSearch) ||
+      ds.description?.toLowerCase().includes(lowerSearch) ||
+      ds.schema_id.toLowerCase().includes(lowerSearch)
+    );
+  };
+
+  // Get icon for field type
+  const getFieldIcon = (dataType: string) => {
+    const upperType = dataType.toUpperCase();
+    if (upperType.includes('STRING')) return Hash;
+    if (upperType.includes('LONG') || upperType.includes('INTEGER')) return Hash;
+    if (upperType.includes('DECIMAL') || upperType.includes('FLOAT')) return DollarSign;
+    if (upperType.includes('DATE') || upperType.includes('TIMESTAMP')) return Calendar;
+    if (upperType.includes('ARRAY')) return Package;
+    return Hash;
+  };
+
   return (
     <div className="flex h-full">
       {/* Left Panel - Schema Explorer */}
-      <div className="w-80 bg-gray-50 border-r border-gray-200 overflow-y-auto">
+      <div className="w-96 bg-gray-50 border-r border-gray-200 overflow-y-auto">
         <div className="p-4">
           <h3 className="text-sm font-semibold text-gray-900 mb-3">Schema Explorer</h3>
+          
+          {/* Tab Switcher */}
+          <div className="flex space-x-1 mb-3 bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => setActiveTab('standard')}
+              className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                activeTab === 'standard'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Table className="h-3 w-3 inline mr-1" />
+              Standard Tables
+            </button>
+            <button
+              onClick={() => setActiveTab('datasources')}
+              className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                activeTab === 'datasources'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Server className="h-3 w-3 inline mr-1" />
+              AMC Data Sources
+            </button>
+          </div>
           
           {/* Search */}
           <input
@@ -126,9 +225,10 @@ export default function QueryEditorStep({ state, setState }: QueryEditorStepProp
             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm mb-4"
           />
 
-          {/* Categories and Tables */}
-          <div className="space-y-2">
-            {categories.map(category => {
+          {/* Standard Tables */}
+          {activeTab === 'standard' && (
+            <div className="space-y-2">
+              {categories.map(category => {
               const isExpanded = expandedCategories.has(category);
               const tables = getFilteredTables(category);
               
@@ -216,7 +316,115 @@ export default function QueryEditorStep({ state, setState }: QueryEditorStepProp
                 </div>
               );
             })}
-          </div>
+            </div>
+          )}
+
+          {/* Data Sources */}
+          {activeTab === 'datasources' && (
+            <div className="space-y-2">
+              {dataSourcesLoading ? (
+                <div className="text-sm text-gray-500 text-center py-4">Loading data sources...</div>
+              ) : Object.keys(dataSourcesByCategory).length === 0 ? (
+                <div className="text-sm text-gray-500 text-center py-4">No data sources available</div>
+              ) : (
+                Object.entries(dataSourcesByCategory).map(([category, sources]) => {
+                  const isExpanded = expandedCategories.has(`ds-${category}`);
+                  const filteredSources = getFilteredDataSources(category);
+                  
+                  if (filteredSources.length === 0 && searchQuery) return null;
+
+                  return (
+                    <div key={`ds-${category}`}>
+                      <button
+                        onClick={() => toggleCategory(`ds-${category}`)}
+                        className="w-full text-left px-2 py-1 hover:bg-gray-100 rounded flex items-center"
+                      >
+                        {isExpanded ? (
+                          <ChevronDown className="h-3 w-3 mr-1" />
+                        ) : (
+                          <ChevronRight className="h-3 w-3 mr-1" />
+                        )}
+                        <Server className="h-3 w-3 mr-2 text-gray-500" />
+                        <span className="text-sm font-medium">{category}</span>
+                        <span className="ml-auto text-xs text-gray-500">{filteredSources.length}</span>
+                      </button>
+
+                      {isExpanded && (
+                        <div className="ml-4 mt-1 space-y-1">
+                          {filteredSources.map(ds => {
+                            const isDataSourceExpanded = expandedDataSources.has(ds.schema_id);
+                            const fields = dataSourceFields[ds.schema_id] || [];
+
+                            return (
+                              <div key={ds.schema_id}>
+                                <div className="flex items-center group">
+                                  <button
+                                    onClick={() => toggleDataSource(ds.schema_id)}
+                                    className="flex-1 text-left px-2 py-1 hover:bg-gray-100 rounded flex items-center"
+                                    title={ds.description}
+                                  >
+                                    {isDataSourceExpanded ? (
+                                      <ChevronDown className="h-3 w-3 mr-1" />
+                                    ) : (
+                                      <ChevronRight className="h-3 w-3 mr-1" />
+                                    )}
+                                    <FileText className="h-3 w-3 mr-2 text-gray-400" />
+                                    <span className="text-xs font-mono truncate">{ds.name}</span>
+                                  </button>
+                                  <button
+                                    onClick={() => handleAddToQuery(ds.schema_id)}
+                                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 rounded"
+                                    title="Add to query"
+                                  >
+                                    <Plus className="h-3 w-3 text-gray-500" />
+                                  </button>
+                                </div>
+
+                                {isDataSourceExpanded && (
+                                  <div className="ml-6 mt-1 space-y-0.5">
+                                    {fields.length === 0 ? (
+                                      <div className="text-xs text-gray-400 px-2 py-1">Loading fields...</div>
+                                    ) : (
+                                      fields.map(field => {
+                                        const FieldIcon = getFieldIcon(field.data_type);
+                                        
+                                        return (
+                                          <div
+                                            key={field.id}
+                                            className="flex items-center group px-2 py-0.5 hover:bg-gray-100 rounded"
+                                            title={field.description}
+                                          >
+                                            <FieldIcon className="h-3 w-3 mr-2 text-gray-400" />
+                                            <span className="text-xs font-mono text-gray-700 flex-1 truncate">
+                                              {field.field_name}
+                                            </span>
+                                            <span className="text-xs text-gray-500 mr-2">
+                                              {field.dimension_or_metric === 'Dimension' ? 'D' : 'M'}
+                                            </span>
+                                            <button
+                                              onClick={() => handleCopyField(`${ds.schema_id}.${field.field_name}`)}
+                                              className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-gray-200 rounded"
+                                              title="Copy field name"
+                                            >
+                                              <Copy className="h-3 w-3 text-gray-500" />
+                                            </button>
+                                          </div>
+                                        );
+                                      })
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
         </div>
       </div>
 
