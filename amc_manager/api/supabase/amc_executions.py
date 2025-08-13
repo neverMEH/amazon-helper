@@ -66,11 +66,21 @@ async def list_all_stored_executions(
                 .execute()  # Limit per workflow to avoid too much data
             
             for execution in executions_response.data:
+                # Map database status to AMC-style status for consistency
+                db_status = execution.get('status', 'pending').lower()
+                amc_status = {
+                    'pending': 'PENDING',
+                    'running': 'RUNNING',
+                    'completed': 'SUCCEEDED',  # Map completed to SUCCEEDED for AMC compatibility
+                    'failed': 'FAILED',
+                    'cancelled': 'CANCELLED'
+                }.get(db_status, db_status.upper())
+                
                 all_executions.append({
                     'workflowExecutionId': execution.get('execution_id'),
                     'workflowId': workflow.get('amc_workflow_id') or workflow.get('workflow_id'),
                     'workflowName': workflow.get('name'),
-                    'status': execution.get('status', 'PENDING').upper(),
+                    'status': amc_status,  # Use mapped status
                     'startTime': execution.get('started_at'),
                     'endTime': execution.get('completed_at'),
                     'sqlQuery': execution.get('sql_query'),
@@ -166,12 +176,22 @@ async def list_stored_executions(
                 .execute()
             
             for execution in executions_response.data:
+                # Map database status to AMC-style status for consistency
+                db_status = execution.get('status', 'pending').lower()
+                amc_status = {
+                    'pending': 'PENDING',
+                    'running': 'RUNNING',
+                    'completed': 'SUCCEEDED',  # Map completed to SUCCEEDED for AMC compatibility
+                    'failed': 'FAILED',
+                    'cancelled': 'CANCELLED'
+                }.get(db_status, db_status.upper())
+                
                 # Format execution data
                 all_executions.append({
                     'workflowExecutionId': execution.get('execution_id'),
                     'workflowId': workflow.get('amc_workflow_id') or workflow.get('workflow_id'),
                     'workflowName': workflow.get('name'),
-                    'status': execution.get('status', 'PENDING').upper(),
+                    'status': amc_status,  # Use mapped status
                     'startTime': execution.get('started_at'),
                     'endTime': execution.get('completed_at'),
                     'sqlQuery': execution.get('sql_query'),
