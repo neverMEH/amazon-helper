@@ -24,13 +24,31 @@ export default function SQLHighlight({ sql, className = '' }: SQLHighlightProps)
   ];
 
   const highlightSQL = (query: string) => {
-    // First clean up any potential HTML artifacts
-    // Remove any class attributes that might have leaked in
+    // First decode any HTML entities that might be in the input
     let cleanQuery = query
-      .replace(/\s+\d+\s+font-semibold">/g, '') // Remove artifacts like "400 font-semibold">
-      .replace(/\s+\d+">/g, '') // Remove artifacts like '400">'
-      .replace(/">/g, '') // Remove dangling ">
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&nbsp;/g, ' ');
+    
+    // Remove any HTML tags and artifacts
+    cleanQuery = cleanQuery
+      .replace(/<[^>]*>/g, '') // Remove all HTML tags
+      .replace(/\s+\d+\s+font-[^"]*">/g, '') // Remove font class artifacts
+      .replace(/\s+\d+">/g, '') // Remove number artifacts
+      .replace(/">/g, '') // Remove dangling quotes
       .replace(/class="[^"]*"/g, '') // Remove any class attributes
+      .replace(/style="[^"]*"/g, '') // Remove any style attributes
+      .trim();
+
+    // Format the SQL for better readability
+    // Add newlines after major SQL keywords
+    cleanQuery = cleanQuery
+      .replace(/\s+(FROM|WHERE|JOIN|LEFT JOIN|RIGHT JOIN|INNER JOIN|GROUP BY|ORDER BY|HAVING|LIMIT|UNION|WITH)\s+/gi, '\n$1 ')
+      .replace(/\s+(AND|OR)\s+/gi, '\n  $1 ')
+      .replace(/,\s*(?=[A-Za-z_])/g, ',\n  ') // Add newlines after commas in SELECT lists
       .trim();
 
     // Now escape HTML to prevent XSS
@@ -135,41 +153,14 @@ export default function SQLHighlight({ sql, className = '' }: SQLHighlightProps)
     );
   }
 
-  // Check if the SQL contains common HTML artifacts
-  const hasArtifacts = sql && (
-    sql.includes('font-semibold">') || 
-    sql.includes('400">') ||
-    sql.includes('class="') ||
-    sql.includes('<span') ||
-    sql.includes('&lt;') || 
-    sql.includes('&gt;')
-  );
-  
-  if (hasArtifacts) {
-    console.warn('SQLHighlight cleaning HTML artifacts from SQL');
-    // Strip all HTML-like content before processing
-    const cleanSQL = sql
-      .replace(/<[^>]*>/g, '') // Remove HTML tags
-      .replace(/\s+\d+\s+font-[^"]*">/g, '') // Remove font class artifacts
-      .replace(/\s+\d+">/g, '') // Remove number artifacts
-      .replace(/">/g, '') // Remove dangling quotes
-      .replace(/&lt;/g, '<')    // Unescape HTML entities
-      .replace(/&gt;/g, '>')
-      .replace(/&amp;/g, '&')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .trim();
-    
-    return (
-      <pre className={`bg-gray-900 text-gray-100 p-4 rounded-md overflow-x-auto text-xs ${className}`}>
-        <code dangerouslySetInnerHTML={{ __html: highlightSQL(cleanSQL) }} />
-      </pre>
-    );
-  }
-  
+  // Always process the SQL through our cleaning and formatting logic
+  // This ensures consistent formatting whether or not artifacts are detected
   return (
-    <pre className={`bg-gray-900 text-gray-100 p-4 rounded-md overflow-x-auto text-xs ${className}`}>
-      <code dangerouslySetInnerHTML={{ __html: highlightSQL(sql) }} />
+    <pre className={`bg-gray-900 text-gray-100 p-4 rounded-md overflow-x-auto text-xs font-mono ${className}`}>
+      <code 
+        dangerouslySetInnerHTML={{ __html: highlightSQL(sql) }} 
+        style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+      />
     </pre>
   );
 }

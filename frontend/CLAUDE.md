@@ -12,7 +12,7 @@ React-based frontend for the RecomAMP (Amazon Marketing Cloud) platform, providi
 # Install dependencies
 npm install
 
-# Development server (port 5173)
+# Development server (port 5173, proxies /api to backend on 8001)
 npm run dev
 
 # Production build
@@ -24,9 +24,14 @@ npm run lint
 # TypeScript type checking (no npm script, use directly)
 npx tsc --noEmit
 
+# Preview production build
+npm run preview
+
 # E2E testing with Playwright
-npx playwright test
-npx playwright test --ui  # Interactive mode
+npx playwright test                     # Run all tests
+npx playwright test --ui               # Interactive mode
+npx playwright test test-name.spec.ts  # Specific test file
+npx playwright test -g "test name"     # Specific test by name
 ```
 
 ## Architecture
@@ -35,176 +40,222 @@ npx playwright test --ui  # Interactive mode
 - **React 19.1.0** with TypeScript 5.8
 - **React Router v7** for routing
 - **TanStack Query v5** for server state management
-- **Tailwind CSS** for styling
-- **Vite** for build tooling
+- **Tailwind CSS** with @tailwindcss/forms and @tailwindcss/typography
+- **Vite** for build tooling and dev server
+- **Axios** for HTTP client with auth interceptors
 
 ### Key Libraries
-- **Monaco Editor**: SQL query editing with syntax highlighting
+- **Monaco Editor** (`@monaco-editor/react`): SQL query editing with syntax highlighting
 - **Recharts**: Data visualization and charting
 - **React Window**: Virtual scrolling for large datasets
-- **React Hook Form**: Form state management
-- **Axios**: HTTP client with interceptors
+- **React Hook Form** with resolvers: Form state management
 - **Lucide React**: Icon library
 - **date-fns**: Date manipulation
+- **lodash**: Utility functions (use sparingly)
+- **react-hot-toast**: Toast notifications
 
-## Project Structure
+### TypeScript Configuration
+- **verbatimModuleSyntax**: true - Requires type-only imports for types
+- **strict**: true - Full strict mode enabled
+- **noEmit**: true - TypeScript only for type checking, not compilation
+- **target**: ES2022 - Modern JavaScript features
+- **jsx**: react-jsx - New JSX transform
 
-```
-src/
-├── components/
-│   ├── common/           # Reusable UI components
-│   ├── executions/       # Execution monitoring and results
-│   ├── instances/        # AMC instance management
-│   ├── query-builder/    # Query creation workflow
-│   ├── query-templates/  # Template management
-│   └── workflows/        # Workflow execution
-├── services/            # API service layer
-├── types/              # TypeScript type definitions
-├── utils/              # Utility functions
-└── pages/              # Route components
-```
+## Critical Architecture Patterns
 
-## Critical Implementation Patterns
-
-### API Communication
+### API Layer Architecture
 ```typescript
-// All API calls go through axios instance with auth interceptor
-import api from '../services/api';
+// All API calls flow through axios instance with interceptors (src/services/api.ts)
+// - Request interceptor adds Bearer token from localStorage
+// - Response interceptor handles 401s with debounced logout
+// - Base URL is '/api' which proxies to backend on port 8001 in dev
 
-// Consistent naming pattern for service methods
+// Service pattern for API calls (example: src/services/workflowService.ts)
 const service = {
-  list: () => api.get('/items'),
-  get: (id) => api.get(`/items/${id}`),
-  create: (data) => api.post('/items/', data),  // Note trailing slash for POST
-  update: (id, data) => api.put(`/items/${id}`, data),
-  delete: (id) => api.delete(`/items/${id}`)
+  list: () => api.get('/workflows'),
+  get: (id) => api.get(`/workflows/${id}`),
+  create: (data) => api.post('/workflows/', data),  // POST requires trailing slash
+  update: (id, data) => api.put(`/workflows/${id}`, data),
+  delete: (id) => api.delete(`/workflows/${id}`)
 };
 ```
 
-### React Query Usage
+### React Query Data Flow
 ```typescript
-// Use TanStack Query v5 patterns
-const { data, isLoading, error } = useQuery({
-  queryKey: ['items', id],
-  queryFn: () => service.get(id),
-  staleTime: 5 * 60 * 1000,  // 5 minutes
-  gcTime: 10 * 60 * 1000,    // Use gcTime, not cacheTime (deprecated)
+// TanStack Query v5 manages all server state
+// - 5-minute staleTime for caching
+// - 10-minute gcTime (garbage collection)
+// - Automatic refetch on window focus and reconnect
+// - Exponential backoff for retries
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,  // NOT cacheTime (deprecated)
+    },
+  },
 });
 ```
 
-### TypeScript Imports
+### Routing Architecture
 ```typescript
-// Use type-only imports when verbatimModuleSyntax is enabled
-import type { QueryTemplate } from '../types/queryTemplate';
-import { queryTemplateService } from '../services/queryTemplateService';
+// Main routes defined in App.tsx
+// - Protected routes wrap authenticated pages
+// - Layout component provides common UI wrapper
+// - Legacy redirects maintain backward compatibility
+
+// Route structure:
+/login                                  // Public
+/dashboard                             // Protected, default route
+/instances                             // Instance list
+/instances/:instanceId                 // Instance detail with tabs
+/workflows/:workflowId                 // Workflow detail
+/query-builder/new                     // New query wizard
+/query-builder/edit/:workflowId       // Edit existing
+/query-builder/copy/:workflowId       // Copy workflow
+/query-library                         // Template library
+/my-queries                           // User's queries list
+/executions                           // All executions
+/profile                              // User profile
 ```
 
-### Component Patterns
+### Component Communication Patterns
 ```typescript
-// Export default for pages, named exports for components
-export default function PageComponent() { ... }
-export function UtilityComponent() { ... }
-
-// Props interfaces follow naming convention
-interface ComponentNameProps {
-  required: string;
-  optional?: number;
-}
+// Parent-child: Props drilling for 1-2 levels
+// Cross-component: React Query for server state
+// Local state: useState for UI state
+// Forms: React Hook Form with controlled inputs
+// Modals: Local state with isOpen/onClose pattern
 ```
 
-## Key Components and Their Responsibilities
+## Key Architectural Decisions
 
-### Query Builder Flow
-1. **QueryBuilder** (`pages/QueryBuilder.tsx`) - Main wizard controller
-2. **QueryEditorStep** - SQL editing with Monaco Editor
-3. **QueryConfigurationStep** - Instance selection and export settings
-4. **QueryReviewStep** - Final review before execution
+### ID Field Duality
+The system uses two different ID systems that must be carefully managed:
+- **instanceId**: AMC's actual instance ID (used in API calls to AMC)
+- **id**: Internal UUID (used for database relationships)
 
-### Execution Components
-- **AMCExecutionDetail** - Primary execution viewer with rerun/refresh
-- **ExecutionDetailModal** - Legacy workflow execution viewer
-- **DataVisualization** - Auto-generates charts from result data
-- **VirtualizedTable** - Performance-optimized large data tables
+```typescript
+// CORRECT: Use instanceId for AMC API calls
+<InstanceSelector value={state.instanceId} />  // ✓
 
-### Instance Management
-- **InstanceSelector** - Searchable dropdown with brand display
-- **InstanceWorkflows** - Queries tab in instance detail
-- **BrandSelector** - Autocomplete brand selection with creation
+// WRONG: Using internal UUID causes 403 errors
+<InstanceSelector value={instance.id} />  // ✗
+```
+
+### Query Builder Wizard Flow
+Three-step wizard with state management in parent:
+1. **QueryEditorStep**: Monaco Editor for SQL with parameter extraction
+2. **QueryConfigurationStep**: Instance selection, parameters, export settings
+3. **QueryReviewStep**: Final review with cost estimation
+
+State flows down through props, updates bubble up through setState callbacks.
+
+### Execution Modal Hierarchy
+Two separate execution viewing systems:
+- **AMCExecutionDetail**: Primary component for AMC executions (with rerun/refresh)
+- **ExecutionDetailModal**: Legacy component for workflow executions
+
+### Export Name Auto-Generation
+Export names follow pattern: `[Query Name] - [Instance] - [Date Range] - [DateTime]`
+- Auto-generated on parameter change
+- User-editable but not required
+- Removed email/format/password fields per AMP-1
 
 ## Common Pitfalls and Solutions
 
 ### API Trailing Slashes
 ```typescript
-// POST endpoints require trailing slash
-api.post('/workflows/', data)   // ✓ Correct
-api.post('/workflows', data)     // ✗ Returns 405
+// FastAPI requires trailing slash on POST/PUT to collection endpoints
+api.post('/workflows/', data)   // ✓ Correct - returns 201
+api.post('/workflows', data)     // ✗ Wrong - returns 405 Method Not Allowed
 ```
 
-### Instance ID Usage
+### TypeScript Type-Only Imports
 ```typescript
-// Use instanceId (AMC ID) not id (internal UUID)
-<option value={instance.instanceId}>  // ✓ Correct - AMC instance ID
-<option value={instance.id}>          // ✗ Wrong - causes 403
+// verbatimModuleSyntax requires explicit type imports
+import type { QueryTemplate } from '../types/queryTemplate';  // ✓
+import { QueryTemplate } from '../types/queryTemplate';       // ✗ Error
 ```
 
-### Export Name Auto-Generation
+### React Query Key Management
 ```typescript
-// Export names follow format: [Query] - [Instance] - [Date Range] - [DateTime]
-// Auto-generated in QueryConfigurationStep but user-editable
-const exportName = `${queryName} - ${instanceName} - ${dateRange} - ${dateTimeRan}`;
-```
-
-### Execution Parameters
-```typescript
-// Parameters are at root level in execution objects
-execution.executionParameters  // ✓ Correct
-execution.parameters           // ✗ Wrong
+// Query keys must be consistent for caching
+['workflows', workflowId]  // ✓ Consistent structure
+['workflow', id]           // ✗ Different key structure breaks cache
 ```
 
 ### Date Formatting for AMC
 ```typescript
-// AMC requires dates without timezone suffix
-'2025-07-15T00:00:00'    // ✓ Correct
-'2025-07-15T00:00:00Z'   // ✗ Causes empty results
+// AMC API requires specific date format without timezone
+'2025-07-15T00:00:00'    // ✓ Correct format
+'2025-07-15T00:00:00Z'   // ✗ 'Z' suffix causes empty results
+'2025-07-15'             // ✗ Missing time component
 ```
 
-## Testing
+### Navigation After Actions
+```typescript
+// Use React Router's navigate, not window.location
+navigate('/workflows')           // ✓ Preserves SPA behavior
+window.location.href = '/workflows'  // ✗ Full page reload
+```
+
+## Testing Strategy
 
 ### Type Checking
 ```bash
-npx tsc --noEmit  # Run before committing
+npx tsc --noEmit              # Full type check
+npx tsc --noEmit --watch      # Watch mode during development
 ```
 
-### E2E Tests
-```bash
-npx playwright test                    # Run all tests
-npx playwright test --ui              # Interactive UI
-npx playwright test test-name.spec.ts # Specific test
-```
+### E2E Test Structure
+Tests are in `tests/e2e/` directory:
+- Uses Playwright with Chromium
+- Runs dev server automatically (`npm run dev`)
+- Base URL: `http://localhost:5173`
+- HTML reporter for test results
 
-## Environment Variables
+## Performance Optimization Points
 
-Frontend expects backend at `http://localhost:8001` in development. This is configured in `vite.config.ts` proxy settings.
+- **Virtual Scrolling**: React Window for tables > 100 rows
+- **Code Splitting**: Monaco Editor lazy loaded
+- **Query Caching**: 5-minute staleTime prevents redundant fetches
+- **Debounced Search**: 300ms delay on search inputs
+- **Memoization**: React.memo for expensive render components
 
-## Recent Changes (as of latest commit)
+## Build and Deployment
 
-- **AMP-1**: Auto-fill export name, removed unused email/format/password fields
-- **AMP-11**: Added breadcrumb navigation across all pages
-- **AMP-16**: Fixed execution status display in list view
-- **AMP-17**: Auto-open new execution modal after rerun
-- **AMP-20**: Changed "Queries" to "Workflows" in instance detail
+### Development Server
+- Vite dev server on port 5173
+- API proxy: `/api` → `http://127.0.0.1:8001`
+- Hot Module Replacement enabled
+- Host: `0.0.0.0` for network access
 
-## Performance Considerations
+### Production Build
+- Output: `dist/` directory
+- Assets: `dist/assets/` with content hashing
+- Deployed via parent Dockerfile (serves from `/frontend/dist`)
 
-- Use React.memo for expensive components
-- Implement virtual scrolling for large lists (react-window)
-- Leverage React Query's caching (5-minute staleTime)
-- Lazy load heavy components (Monaco Editor, charts)
+## Debugging Utilities
 
-## Debugging Tips
+### Network Issues
+- Check trailing slashes on POST/PUT requests
+- Verify Bearer token in request headers
+- Check for 401/403/405 status codes
+- Confirm instanceId vs id usage
 
-- Check Network tab for API failures (especially 403/405 errors)
-- Verify trailing slashes on POST requests
-- Ensure using correct ID fields (instanceId vs id)
-- Check React Query DevTools for cache state
-- Use `console.log(execution)` to inspect data structure
+### State Issues
+- React Query DevTools available in development
+- Check queryKey consistency
+- Verify staleTime/gcTime settings
+- Look for race conditions in mutations
+
+### Type Issues
+- Run `npx tsc --noEmit` for full check
+- Check for type-only import requirements
+- Verify prop interface naming conventions
