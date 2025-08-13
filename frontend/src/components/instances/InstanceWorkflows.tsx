@@ -179,7 +179,7 @@ export default function InstanceWorkflows({ instanceId }: InstanceWorkflowsProps
                 </div>
                 <div className="ml-4 flex items-center space-x-2">
                   <button
-                    onClick={() => navigate(`/my-queries/${query.workflowId}`)}
+                    onClick={() => navigate(`/workflows/${query.workflowId}`)}
                     className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-gray-100 rounded transition-colors"
                     title="View Details"
                   >
