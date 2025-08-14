@@ -251,7 +251,7 @@ export default function QueryBuilder() {
         const errorMessage = error && typeof error === 'object' && 'response' in error
           ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail
           : 'Failed to save workflow';
-        toast.error(errorMessage);
+        toast.error(errorMessage || 'Failed to save workflow');
       }
     }
   });

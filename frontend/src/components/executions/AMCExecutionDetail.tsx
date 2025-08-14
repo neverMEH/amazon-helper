@@ -93,7 +93,7 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
       const errorMessage = error && typeof error === 'object' && 'response' in error 
         ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail 
         : 'Failed to rerun workflow';
-      toast.error(errorMessage);
+      toast.error(errorMessage || 'Failed to rerun workflow');
       setIsRerunning(false);
     }
   });
@@ -388,7 +388,7 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                         />
 
                         {/* Edit & Retry button for failed executions */}
-                        {(execution.status === 'FAILED' || execution.status === 'failed') && 
+                        {execution.status === 'FAILED' && 
                          (execution.workflowId || execution.workflowInfo?.id) && (
                           <div className="mt-4 flex justify-center">
                             <button

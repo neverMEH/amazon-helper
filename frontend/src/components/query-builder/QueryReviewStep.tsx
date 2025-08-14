@@ -183,6 +183,12 @@ export default function QueryReviewStep({ state, instances, onNavigateToStep }: 
     return previewSQL;
   };
 
+  // Type guard for execution result
+  const getExecutionError = (result: unknown): { error?: string; message?: string; errorDetails?: unknown } | null => {
+    if (!result || typeof result !== 'object') return null;
+    return result as { error?: string; message?: string; errorDetails?: unknown };
+  };
+
   const formatRuntime = (seconds: number) => {
     if (seconds < 60) return `${seconds} seconds`;
     const minutes = Math.floor(seconds / 60);
@@ -359,7 +365,7 @@ export default function QueryReviewStep({ state, instances, onNavigateToStep }: 
                   </div>
                 )}
 
-                {executionStatus === 'completed' && executionResult && (
+                {executionStatus === 'completed' && (
                   <div>
                     <div className="flex items-center text-green-600 mb-2">
                       <CheckCircle className="h-4 w-4 mr-2" />
@@ -377,16 +383,21 @@ export default function QueryReviewStep({ state, instances, onNavigateToStep }: 
                   </div>
                 )}
 
-                {executionStatus === 'failed' && executionResult && (
+                {executionStatus === 'failed' && (
                   <>
-                    <ExecutionErrorDetails
-                      errorMessage={executionResult.error || executionResult.message || 'Query execution failed'}
-                      errorDetails={executionResult.errorDetails}
-                      status="failed"
-                      sqlQuery={state.sqlQuery}
-                      executionId={executionId || undefined}
-                      instanceName={selectedInstance?.instance_name}
-                    />
+                    {(() => {
+                      const errorInfo = getExecutionError(executionResult);
+                      return (
+                        <ExecutionErrorDetails
+                          errorMessage={errorInfo?.error || errorInfo?.message || 'Query execution failed'}
+                          errorDetails={errorInfo?.errorDetails as any}
+                          status="failed"
+                          sqlQuery={state.sqlQuery}
+                          executionId={executionId || undefined}
+                          instanceName={selectedInstance?.instance_name}
+                        />
+                      );
+                    })()}
                     {onNavigateToStep && (
                       <div className="mt-3">
                         <button
