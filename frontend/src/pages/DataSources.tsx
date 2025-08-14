@@ -3,15 +3,13 @@
  * Browse and search AMC schema documentation
  */
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Search,
   Database,
   X,
-  Grid3x3,
-  List,
   SlidersHorizontal,
   Command,
   Filter
@@ -37,14 +35,14 @@ export default function DataSources() {
   const [selectedTags, setSelectedTags] = useState<string[]>(
     searchParams.getAll('tag') || []
   );
-  const [viewMode, setViewMode] = useState<'card' | 'compact'>(searchParams.get('view') as 'card' | 'compact' || 'card');
+  // List view is the only view mode now
   const [previewDataSource, setPreviewDataSource] = useState<DataSource | null>(null);
   const [showPreview, setShowPreview] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
   const [showAdvancedFilter, setShowAdvancedFilter] = useState(false);
-  const [advancedFilter, setAdvancedFilter] = useState<any>(null);
+  const [advancedFilter, setAdvancedFilter] = useState<Record<string, unknown> | null>(null);
   const [filterPresets, setFilterPresets] = useState(DEFAULT_PRESETS);
   const [activePresetId, setActivePresetId] = useState<string>('all');
   const [showCompareMode, setShowCompareMode] = useState(false);
@@ -74,17 +72,7 @@ export default function DataSources() {
     staleTime: 10 * 60 * 1000
   });
 
-  // Group data sources by category
-  const groupedDataSources = useMemo(() => {
-    const groups: Record<string, DataSource[]> = {};
-    dataSources.forEach(ds => {
-      if (!groups[ds.category]) {
-        groups[ds.category] = [];
-      }
-      groups[ds.category].push(ds);
-    });
-    return groups;
-  }, [dataSources]);
+  // Group data sources by category - removed as not being used
 
   // Update URL params when filters change
   useEffect(() => {
@@ -188,31 +176,6 @@ export default function DataSources() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                {/* View Mode Toggle */}
-                <div className="flex items-center bg-gray-100 rounded-lg p-1">
-                  <button
-                    onClick={() => setViewMode('card')}
-                    className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-                      viewMode === 'card'
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                    title="Card View"
-                  >
-                    <Grid3x3 className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('compact')}
-                    className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-                      viewMode === 'compact'
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                    title="List View"
-                  >
-                    <List className="h-4 w-4" />
-                  </button>
-                </div>
                 {/* Selection Mode Toggle */}
                 <button
                   onClick={() => {
@@ -439,7 +402,7 @@ export default function DataSources() {
             )}
 
             {isLoading ? (
-              <DataSourceSkeleton viewMode={viewMode} count={8} />
+              <DataSourceSkeleton count={8} />
             ) : dataSources.length === 0 ? (
               <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
                 <Database className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -450,9 +413,9 @@ export default function DataSources() {
                     : 'No data sources are available yet'}
                 </p>
               </div>
-            ) : viewMode === 'compact' ? (
-              // Compact Table View
-              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden animate-fade-in">
+            ) : (
+              // List Table View (only view mode now)
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                 <table className="min-w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
@@ -489,50 +452,6 @@ export default function DataSources() {
                     ))}
                   </tbody>
                 </table>
-              </div>
-            ) : selectedCategory ? (
-              // Show filtered results as cards
-              <div className="grid gap-4 grid-cols-1 xl:grid-cols-2 animate-fade-in">
-                {dataSources.map(dataSource => (
-                  <DataSourceCard
-                    key={dataSource.id}
-                    dataSource={dataSource}
-                    onClick={() => handleDataSourceClick(dataSource)}
-                    onPreview={handlePreview}
-                    isSelected={selectedIds.has(dataSource.id)}
-                    searchQuery={search}
-                    onSelect={handleSelect}
-                    selectionMode={selectionMode}
-                  />
-                ))}
-              </div>
-            ) : (
-              // Show grouped by category
-              <div className="space-y-8 animate-fade-in">
-                {Object.entries(groupedDataSources).map(([category, sources]) => (
-                  <div key={category}>
-                    <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">
-                      {category}
-                      <span className="ml-2 text-sm font-normal text-gray-500">
-                        ({sources.length} {sources.length === 1 ? 'schema' : 'schemas'})
-                      </span>
-                    </h2>
-                    <div className="grid gap-4 grid-cols-1 xl:grid-cols-2">
-                      {sources.map(dataSource => (
-                        <DataSourceCard
-                          key={dataSource.id}
-                          dataSource={dataSource}
-                          onClick={() => handleDataSourceClick(dataSource)}
-                          onPreview={handlePreview}
-                          isSelected={selectedIds.has(dataSource.id)}
-                          searchQuery={search}
-                          onSelect={handleSelect}
-                          selectionMode={selectionMode}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ))}
               </div>
             )}
           </div>

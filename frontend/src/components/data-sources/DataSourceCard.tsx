@@ -1,16 +1,12 @@
-import { useState, memo } from 'react';
+import { memo } from 'react';
 import type { MouseEvent } from 'react';
 import {
   Database,
-  ChevronRight,
-  Tag,
   Lock,
-  Globe,
   Table,
   Code,
   BarChart3,
   Layers,
-  Hash,
   TrendingUp
 } from 'lucide-react';
 import type { DataSource } from '../../types/dataSource';
@@ -21,7 +17,6 @@ interface DataSourceCardProps {
   onClick: () => void;
   onPreview?: (dataSource: DataSource) => void;
   isSelected?: boolean;
-  viewMode?: 'card' | 'compact';
   searchQuery?: string;
   onSelect?: (id: string, selected: boolean) => void;
   selectionMode?: boolean;
@@ -38,12 +33,10 @@ export const DataSourceCard = memo(({
   onClick, 
   onPreview,
   isSelected = false,
-  viewMode = 'card',
   searchQuery = '',
   onSelect,
   selectionMode = false
 }: DataSourceCardProps) => {
-  const [isHovered, setIsHovered] = useState(false);
   
   // Mock field count - in real implementation, this would come from the API
   const fieldCount = Math.floor(Math.random() * 100) + 10;
@@ -56,83 +49,10 @@ export const DataSourceCard = memo(({
     onSelect?.(dataSource.id, !isSelected);
   };
 
-  if (viewMode === 'compact') {
-    return (
-      <tr 
-        className={`hover:bg-gray-50 cursor-pointer transition-colors ${isSelected ? 'bg-blue-50' : ''}`}
-        onClick={(e) => {
-          if (selectionMode && e.target instanceof HTMLInputElement && e.target.type === 'checkbox') {
-            return;
-          }
-          onClick();
-        }}
-        onMouseEnter={() => {
-          setIsHovered(true);
-          onPreview?.(dataSource);
-        }}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        <td className="px-4 py-3">
-          <div className="flex items-center gap-2">
-            {selectionMode && (
-              <input
-                type="checkbox"
-                checked={isSelected}
-                onChange={() => onSelect?.(dataSource.id, !isSelected)}
-                onClick={handleCheckboxClick}
-                className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-              />
-            )}
-            <Database className="h-4 w-4 text-gray-400" />
-            <span className="font-medium text-gray-900">
-              {searchQuery ? highlightMatch(dataSource.name, searchQuery) : dataSource.name}
-            </span>
-            {dataSource.is_paid_feature && (
-              <Lock className="h-3 w-3 text-yellow-600" />
-            )}
-          </div>
-        </td>
-        <td className="px-4 py-3 text-sm text-gray-600">
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
-            {dataSource.category}
-          </span>
-        </td>
-        <td className="px-4 py-3">
-          <div className="flex items-center gap-3 text-sm">
-            <span className="flex items-center gap-1 text-gray-500">
-              <Table className="h-3 w-3" />
-              {fieldCount}
-            </span>
-            <span className="flex items-center gap-1 text-gray-500">
-              <Code className="h-3 w-3" />
-              {exampleCount}
-            </span>
-          </div>
-        </td>
-        <td className="px-4 py-3">
-          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${complexity.color}`}>
-            <ComplexityIcon className="h-3 w-3" />
-            {complexity.label}
-          </span>
-        </td>
-        <td className="px-4 py-3">
-          <div className="flex gap-1">
-            {dataSource.tags.slice(0, 2).map(tag => (
-              <span key={tag} className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-600">
-                {tag}
-              </span>
-            ))}
-            {dataSource.tags.length > 2 && (
-              <span className="text-xs text-gray-400">+{dataSource.tags.length - 2}</span>
-            )}
-          </div>
-        </td>
-      </tr>
-    );
-  }
-
+  // Since we're only using list/compact view, return the table row directly
   return (
-    <div
+    <tr 
+      className={`hover:bg-gray-50 cursor-pointer transition-colors ${isSelected ? 'bg-blue-50' : ''}`}
       onClick={(e) => {
         if (selectionMode && e.target instanceof HTMLInputElement && e.target.type === 'checkbox') {
           return;
@@ -140,110 +60,65 @@ export const DataSourceCard = memo(({
         onClick();
       }}
       onMouseEnter={() => {
-        setIsHovered(true);
         onPreview?.(dataSource);
       }}
-      onMouseLeave={() => setIsHovered(false)}
-      className={`
-        bg-white rounded-lg border transition-all cursor-pointer relative
-        ${isHovered ? 'shadow-lg border-blue-300 transform -translate-y-0.5' : 'shadow border-gray-200'}
-        ${isSelected && selectionMode ? 'ring-2 ring-blue-500 border-blue-500' : ''}
-      `}
     >
-      {/* Selection Checkbox */}
-      {selectionMode && (
-        <div className="absolute top-3 left-3 z-10">
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={() => onSelect?.(dataSource.id, !isSelected)}
-            onClick={handleCheckboxClick}
-            className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 bg-white"
-          />
-        </div>
-      )}
-      <div className="p-5">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="text-lg font-semibold text-gray-900">
-                {searchQuery ? highlightMatch(dataSource.name, searchQuery) : dataSource.name}
-              </h3>
-              {dataSource.is_paid_feature && (
-                <Lock className="h-4 w-4 text-yellow-600" />
-              )}
-              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${complexity.color}`}>
-                <ComplexityIcon className="h-3 w-3" />
-                {complexity.label}
-              </span>
-            </div>
-            <p className="text-xs text-gray-500 font-mono">
-              {dataSource.data_sources.join(', ')}
-            </p>
-          </div>
-          <ChevronRight className={`h-5 w-5 text-gray-400 transition-transform ${isHovered ? 'translate-x-1' : ''}`} />
-        </div>
-
-        {/* Description */}
-        <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-          {searchQuery ? highlightMatch(dataSource.description, searchQuery) : dataSource.description}
-        </p>
-
-        {/* Stats Bar */}
-        <div className="flex items-center gap-4 mb-3 pb-3 border-b border-gray-100">
-          <div className="flex items-center gap-1.5 text-sm">
-            <Table className="h-4 w-4 text-gray-400" />
-            <span className="font-medium text-gray-700">{fieldCount}</span>
-            <span className="text-gray-500">fields</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-sm">
-            <Code className="h-4 w-4 text-gray-400" />
-            <span className="font-medium text-gray-700">{exampleCount}</span>
-            <span className="text-gray-500">examples</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-sm">
-            <Hash className="h-4 w-4 text-gray-400" />
-            <span className="font-medium text-gray-700">v{dataSource.version}</span>
-          </div>
-          {dataSource.availability?.marketplaces && (
-            <div className="flex items-center gap-1.5 text-sm ml-auto">
-              <Globe className="h-4 w-4 text-gray-400" />
-              <span className="text-gray-500">
-                {Object.keys(dataSource.availability.marketplaces).length} regions
-              </span>
-            </div>
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-2">
+          {selectionMode && (
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={() => onSelect?.(dataSource.id, !isSelected)}
+              onClick={handleCheckboxClick}
+              className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+            />
+          )}
+          <Database className="h-4 w-4 text-gray-400" />
+          <span className="font-medium text-gray-900">
+            {searchQuery ? highlightMatch(dataSource.name, searchQuery) : dataSource.name}
+          </span>
+          {dataSource.is_paid_feature && (
+            <Lock className="h-3 w-3 text-yellow-600" />
           )}
         </div>
-
-        {/* Tags */}
-        <div className="flex items-center justify-between">
-          <div className="flex flex-wrap gap-1.5">
-            {dataSource.tags.slice(0, 4).map(tag => (
-              <span
-                key={tag}
-                className="inline-flex items-center gap-1 px-2 py-1 bg-gray-50 text-gray-600 rounded text-xs hover:bg-gray-100 transition-colors"
-              >
-                <Tag className="h-3 w-3" />
-                {tag}
-              </span>
-            ))}
-            {dataSource.tags.length > 4 && (
-              <span className="inline-flex items-center px-2 py-1 text-xs text-gray-500">
-                +{dataSource.tags.length - 4} more
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Category Badge */}
-        <div className="mt-3 pt-3 border-t border-gray-100">
-          <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700">
-            {dataSource.category}
+      </td>
+      <td className="px-4 py-3 text-sm text-gray-600">
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
+          {dataSource.category}
+        </span>
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-3 text-sm">
+          <span className="flex items-center gap-1 text-gray-500">
+            <Table className="h-3 w-3" />
+            {fieldCount}
+          </span>
+          <span className="flex items-center gap-1 text-gray-500">
+            <Code className="h-3 w-3" />
+            {exampleCount}
           </span>
         </div>
-      </div>
-    </div>
+      </td>
+      <td className="px-4 py-3">
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${complexity.color}`}>
+          <ComplexityIcon className="h-3 w-3" />
+          {complexity.label}
+        </span>
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex gap-1">
+          {dataSource.tags.slice(0, 2).map(tag => (
+            <span key={tag} className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-600">
+              {tag}
+            </span>
+          ))}
+          {dataSource.tags.length > 2 && (
+            <span className="text-xs text-gray-400">+{dataSource.tags.length - 2}</span>
+          )}
+        </div>
+      </td>
+    </tr>
   );
 });
 

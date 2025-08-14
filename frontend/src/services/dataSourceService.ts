@@ -135,13 +135,6 @@ class DataSourceService {
   }
 
   /**
-   * Copy SQL query to clipboard
-   */
-  copyToClipboard(sql: string): Promise<void> {
-    return navigator.clipboard.writeText(sql);
-  }
-
-  /**
    * Format SQL query for display
    */
   formatSQL(sql: string): string {
