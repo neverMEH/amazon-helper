@@ -2,10 +2,12 @@
  * Utility functions for data source components
  */
 
+import type { ReactElement } from 'react';
+
 /**
  * Highlights matching text in a string
  */
-export function highlightMatch(text: string, query: string): JSX.Element {
+export function highlightMatch(text: string, query: string): ReactElement {
   if (!query || query.length < 2) return <>{text}</>;
   
   try {

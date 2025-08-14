@@ -58,7 +58,7 @@ export function DataSourcePreview({ dataSource, onClose, onOpenDetail }: DataSou
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-gray-900">{dataSource.name}</h3>
               {dataSource.is_paid_feature && (
-                <Lock className="h-4 w-4 text-yellow-600" title="Paid Feature" />
+                <Lock className="h-4 w-4 text-yellow-600" />
               )}
             </div>
             <p className="text-xs text-gray-500 mt-0.5">{dataSource.category}</p>

@@ -11,8 +11,6 @@ import {
   ArrowLeft,
   Database,
   Code,
-  Table,
-  BookOpen,
   Link2,
   Tag,
   Lock,
@@ -37,7 +35,6 @@ export default function DataSourceDetailV2() {
   const [activeSection, setActiveSection] = useState('overview');
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [copiedExample, setCopiedExample] = useState<string | null>(null);
-  const [selectedExample, setSelectedExample] = useState<QueryExample | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
   // Fetch complete schema
@@ -185,7 +182,7 @@ export default function DataSourceDetailV2() {
                       {schema.schema.name}
                     </h1>
                     {schema.schema.is_paid_feature && (
-                      <Lock className="h-5 w-5 text-yellow-600" title="Paid Feature" />
+                      <Lock className="h-5 w-5 text-yellow-600" />
                     )}
                   </div>
                   <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">

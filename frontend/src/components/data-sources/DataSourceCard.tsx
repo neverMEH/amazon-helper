@@ -1,4 +1,5 @@
-import { useState, memo, MouseEvent } from 'react';
+import { useState, memo } from 'react';
+import type { MouseEvent } from 'react';
 import {
   Database,
   ChevronRight,
@@ -170,7 +171,7 @@ export const DataSourceCard = memo(({
                 {searchQuery ? highlightMatch(dataSource.name, searchQuery) : dataSource.name}
               </h3>
               {dataSource.is_paid_feature && (
-                <Lock className="h-4 w-4 text-yellow-600" title="Paid Feature" />
+                <Lock className="h-4 w-4 text-yellow-600" />
               )}
               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${complexity.color}`}>
                 <ComplexityIcon className="h-3 w-3" />

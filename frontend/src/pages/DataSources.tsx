@@ -20,6 +20,7 @@ import { DataSourceCard } from '../components/data-sources/DataSourceCard';
 import { DataSourcePreview } from '../components/data-sources/DataSourcePreview';
 import { DataSourceCommandPalette } from '../components/data-sources/DataSourceCommandPalette';
 import { DataSourceSkeleton } from '../components/data-sources/DataSourceSkeleton';
+import { BulkActions } from '../components/data-sources/BulkActions';
 import type { DataSource } from '../types/dataSource';
 
 export default function DataSources() {
@@ -101,29 +102,6 @@ export default function DataSources() {
 
   const hasActiveFilters = search || selectedCategory || selectedTags.length > 0;
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd/Ctrl + K for command palette
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setShowCommandPalette(true);
-      }
-      // Cmd/Ctrl + A to select all
-      if ((e.metaKey || e.ctrlKey) && e.key === 'a' && selectionMode) {
-        e.preventDefault();
-        handleSelectAll();
-      }
-      // Escape to clear search
-      if (e.key === 'Escape' && document.activeElement?.id === 'search-input') {
-        setSearch('');
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectionMode, handleSelectAll]);
-
   const handleDataSourceClick = useCallback((dataSource: DataSource) => {
     navigate(`/data-sources/${dataSource.schema_id}`);
   }, [navigate]);
@@ -153,6 +131,29 @@ export default function DataSources() {
   const handleDeselectAll = useCallback(() => {
     setSelectedIds(new Set());
   }, []);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd/Ctrl + K for command palette
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowCommandPalette(true);
+      }
+      // Cmd/Ctrl + A to select all
+      if ((e.metaKey || e.ctrlKey) && e.key === 'a' && selectionMode) {
+        e.preventDefault();
+        handleSelectAll();
+      }
+      // Escape to clear search
+      if (e.key === 'Escape' && document.activeElement?.id === 'search-input') {
+        setSearch('');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectionMode, handleSelectAll]);
 
   // Enable selection mode when items are selected
   useEffect(() => {

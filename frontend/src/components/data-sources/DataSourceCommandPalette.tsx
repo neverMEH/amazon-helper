@@ -289,7 +289,7 @@ export function DataSourceCommandPalette({ isOpen, onClose }: CommandPaletteProp
 }
 
 // Helper function to highlight matching text
-function highlightMatch(text: string, query: string): JSX.Element {
+function highlightMatch(text: string, query: string): React.ReactElement {
   if (!query) return <>{text}</>;
   
   const parts = text.split(new RegExp(`(${query})`, 'gi'));
