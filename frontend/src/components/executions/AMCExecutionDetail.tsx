@@ -375,7 +375,11 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                         {/* Display detailed error information for failed executions */}
                         <ExecutionErrorDetails 
                           errorMessage={execution.error || execution.errorMessage}
+                          errorDetails={execution.errorDetails}
                           status={execution.status}
+                          sqlQuery={execution.sqlQuery || execution.workflowInfo?.sqlQuery}
+                          executionId={executionId}
+                          instanceName={execution.instanceInfo?.instanceName}
                         />
 
                         {execution.resultData && (

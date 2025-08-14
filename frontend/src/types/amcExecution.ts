@@ -18,6 +18,15 @@ export interface AMCExecution {
   completedAt?: string;
 }
 
+export interface AMCErrorDetails {
+  failureReason?: string;
+  validationErrors?: string[];
+  errorCode?: string;
+  errorMessage?: string;
+  errorDetails?: string;
+  queryValidation?: string;
+}
+
 export interface AMCExecutionDetail extends AMCExecution {
   executionId: string;
   amcStatus: string;
@@ -25,6 +34,7 @@ export interface AMCExecutionDetail extends AMCExecution {
   resultData?: any;
   downloadUrls?: string[];
   errorMessage?: string;
+  errorDetails?: AMCErrorDetails;
   startedAt?: string;
   instanceInfo?: {
     instanceId: string;

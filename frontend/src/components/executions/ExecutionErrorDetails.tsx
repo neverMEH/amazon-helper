@@ -1,23 +1,47 @@
-import { AlertTriangle, XCircle, Info, Code, AlertCircle } from 'lucide-react';
+import { useState } from 'react';
+import { AlertTriangle, XCircle, Info, Code, AlertCircle, Copy, Maximize2, CheckCircle } from 'lucide-react';
+import ErrorDetailsModal from './ErrorDetailsModal';
+import type { AMCErrorDetails } from '../../types/amcExecution';
 
 interface ExecutionErrorDetailsProps {
   errorMessage?: string | null;
+  errorDetails?: AMCErrorDetails;
   status?: string;
   className?: string;
+  sqlQuery?: string;
+  executionId?: string;
+  instanceName?: string;
 }
 
 export default function ExecutionErrorDetails({ 
   errorMessage, 
+  errorDetails,
   status,
-  className = '' 
+  className = '',
+  sqlQuery,
+  executionId,
+  instanceName
 }: ExecutionErrorDetailsProps) {
+  const [showFullError, setShowFullError] = useState(false);
+  const [copiedItem, setCopiedItem] = useState<string | null>(null);
   
-  if (!errorMessage || status !== 'failed') {
+  if ((!errorMessage && !errorDetails) || status !== 'failed') {
     return null;
   }
 
+  const copyToClipboard = async (text: string, itemKey: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedItem(itemKey);
+      setTimeout(() => setCopiedItem(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
   // Parse the error message to extract different sections
-  const parseErrorMessage = (message: string) => {
+  const parseErrorMessage = (message: string | null | undefined) => {
+    if (!message) return {};
     const sections: { [key: string]: string | string[] } = {};
     
     // Extract main error
@@ -53,16 +77,46 @@ export default function ExecutionErrorDetails({
     return sections;
   };
 
-  const errorSections = parseErrorMessage(errorMessage);
+  // Use errorDetails if available, otherwise parse errorMessage
+  const errorSections = errorDetails ? {
+    mainError: errorDetails.failureReason || errorMessage,
+    validationErrors: errorDetails.validationErrors,
+    errorCode: errorDetails.errorCode,
+    details: errorDetails.errorDetails,
+    queryValidation: errorDetails.queryValidation
+  } : parseErrorMessage(errorMessage);
   
   return (
-    <div className={`bg-red-50 border border-red-200 rounded-lg p-4 ${className}`}>
-      <div className="flex items-start">
-        <XCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
-        <div className="ml-3 flex-1">
-          <h3 className="text-sm font-medium text-red-800">
-            Query Execution Failed
-          </h3>
+    <>
+      <div className={`bg-red-50 border border-red-200 rounded-lg p-4 ${className}`}>
+        <div className="flex items-start">
+          <XCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+          <div className="ml-3 flex-1">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium text-red-800">
+                Query Execution Failed
+              </h3>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => copyToClipboard(errorSections.mainError || errorMessage || '', 'main')}
+                  className="text-red-600 hover:text-red-800"
+                  title="Copy error message"
+                >
+                  {copiedItem === 'main' ? (
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </button>
+                <button
+                  onClick={() => setShowFullError(true)}
+                  className="text-red-600 hover:text-red-800"
+                  title="View full error details"
+                >
+                  <Maximize2 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
           
           {/* Main Error */}
           <div className="mt-2 text-sm text-red-700">
@@ -147,8 +201,20 @@ export default function ExecutionErrorDetails({
               </div>
             </div>
           </details>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Error Details Modal */}
+      <ErrorDetailsModal
+        isOpen={showFullError}
+        onClose={() => setShowFullError(false)}
+        errorMessage={errorMessage || undefined}
+        errorDetails={errorDetails}
+        sqlQuery={sqlQuery}
+        executionId={executionId}
+        instanceName={instanceName}
+      />
+    </>
   );
 }
