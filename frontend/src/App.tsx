@@ -22,7 +22,6 @@ import Executions from './pages/Executions';
 // Data Sources imports
 import DataSources from './pages/DataSources';
 import DataSourceDetail from './pages/DataSourceDetail';
-import DataSourceDetailTest from './pages/DataSourceDetailTest';
 
 const queryClient = new QueryClient({
   defaultOptions: {

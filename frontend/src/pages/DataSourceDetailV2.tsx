@@ -30,11 +30,12 @@ import { FieldExplorer } from '../components/data-sources/FieldExplorer';
 import type { QueryExample } from '../types/dataSource';
 
 export default function DataSourceDetailV2() {
+  const navigate = useNavigate();
+  
   try {
     console.log('DataSourceDetailV2 component is rendering');
     
     const { schemaId } = useParams<{ schemaId: string }>();
-    const navigate = useNavigate();
     const [activeSection, setActiveSection] = useState('overview');
     const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
     const [copiedExample, setCopiedExample] = useState<string | null>(null);
