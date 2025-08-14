@@ -118,11 +118,13 @@ amc_manager/services/
 src/
 ├── pages/                      # Route components
 │   ├── QueryBuilder.tsx        # 3-step wizard with test execution
-│   ├── DataSources.tsx         # Advanced filtering and compare mode
-│   └── DataSourceDetail.tsx    # Schema detail view
+│   ├── DataSources.tsx         # List view with side panel preview
+│   └── DataSourceDetail.tsx    # Enhanced with TOC and field explorer
 ├── components/
 │   ├── query-builder/          # Wizard steps
 │   ├── data-sources/           # Data source UI components
+│   │   ├── TableOfContents.tsx # Scroll-synced navigation
+│   │   └── FieldExplorer.tsx   # Advanced field browser
 │   ├── workflows/              # Execution monitoring
 │   ├── executions/             # Error display and results
 │   └── common/                 # Shared components
@@ -181,6 +183,14 @@ result = await amc_api_client_with_retry.create_workflow_execution(
 )
 ```
 
+### Frontend Token Refresh with Request Queuing
+```typescript
+// api.ts implements request queuing during token refresh
+// Failed requests are automatically queued and retried
+// All queued requests execute after successful refresh
+// Automatic logout after refresh failure
+```
+
 ### AMC Error Handling
 ```python
 # Extract detailed error information from AMC 400 responses
@@ -205,6 +215,9 @@ app.include_router(data_sources_router, prefix="/api/data-sources")
 // TypeScript requires explicit type imports
 import type { QueryTemplate } from '../types/queryTemplate';  // ✓
 import { QueryTemplate } from '../types/queryTemplate';       // ✗ Error
+
+// When exporting interfaces for other components
+export interface FilterGroup { ... }  // Must export for cross-component use
 ```
 
 ### React Query Key Consistency
@@ -212,6 +225,9 @@ import { QueryTemplate } from '../types/queryTemplate';       // ✗ Error
 // Keys must be consistent for caching
 ['dataSource', schemaId]        // ✓ Consistent
 ['data-source', id]             // ✗ Different structure breaks cache
+
+// Query with dependencies
+queryKey: ['dataSources', { search, category, tags }]
 ```
 
 ### SessionStorage for Component Communication
@@ -231,6 +247,15 @@ if (draft) {
 }
 ```
 
+### React Hook Dependencies
+```typescript
+// Wrap computed values in useMemo to prevent effect re-runs
+const tocItems = useMemo(() => {
+  // Compute table of contents items
+  return items;
+}, [schema]);  // Only recompute when schema changes
+```
+
 ## Database Schema
 
 Key Supabase tables and their relationships:
@@ -247,6 +272,7 @@ amc_instances
 ├── instance_id (text, unique)     -- AMC's actual ID
 ├── name
 ├── entity_id                      -- For API headers
+├── brands (text[])                -- Brand associations for filtering
 └── user_id (FK → users)
 
 workflows
@@ -273,6 +299,14 @@ amc_data_sources                  -- Schema documentation
 ├── name
 ├── category
 └── fields (relation → schema_fields)
+
+query_templates                   -- Pre-built query library
+├── id (uuid, PK)
+├── name
+├── description
+├── sql_template
+├── parameters (jsonb)
+└── category
 ```
 
 ## Environment Variables
@@ -292,6 +326,9 @@ AMC_USE_REAL_API=true              # Set to "false" for mock responses
 # Security
 FERNET_KEY=xxx                      # Auto-generated if missing, keep consistent!
 JWT_SECRET_KEY=xxx                  # For JWT tokens
+
+# Rate Limiting (optional)
+SLOWAPI_LIMIT=100                   # Requests per minute
 ```
 
 ## Common Pitfalls & Solutions
@@ -350,6 +387,15 @@ return (
 </div>
 ```
 
+### Tailwind Animation Classes
+```javascript
+// Define animations in tailwind.config.js
+animation: {
+  'fade-in': 'fadeIn 0.2s ease-in-out',
+}
+// Use as: className="animate-fade-in"
+```
+
 ## Background Services
 
 The application runs two critical background services:
@@ -379,13 +425,13 @@ Railway deployment via single Dockerfile:
 
 Manual testing flow:
 1. ✅ Login with Amazon OAuth
-2. ✅ Add/edit AMC instance
+2. ✅ Add/edit AMC instance with brand tags
 3. ✅ Create query from template
 4. ✅ Edit query in builder with schema browser
 5. ✅ Execute workflow with parameters
 6. ✅ View execution progress
 7. ✅ View results in modal (inline and full)
-8. ✅ Browse data sources with preview
+8. ✅ Browse data sources with list view and side preview
 9. ✅ Use Cmd+K to search schemas
 10. ✅ Multi-select data sources for bulk actions
 11. ✅ Apply advanced filters with nested conditions
@@ -393,6 +439,7 @@ Manual testing flow:
 13. ✅ Test execute queries in Query Builder
 14. ✅ View detailed error messages with copy functionality
 15. ✅ Verify token auto-refresh on expiry
+16. ✅ Campaign filtering by brand associations
 
 ## Known Issues & Workarounds
 
@@ -415,7 +462,13 @@ Manual testing flow:
 - System auto-creates workflows on first execution if missing
 - Falls back to ad-hoc execution if creation fails
 
-## Recent Features (2025-08-14)
+## Recent Updates (2025-08-14)
+
+### Component Consolidation
+- Merged DataSourceDetailV2 features into main DataSourceDetail
+- Added two-panel layout with Table of Contents
+- Integrated FieldExplorer for advanced field browsing
+- Removed card view from DataSources (list view only)
 
 ### Automatic Token Refresh
 - Tokens refresh automatically before expiry
@@ -440,3 +493,9 @@ Manual testing flow:
 - Dynamic schema loading from API
 - Automatic parameter detection ({{param}})
 - SQL editor with expand-to-fullscreen feature
+
+### Brand Management
+- Editable brand tags on instance detail pages
+- Campaign filtering based on brand associations
+- Autocomplete search for existing brands
+- Visual feedback for brand operations
