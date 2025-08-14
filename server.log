@@ -69,3 +69,4 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 2025-08-13 22:47:05 - amc_manager.services.amc_execution_service - ERROR - Error polling execution status: asyncio.run() cannot be called from a running event loop
 2025-08-13 22:47:21 - amc_manager.services.amc_execution_service - INFO - AMC execution ID: 18e1a2fd-e27d-446a-8318-8babb1246801, Internal execution ID: exec_41ed661f
 2025-08-13 22:47:21 - amc_manager.services.amc_execution_service - ERROR - Error polling execution status: asyncio.run() cannot be called from a running event loop
+INFO:     127.0.0.1:40670 - "GET /api/data-sources HTTP/1.1" 403 Forbidden

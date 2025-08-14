@@ -30,20 +30,37 @@ import { FieldExplorer } from '../components/data-sources/FieldExplorer';
 import type { QueryExample } from '../types/dataSource';
 
 export default function DataSourceDetailV2() {
-  const { schemaId } = useParams<{ schemaId: string }>();
-  const navigate = useNavigate();
-  const [activeSection, setActiveSection] = useState('overview');
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
-  const [copiedExample, setCopiedExample] = useState<string | null>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
+  try {
+    console.log('DataSourceDetailV2 component is rendering');
+    
+    const { schemaId } = useParams<{ schemaId: string }>();
+    const navigate = useNavigate();
+    const [activeSection, setActiveSection] = useState('overview');
+    const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+    const [copiedExample, setCopiedExample] = useState<string | null>(null);
+    const contentRef = useRef<HTMLDivElement>(null);
 
+  // Debug logging
+  console.log('DataSourceDetailV2: schemaId from params:', schemaId);
+  
   // Fetch complete schema
   const { data: schema, isLoading, error } = useQuery({
     queryKey: ['dataSource', schemaId],
-    queryFn: () => dataSourceService.getCompleteSchema(schemaId!),
+    queryFn: () => {
+      console.log('Fetching complete schema for:', schemaId);
+      return dataSourceService.getCompleteSchema(schemaId!);
+    },
     enabled: !!schemaId,
     staleTime: 10 * 60 * 1000
   });
+  
+  // Log state for debugging
+  console.log('Query state:', { isLoading, error, schema, schemaId });
+  
+  // Log error if exists
+  if (error) {
+    console.error('Error fetching schema:', error);
+  }
 
   // Build TOC items
   const tocItems = schema ? [
@@ -481,4 +498,21 @@ export default function DataSourceDetailV2() {
       </div>
     </div>
   );
+  } catch (error) {
+    console.error('Error in DataSourceDetailV2 component:', error);
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h3 className="text-lg font-medium text-gray-900 mb-2">An error occurred</h3>
+          <p className="text-gray-500 mb-4">Check the console for details</p>
+          <button
+            onClick={() => navigate('/data-sources')}
+            className="text-blue-600 hover:text-blue-700"
+          >
+            Return to data sources
+          </button>
+        </div>
+      </div>
+    );
+  }
 }
