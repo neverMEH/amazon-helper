@@ -17,6 +17,9 @@ export interface DataSource {
     requires_subscription?: boolean;
     historical_data_notes?: string;
   };
+  field_count?: number;
+  example_count?: number;
+  complexity?: 'simple' | 'medium' | 'complex';
   created_at: string;
   updated_at: string;
 }

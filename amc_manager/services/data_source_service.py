@@ -35,7 +35,7 @@ class DataSourceService(SupabaseService):
             offset: Pagination offset
             
         Returns:
-            List of data sources
+            List of data sources with field and example counts
         """
         try:
             query = self.client.table('amc_data_sources').select('*')
@@ -59,14 +59,72 @@ class DataSourceService(SupabaseService):
             
             result = query.execute()
             
-            # Parse JSON fields
+            # Get field and example counts for each data source
             for item in result.data:
+                # Parse JSON fields
                 if item.get('data_sources'):
                     item['data_sources'] = json.loads(item['data_sources']) if isinstance(item['data_sources'], str) else item['data_sources']
                 if item.get('tags'):
                     item['tags'] = json.loads(item['tags']) if isinstance(item['tags'], str) else item['tags']
                 if item.get('availability'):
                     item['availability'] = json.loads(item['availability']) if isinstance(item['availability'], str) else item['availability']
+                
+            # Batch fetch counts for all data sources to avoid N+1 queries
+            if result.data:
+                data_source_ids = [item['id'] for item in result.data]
+                
+                # Single query for all field counts
+                try:
+                    field_counts_result = self.client.table('amc_schema_fields')\
+                        .select('data_source_id, id')\
+                        .in_('data_source_id', data_source_ids)\
+                        .execute()
+                    
+                    # Count fields per data source
+                    field_count_map = {}
+                    if field_counts_result.data:
+                        for field in field_counts_result.data:
+                            ds_id = field['data_source_id']
+                            field_count_map[ds_id] = field_count_map.get(ds_id, 0) + 1
+                except Exception as e:
+                    logger.warning(f"Failed to get field counts: {e}")
+                    field_count_map = {}
+                
+                # Single query for all example counts
+                try:
+                    example_counts_result = self.client.table('amc_query_examples')\
+                        .select('data_source_id, id')\
+                        .in_('data_source_id', data_source_ids)\
+                        .execute()
+                    
+                    # Count examples per data source
+                    example_count_map = {}
+                    if example_counts_result.data:
+                        for example in example_counts_result.data:
+                            ds_id = example['data_source_id']
+                            example_count_map[ds_id] = example_count_map.get(ds_id, 0) + 1
+                except Exception as e:
+                    logger.warning(f"Failed to get example counts: {e}")
+                    example_count_map = {}
+                
+                # Apply counts to each data source
+                for item in result.data:
+                    data_source_id = item['id']
+                    
+                    # Set field count with fallback
+                    item['field_count'] = field_count_map.get(data_source_id, 0)
+                    
+                    # Set example count with fallback
+                    item['example_count'] = example_count_map.get(data_source_id, 0)
+                    
+                    # Calculate complexity based on field count
+                    field_count = item['field_count']
+                    if field_count < 20:
+                        item['complexity'] = 'simple'
+                    elif field_count < 50:
+                        item['complexity'] = 'medium'
+                    else:
+                        item['complexity'] = 'complex'
             
             return result.data
             

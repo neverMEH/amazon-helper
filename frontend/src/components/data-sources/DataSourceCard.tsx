@@ -22,10 +22,17 @@ interface DataSourceCardProps {
   selectionMode?: boolean;
 }
 
-function getComplexityLevel(fieldCount: number): { label: string; color: string; icon: typeof Layers } {
-  if (fieldCount < 20) return { label: 'Simple', color: 'text-green-600 bg-green-50', icon: Layers };
-  if (fieldCount < 50) return { label: 'Medium', color: 'text-yellow-600 bg-yellow-50', icon: BarChart3 };
-  return { label: 'Complex', color: 'text-red-600 bg-red-50', icon: TrendingUp };
+function getComplexityConfig(complexity?: 'simple' | 'medium' | 'complex'): { label: string; color: string; icon: typeof Layers } {
+  switch (complexity) {
+    case 'simple':
+      return { label: 'Simple', color: 'text-green-600 bg-green-50', icon: Layers };
+    case 'medium':
+      return { label: 'Medium', color: 'text-yellow-600 bg-yellow-50', icon: BarChart3 };
+    case 'complex':
+      return { label: 'Complex', color: 'text-red-600 bg-red-50', icon: TrendingUp };
+    default:
+      return { label: 'Unknown', color: 'text-gray-600 bg-gray-50', icon: Layers };
+  }
 }
 
 export const DataSourceCard = memo(({ 
@@ -38,11 +45,11 @@ export const DataSourceCard = memo(({
   selectionMode = false
 }: DataSourceCardProps) => {
   
-  // Mock field count - in real implementation, this would come from the API
-  const fieldCount = Math.floor(Math.random() * 100) + 10;
-  const exampleCount = Math.floor(Math.random() * 15) + 1;
-  const complexity = getComplexityLevel(fieldCount);
-  const ComplexityIcon = complexity.icon;
+  // Use actual data from the backend with null safety
+  const fieldCount = dataSource.field_count ?? 0;
+  const exampleCount = dataSource.example_count ?? 0;
+  const complexityConfig = getComplexityConfig(dataSource.complexity ?? undefined);
+  const ComplexityIcon = complexityConfig.icon;
 
   const handleCheckboxClick = (e: MouseEvent) => {
     e.stopPropagation();
@@ -101,9 +108,9 @@ export const DataSourceCard = memo(({
         </div>
       </td>
       <td className="px-4 py-3">
-        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${complexity.color}`}>
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${complexityConfig.color}`}>
           <ComplexityIcon className="h-3 w-3" />
-          {complexity.label}
+          {complexityConfig.label}
         </span>
       </td>
       <td className="px-4 py-3">
