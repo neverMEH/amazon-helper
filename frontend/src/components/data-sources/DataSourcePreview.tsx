@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { X, Database, Tag, Lock, Globe, Table, Code, ExternalLink, TrendingUp, Hash } from 'lucide-react';
+import { X, Database, Tag, Lock, Globe, Table, Code, ExternalLink, TrendingUp, Hash, Loader2, AlertCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { dataSourceService } from '../../services/dataSourceService';
 import type { DataSource, SchemaField } from '../../types/dataSource';
+import { ErrorBoundary } from '../common/ErrorBoundary';
 
 interface DataSourcePreviewProps {
   dataSource: DataSource | null;
@@ -10,23 +11,25 @@ interface DataSourcePreviewProps {
   onOpenDetail: (dataSource: DataSource) => void;
 }
 
-export function DataSourcePreview({ dataSource, onClose, onOpenDetail }: DataSourcePreviewProps) {
+function DataSourcePreviewContent({ dataSource, onClose, onOpenDetail }: DataSourcePreviewProps) {
   const [topFields, setTopFields] = useState<SchemaField[]>([]);
 
   // Fetch fields when a data source is selected
-  const { data: fields } = useQuery({
+  const { data: fields, isLoading: fieldsLoading, error: fieldsError } = useQuery({
     queryKey: ['dataSourceFields', dataSource?.schema_id],
     queryFn: () => dataSourceService.getSchemaFields(dataSource!.schema_id),
     enabled: !!dataSource,
-    staleTime: 10 * 60 * 1000
+    staleTime: 10 * 60 * 1000,
+    retry: 1
   });
 
   // Fetch examples
-  const { data: examples } = useQuery({
+  const { data: examples, isLoading: examplesLoading, error: examplesError } = useQuery({
     queryKey: ['dataSourceExamples', dataSource?.schema_id],
     queryFn: () => dataSourceService.getQueryExamples(dataSource!.schema_id),
     enabled: !!dataSource,
-    staleTime: 10 * 60 * 1000
+    staleTime: 10 * 60 * 1000,
+    retry: 1
   });
 
   useEffect(() => {
@@ -46,8 +49,9 @@ export function DataSourcePreview({ dataSource, onClose, onOpenDetail }: DataSou
     );
   }
 
-  const dimensionCount = fields?.filter(f => f.dimension_or_metric === 'Dimension').length || 0;
-  const metricCount = fields?.filter(f => f.dimension_or_metric === 'Metric').length || 0;
+  const dimensionCount = fields?.filter(f => f.dimension_or_metric === 'Dimension').length ?? null;
+  const metricCount = fields?.filter(f => f.dimension_or_metric === 'Metric').length ?? null;
+  const hasError = fieldsError || examplesError;
 
   return (
     <div className="h-full flex flex-col bg-white">
@@ -92,28 +96,44 @@ export function DataSourcePreview({ dataSource, onClose, onOpenDetail }: DataSou
                   <Table className="h-3.5 w-3.5 text-gray-400" />
                   <span className="text-xs text-gray-500">Total Fields</span>
                 </div>
-                <p className="text-lg font-semibold text-gray-900 mt-1">{fields?.length || 0}</p>
+                <p className="text-lg font-semibold text-gray-900 mt-1">
+                  {fieldsLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : fields?.length ?? (
+                    <span className="text-gray-400">—</span>
+                  )}
+                </p>
               </div>
               <div className="bg-gray-50 rounded p-2">
                 <div className="flex items-center gap-1.5">
                   <Code className="h-3.5 w-3.5 text-gray-400" />
                   <span className="text-xs text-gray-500">Examples</span>
                 </div>
-                <p className="text-lg font-semibold text-gray-900 mt-1">{examples?.length || 0}</p>
+                <p className="text-lg font-semibold text-gray-900 mt-1">
+                  {examplesLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : examples?.length ?? (
+                    <span className="text-gray-400">—</span>
+                  )}
+                </p>
               </div>
               <div className="bg-blue-50 rounded p-2">
                 <div className="flex items-center gap-1.5">
                   <Hash className="h-3.5 w-3.5 text-blue-400" />
                   <span className="text-xs text-blue-600">Dimensions</span>
                 </div>
-                <p className="text-lg font-semibold text-blue-900 mt-1">{dimensionCount}</p>
+                <p className="text-lg font-semibold text-blue-900 mt-1">
+                  {dimensionCount ?? <span className="text-gray-400">—</span>}
+                </p>
               </div>
               <div className="bg-green-50 rounded p-2">
                 <div className="flex items-center gap-1.5">
                   <TrendingUp className="h-3.5 w-3.5 text-green-400" />
                   <span className="text-xs text-green-600">Metrics</span>
                 </div>
-                <p className="text-lg font-semibold text-green-900 mt-1">{metricCount}</p>
+                <p className="text-lg font-semibold text-green-900 mt-1">
+                  {metricCount ?? <span className="text-gray-400">—</span>}
+                </p>
               </div>
             </div>
           </div>
@@ -130,8 +150,21 @@ export function DataSourcePreview({ dataSource, onClose, onOpenDetail }: DataSou
             </div>
           </div>
 
+          {/* Error Message */}
+          {hasError && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm text-amber-800 font-medium">Unable to load complete data</p>
+                  <p className="text-xs text-amber-600 mt-1">Some information may be unavailable</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Top Fields */}
-          {topFields.length > 0 && (
+          {!fieldsLoading && topFields.length > 0 && (
             <div>
               <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">
                 Top Fields ({topFields.length} of {fields?.length || 0})
@@ -199,5 +232,29 @@ export function DataSourcePreview({ dataSource, onClose, onOpenDetail }: DataSou
         </button>
       </div>
     </div>
+  );
+}
+
+// Export wrapped component with error boundary
+export function DataSourcePreview(props: DataSourcePreviewProps) {
+  return (
+    <ErrorBoundary
+      fallback={
+        <div className="h-full flex items-center justify-center text-gray-400">
+          <div className="text-center">
+            <AlertCircle className="h-12 w-12 mx-auto mb-3" />
+            <p className="text-sm">Failed to load preview</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-2 text-xs text-blue-600 hover:text-blue-700"
+            >
+              Refresh page
+            </button>
+          </div>
+        </div>
+      }
+    >
+      <DataSourcePreviewContent {...props} />
+    </ErrorBoundary>
   );
 }

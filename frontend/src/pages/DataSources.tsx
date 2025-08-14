@@ -19,6 +19,7 @@ import { DataSourceCard } from '../components/data-sources/DataSourceCard';
 import { DataSourcePreview } from '../components/data-sources/DataSourcePreview';
 import { DataSourceCommandPalette } from '../components/data-sources/DataSourceCommandPalette';
 import { DataSourceSkeleton } from '../components/data-sources/DataSourceSkeleton';
+import { ErrorBoundary } from '../components/common/ErrorBoundary';
 import { BulkActions } from '../components/data-sources/BulkActions';
 import { AdvancedFilterBuilder, type FilterGroup } from '../components/data-sources/AdvancedFilterBuilder';
 import { FilterPresets, DEFAULT_PRESETS } from '../components/data-sources/FilterPresets';
@@ -105,6 +106,7 @@ export default function DataSources() {
 
   const handlePreview = useCallback((dataSource: DataSource) => {
     if (showPreview) {
+      // Set preview data source when explicitly requested
       setPreviewDataSource(dataSource);
     }
   }, [showPreview]);
@@ -172,7 +174,10 @@ export default function DataSources() {
                   AMC Data Sources
                 </h1>
                 <p className="mt-1 text-sm text-gray-500">
-                  Browse and search Amazon Marketing Cloud schema documentation
+                  Browse and search Amazon Marketing Cloud schema documentation.
+                  <span className="ml-1 text-xs text-gray-400">
+                    Tip: Cmd/Ctrl+Click to preview, Click to open details
+                  </span>
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -459,11 +464,22 @@ export default function DataSources() {
         {/* Preview Panel */}
         {showPreview && (
           <aside className="w-[350px] flex-shrink-0 border-l bg-white overflow-hidden">
-            <DataSourcePreview
-              dataSource={previewDataSource}
-              onClose={() => setPreviewDataSource(null)}
-              onOpenDetail={handleDataSourceClick}
-            />
+            <ErrorBoundary
+              fallback={
+                <div className="h-full flex items-center justify-center text-gray-400">
+                  <div className="text-center">
+                    <Database className="h-12 w-12 mx-auto mb-3" />
+                    <p className="text-sm">Preview unavailable</p>
+                  </div>
+                </div>
+              }
+            >
+              <DataSourcePreview
+                dataSource={previewDataSource}
+                onClose={() => setPreviewDataSource(null)}
+                onOpenDetail={handleDataSourceClick}
+              />
+            </ErrorBoundary>
           </aside>
         )}
       </div>

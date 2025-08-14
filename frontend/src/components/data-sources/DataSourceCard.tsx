@@ -45,9 +45,11 @@ export const DataSourceCard = memo(({
   selectionMode = false
 }: DataSourceCardProps) => {
   
-  // Use actual data from the backend with null safety
-  const fieldCount = dataSource.field_count ?? 0;
-  const exampleCount = dataSource.example_count ?? 0;
+  // Use actual data from the backend with null safety and display indicators
+  const fieldCount = dataSource.field_count ?? null;
+  const exampleCount = dataSource.example_count ?? null;
+  const hasFieldData = fieldCount !== null && fieldCount > 0;
+  const hasExampleData = exampleCount !== null && exampleCount > 0;
   const complexityConfig = getComplexityConfig(dataSource.complexity ?? undefined);
   const ComplexityIcon = complexityConfig.icon;
 
@@ -64,10 +66,12 @@ export const DataSourceCard = memo(({
         if (selectionMode && e.target instanceof HTMLInputElement && e.target.type === 'checkbox') {
           return;
         }
-        onClick();
-      }}
-      onMouseEnter={() => {
-        onPreview?.(dataSource);
+        // Click to preview instead of hover
+        if (e.ctrlKey || e.metaKey) {
+          onPreview?.(dataSource);
+        } else {
+          onClick();
+        }
       }}
     >
       <td className="px-4 py-3">
@@ -99,11 +103,11 @@ export const DataSourceCard = memo(({
         <div className="flex items-center gap-3 text-sm">
           <span className="flex items-center gap-1 text-gray-500">
             <Table className="h-3 w-3" />
-            {fieldCount}
+            {hasFieldData ? fieldCount : <span className="text-gray-400">—</span>}
           </span>
           <span className="flex items-center gap-1 text-gray-500">
             <Code className="h-3 w-3" />
-            {exampleCount}
+            {hasExampleData ? exampleCount : <span className="text-gray-400">—</span>}
           </span>
         </div>
       </td>
