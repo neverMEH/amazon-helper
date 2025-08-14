@@ -377,7 +377,7 @@ export function DataSourceCompare({
                             </div>
                             {row.values.map((value, valueIndex) => (
                               <div
-                                key={index}
+                                key={valueIndex}
                                 className={`text-sm font-medium ${getValueColor(row.isDifferent, valueIndex)}`}
                               >
                                 {getValueDisplay(value)}
