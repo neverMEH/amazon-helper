@@ -23,7 +23,6 @@ interface FilterPresetsProps {
   presets: FilterPreset[];
   activePresetId?: string;
   onSelectPreset: (preset: FilterPreset) => void;
-  onSavePreset?: (preset: FilterPreset) => void;
   onDeletePreset?: (id: string) => void;
   onEditPreset?: (preset: FilterPreset) => void;
   onCreateNew?: () => void;
@@ -170,13 +169,11 @@ export function FilterPresets({
   presets,
   activePresetId,
   onSelectPreset,
-  onSavePreset,
   onDeletePreset,
   onEditPreset,
   onCreateNew
 }: FilterPresetsProps) {
   const [showDropdown, setShowDropdown] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
 
   const activePreset = presets.find(p => p.id === activePresetId);
 

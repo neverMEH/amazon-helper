@@ -289,9 +289,6 @@ export default function DataSources() {
                   console.log('Applying preset:', preset);
                 }}
                 onCreateNew={() => setShowAdvancedFilter(true)}
-                onSavePreset={(preset) => {
-                  setFilterPresets([...filterPresets, preset]);
-                }}
                 onDeletePreset={(id) => {
                   setFilterPresets(filterPresets.filter(p => p.id !== id));
                   if (activePresetId === id) {

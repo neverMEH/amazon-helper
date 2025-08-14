@@ -7,10 +7,8 @@ import {
   Trash2,
   ChevronDown,
   ChevronRight,
-  Search,
   Hash,
   Type,
-  Calendar,
   ToggleLeft,
   TrendingUp,
   Layers
@@ -45,7 +43,6 @@ interface AdvancedFilterBuilderProps {
   currentFilter?: FilterGroup;
   presets?: FilterPreset[];
   onSavePreset?: (preset: FilterPreset) => void;
-  onDeletePreset?: (id: string) => void;
 }
 
 const FIELD_OPTIONS = [
@@ -86,8 +83,7 @@ export function AdvancedFilterBuilder({
   onApply,
   currentFilter,
   presets = [],
-  onSavePreset,
-  onDeletePreset
+  onSavePreset
 }: AdvancedFilterBuilderProps) {
   const [filter, setFilter] = useState<FilterGroup>(
     currentFilter || {
@@ -316,7 +312,7 @@ export function AdvancedFilterBuilder({
         ) : field?.type === 'array' ? (
           <input
             type="text"
-            value={Array.isArray(condition.value) ? condition.value.join(', ') : condition.value}
+            value={Array.isArray(condition.value) ? condition.value.join(', ') : String(condition.value || '')}
             onChange={(e) => updateCondition(condition.id, { 
               value: e.target.value.split(',').map(v => v.trim()).filter(Boolean)
             })}

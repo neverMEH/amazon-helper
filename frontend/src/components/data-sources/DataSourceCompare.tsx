@@ -10,8 +10,6 @@ import {
   ChevronRight,
   Hash,
   Type,
-  Calendar,
-  ToggleLeft,
   TrendingUp,
   Database,
   Lock,
@@ -20,7 +18,7 @@ import {
   Share2
 } from 'lucide-react';
 import { dataSourceService } from '../../services/dataSourceService';
-import type { DataSource, SchemaField } from '../../types/dataSource';
+import type { DataSource } from '../../types/dataSource';
 
 interface DataSourceCompareProps {
   isOpen: boolean;
@@ -323,7 +321,7 @@ export function DataSourceCompare({
               {/* Schema Headers */}
               <div className="grid grid-cols-[200px_repeat(auto-fit,minmax(200px,1fr))] gap-4 mb-6 pb-4 border-b">
                 <div className="font-medium text-gray-500">Schema</div>
-                {selectedSources.map((source, index) => (
+                {selectedSources.map((source) => (
                   <div key={source.id} className="space-y-1">
                     <div className="font-semibold text-gray-900 flex items-center gap-2">
                       {source.name}
@@ -377,10 +375,10 @@ export function DataSourceCompare({
                                 <AlertCircle className="h-3 w-3 text-yellow-600" />
                               )}
                             </div>
-                            {row.values.map((value, index) => (
+                            {row.values.map((value, valueIndex) => (
                               <div
                                 key={index}
-                                className={`text-sm font-medium ${getValueColor(row.isDifferent, index)}`}
+                                className={`text-sm font-medium ${getValueColor(row.isDifferent, valueIndex)}`}
                               >
                                 {getValueDisplay(value)}
                               </div>
