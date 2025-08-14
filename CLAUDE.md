@@ -28,6 +28,8 @@ python main_supabase.py                      # Port 8001
 pytest tests/                                # All tests
 pytest tests/test_api_auth.py::test_login_success  # Specific test
 python -m pytest -v                          # Verbose output
+pytest tests/integration/                    # Integration tests only
+pytest tests/supabase/                       # Supabase tests only
 
 # Code quality
 black amc_manager/                           # Format
@@ -40,6 +42,9 @@ python scripts/import_initial_data.py        # Import initial data
 python scripts/apply_performance_indexes.py  # Apply indexes
 python scripts/create_cja_workflow.py        # Create CJA workflow
 python scripts/add_execution_results_fields.py  # Add results fields
+
+# Token testing
+python test_token_refresh.py                 # Test automatic token refresh
 ```
 
 ### Frontend Commands
@@ -78,7 +83,7 @@ npx playwright test --debug                 # Debug mode with inspector
 │                    Backend (FastAPI)                          │
 │  • Service layer pattern                                      │
 │  • Async/await throughout                                     │
-│  • Background polling service                                 │
+│  • Background services (token refresh, execution polling)     │
 │  • Token encryption with Fernet                               │
 └──────────────────────┬──────────────────────────────────────┘
                        │
@@ -97,7 +102,9 @@ All services inherit from `DatabaseService` (aliased as `SupabaseService`) with 
 ```python
 amc_manager/services/
 ├── amc_api_client.py           # Direct AMC API integration
+├── amc_api_client_with_retry.py # Enhanced with auto token refresh
 ├── token_service.py            # Fernet encryption for OAuth tokens
+├── token_refresh_service.py    # Background token refresh (10-min intervals)
 ├── execution_status_poller.py  # Background polling (15-second intervals)
 ├── data_source_service.py      # AMC schema documentation
 ├── workflow_service.py         # Query workflow management
@@ -120,7 +127,7 @@ src/
 │   ├── executions/             # Error display and results
 │   └── common/                 # Shared components
 └── services/
-    ├── api.ts                  # Axios instance with interceptors
+    ├── api.ts                  # Axios instance with interceptors & token refresh
     └── *Service.ts             # API service modules
 ```
 
@@ -158,6 +165,20 @@ headers = {
     'Authorization': f'Bearer {access_token}',
     'Amazon-Advertising-API-AdvertiserId': entity_id  # Critical!
 }
+```
+
+### Token Auto-Refresh Pattern
+```python
+# Backend: Use amc_api_client_with_retry for automatic token refresh
+from amc_manager.services.amc_api_client_with_retry import amc_api_client_with_retry
+
+# Will automatically retry with refreshed token on 401
+result = await amc_api_client_with_retry.create_workflow_execution(
+    instance_id=instance_id,
+    user_id=user_id,  # Required for token refresh
+    entity_id=entity_id,
+    # ... other params
+)
 ```
 
 ### AMC Error Handling
@@ -218,7 +239,7 @@ Key Supabase tables and their relationships:
 users
 ├── id (uuid, PK)
 ├── email
-├── auth_tokens (encrypted JSON)  -- Fernet encrypted
+├── auth_tokens (encrypted JSON)  -- Fernet encrypted, auto-refreshed
 └── created_at
 
 amc_instances
@@ -234,6 +255,8 @@ workflows
 ├── name
 ├── sql_query
 ├── parameters (jsonb)
+├── amc_workflow_id                -- AMC API workflow ID
+├── is_synced_to_amc               -- Sync status
 └── user_id (FK → users)
 
 workflow_executions
@@ -241,7 +264,8 @@ workflow_executions
 ├── workflow_id (FK → workflows)
 ├── amc_execution_id               -- From AMC API
 ├── status                         -- PENDING/RUNNING/SUCCEEDED/FAILED
-└── results (jsonb)
+├── results (jsonb)
+└── error_details (jsonb)          -- Structured error information
 
 amc_data_sources                  -- Schema documentation
 ├── id (uuid, PK)
@@ -266,7 +290,8 @@ AMAZON_CLIENT_SECRET=xxx
 AMC_USE_REAL_API=true              # Set to "false" for mock responses
 
 # Security
-FERNET_KEY=xxx                      # Auto-generated if missing
+FERNET_KEY=xxx                      # Auto-generated if missing, keep consistent!
+JWT_SECRET_KEY=xxx                  # For JWT tokens
 ```
 
 ## Common Pitfalls & Solutions
@@ -309,28 +334,38 @@ return (
 <ErrorDetailsModal className="z-70" />
 ```
 
-## Recent Feature Additions (2025-08-14)
+### Monaco Editor Height Issues
+```tsx
+// CRITICAL: Monaco Editor requires explicit pixel heights
+<SQLEditor height="400px" />     // ✓ Works
+<SQLEditor height="100%" />      // ✗ Often fails in flex containers
 
-### Enhanced Error Display System
-- **ErrorDetailsModal**: Full-screen error viewer with structured/raw/SQL views
-- **Copy Functionality**: One-click copy for all error sections
-- **Export Reports**: Download error details as JSON
-- **Query Builder Integration**: Test execution with inline error display
-- **AMC Compilation Errors**: Proper extraction and formatting of SQL syntax errors
+// For modals with Monaco Editor:
+<div className="flex flex-col max-h-[90vh]">
+  <header className="flex-shrink-0">...</header>
+  <div className="flex-1 min-h-0 overflow-hidden">
+    <SQLEditor height="400px" />
+  </div>
+  <footer className="flex-shrink-0">...</footer>
+</div>
+```
 
-### Data Sources Page Enhancements
-- **Advanced Filter Builder**: Complex nested AND/OR conditions
-- **Filter Presets**: 7 default presets + custom preset creation
-- **Compare Mode**: Side-by-side comparison of 2-4 data sources
-- **Bulk Actions**: Export JSON/CSV, copy IDs, generate documentation
-- **Command Palette**: Cmd+K fuzzy search across all schemas
-- **Multi-Select**: Visual bulk selection with action bar
+## Background Services
 
-### Query Builder Improvements
-- **Test Execute Button**: Run queries during development
-- **Error Display**: Immediate feedback on SQL syntax errors
-- **Dynamic Schema Loading**: Real-time data source fetching from API
-- **Parameter Detection**: Automatic extraction of {{parameters}}
+The application runs two critical background services:
+
+### 1. Token Refresh Service
+- **Frequency**: Every 10 minutes
+- **Purpose**: Refreshes Amazon OAuth tokens before expiry
+- **Buffer**: 15 minutes before token expiration
+- **Auto-start**: Launches on application startup
+- **Tracking**: Maintains list of users with valid tokens
+
+### 2. Execution Status Poller
+- **Frequency**: Every 15 seconds
+- **Purpose**: Updates status of pending AMC executions
+- **Features**: Fetches results when execution completes
+- **Auto-cleanup**: Removes completed executions from polling
 
 ## Deployment
 
@@ -357,12 +392,14 @@ Manual testing flow:
 12. ✅ Compare multiple data sources side-by-side
 13. ✅ Test execute queries in Query Builder
 14. ✅ View detailed error messages with copy functionality
+15. ✅ Verify token auto-refresh on expiry
 
 ## Known Issues & Workarounds
 
 ### Token Encryption
 - If seeing "Failed to decrypt token" errors, the FERNET_KEY may have changed
 - Tokens are automatically cleared and users must re-authenticate
+- Prevention: Keep FERNET_KEY consistent across deployments
 
 ### Execution Polling
 - Background poller may show "coroutine was never awaited" warnings
@@ -373,9 +410,33 @@ Manual testing flow:
 - Error details are in the `details` field, not `message`
 - Table not found errors include line/column information
 
-### Monaco Editor Height Issues (Frontend)
-- **Critical**: Monaco Editor requires explicit pixel heights (e.g., `height="400px"`)
-- Percentage heights (`height="100%"`) often fail in flex containers
-- Use flex column layout with `flex-shrink-0` for non-editor sections
-- Provide explicit pixel height to SQLEditor component
-- See frontend/CLAUDE.md for detailed solution and example code
+### Workflow Not Found
+- AMC workflows may be deleted externally
+- System auto-creates workflows on first execution if missing
+- Falls back to ad-hoc execution if creation fails
+
+## Recent Features (2025-08-14)
+
+### Automatic Token Refresh
+- Tokens refresh automatically before expiry
+- API calls retry with fresh tokens on 401 errors
+- Frontend queues requests during token refresh
+- Background service checks every 10 minutes
+
+### Enhanced Error Display
+- Full-screen error viewer with structured/raw/SQL views
+- One-click copy for all error sections
+- Export error reports as JSON
+- SQL compilation error extraction with line/column info
+
+### Data Sources Enhancements
+- Advanced filter builder with nested AND/OR conditions
+- Compare mode for side-by-side schema comparison
+- Command palette (Cmd+K) for fuzzy search
+- Bulk export to JSON/CSV
+
+### Query Builder Improvements
+- Test execute button for development
+- Dynamic schema loading from API
+- Automatic parameter detection ({{param}})
+- SQL editor with expand-to-fullscreen feature

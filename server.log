@@ -1,72 +1,50 @@
-2025-08-13 22:03:42 - amc_manager.services.token_service - INFO - Using existing FERNET_KEY from environment
-2025-08-13 22:03:42 - amc_manager.services.token_service - INFO - Fernet encryption initialized successfully
-2025-08-13 22:03:42 - amc_manager.services.amc_execution_service - INFO - AMC Execution Service configured to use REAL AMC API
-2025-08-13 22:03:42 - __main__ - INFO - All API routers loaded successfully with rate limiting
-2025-08-13 22:03:42 - __main__ - INFO - Frontend static files mounted
-2025-08-13 22:03:42 - main_supabase - INFO - All API routers loaded successfully with rate limiting
-2025-08-13 22:03:42 - main_supabase - INFO - Frontend static files mounted
-INFO:     Started server process [1207156]
+2025-08-14 18:26:42 - amc_manager.services.token_service - INFO - Using existing FERNET_KEY from environment
+2025-08-14 18:26:42 - amc_manager.services.token_service - INFO - Fernet encryption initialized successfully
+2025-08-14 18:26:43 - amc_manager.services.amc_execution_service - INFO - AMC Execution Service configured to use REAL AMC API
+2025-08-14 18:26:43 - __main__ - INFO - All API routers loaded successfully with rate limiting
+2025-08-14 18:26:43 - __main__ - INFO - Frontend static files mounted
+2025-08-14 18:26:43 - main_supabase - INFO - All API routers loaded successfully with rate limiting
+2025-08-14 18:26:43 - main_supabase - INFO - Frontend static files mounted
+INFO:     Started server process [1313664]
 INFO:     Waiting for application startup.
-2025-08-13 22:03:42 - main_supabase - INFO - Starting Recom AMP application with Supabase...
-2025-08-13 22:03:42 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-13 22:03:43 - main_supabase - INFO - ✓ Supabase connection successful
-2025-08-13 22:03:43 - amc_manager.services.token_refresh_service - INFO - Token refresh service started
-2025-08-13 22:03:43 - main_supabase - INFO - ✓ Token refresh service started
-2025-08-13 22:03:43 - main_supabase - INFO - ✓ Execution status poller started
-2025-08-13 22:03:43 - amc_manager.services.token_refresh_service - INFO - Added user fe841586-7807-48b1-8808-02877834fce0 to token refresh tracking
-2025-08-13 22:03:43 - main_supabase - INFO - ✓ Added 1 users with tokens to refresh tracking (out of 15 total)
-2025-08-13 22:03:43 - amc_manager.services.token_refresh_service - INFO - Starting token refresh service (interval: 600s)
-2025-08-13 22:03:43 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
+2025-08-14 18:26:43 - main_supabase - INFO - Starting Recom AMP application with Supabase...
+2025-08-14 18:26:43 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-08-14 18:26:43 - main_supabase - INFO - ✓ Supabase connection successful
+2025-08-14 18:26:43 - amc_manager.services.token_refresh_service - INFO - Token refresh service started
+2025-08-14 18:26:43 - main_supabase - INFO - ✓ Token refresh service started
+2025-08-14 18:26:43 - main_supabase - INFO - ✓ Execution status poller started
+2025-08-14 18:26:43 - amc_manager.services.token_refresh_service - INFO - Added user fe841586-7807-48b1-8808-02877834fce0 to token refresh tracking
+2025-08-14 18:26:43 - main_supabase - INFO - ✓ Added 1 users with tokens to refresh tracking (out of 15 total)
+2025-08-14 18:26:43 - amc_manager.services.token_refresh_service - INFO - Starting token refresh service (interval: 600s)
+2025-08-14 18:26:43 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
 INFO:     Application startup complete.
-2025-08-13 22:03:43 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-13 22:03:43 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-13 22:03:43 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-13 22:03:43 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 1 successful, 0 failed
+2025-08-14 18:26:43 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-08-14 18:26:44 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-08-14 18:26:44 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-08-14 18:26:44 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 1 successful, 0 failed
 INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     127.0.0.1:44516 - "GET /api/health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:36064 - "GET /api/data-sources HTTP/1.1" 403 Forbidden
-2025-08-13 22:13:43 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
-2025-08-13 22:13:43 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 1 successful, 0 failed
-2025-08-13 22:23:43 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
-2025-08-13 22:23:43 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 1 successful, 0 failed
-2025-08-13 22:30:00 - amc_manager.services.amc_execution_service - INFO - AMC execution ID: c24c3913-429e-4bdc-bac6-9b055cd08dd2, Internal execution ID: exec_c24791d2
-2025-08-13 22:30:00 - amc_manager.services.amc_execution_service - ERROR - Error polling execution status: asyncio.run() cannot be called from a running event loop
-/root/amazon-helper/amc_manager/services/amc_execution_service.py:734: RuntimeWarning: coroutine 'TokenService.get_valid_token' was never awaited
-  return self.get_execution_status(execution_id, user_id)
+INFO:     127.0.0.1:46424 - "GET /api/health HTTP/1.1" 200 OK
+Error polling execution exec_3949bc61: 'coroutine' object has no attribute 'get'
+/root/amazon-helper/amc_manager/services/execution_status_poller.py:55: RuntimeWarning: coroutine 'AMCExecutionService.poll_and_update_execution' was never awaited
+  await self._poll_executions()
 RuntimeWarning: Enable tracemalloc to get the object allocation traceback
-2025-08-13 22:30:16 - amc_manager.services.amc_execution_service - INFO - AMC execution ID: c24c3913-429e-4bdc-bac6-9b055cd08dd2, Internal execution ID: exec_c24791d2
-2025-08-13 22:30:16 - amc_manager.services.amc_execution_service - ERROR - Error polling execution status: asyncio.run() cannot be called from a running event loop
-2025-08-13 22:30:32 - amc_manager.services.amc_execution_service - INFO - AMC execution ID: c24c3913-429e-4bdc-bac6-9b055cd08dd2, Internal execution ID: exec_c24791d2
-2025-08-13 22:30:32 - amc_manager.services.amc_execution_service - ERROR - Error polling execution status: asyncio.run() cannot be called from a running event loop
-2025-08-13 22:30:48 - amc_manager.services.amc_execution_service - INFO - AMC execution ID: c24c3913-429e-4bdc-bac6-9b055cd08dd2, Internal execution ID: exec_c24791d2
-2025-08-13 22:30:48 - amc_manager.services.amc_execution_service - ERROR - Error polling execution status: asyncio.run() cannot be called from a running event loop
-2025-08-13 22:31:05 - amc_manager.services.amc_execution_service - INFO - AMC execution ID: c24c3913-429e-4bdc-bac6-9b055cd08dd2, Internal execution ID: exec_c24791d2
-2025-08-13 22:31:05 - amc_manager.services.amc_execution_service - ERROR - Error polling execution status: asyncio.run() cannot be called from a running event loop
-2025-08-13 22:31:21 - amc_manager.services.amc_execution_service - INFO - AMC execution ID: c24c3913-429e-4bdc-bac6-9b055cd08dd2, Internal execution ID: exec_c24791d2
-2025-08-13 22:31:21 - amc_manager.services.amc_execution_service - ERROR - Error polling execution status: asyncio.run() cannot be called from a running event loop
-2025-08-13 22:31:37 - amc_manager.services.amc_execution_service - INFO - AMC execution ID: c24c3913-429e-4bdc-bac6-9b055cd08dd2, Internal execution ID: exec_c24791d2
-2025-08-13 22:31:37 - amc_manager.services.amc_execution_service - ERROR - Error polling execution status: asyncio.run() cannot be called from a running event loop
-2025-08-13 22:33:43 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
-2025-08-13 22:33:43 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-13 22:33:43 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-13 22:33:43 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-13 22:33:44 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 1 successful, 0 failed
-2025-08-13 22:43:44 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
-2025-08-13 22:43:44 - amc_manager.services.token_refresh_service - INFO - Token for user fe841586-7807-48b1-8808-02877834fce0 expires in 569s, refreshing...
-2025-08-13 22:43:44 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
-2025-08-13 22:43:44 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABonQlJBbLWRac1
-2025-08-13 22:43:44 - amc_manager.services.token_service - ERROR - Error decrypting access token: Failed to decrypt token: 
-2025-08-13 22:43:44 - amc_manager.services.token_service - ERROR - Token encryption key may have changed. Clearing tokens to force re-authentication.
-2025-08-13 22:43:44 - amc_manager.services.token_service - INFO - Cleared invalid tokens for user fe841586-7807-48b1-8808-02877834fce0
-2025-08-13 22:43:44 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user fe841586-7807-48b1-8808-02877834fce0 - removing from tracking
-2025-08-13 22:43:44 - amc_manager.services.token_refresh_service - INFO - Removed user fe841586-7807-48b1-8808-02877834fce0 from token refresh tracking
-2025-08-13 22:43:44 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 0 successful, 1 failed
-2025-08-13 22:46:32 - amc_manager.services.amc_execution_service - INFO - AMC execution ID: 18e1a2fd-e27d-446a-8318-8babb1246801, Internal execution ID: exec_41ed661f
-2025-08-13 22:46:32 - amc_manager.services.amc_execution_service - ERROR - Error polling execution status: asyncio.run() cannot be called from a running event loop
-2025-08-13 22:46:49 - amc_manager.services.amc_execution_service - INFO - AMC execution ID: 18e1a2fd-e27d-446a-8318-8babb1246801, Internal execution ID: exec_41ed661f
-2025-08-13 22:46:49 - amc_manager.services.amc_execution_service - ERROR - Error polling execution status: asyncio.run() cannot be called from a running event loop
-2025-08-13 22:47:05 - amc_manager.services.amc_execution_service - INFO - AMC execution ID: 18e1a2fd-e27d-446a-8318-8babb1246801, Internal execution ID: exec_41ed661f
-2025-08-13 22:47:05 - amc_manager.services.amc_execution_service - ERROR - Error polling execution status: asyncio.run() cannot be called from a running event loop
-2025-08-13 22:47:21 - amc_manager.services.amc_execution_service - INFO - AMC execution ID: 18e1a2fd-e27d-446a-8318-8babb1246801, Internal execution ID: exec_41ed661f
-2025-08-13 22:47:21 - amc_manager.services.amc_execution_service - ERROR - Error polling execution status: asyncio.run() cannot be called from a running event loop
-INFO:     127.0.0.1:40670 - "GET /api/data-sources HTTP/1.1" 403 Forbidden
+Error polling execution exec_3949bc61: 'coroutine' object has no attribute 'get'
+2025-08-14 18:36:44 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
+2025-08-14 18:36:44 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 1 successful, 0 failed
+Error polling execution exec_3949bc61: 'coroutine' object has no attribute 'get'
+Error polling execution exec_3949bc61: 'coroutine' object has no attribute 'get'
+Error polling execution exec_3949bc61: 'coroutine' object has no attribute 'get'
+Error polling execution exec_3949bc61: 'coroutine' object has no attribute 'get'
+Error polling execution exec_3949bc61: 'coroutine' object has no attribute 'get'
+Error polling execution exec_3949bc61: 'coroutine' object has no attribute 'get'
+Error polling execution exec_3949bc61: 'coroutine' object has no attribute 'get'
+2025-08-14 18:46:44 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
+2025-08-14 18:46:44 - amc_manager.services.token_refresh_service - INFO - Token for user fe841586-7807-48b1-8808-02877834fce0 expires in 755s, refreshing...
+2025-08-14 18:46:44 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-08-14 18:46:44 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABoniP3TGPGIlhZ
+2025-08-14 18:46:44 - amc_manager.services.token_service - ERROR - Error decrypting access token: Failed to decrypt token: 
+2025-08-14 18:46:44 - amc_manager.services.token_service - ERROR - Token encryption key may have changed. Clearing tokens to force re-authentication.
+2025-08-14 18:46:44 - amc_manager.services.token_service - INFO - Cleared invalid tokens for user fe841586-7807-48b1-8808-02877834fce0
+2025-08-14 18:46:44 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user fe841586-7807-48b1-8808-02877834fce0 - removing from tracking
+2025-08-14 18:46:44 - amc_manager.services.token_refresh_service - INFO - Removed user fe841586-7807-48b1-8808-02877834fce0 from token refresh tracking
+2025-08-14 18:46:44 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 0 successful, 1 failed

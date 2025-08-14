@@ -20,7 +20,7 @@ import { DataSourcePreview } from '../components/data-sources/DataSourcePreview'
 import { DataSourceCommandPalette } from '../components/data-sources/DataSourceCommandPalette';
 import { DataSourceSkeleton } from '../components/data-sources/DataSourceSkeleton';
 import { BulkActions } from '../components/data-sources/BulkActions';
-import { AdvancedFilterBuilder } from '../components/data-sources/AdvancedFilterBuilder';
+import { AdvancedFilterBuilder, type FilterGroup } from '../components/data-sources/AdvancedFilterBuilder';
 import { FilterPresets, DEFAULT_PRESETS } from '../components/data-sources/FilterPresets';
 import { DataSourceCompare } from '../components/data-sources/DataSourceCompare';
 import type { DataSource } from '../types/dataSource';
@@ -42,7 +42,7 @@ export default function DataSources() {
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
   const [showAdvancedFilter, setShowAdvancedFilter] = useState(false);
-  const [advancedFilter, setAdvancedFilter] = useState<Record<string, unknown> | null>(null);
+  const [advancedFilter, setAdvancedFilter] = useState<FilterGroup | null>(null);
   const [filterPresets, setFilterPresets] = useState(DEFAULT_PRESETS);
   const [activePresetId, setActivePresetId] = useState<string>('all');
   const [showCompareMode, setShowCompareMode] = useState(false);
@@ -444,7 +444,6 @@ export default function DataSources() {
                         onClick={() => handleDataSourceClick(dataSource)}
                         onPreview={handlePreview}
                         isSelected={selectedIds.has(dataSource.id)}
-                        viewMode="compact"
                         searchQuery={search}
                         onSelect={handleSelect}
                         selectionMode={selectionMode}
@@ -497,7 +496,7 @@ export default function DataSources() {
           // TODO: Apply the filter to the data sources
           console.log('Applying advanced filter:', filter);
         }}
-        currentFilter={advancedFilter}
+        currentFilter={advancedFilter || undefined}
       />
 
       {/* Compare Mode */}

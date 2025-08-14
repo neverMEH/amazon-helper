@@ -21,7 +21,7 @@ interface FilterCondition {
   value: string | number | boolean | string[];
 }
 
-interface FilterGroup {
+export interface FilterGroup {
   id: string;
   logic: 'AND' | 'OR';
   conditions: FilterCondition[];
