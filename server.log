@@ -1,50 +1,26 @@
-2025-08-14 18:26:42 - amc_manager.services.token_service - INFO - Using existing FERNET_KEY from environment
-2025-08-14 18:26:42 - amc_manager.services.token_service - INFO - Fernet encryption initialized successfully
-2025-08-14 18:26:43 - amc_manager.services.amc_execution_service - INFO - AMC Execution Service configured to use REAL AMC API
-2025-08-14 18:26:43 - __main__ - INFO - All API routers loaded successfully with rate limiting
-2025-08-14 18:26:43 - __main__ - INFO - Frontend static files mounted
-2025-08-14 18:26:43 - main_supabase - INFO - All API routers loaded successfully with rate limiting
-2025-08-14 18:26:43 - main_supabase - INFO - Frontend static files mounted
-INFO:     Started server process [1313664]
+2025-08-14 22:57:08 - amc_manager.services.token_service - INFO - Using existing FERNET_KEY from environment
+2025-08-14 22:57:08 - amc_manager.services.token_service - INFO - Fernet encryption initialized successfully
+2025-08-14 22:57:08 - amc_manager.services.amc_execution_service - INFO - AMC Execution Service configured to use REAL AMC API
+2025-08-14 22:57:09 - __main__ - INFO - All API routers loaded successfully with rate limiting
+2025-08-14 22:57:09 - __main__ - INFO - Frontend static files mounted
+2025-08-14 22:57:09 - main_supabase - INFO - All API routers loaded successfully with rate limiting
+2025-08-14 22:57:09 - main_supabase - INFO - Frontend static files mounted
+INFO:     Started server process [1394193]
 INFO:     Waiting for application startup.
-2025-08-14 18:26:43 - main_supabase - INFO - Starting Recom AMP application with Supabase...
-2025-08-14 18:26:43 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-14 18:26:43 - main_supabase - INFO - ✓ Supabase connection successful
-2025-08-14 18:26:43 - amc_manager.services.token_refresh_service - INFO - Token refresh service started
-2025-08-14 18:26:43 - main_supabase - INFO - ✓ Token refresh service started
-2025-08-14 18:26:43 - main_supabase - INFO - ✓ Execution status poller started
-2025-08-14 18:26:43 - amc_manager.services.token_refresh_service - INFO - Added user fe841586-7807-48b1-8808-02877834fce0 to token refresh tracking
-2025-08-14 18:26:43 - main_supabase - INFO - ✓ Added 1 users with tokens to refresh tracking (out of 15 total)
-2025-08-14 18:26:43 - amc_manager.services.token_refresh_service - INFO - Starting token refresh service (interval: 600s)
-2025-08-14 18:26:43 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
+2025-08-14 22:57:09 - main_supabase - INFO - Starting Recom AMP application with Supabase...
+2025-08-14 22:57:09 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-08-14 22:57:09 - main_supabase - INFO - ✓ Supabase connection successful
+2025-08-14 22:57:09 - amc_manager.services.token_refresh_service - INFO - Token refresh service started
+2025-08-14 22:57:09 - main_supabase - INFO - ✓ Token refresh service started
+2025-08-14 22:57:09 - main_supabase - INFO - ✓ Execution status poller started
+2025-08-14 22:57:09 - amc_manager.services.token_refresh_service - INFO - Added user fe841586-7807-48b1-8808-02877834fce0 to token refresh tracking
+2025-08-14 22:57:09 - main_supabase - INFO - ✓ Added 1 users with tokens to refresh tracking (out of 15 total)
+2025-08-14 22:57:09 - amc_manager.services.token_refresh_service - INFO - Starting token refresh service (interval: 600s)
+2025-08-14 22:57:09 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
 INFO:     Application startup complete.
-2025-08-14 18:26:43 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-14 18:26:44 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-14 18:26:44 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-14 18:26:44 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 1 successful, 0 failed
+2025-08-14 22:57:09 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-08-14 22:57:09 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-08-14 22:57:09 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-08-14 22:57:09 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 1 successful, 0 failed
 INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     127.0.0.1:46424 - "GET /api/health HTTP/1.1" 200 OK
-Error polling execution exec_3949bc61: 'coroutine' object has no attribute 'get'
-/root/amazon-helper/amc_manager/services/execution_status_poller.py:55: RuntimeWarning: coroutine 'AMCExecutionService.poll_and_update_execution' was never awaited
-  await self._poll_executions()
-RuntimeWarning: Enable tracemalloc to get the object allocation traceback
-Error polling execution exec_3949bc61: 'coroutine' object has no attribute 'get'
-2025-08-14 18:36:44 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
-2025-08-14 18:36:44 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 1 successful, 0 failed
-Error polling execution exec_3949bc61: 'coroutine' object has no attribute 'get'
-Error polling execution exec_3949bc61: 'coroutine' object has no attribute 'get'
-Error polling execution exec_3949bc61: 'coroutine' object has no attribute 'get'
-Error polling execution exec_3949bc61: 'coroutine' object has no attribute 'get'
-Error polling execution exec_3949bc61: 'coroutine' object has no attribute 'get'
-Error polling execution exec_3949bc61: 'coroutine' object has no attribute 'get'
-Error polling execution exec_3949bc61: 'coroutine' object has no attribute 'get'
-2025-08-14 18:46:44 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
-2025-08-14 18:46:44 - amc_manager.services.token_refresh_service - INFO - Token for user fe841586-7807-48b1-8808-02877834fce0 expires in 755s, refreshing...
-2025-08-14 18:46:44 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
-2025-08-14 18:46:44 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABoniP3TGPGIlhZ
-2025-08-14 18:46:44 - amc_manager.services.token_service - ERROR - Error decrypting access token: Failed to decrypt token: 
-2025-08-14 18:46:44 - amc_manager.services.token_service - ERROR - Token encryption key may have changed. Clearing tokens to force re-authentication.
-2025-08-14 18:46:44 - amc_manager.services.token_service - INFO - Cleared invalid tokens for user fe841586-7807-48b1-8808-02877834fce0
-2025-08-14 18:46:44 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user fe841586-7807-48b1-8808-02877834fce0 - removing from tracking
-2025-08-14 18:46:44 - amc_manager.services.token_refresh_service - INFO - Removed user fe841586-7807-48b1-8808-02877834fce0 from token refresh tracking
-2025-08-14 18:46:44 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 0 successful, 1 failed
+INFO:     127.0.0.1:57510 - "GET /api/health HTTP/1.1" 200 OK

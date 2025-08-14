@@ -340,27 +340,41 @@ class DataSourceService(SupabaseService):
             Complete schema data or None
         """
         try:
-            # Use the database function for efficiency
-            result = self.client.rpc('get_amc_schema_details', {'p_schema_id': schema_id}).execute()
-            
-            if result.data:
-                return result.data
+            # Try to use the database function for efficiency
+            try:
+                result = self.client.rpc('get_amc_schema_details', {'p_schema_id': schema_id}).execute()
+                
+                if result.data:
+                    return result.data
+            except Exception as rpc_error:
+                logger.debug(f"RPC function not available, falling back to manual assembly: {rpc_error}")
             
             # Fallback to manual assembly if function doesn't exist
             schema = self.get_data_source(schema_id)
             if not schema:
                 return None
             
+            # Ensure all fields return arrays even if empty
             return {
                 'schema': schema,
-                'fields': self.get_schema_fields(schema_id),
-                'examples': self.get_query_examples(schema_id),
-                'sections': self.get_schema_sections(schema_id),
-                'relationships': self.get_schema_relationships(schema_id)
+                'fields': self.get_schema_fields(schema_id) or [],
+                'examples': self.get_query_examples(schema_id) or [],
+                'sections': self.get_schema_sections(schema_id) or [],
+                'relationships': self.get_schema_relationships(schema_id) or {'from': [], 'to': []}
             }
             
         except Exception as e:
             logger.error(f"Error getting complete schema for {schema_id}: {str(e)}")
+            # Return minimal valid structure instead of None
+            schema = self.get_data_source(schema_id)
+            if schema:
+                return {
+                    'schema': schema,
+                    'fields': [],
+                    'examples': [],
+                    'sections': [],
+                    'relationships': {'from': [], 'to': []}
+                }
             return None
     
     def search_fields(
