@@ -108,13 +108,29 @@ def get_current_user_info(current_user: Dict[str, Any] = Depends(get_current_use
 
 
 @router.post("/refresh")
-def refresh_token(request: Request, current_user: Dict[str, Any] = Depends(get_current_user)):
-    """Refresh access token"""
+async def refresh_token(request: Request, current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Refresh access token and optionally Amazon OAuth tokens"""
+    from ...services.token_service import token_service
+    
+    # Create new JWT access token
     access_token = create_access_token(current_user['id'], current_user['email'])
+    
+    # Also try to refresh Amazon OAuth tokens if they exist
+    amazon_token_refreshed = False
+    try:
+        # This will refresh Amazon tokens if they're expired or about to expire
+        valid_amazon_token = await token_service.get_valid_token(current_user['id'])
+        amazon_token_refreshed = bool(valid_amazon_token)
+        
+        if amazon_token_refreshed:
+            logger.info(f"Successfully refreshed Amazon OAuth token for user {current_user['id']}")
+    except Exception as e:
+        logger.warning(f"Could not refresh Amazon OAuth token: {e}")
     
     return {
         "access_token": access_token,
-        "token_type": "bearer"
+        "token_type": "bearer",
+        "amazon_token_refreshed": amazon_token_refreshed
     }
 
 
