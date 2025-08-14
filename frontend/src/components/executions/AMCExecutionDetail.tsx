@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, Code, Database, Calendar, User, Hash, ChevronDown, ChevronRight, RefreshCw, Play, Loader, Table, BarChart3, Maximize2 } from 'lucide-react';
+import { X, Code, Database, Calendar, User, Hash, ChevronDown, ChevronRight, RefreshCw, Play, Loader, Table, BarChart3, Maximize2, Edit2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 import { amcExecutionService } from '../../services/amcExecutionService';
 import EnhancedResultsTable from './EnhancedResultsTable';
 import DataVisualization from './DataVisualization';
@@ -24,6 +25,7 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isExpandedSQL, setIsExpandedSQL] = useState(false);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['amc-execution-detail', instanceId, executionId],
@@ -87,8 +89,11 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
         }
       }
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to rerun workflow');
+    onError: (error: unknown) => {
+      const errorMessage = error && typeof error === 'object' && 'response' in error 
+        ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail 
+        : 'Failed to rerun workflow';
+      toast.error(errorMessage);
       setIsRerunning(false);
     }
   });
@@ -381,6 +386,31 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                           executionId={executionId}
                           instanceName={execution.instanceInfo?.instanceName}
                         />
+
+                        {/* Edit & Retry button for failed executions */}
+                        {(execution.status === 'FAILED' || execution.status === 'failed') && 
+                         (execution.workflowId || execution.workflowInfo?.id) && (
+                          <div className="mt-4 flex justify-center">
+                            <button
+                              onClick={() => {
+                                const workflowId = execution.workflowId || execution.workflowInfo?.id;
+                                navigate(`/query-builder/edit/${workflowId}`, {
+                                  state: { 
+                                    fromFailure: true,
+                                    errorMessage: execution.error || execution.errorMessage,
+                                    executionParameters: execution.executionParameters,
+                                    instanceId: instanceId
+                                  }
+                                });
+                                onClose();
+                              }}
+                              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                            >
+                              <Edit2 className="h-4 w-4 mr-2" />
+                              Edit Query & Retry
+                            </button>
+                          </div>
+                        )}
 
                         {execution.resultData && (
                           <div>

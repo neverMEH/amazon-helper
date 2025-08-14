@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { X, Play, Loader, CheckCircle, XCircle, Download, Eye, BarChart, Code, Search } from 'lucide-react';
+import { X, Play, Loader, CheckCircle, XCircle, Download, Eye, BarChart, Code, Search, Edit2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import JSONEditor from '../common/JSONEditor';
 import ParameterEditor from './ParameterEditor';
@@ -10,14 +11,20 @@ import ExecutionErrorDetails from '../executions/ExecutionErrorDetails';
 import DateRangeSelector from '../common/DateRangeSelector';
 import AMCExecutionDetail from '../executions/AMCExecutionDetail';
 
+interface Workflow {
+  workflowId: string;
+  name: string;
+  parameters?: Record<string, unknown>;
+  instance?: {
+    id: string;
+    name: string;
+  };
+}
+
 interface ExecutionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  workflow?: {
-    workflowId: string;
-    name: string;
-    parameters?: any;
-  };
+  workflow?: Workflow;
   workflowId?: string;
   instanceId?: string;
 }
@@ -35,7 +42,7 @@ interface ExecutionStatus {
 
 interface ExecutionResult {
   columns: Array<{ name: string; type: string }>;
-  rows: any[][];
+  rows: unknown[][];
   total_rows: number;
   execution_details?: {
     query_runtime_seconds: number;
@@ -46,6 +53,7 @@ interface ExecutionResult {
 
 export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: propWorkflowId, instanceId }: ExecutionModalProps) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const actualWorkflowId = workflow?.workflowId || propWorkflowId;
   
   // Fetch workflow details if only workflowId is provided
@@ -55,9 +63,10 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
       try {
         const response = await api.get(`/workflows/${actualWorkflowId}`);
         return response.data;
-      } catch (error: any) {
+      } catch (error: unknown) {
         // If workflow not found in database (e.g., synced AMC workflow), create a minimal workflow object
-        if (error?.response?.status === 404) {
+        if (error && typeof error === 'object' && 'response' in error && 
+            (error as { response?: { status?: number } }).response?.status === 404) {
           return {
             workflowId: actualWorkflowId,
             name: actualWorkflowId,
@@ -111,18 +120,23 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
     if (!instanceSearchQuery) return instances;
     
     const query = instanceSearchQuery.toLowerCase();
-    return instances.filter((instance: any) => 
-      instance.instanceName?.toLowerCase().includes(query) ||
-      instance.instanceId?.toLowerCase().includes(query) ||
-      instance.accountName?.toLowerCase().includes(query) ||
-      instance.region?.toLowerCase().includes(query)
-    );
+    return instances.filter((instance: unknown) => {
+      if (!instance || typeof instance !== 'object') return false;
+      const inst = instance as { instanceName?: string; instanceId?: string; accountName?: string; region?: string };
+      return inst.instanceName?.toLowerCase().includes(query) ||
+        inst.instanceId?.toLowerCase().includes(query) ||
+        inst.accountName?.toLowerCase().includes(query) ||
+        inst.region?.toLowerCase().includes(query);
+    });
   }, [instances, instanceSearchQuery]);
 
   // Get selected instance details
   const selectedInstance = useMemo(() => {
     if (!selectedInstanceId || !instances) return null;
-    return instances.find((i: any) => i.instanceId === selectedInstanceId);
+    return instances.find((i: unknown) => {
+      if (!i || typeof i !== 'object') return false;
+      return (i as { instanceId?: string }).instanceId === selectedInstanceId;
+    });
   }, [selectedInstanceId, instances]);
 
   // Reset state when modal opens
@@ -137,7 +151,7 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
 
   // Execute workflow mutation
   const executeMutation = useMutation({
-    mutationFn: async (params: any) => {
+    mutationFn: async (params: Record<string, unknown>) => {
       const requestData = selectedInstanceId ? { ...params, instance_id: selectedInstanceId } : params;
       const response = await api.post(`/workflows/${actualWorkflowId}/execute`, requestData);
       return response.data;
@@ -147,8 +161,11 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
       toast.success('Workflow execution started');
       queryClient.invalidateQueries({ queryKey: ['workflow-executions', actualWorkflowId] });
     },
-    onError: (error: any) => {
-      toast.error(`Execution failed: ${error.response?.data?.detail || error.message}`);
+    onError: (error: unknown) => {
+      const errorMessage = error && typeof error === 'object' && 'response' in error
+        ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail
+        : 'Execution failed';
+      toast.error(`Execution failed: ${errorMessage}`);
     },
   });
 
@@ -323,12 +340,14 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
                       {showInstanceDropdown && !selectedInstanceId && (
                         <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
                           {filteredInstances.length > 0 ? (
-                            filteredInstances.map((instance: any) => (
+                            filteredInstances.map((instance: unknown) => {
+                              const inst = instance as { instanceId: string; instanceName: string; accountName?: string; region?: string; brands?: unknown[] };
+                              return (
                               <button
-                                key={instance.instanceId}
+                                key={inst.instanceId}
                                 type="button"
                                 onClick={() => {
-                                  setSelectedInstanceId(instance.instanceId);
+                                  setSelectedInstanceId(inst.instanceId);
                                   setInstanceSearchQuery('');
                                   setShowInstanceDropdown(false);
                                 }}
@@ -337,21 +356,21 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
                                 <div className="flex items-center justify-between">
                                   <div>
                                     <p className="text-sm font-medium text-gray-900">
-                                      {instance.instanceName}
+                                      {inst.instanceName}
                                     </p>
                                     <p className="text-xs text-gray-500">
-                                      ID: {instance.instanceId} • {instance.accountName}
-                                      {instance.region && ` • ${instance.region}`}
+                                      ID: {inst.instanceId} • {inst.accountName}
+                                      {inst.region && ` • ${inst.region}`}
                                     </p>
                                   </div>
-                                  {instance.brands && instance.brands.length > 0 && (
+                                  {inst.brands && Array.isArray(inst.brands) && inst.brands.length > 0 && (
                                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                                      {instance.brands.length} {instance.brands.length === 1 ? 'brand' : 'brands'}
+                                      {inst.brands.length} {inst.brands.length === 1 ? 'brand' : 'brands'}
                                     </span>
                                   )}
                                 </div>
                               </button>
-                            ))
+                            );})
                           ) : (
                             <div className="px-3 py-2 text-sm text-gray-500">
                               No instances found matching "{instanceSearchQuery}"
@@ -504,6 +523,28 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
                           errorMessage={status.error_message}
                           status={status.status}
                         />
+                        {/* Edit Query button for failed executions */}
+                        {status.status === 'failed' && actualWorkflowId && (
+                          <div className="mt-3">
+                            <button
+                              onClick={() => {
+                                // Navigate to QueryBuilder with the workflow ID for editing
+                                navigate(`/query-builder/edit/${actualWorkflowId}`, {
+                                  state: { 
+                                    fromFailure: true,
+                                    errorMessage: status.error_message,
+                                    parameters: parameters
+                                  }
+                                });
+                                onClose();
+                              }}
+                              className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                            >
+                              <Edit2 className="h-4 w-4 mr-2" />
+                              Edit Query & Retry
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
 

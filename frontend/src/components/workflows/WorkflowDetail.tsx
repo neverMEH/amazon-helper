@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Save, Play, Copy, Clock, AlertCircle, CheckCircle, Edit2, Code, Settings, History } from 'lucide-react';
+import { ArrowLeft, Save, Play, Copy, Clock, AlertCircle, CheckCircle, Edit2, Code, Settings, History, Zap, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import api from '../../services/api';
@@ -16,7 +16,7 @@ interface Workflow {
   name: string;
   description?: string;
   sqlQuery: string;
-  parameters?: any;
+  parameters?: Record<string, unknown>;
   tags?: string[];
   isTemplate?: boolean;
   instance?: {
@@ -42,6 +42,9 @@ export default function WorkflowDetail() {
   const [editForm, setEditForm] = useState<Partial<Workflow>>({});
   const [activeTab, setActiveTab] = useState<TabType>('query');
   const [showExecutionModal, setShowExecutionModal] = useState(false);
+  const [showQuickEditModal, setShowQuickEditModal] = useState(false);
+  const [quickEditSQL, setQuickEditSQL] = useState('');
+  const [isTestingQuickEdit, setIsTestingQuickEdit] = useState(false);
 
   const { data: workflow, isLoading, error } = useQuery<Workflow>({
     queryKey: ['workflow', workflowId],
@@ -83,8 +86,11 @@ export default function WorkflowDetail() {
       queryClient.invalidateQueries({ queryKey: ['workflow', workflowId] });
       queryClient.invalidateQueries({ queryKey: ['workflows'] });
     },
-    onError: (error: any) => {
-      toast.error(`Failed to update workflow: ${error.response?.data?.detail || error.message}`);
+    onError: (error: unknown) => {
+      const errorMessage = error && typeof error === 'object' && 'response' in error
+        ? `Failed to update workflow: ${(error as { response?: { data?: { detail?: string } } }).response?.data?.detail || 'Unknown error'}`
+        : 'Failed to update workflow';
+      toast.error(errorMessage);
     },
   });
 
@@ -99,6 +105,47 @@ export default function WorkflowDetail() {
   const handleCopy = () => {
     navigator.clipboard.writeText(workflow?.sqlQuery || '');
     toast.success('SQL query copied to clipboard');
+  };
+
+  // Quick Edit test execution mutation
+  const testExecutionMutation = useMutation({
+    mutationFn: async () => {
+      const response = await api.post('/workflows/execute', {
+        workflow_id: workflowId,
+        instance_id: workflow?.instance?.id || instanceId,
+        sql_query_override: quickEditSQL,
+        execution_parameters: workflow?.parameters || {}
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success('Test execution started successfully');
+      setIsTestingQuickEdit(false);
+      // Could open execution modal to show results
+      setShowExecutionModal(true);
+    },
+    onError: (error: unknown) => {
+      const errorMessage = error && typeof error === 'object' && 'response' in error
+        ? `Test execution failed: ${(error as { response?: { data?: { detail?: string } } }).response?.data?.detail || 'Unknown error'}`
+        : 'Test execution failed';
+      toast.error(errorMessage);
+      setIsTestingQuickEdit(false);
+    }
+  });
+
+  const handleQuickEditSave = async () => {
+    try {
+      await updateMutation.mutateAsync({ ...workflow, sqlQuery: quickEditSQL });
+      setShowQuickEditModal(false);
+      toast.success('Query updated successfully');
+    } catch {
+      // Error handled by mutation
+    }
+  };
+
+  const handleQuickEditTest = () => {
+    setIsTestingQuickEdit(true);
+    testExecutionMutation.mutate();
   };
 
   if (isLoading) {
@@ -176,11 +223,21 @@ export default function WorkflowDetail() {
               {!isEditing ? (
                 <>
                   <button
+                    onClick={() => {
+                      setQuickEditSQL(workflow.sqlQuery);
+                      setShowQuickEditModal(true);
+                    }}
+                    className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    <Zap className="h-4 w-4 mr-2" />
+                    Quick Edit
+                  </button>
+                  <button
                     onClick={() => setIsEditing(true)}
                     className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                   >
                     <Edit2 className="h-4 w-4 mr-2" />
-                    Edit
+                    Full Edit
                   </button>
                   <button
                     onClick={handleExecute}
@@ -397,6 +454,87 @@ export default function WorkflowDetail() {
           workflow={workflow}
           instanceId={instanceId}
         />
+      )}
+
+      {/* Quick Edit Modal */}
+      {showQuickEditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold">Quick SQL Edit</h2>
+                <p className="text-sm text-gray-600 mt-1">Make quick changes to your SQL query and test them immediately</p>
+              </div>
+              <button
+                onClick={() => setShowQuickEditModal(false)}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="p-6" style={{ height: 'calc(90vh - 140px)' }}>
+              <div className="h-full flex flex-col">
+                <div className="flex-1 border border-gray-200 rounded-lg overflow-hidden">
+                  <SQLEditor
+                    value={quickEditSQL}
+                    onChange={setQuickEditSQL}
+                    height="100%"
+                  />
+                </div>
+
+                <div className="mt-4 flex items-center justify-between">
+                  <div className="text-sm text-gray-600">
+                    <span className="font-medium">Instance:</span> {workflow?.instance?.name || 'Not configured'}
+                  </div>
+                  
+                  <div className="flex items-center space-x-3">
+                    <button
+                      onClick={() => setShowQuickEditModal(false)}
+                      className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleQuickEditTest}
+                      disabled={isTestingQuickEdit || !workflow?.instance}
+                      className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400"
+                    >
+                      {isTestingQuickEdit ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-700 mr-2"></div>
+                          Testing...
+                        </>
+                      ) : (
+                        <>
+                          <Play className="h-4 w-4 mr-2" />
+                          Test & Execute
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={handleQuickEditSave}
+                      disabled={updateMutation.isPending}
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400"
+                    >
+                      {updateMutation.isPending ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4 mr-2" />
+                          Save Changes
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

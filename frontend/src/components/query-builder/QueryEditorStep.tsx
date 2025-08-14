@@ -10,6 +10,8 @@ interface QueryEditorStepProps {
   state: any;
   setState: (state: any) => void;
   instances?: any[];
+  onNavigateToStep?: (step: number) => void;
+  currentStep?: number;
 }
 
 export default function QueryEditorStep({ state, setState }: QueryEditorStepProps) {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight, Check, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -30,7 +30,7 @@ interface QueryBuilderState {
   };
   
   // Parameters extracted from query
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
 }
 
 const WIZARD_STEPS = [
@@ -65,7 +65,13 @@ function generateWorkflowName(sqlQuery: string): string {
 export default function QueryBuilder() {
   const { templateId, workflowId } = useParams();
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState(0);
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Initialize step from URL parameter or default to 0
+  const stepParam = searchParams.get('step');
+  const initialStep = stepParam ? Math.min(Math.max(0, parseInt(stepParam) - 1), WIZARD_STEPS.length - 1) : 0;
+  const [currentStep, setCurrentStep] = useState(initialStep);
   const [isExecuting, setIsExecuting] = useState(false);
   
   // Check if we're in copy mode
@@ -116,6 +122,34 @@ export default function QueryBuilder() {
       return response.data;
     }
   });
+
+  // Update URL when step changes
+  useEffect(() => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('step', String(currentStep + 1));
+    setSearchParams(newParams, { replace: true });
+  }, [currentStep]);
+
+  // Handle navigation from failed execution
+  useEffect(() => {
+    if (location.state?.fromFailure) {
+      // If coming from a failed execution, jump to the query editor step
+      setCurrentStep(0);
+      
+      // Load error context if available
+      if (location.state.errorMessage) {
+        toast.error('Previous execution failed. Please review and fix the query.');
+      }
+      
+      // Load parameters if provided
+      if (location.state.parameters) {
+        setQueryState(prev => ({
+          ...prev,
+          parameters: location.state.parameters
+        }));
+      }
+    }
+  }, [location.state]);
 
   // Load from sessionStorage if available (for examples from data sources)
   useEffect(() => {
@@ -212,9 +246,12 @@ export default function QueryBuilder() {
         window.history.replaceState(null, '', `/query-builder/edit/${newWorkflowId}`);
       }
     },
-    onError: (error: any, variables) => {
+    onError: (error: unknown, variables) => {
       if (!variables?.silent) {
-        toast.error(error.response?.data?.detail || 'Failed to save workflow');
+        const errorMessage = error && typeof error === 'object' && 'response' in error
+          ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail
+          : 'Failed to save workflow';
+        toast.error(errorMessage);
       }
     }
   });
@@ -259,7 +296,7 @@ export default function QueryBuilder() {
       // Navigate to the workflow detail page
       toast.success('Workflow created successfully');
       navigate(`/workflows/${workflowId}`);
-    } catch (error) {
+    } catch {
       toast.error('Failed to create workflow');
     } finally {
       setIsExecuting(false);
@@ -341,6 +378,8 @@ export default function QueryBuilder() {
           state={queryState}
           setState={setQueryState}
           instances={instances}
+          onNavigateToStep={setCurrentStep}
+          currentStep={currentStep}
         />
       </div>
 

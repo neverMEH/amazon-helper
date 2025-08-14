@@ -6,6 +6,8 @@ interface QueryConfigurationStepProps {
   state: any;
   setState: (state: any) => void;
   instances: any[];
+  onNavigateToStep?: (step: number) => void;
+  currentStep?: number;
 }
 
 const TIMEZONES = [

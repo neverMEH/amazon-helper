@@ -1,22 +1,48 @@
 import { useState, useEffect } from 'react';
-import { AlertTriangle, Database, Clock, FileText, DollarSign, Info, Play, Loader, CheckCircle, Eye } from 'lucide-react';
+import { AlertTriangle, Database, Clock, FileText, DollarSign, Info, Play, Loader, CheckCircle, Eye, Edit2, ChevronLeft } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import api from '../../services/api';
 import ExecutionErrorDetails from '../executions/ExecutionErrorDetails';
 import AMCExecutionDetail from '../executions/AMCExecutionDetail';
 
-interface QueryReviewStepProps {
-  state: any;
-  setState: (state: any) => void;
-  instances: any[];
+interface QueryReviewState {
+  name: string;
+  description: string;
+  sqlQuery: string;
+  instanceId: string;
+  timezone: string;
+  parameters: Record<string, unknown>;
+  exportSettings: {
+    name: string;
+  };
+  advancedOptions: {
+    ignoreDataGaps: boolean;
+    appendThresholdColumns: boolean;
+  };
 }
 
-export default function QueryReviewStep({ state, instances }: QueryReviewStepProps) {
+interface Instance {
+  id: string;
+  instanceId: string;
+  instanceName: string;
+  instance_name?: string;
+  region?: string;
+}
+
+interface QueryReviewStepProps {
+  state: QueryReviewState;
+  setState: (state: QueryReviewState | ((prev: QueryReviewState) => QueryReviewState)) => void;
+  instances: Instance[];
+  onNavigateToStep?: (step: number) => void;
+  currentStep?: number;
+}
+
+export default function QueryReviewStep({ state, instances, onNavigateToStep }: QueryReviewStepProps) {
   const [estimatedCost, setEstimatedCost] = useState<number | null>(null);
   const [estimatedRuntime, setEstimatedRuntime] = useState<number | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
-  const [executionResult, setExecutionResult] = useState<any>(null);
+  const [executionResult, setExecutionResult] = useState<unknown>(null);
   const [executionStatus, setExecutionStatus] = useState<'idle' | 'executing' | 'completed' | 'failed'>('idle');
   const [showExecutionDetail, setShowExecutionDetail] = useState(false);
   const [executionId, setExecutionId] = useState<string | null>(null);
@@ -60,33 +86,41 @@ export default function QueryReviewStep({ state, instances }: QueryReviewStepPro
       setExecutionStatus('completed');
       toast.success('Query executed successfully');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Execution error:', error);
-      const errorData = error.response?.data || error;
+      const errorData = error && typeof error === 'object' && 'response' in error
+        ? (error as { response?: { data?: Record<string, unknown> } }).response?.data || error
+        : error;
       
       // Log the error structure for debugging
       console.log('Error response data:', errorData);
       
       // Extract error message for toast
-      const errorMessage = errorData.detail || errorData.error || errorData.message || 'Query execution failed';
+      const errorMessage = (errorData && typeof errorData === 'object' && 'detail' in errorData ? (errorData as { detail?: string }).detail : undefined) ||
+                          (errorData && typeof errorData === 'object' && 'error' in errorData ? (errorData as { error?: string }).error : undefined) ||
+                          (errorData && typeof errorData === 'object' && 'message' in errorData ? (errorData as { message?: string }).message : undefined) ||
+                          'Query execution failed';
       
       // If the error is in the detail field (from HTTPException), extract it
       let processedError = errorData;
-      if (errorData.detail && typeof errorData.detail === 'string') {
-        // Check if detail contains structured error information
-        if (errorData.detail.includes('unable to compile') || errorData.detail.includes('SQL query was invalid')) {
-          processedError = {
-            error: errorData.detail,
-            errorDetails: {
-              failureReason: 'SQL Query Compilation Failed',
-              errorMessage: errorData.detail,
-              queryValidation: errorData.detail
-            }
-          };
-        } else {
-          processedError = {
-            error: errorData.detail
-          };
+      if (errorData && typeof errorData === 'object' && 'detail' in errorData) {
+        const detail = (errorData as { detail?: string }).detail;
+        if (detail && typeof detail === 'string') {
+          // Check if detail contains structured error information
+          if (detail.includes('unable to compile') || detail.includes('SQL query was invalid')) {
+            processedError = {
+              error: detail,
+              errorDetails: {
+                failureReason: 'SQL Query Compilation Failed',
+                errorMessage: detail,
+                queryValidation: detail
+              }
+            };
+          } else {
+            processedError = {
+              error: detail
+            };
+          }
         }
       }
       
@@ -160,7 +194,27 @@ export default function QueryReviewStep({ state, instances }: QueryReviewStepPro
     <>
     <div className="max-w-6xl mx-auto p-6">
       <div className="mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">Review & Execute</h2>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-lg font-semibold text-gray-900">Review & Execute</h2>
+          {onNavigateToStep && (
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => onNavigateToStep(0)}
+                className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              >
+                <ChevronLeft className="h-3 w-3 mr-1" />
+                Edit Query
+              </button>
+              <button
+                onClick={() => onNavigateToStep(1)}
+                className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              >
+                <ChevronLeft className="h-3 w-3 mr-1" />
+                Edit Configuration
+              </button>
+            </div>
+          )}
+        </div>
         <p className="text-sm text-gray-600">
           Review your query configuration before execution. Make sure all settings are correct.
         </p>
@@ -324,14 +378,27 @@ export default function QueryReviewStep({ state, instances }: QueryReviewStepPro
                 )}
 
                 {executionStatus === 'failed' && executionResult && (
-                  <ExecutionErrorDetails
-                    errorMessage={executionResult.error || executionResult.message || 'Query execution failed'}
-                    errorDetails={executionResult.errorDetails}
-                    status="failed"
-                    sqlQuery={state.sqlQuery}
-                    executionId={executionId || undefined}
-                    instanceName={selectedInstance?.instance_name}
-                  />
+                  <>
+                    <ExecutionErrorDetails
+                      errorMessage={executionResult.error || executionResult.message || 'Query execution failed'}
+                      errorDetails={executionResult.errorDetails}
+                      status="failed"
+                      sqlQuery={state.sqlQuery}
+                      executionId={executionId || undefined}
+                      instanceName={selectedInstance?.instance_name}
+                    />
+                    {onNavigateToStep && (
+                      <div className="mt-3">
+                        <button
+                          onClick={() => onNavigateToStep(0)}
+                          className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                        >
+                          <Edit2 className="h-4 w-4 mr-2" />
+                          Edit Query
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
