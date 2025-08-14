@@ -238,22 +238,7 @@ function DataSourcePreviewContent({ dataSource, onClose, onOpenDetail }: DataSou
 // Export wrapped component with error boundary
 export function DataSourcePreview(props: DataSourcePreviewProps) {
   return (
-    <ErrorBoundary
-      fallback={
-        <div className="h-full flex items-center justify-center text-gray-400">
-          <div className="text-center">
-            <AlertCircle className="h-12 w-12 mx-auto mb-3" />
-            <p className="text-sm">Failed to load preview</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-2 text-xs text-blue-600 hover:text-blue-700"
-            >
-              Refresh page
-            </button>
-          </div>
-        </div>
-      }
-    >
+    <ErrorBoundary fallbackMessage="Unable to display data source preview">
       <DataSourcePreviewContent {...props} />
     </ErrorBoundary>
   );
