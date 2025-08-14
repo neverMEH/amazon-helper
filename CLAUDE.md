@@ -372,3 +372,10 @@ Manual testing flow:
 - 400 errors with "unable to compile workflow" need special parsing
 - Error details are in the `details` field, not `message`
 - Table not found errors include line/column information
+
+### Monaco Editor Height Issues (Frontend)
+- **Critical**: Monaco Editor requires explicit pixel heights (e.g., `height="400px"`)
+- Percentage heights (`height="100%"`) often fail in flex containers
+- Use flex column layout with `flex-shrink-0` for non-editor sections
+- Provide explicit pixel height to SQLEditor component
+- See frontend/CLAUDE.md for detailed solution and example code

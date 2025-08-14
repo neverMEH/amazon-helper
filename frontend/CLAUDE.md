@@ -393,6 +393,26 @@ Tests are in `tests/e2e/` directory:
 - Look for readOnly prop settings
 - Check expand modal z-index layering
 
+### Monaco Editor Height Issues
+- **Critical**: Monaco Editor requires explicit pixel height (e.g., `height="400px"`)
+- Percentage heights (`height="100%"`) often fail in flex containers
+- Using viewport heights (`60vh`) can be unreliable with nested containers
+- For modals with Monaco Editor:
+  - Use flex column layout for the modal
+  - Set `flex-shrink-0` on header/footer sections
+  - Use `flex-1 min-h-0 overflow-hidden` on editor container
+  - Provide explicit pixel height to SQLEditor component
+- Example working structure:
+  ```tsx
+  <div className="flex flex-col max-h-[90vh]">
+    <header className="flex-shrink-0">...</header>
+    <div className="flex-1 min-h-0 overflow-hidden">
+      <SQLEditor height="400px" />
+    </div>
+    <footer className="flex-shrink-0">...</footer>
+  </div>
+  ```
+
 ## Recent Issue Fixes
 
 ### AMP-1: Export Name Auto-Generation
@@ -413,8 +433,15 @@ Tests are in `tests/e2e/` directory:
 - AMCExecutionDetail now supports `onRerunSuccess` callback
 - Modal automatically transitions to new execution after rerun
 
-### SQL Editor Expand Feature (Latest)
+### SQL Editor Expand Feature
 - Added maximize button to SQL query section
 - Opens SQL in full-screen modal (80vh height)
 - Shows instance and query context in expanded view
 - Higher z-index layering for proper modal stacking
+
+### Quick Edit Modal Height Fix (Latest)
+- Fixed Monaco Editor not displaying in Quick Edit modal
+- Issue: Complex flex layouts and percentage heights prevented editor rendering
+- Solution: Use explicit pixel height (400px) for Monaco Editor
+- Modal uses flex column with proper section management
+- Key learning: Monaco Editor requires pixel heights, not percentages
