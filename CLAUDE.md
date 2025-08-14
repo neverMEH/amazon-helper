@@ -297,25 +297,27 @@ return (
 
 ## Recent UI Improvements (2025-08-14)
 
-### Data Sources Page Redesign
-- **Three-column layout**: Sidebar filters, main content, preview panel
-- **Command palette**: Cmd+K for fuzzy search across all schemas
-- **Multi-select mode**: Bulk actions with visual feedback
-- **Compact view toggle**: Switch between card and table views
-- **Live preview**: Hover to preview schema details in side panel
-- **Advanced filtering**: Category, tags, and search combined
+### Data Sources Page Enhanced Features
+- **Advanced Filter Builder**: Complex nested AND/OR conditions with visual grouping
+- **Filter Presets**: 7 default presets + custom preset creation
+- **Compare Mode**: Side-by-side comparison of 2-4 data sources
+- **Bulk Actions**: Export JSON/CSV, copy IDs, generate documentation
+- **Command Palette**: Cmd+K fuzzy search across all schemas
+- **Multi-Select**: Visual bulk selection with action bar
 
-### Component Structure for Data Sources
+### New Component Structure
 ```
 components/data-sources/
-├── DataSourceCard.tsx          # Card/table row component
-├── DataSourcePreview.tsx       # Side panel preview
+├── AdvancedFilterBuilder.tsx    # Complex filter creation UI
+├── FilterPresets.tsx            # Preset management with defaults
+├── DataSourceCompare.tsx        # Side-by-side comparison modal
 ├── DataSourceCommandPalette.tsx # Cmd+K search interface
-├── DataSourceSkeleton.tsx      # Loading states
-├── BulkActions.tsx             # Multi-select action bar
-├── FieldExplorer.tsx           # Advanced field browser
-├── TableOfContents.tsx         # Sticky navigation
-└── utils.tsx                   # Shared utilities
+├── BulkActions.tsx              # Multi-select action bar
+├── DataSourceCard.tsx           # Card/table row component
+├── DataSourcePreview.tsx        # Side panel preview
+├── DataSourceSkeleton.tsx       # Loading states
+├── FieldExplorer.tsx            # Advanced field browser
+└── TableOfContents.tsx          # Sticky navigation
 ```
 
 ## Deployment
@@ -339,3 +341,5 @@ Manual testing flow:
 8. ✅ Browse data sources with preview
 9. ✅ Use Cmd+K to search schemas
 10. ✅ Multi-select data sources for bulk actions
+11. ✅ Apply advanced filters with nested conditions
+12. ✅ Compare multiple data sources side-by-side
