@@ -459,8 +459,8 @@ export default function WorkflowDetail() {
       {/* Quick Edit Modal */}
       {showQuickEditModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-[90vw] max-w-6xl">
-            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <div className="bg-white rounded-lg shadow-xl w-[90vw] max-w-6xl max-h-[90vh] flex flex-col">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
               <div>
                 <h2 className="text-xl font-semibold">Quick SQL Edit</h2>
                 <p className="text-sm text-gray-600 mt-1">Make quick changes to your SQL query and test them immediately</p>
@@ -473,16 +473,18 @@ export default function WorkflowDetail() {
               </button>
             </div>
 
-            <div className="p-6">
-              <div className="border border-gray-200 rounded-lg overflow-hidden" style={{ height: '60vh' }}>
+            <div className="flex-1 p-6 min-h-0 overflow-hidden">
+              <div className="h-full border border-gray-200 rounded-lg">
                 <SQLEditor
                   value={quickEditSQL}
                   onChange={setQuickEditSQL}
-                  height="100%"
+                  height="400px"
                 />
               </div>
+            </div>
 
-              <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
+            <div className="px-6 pb-6 flex-shrink-0">
+              <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                 <div className="text-sm text-gray-600">
                   <span className="font-medium">Instance:</span> {workflow?.instance?.name || 'Not configured'}
                 </div>
