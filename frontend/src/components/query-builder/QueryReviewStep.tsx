@@ -61,10 +61,38 @@ export default function QueryReviewStep({ state, instances }: QueryReviewStepPro
       toast.success('Query executed successfully');
     },
     onError: (error: any) => {
+      console.error('Execution error:', error);
       const errorData = error.response?.data || error;
-      setExecutionResult(errorData);
+      
+      // Log the error structure for debugging
+      console.log('Error response data:', errorData);
+      
+      // Extract error message for toast
+      const errorMessage = errorData.detail || errorData.error || errorData.message || 'Query execution failed';
+      
+      // If the error is in the detail field (from HTTPException), extract it
+      let processedError = errorData;
+      if (errorData.detail && typeof errorData.detail === 'string') {
+        // Check if detail contains structured error information
+        if (errorData.detail.includes('unable to compile') || errorData.detail.includes('SQL query was invalid')) {
+          processedError = {
+            error: errorData.detail,
+            errorDetails: {
+              failureReason: 'SQL Query Compilation Failed',
+              errorMessage: errorData.detail,
+              queryValidation: errorData.detail
+            }
+          };
+        } else {
+          processedError = {
+            error: errorData.detail
+          };
+        }
+      }
+      
+      setExecutionResult(processedError);
       setExecutionStatus('failed');
-      toast.error('Query execution failed');
+      toast.error(errorMessage);
     }
   });
 

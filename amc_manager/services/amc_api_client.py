@@ -239,6 +239,37 @@ class AMCAPIClient:
                 logger.error(f"Failed to create execution: Status {response.status_code}, Response: {response_data}")
                 logger.error(f"Response text: {response.text}")
                 
+                # Extract detailed error information for SQL compilation errors
+                error_details = None
+                if response.status_code == 400 and 'details' in response_data:
+                    details_str = str(response_data.get('details', ''))
+                    
+                    # Check if this is a SQL compilation error
+                    if 'unable to compile' in details_str.lower() or 'sql query was invalid' in details_str.lower():
+                        # Parse the error message for specific SQL issues
+                        error_details = {
+                            'failureReason': 'SQL Query Compilation Failed',
+                            'errorCode': response_data.get('code', 'AMC-SQL-COMPILE'),
+                            'errorMessage': details_str,
+                            'validationErrors': [],
+                            'queryValidation': details_str
+                        }
+                        
+                        # Extract specific error location if present (e.g., "From line 38, column 10...")
+                        import re
+                        line_match = re.search(r'From line (\d+), column (\d+) to line (\d+), column (\d+):', details_str)
+                        if line_match:
+                            error_details['validationErrors'].append(
+                                f"Error at line {line_match.group(1)}, column {line_match.group(2)}: Check SQL syntax"
+                            )
+                        
+                        # Extract object not found errors
+                        object_match = re.search(r"Object '([^']+)' not found", details_str)
+                        if object_match:
+                            error_details['validationErrors'].append(
+                                f"Table or column '{object_match.group(1)}' does not exist in AMC schema"
+                            )
+                
                 # Check if this is a "workflow not found" error - check both error_msg and full response
                 error_str = str(response_data).lower()
                 if (response.status_code == 404 or 
@@ -252,7 +283,8 @@ class AMCAPIClient:
                 
                 return {
                     "success": False,
-                    "error": error_msg
+                    "error": error_msg,
+                    "errorDetails": error_details
                 }
                 
         except ValueError as e:

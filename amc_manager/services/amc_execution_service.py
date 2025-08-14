@@ -501,16 +501,34 @@ class AMCExecutionService:
                 # Check if execution was created successfully
                 if not response.get('success'):
                     error_msg = response.get('error', 'Failed to create workflow execution')
+                    error_details = response.get('errorDetails')
+                    
+                    # Format detailed error message if we have error details
+                    if error_details:
+                        detailed_error = error_msg
+                        if error_details.get('validationErrors'):
+                            detailed_error += "\n\nValidation Errors:\n" + "\n".join(error_details['validationErrors'])
+                        if error_details.get('queryValidation'):
+                            detailed_error += f"\n\nDetails: {error_details['queryValidation']}"
+                        error_msg = detailed_error
+                    
                     self._update_execution_completed(
                         execution_id=execution_id,
                         amc_execution_id=execution_id,
                         row_count=0,
                         error_message=error_msg
                     )
-                    return {
+                    
+                    result = {
                         "status": "failed",
                         "error": error_msg
                     }
+                    
+                    # Include errorDetails if available
+                    if error_details:
+                        result["errorDetails"] = error_details
+                    
+                    return result
                 
                 amc_execution_id = response.get('executionId', execution_id)
                 logger.info(f"Created AMC execution: {amc_execution_id}")
