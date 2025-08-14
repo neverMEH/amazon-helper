@@ -473,24 +473,21 @@ export default function WorkflowDetail() {
               </button>
             </div>
 
-            <div className="p-8" style={{ height: 'calc(90vh - 120px)' }}>
-              <div className="h-full flex flex-col">
-                <div className="flex-1 border border-gray-200 rounded-lg overflow-hidden p-4 bg-gray-50">
-                  <div className="h-full bg-white rounded border border-gray-300 shadow-sm">
-                    <SQLEditor
-                      value={quickEditSQL}
-                      onChange={setQuickEditSQL}
-                      height="100%"
-                    />
-                  </div>
-                </div>
+            <div className="p-6 flex flex-col" style={{ height: 'calc(90vh - 140px)' }}>
+              <div className="flex-1 min-h-0 mb-4">
+                <SQLEditor
+                  value={quickEditSQL}
+                  onChange={setQuickEditSQL}
+                  height="100%"
+                />
+              </div>
 
-                <div className="mt-6 flex items-center justify-between">
-                  <div className="text-sm text-gray-600">
-                    <span className="font-medium">Instance:</span> {workflow?.instance?.name || 'Not configured'}
-                  </div>
-                  
-                  <div className="flex items-center space-x-3">
+              <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                <div className="text-sm text-gray-600">
+                  <span className="font-medium">Instance:</span> {workflow?.instance?.name || 'Not configured'}
+                </div>
+                
+                <div className="flex items-center space-x-3">
                     <button
                       onClick={() => setShowQuickEditModal(false)}
                       className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
@@ -531,7 +528,6 @@ export default function WorkflowDetail() {
                         </>
                       )}
                     </button>
-                  </div>
                 </div>
               </div>
             </div>
