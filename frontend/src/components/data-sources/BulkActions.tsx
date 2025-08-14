@@ -5,7 +5,8 @@ import {
   FolderOpen,
   X,
   CheckSquare,
-  FileText
+  FileText,
+  GitCompare
 } from 'lucide-react';
 import type { DataSource } from '../../types/dataSource';
 
@@ -15,6 +16,7 @@ interface BulkActionsProps {
   onClearSelection: () => void;
   onSelectAll: () => void;
   onDeselectAll: () => void;
+  onCompare?: () => void;
 }
 
 export function BulkActions({
@@ -22,7 +24,8 @@ export function BulkActions({
   dataSources,
   onClearSelection,
   onSelectAll,
-  onDeselectAll
+  onDeselectAll,
+  onCompare
 }: BulkActionsProps) {
   const [isExporting, setIsExporting] = useState(false);
   
@@ -99,6 +102,16 @@ export function BulkActions({
 
           {/* Actions */}
           <div className="flex items-center gap-2">
+            {selectedItems.size >= 2 && selectedItems.size <= 4 && onCompare && (
+              <button
+                onClick={onCompare}
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-md transition-colors flex items-center gap-2 text-sm"
+              >
+                <GitCompare className="h-4 w-4" />
+                Compare ({selectedItems.size})
+              </button>
+            )}
+            
             <button
               onClick={handleExportSelected}
               disabled={isExporting}

@@ -13,7 +13,8 @@ import {
   Grid3x3,
   List,
   SlidersHorizontal,
-  Command
+  Command,
+  Filter
 } from 'lucide-react';
 import { dataSourceService } from '../services/dataSourceService';
 import { DataSourceCard } from '../components/data-sources/DataSourceCard';
@@ -21,6 +22,9 @@ import { DataSourcePreview } from '../components/data-sources/DataSourcePreview'
 import { DataSourceCommandPalette } from '../components/data-sources/DataSourceCommandPalette';
 import { DataSourceSkeleton } from '../components/data-sources/DataSourceSkeleton';
 import { BulkActions } from '../components/data-sources/BulkActions';
+import { AdvancedFilterBuilder } from '../components/data-sources/AdvancedFilterBuilder';
+import { FilterPresets, DEFAULT_PRESETS } from '../components/data-sources/FilterPresets';
+import { DataSourceCompare } from '../components/data-sources/DataSourceCompare';
 import type { DataSource } from '../types/dataSource';
 
 export default function DataSources() {
@@ -39,6 +43,11 @@ export default function DataSources() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
+  const [showAdvancedFilter, setShowAdvancedFilter] = useState(false);
+  const [advancedFilter, setAdvancedFilter] = useState<any>(null);
+  const [filterPresets, setFilterPresets] = useState(DEFAULT_PRESETS);
+  const [activePresetId, setActivePresetId] = useState<string>('all');
+  const [showCompareMode, setShowCompareMode] = useState(false);
 
   // Fetch data sources
   const { data: dataSources = [], isLoading } = useQuery({
@@ -249,13 +258,47 @@ export default function DataSources() {
                   placeholder="Type to filter results or press ⌘K for advanced search..."
                   className="w-full pl-10 pr-20 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
-                <button
-                  onClick={() => setShowCommandPalette(true)}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-1 px-2 py-1 text-xs bg-gray-100 border border-gray-300 rounded hover:bg-gray-200 transition-colors"
-                >
-                  <Command className="h-3 w-3" />K
-                </button>
+                <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
+                  <button
+                    onClick={() => setShowAdvancedFilter(true)}
+                    className="flex items-center gap-1 px-2 py-1 text-xs bg-gray-100 border border-gray-300 rounded hover:bg-gray-200 transition-colors"
+                    title="Advanced Filter"
+                  >
+                    <Filter className="h-3 w-3" />
+                    Filter
+                  </button>
+                  <button
+                    onClick={() => setShowCommandPalette(true)}
+                    className="flex items-center gap-1 px-2 py-1 text-xs bg-gray-100 border border-gray-300 rounded hover:bg-gray-200 transition-colors"
+                  >
+                    <Command className="h-3 w-3" />K
+                  </button>
+                </div>
               </div>
+            </div>
+
+            {/* Filter Presets */}
+            <div className="mt-4">
+              <FilterPresets
+                presets={filterPresets}
+                activePresetId={activePresetId}
+                onSelectPreset={(preset) => {
+                  setActivePresetId(preset.id);
+                  setAdvancedFilter(preset.filter);
+                  // Apply the preset filter
+                  console.log('Applying preset:', preset);
+                }}
+                onCreateNew={() => setShowAdvancedFilter(true)}
+                onSavePreset={(preset) => {
+                  setFilterPresets([...filterPresets, preset]);
+                }}
+                onDeletePreset={(id) => {
+                  setFilterPresets(filterPresets.filter(p => p.id !== id));
+                  if (activePresetId === id) {
+                    setActivePresetId('all');
+                  }
+                }}
+              />
             </div>
 
             {/* Active Filters Summary */}
@@ -526,6 +569,27 @@ export default function DataSources() {
         }}
         onSelectAll={handleSelectAll}
         onDeselectAll={handleDeselectAll}
+        onCompare={() => setShowCompareMode(true)}
+      />
+
+      {/* Advanced Filter Builder */}
+      <AdvancedFilterBuilder
+        isOpen={showAdvancedFilter}
+        onClose={() => setShowAdvancedFilter(false)}
+        onApply={(filter) => {
+          setAdvancedFilter(filter);
+          // TODO: Apply the filter to the data sources
+          console.log('Applying advanced filter:', filter);
+        }}
+        currentFilter={advancedFilter}
+      />
+
+      {/* Compare Mode */}
+      <DataSourceCompare
+        isOpen={showCompareMode}
+        onClose={() => setShowCompareMode(false)}
+        dataSourceIds={Array.from(selectedIds)}
+        dataSources={dataSources}
       />
     </div>
   );

@@ -6,25 +6,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 RecomAMP - Amazon Marketing Cloud (AMC) query development and execution platform for managing AMC instances, creating and executing SQL queries with iterative workflow tracking, and building a comprehensive query library.
 
-## Working Features (as of 2025-08-13)
-
-### ✅ Core Functionality
-- **Authentication**: OAuth2 login with Amazon Advertising API, token encryption with Fernet
-- **AMC Instance Management**: Add, edit, remove instances with proper validation
-- **Query Builder**: 3-step wizard with Monaco editor, parameter detection, schema browser
-- **Workflow Execution**: Create, save, execute workflows with real-time status polling
-- **Execution Monitoring**: Background polling service (15-second intervals) with progress tracking
-- **Results Viewing**: Inline results display and full AMCExecutionDetail modal
-- **Data Sources**: Browse AMC schema documentation with SQL examples
-- **Query Library**: Template browsing with categories and search
-
-### ✅ Recent Fixes (2025-08-13)
-- **Schema Explorer**: Dynamic loading of AMC data sources from database in query builder
-- **Query Population**: Examples from data sources now populate in editor via sessionStorage
-- **View Results Navigation**: Added "Open Full Results" button alongside inline viewer
-- **Async/Await Issues**: Fixed event loop conflicts in execution service
-- **React Fragment Syntax**: Corrected JSX structure in ExecutionModal
-
 ## Development Commands
 
 ### Quick Start
@@ -38,127 +19,128 @@ RecomAMP - Amazon Marketing Cloud (AMC) query development and execution platform
 # API Docs: http://localhost:8001/docs
 ```
 
-### Backend Development
+### Backend Commands
 ```bash
 # Run backend server
-python main_supabase.py  # Port 8001
+python main_supabase.py                      # Port 8001
 
 # Testing
-pytest tests/test_api_auth.py::test_login_success  # Run specific test
+pytest tests/                                # All tests
+pytest tests/test_api_auth.py::test_login_success  # Specific test
+python -m pytest -v                          # Verbose output
 
 # Code quality
-black amc_manager/          # Format
-flake8 amc_manager/         # Lint
-mypy amc_manager/           # Type check
+black amc_manager/                           # Format
+flake8 amc_manager/                          # Lint
+mypy amc_manager/                            # Type check
 
 # Database operations
-python scripts/check_supabase_connection.py   # Check connection
-python scripts/import_initial_data.py         # Import initial data
-python scripts/apply_performance_indexes.py   # Apply indexes
+python scripts/check_supabase_connection.py  # Check connection
+python scripts/import_initial_data.py        # Import initial data
+python scripts/apply_performance_indexes.py  # Apply indexes
+python scripts/create_cja_workflow.py        # Create CJA workflow
+python scripts/add_execution_results_fields.py  # Add results fields
 ```
 
-### Frontend Development
+### Frontend Commands
 ```bash
 cd frontend
-npm install               # Install dependencies
-npm run dev              # Dev server on port 5173
-npm run build            # Production build
-npm run lint             # ESLint
-npx tsc --noEmit         # TypeScript type checking
+npm install                                  # Install dependencies
+npm run dev                                  # Dev server on port 5173
+npm run build                                # Production build
+npm run lint                                 # ESLint
+npm run preview                              # Preview production build
+npx tsc --noEmit                            # TypeScript type checking
+npx tsc --noEmit --watch                    # Type checking in watch mode
 
-# E2E testing
-npx playwright test
-npx playwright test --ui  # Interactive mode
+# E2E testing with Playwright
+npx playwright test                         # Run all tests
+npx playwright test --ui                    # Interactive mode
+npx playwright test test-name.spec.ts       # Specific test file
+npx playwright test -g "test name"          # Specific test by name
+npx playwright test --debug                 # Debug mode with inspector
 ```
 
-## Architecture
+## High-Level Architecture
 
-### Backend Architecture (FastAPI + Supabase)
+### System Architecture
+```
+┌─────────────────────────────────────────────────────────────┐
+│                         Frontend (React)                      │
+│  • TanStack Query for server state                           │
+│  • React Router v7 for routing                               │
+│  • Monaco Editor for SQL editing                             │
+│  • Tailwind CSS for styling                                  │
+└──────────────────────┬──────────────────────────────────────┘
+                       │ /api proxy (dev) or /api (prod)
+                       ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Backend (FastAPI)                          │
+│  • Service layer pattern                                      │
+│  • Async/await throughout                                     │
+│  • Background polling service                                 │
+│  • Token encryption with Fernet                               │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+           ┌───────────┴────────────┬─────────────────┐
+           ▼                        ▼                 ▼
+    ┌──────────────┐     ┌──────────────┐    ┌──────────────┐
+    │   Supabase   │     │   AMC API    │    │ Amazon OAuth │
+    │  PostgreSQL  │     │              │    │              │
+    └──────────────┘     └──────────────┘    └──────────────┘
+```
 
-**Service Layer Pattern** - All business logic in `amc_manager/services/`:
-- Services inherit from `DatabaseService` (aliased as `SupabaseService`) for automatic 30-minute timeout reconnection
-- Critical services:
-  - `amc_api_client.py`: Direct AMC API integration with proper auth headers
-  - `token_service.py`: Fernet encryption for OAuth tokens
-  - `execution_status_poller.py`: Background polling every 15 seconds
-  - `data_source_service.py`: AMC schema documentation management
+### Backend Service Architecture
 
-**API Routing** (`amc_manager/api/supabase/`):
-- Authentication via `get_current_user` from `.auth` module
-- Router registration in `main_supabase.py` with `/api` prefix
-- Critical: POST endpoints require trailing slash (e.g., `/workflows/`)
+All services inherit from `DatabaseService` (aliased as `SupabaseService`) with automatic 30-minute reconnection:
 
-### Frontend Architecture (React + TypeScript)
+```python
+amc_manager/services/
+├── amc_api_client.py           # Direct AMC API integration
+├── token_service.py            # Fernet encryption for OAuth tokens
+├── execution_status_poller.py  # Background polling (15-second intervals)
+├── data_source_service.py      # AMC schema documentation
+├── workflow_service.py         # Query workflow management
+├── instance_service.py         # AMC instance CRUD
+└── db_service.py              # Base class with reconnection logic
+```
 
-**State Management**:
-- TanStack Query v5 for server state (5-minute staleTime, 10-minute gcTime)
-- React Router v7 for routing
-- React Hook Form for forms
+### Frontend Component Architecture
 
-**TypeScript Configuration**:
-- `verbatimModuleSyntax: true` - Requires type-only imports (`import type`)
-- Strict mode enabled
+```
+src/
+├── pages/                      # Route components
+│   ├── QueryBuilder.tsx        # 3-step wizard
+│   ├── DataSources.tsx         # 3-column layout with preview
+│   └── DataSourceDetail.tsx    # Schema detail view
+├── components/
+│   ├── query-builder/          # Wizard steps
+│   ├── data-sources/           # Data source UI components
+│   ├── workflows/              # Execution monitoring
+│   └── common/                 # Shared components
+└── services/
+    ├── api.ts                  # Axios instance with interceptors
+    └── *Service.ts             # API service modules
+```
 
-**Key Patterns**:
-- API client in `services/api.ts` with auth interceptor
-- Service pattern for API calls (e.g., `workflowService.ts`)
-- Modal components use `isOpen/onClose` pattern
+## Critical Implementation Patterns
 
-## Recent Changes (2025-08-13)
-
-### Frontend Enhancements
-1. **Query Builder Schema Integration**
-   - Removed hardcoded standard tables
-   - Added dynamic AMC data source loading from API
-   - Schema explorer shows actual AMC tables from database
-
-2. **Query Example Population**
-   - SessionStorage integration for passing data between components
-   - DataSourceDetail stores example in sessionStorage
-   - QueryBuilder loads from sessionStorage on mount
-
-3. **Execution Results Modal**
-   - Added AMCExecutionDetail modal integration
-   - "Open Full Results" button for detailed view
-   - Proper z-index layering for modal stacking
-
-### Backend Fixes
-1. **Async/Await Patterns**
-   - Made `execute_workflow` async (no asyncio.run)
-   - Made `poll_and_update_execution` async
-   - Made `_execute_real_amc_query` async
-   - API endpoints properly await service methods
-
-2. **Execution Status Polling**
-   - Background service polls every 15 seconds
-   - Automatic status updates for pending/running executions
-   - 2-hour cutoff to avoid polling old executions
-
-## Critical Implementation Details
-
-### Query Builder Schema Explorer
-- **Data Sources Only**: Schema explorer now exclusively shows AMC data sources from database
-- **Dynamic Loading**: Fields are lazy-loaded when expanding a data source
-- **Categories**: Data sources grouped by category (Attribution Tables, Conversion Tables, etc.)
-- **Field Indicators**: Shows D (Dimension) or M (Metric) for each field
-- **Search**: Filters both schemas and fields across all categories
-
-### ID Field Duality
+### AMC ID Field Duality
 ```typescript
-// AMC uses two ID systems:
-instanceId  // AMC's actual instance ID (for API calls)
-id         // Internal UUID (for database relationships)
+// Two ID systems must be carefully managed:
+instanceId  // AMC's actual instance ID (use for API calls)
+id         // Internal UUID (use for database relationships)
 
 // CORRECT: Use instanceId for AMC API
-<InstanceSelector value={state.instanceId} />
+await amcApiClient.executeQuery(instanceId, query)
 
 // WRONG: Internal UUID causes 403 errors
-<InstanceSelector value={instance.id} />
+await amcApiClient.executeQuery(instance.id, query)  // ✗
 ```
 
 ### Date Handling for AMC
 ```python
-# AMC requires dates without timezone suffix
+# AMC requires specific date format WITHOUT timezone
 '2025-07-15T00:00:00'    # ✓ Correct
 '2025-07-15T00:00:00Z'   # ✗ Causes empty results
 
@@ -167,9 +149,9 @@ end_date = datetime.utcnow() - timedelta(days=14)
 start_date = end_date - timedelta(days=7)
 ```
 
-### API Authentication
+### API Authentication Headers
 ```python
-# Entity ID must be in headers, not query params
+# Entity ID MUST be in headers, not query params
 headers = {
     'Amazon-Advertising-API-ClientId': CLIENT_ID,
     'Authorization': f'Bearer {access_token}',
@@ -177,97 +159,183 @@ headers = {
 }
 ```
 
-### Token Encryption
-- Tokens encrypted with Fernet before storage
-- Auto-cleared on decryption failure
-- Background refresh service with 15-minute buffer
-
-### Router Registration
+### FastAPI Router Registration
 ```python
-# In data_sources.py - Don't add prefix here
+# In endpoint file - NO prefix
 router = APIRouter(tags=["Data Sources"])
 
-# In main_supabase.py - Add full prefix here
+# In main_supabase.py - ADD full prefix
 app.include_router(data_sources_router, prefix="/api/data-sources")
+```
+
+### Frontend Type-Only Imports (verbatimModuleSyntax)
+```typescript
+// TypeScript requires explicit type imports
+import type { QueryTemplate } from '../types/queryTemplate';  // ✓
+import { QueryTemplate } from '../types/queryTemplate';       // ✗ Error
+```
+
+### React Query Key Consistency
+```typescript
+// Keys must be consistent for caching
+['dataSource', schemaId]        // ✓ Consistent
+['data-source', id]             // ✗ Different structure breaks cache
+```
+
+### SessionStorage for Component Communication
+```typescript
+// DataSourceDetail passes example to QueryBuilder
+sessionStorage.setItem('queryBuilderDraft', JSON.stringify({
+  sql_query: example.sql_query,
+  name: example.name,
+  parameters: example.parameters || {}
+}));
+
+// QueryBuilder loads and immediately clears
+const draft = sessionStorage.getItem('queryBuilderDraft');
+if (draft) {
+  setQueryState(JSON.parse(draft));
+  sessionStorage.removeItem('queryBuilderDraft');  // Prevent stale data
+}
+```
+
+## Database Schema
+
+Key Supabase tables and their relationships:
+
+```sql
+users
+├── id (uuid, PK)
+├── email
+├── auth_tokens (encrypted JSON)  -- Fernet encrypted
+└── created_at
+
+amc_instances
+├── id (uuid, PK)                 -- Internal ID
+├── instance_id (text, unique)     -- AMC's actual ID
+├── name
+├── entity_id                      -- For API headers
+└── user_id (FK → users)
+
+workflows
+├── id (uuid, PK)
+├── workflow_id (text)             -- Format: wf_XXXXXXXX
+├── name
+├── sql_query
+├── parameters (jsonb)
+└── user_id (FK → users)
+
+workflow_executions
+├── id (uuid, PK)
+├── workflow_id (FK → workflows)
+├── amc_execution_id               -- From AMC API
+├── status                         -- PENDING/RUNNING/SUCCEEDED/FAILED
+└── results (jsonb)
+
+amc_data_sources                  -- Schema documentation
+├── id (uuid, PK)
+├── schema_id (text, unique)
+├── name
+├── category
+└── fields (relation → schema_fields)
 ```
 
 ## Environment Variables
 
 Required for operation:
-- `SUPABASE_URL`: Supabase project URL
-- `SUPABASE_ANON_KEY`: Public anon key  
-- `SUPABASE_SERVICE_ROLE_KEY`: Service role key
-- `AMAZON_CLIENT_ID`: Amazon Advertising API client
-- `AMAZON_CLIENT_SECRET`: OAuth secret
-- `AMC_USE_REAL_API`: Set to "true" for real AMC API
-- `FERNET_KEY`: Token encryption key (auto-generated if missing)
+```bash
+# Supabase
+SUPABASE_URL=https://xxx.supabase.co
+SUPABASE_ANON_KEY=xxx
+SUPABASE_SERVICE_ROLE_KEY=xxx
 
-## Database Schema
+# Amazon Advertising API
+AMAZON_CLIENT_ID=xxx
+AMAZON_CLIENT_SECRET=xxx
+AMC_USE_REAL_API=true              # Set to "false" for mock responses
 
-Key tables in Supabase:
-- `users`: Encrypted auth tokens in `auth_tokens` field
-- `amc_instances`: AMC configurations (instance_id for API, id for relations)
-- `workflows`: Query definitions with `workflow_id` format `wf_XXXXXXXX`
-- `workflow_executions`: Execution history with AMC execution IDs
-- `query_templates`: Reusable templates with parameter schemas
-- `amc_data_sources`: AMC schema documentation
+# Security
+FERNET_KEY=xxx                      # Auto-generated if missing
+```
 
-## Common Pitfalls
+## Common Pitfalls & Solutions
 
-1. **FastAPI trailing slashes**: POST to collections needs trailing slash
-2. **Type-only imports**: Use `import type` for TypeScript types
-3. **React Query keys**: Keep consistent for caching
-4. **AMC date format**: No timezone suffix
-5. **Execution IDs**: Use UUID for foreign keys, not string workflow_id
-6. **Async/Await in FastAPI**: Don't use asyncio.run() when already in async context
-7. **React Fragments**: Use `<>...</>` or explicit Fragment when returning multiple elements
-8. **SessionStorage**: Clear after loading to prevent stale data
-9. **Modal Z-Index**: Ensure proper layering when stacking modals
+### FastAPI Trailing Slashes
+```python
+# POST/PUT to collections requires trailing slash
+api.post('/workflows/', data)      # ✓ Returns 201
+api.post('/workflows', data)        # ✗ Returns 405
+```
 
-## Known Issues & Limitations
+### Async/Await in FastAPI
+```python
+# DON'T use asyncio.run() in async context
+async def api_endpoint():
+    await service_method()          # ✓ Correct
+    asyncio.run(service_method())   # ✗ Event loop error
+```
 
-### Current Limitations
-- Mock AMC API responses when `AMC_USE_REAL_API=false`
-- Limited to basic SQL query execution (no advanced AMC features)
-- No workflow scheduling (manual execution only)
-- No collaborative features or sharing
+### React Fragment Syntax
+```tsx
+// Multiple elements need wrapper
+return (
+  <>
+    <div>First</div>
+    <div>Second</div>
+  </>
+);
+```
 
-### Areas for Improvement
-- Add query result caching
-- Implement workflow version history
-- Add more visualization options for results
-- Enhance error recovery mechanisms
+### Modal Z-Index Layering
+```tsx
+// Main modal
+<div className="z-50">...</div>
+
+// Nested modal must be higher
+<NestedModal className="z-60" />
+```
+
+## Recent UI Improvements (2025-08-14)
+
+### Data Sources Page Redesign
+- **Three-column layout**: Sidebar filters, main content, preview panel
+- **Command palette**: Cmd+K for fuzzy search across all schemas
+- **Multi-select mode**: Bulk actions with visual feedback
+- **Compact view toggle**: Switch between card and table views
+- **Live preview**: Hover to preview schema details in side panel
+- **Advanced filtering**: Category, tags, and search combined
+
+### Component Structure for Data Sources
+```
+components/data-sources/
+├── DataSourceCard.tsx          # Card/table row component
+├── DataSourcePreview.tsx       # Side panel preview
+├── DataSourceCommandPalette.tsx # Cmd+K search interface
+├── DataSourceSkeleton.tsx      # Loading states
+├── BulkActions.tsx             # Multi-select action bar
+├── FieldExplorer.tsx           # Advanced field browser
+├── TableOfContents.tsx         # Sticky navigation
+└── utils.tsx                   # Shared utilities
+```
 
 ## Deployment
 
-Railway deployment via Dockerfile:
+Railway deployment via single Dockerfile:
 - Frontend built during image creation
-- Single container serves both frontend (from `/frontend/dist`) and backend
+- Single container serves both frontend (`/frontend/dist`) and backend
 - Frontend proxies `/api` to backend in development
+- Use `./prepare_railway.sh` for deployment preparation
 
-## Testing Guidelines
+## Testing Checklist
 
-### Frontend Testing
-```bash
-cd frontend
-npm run test          # Unit tests
-npx playwright test   # E2E tests
-npx tsc --noEmit     # Type checking
-```
-
-### Backend Testing
-```bash
-pytest tests/                    # All tests
-pytest tests/test_api_auth.py   # Specific test file
-python -m pytest -v              # Verbose output
-```
-
-### Manual Testing Checklist
+Manual testing flow:
 1. ✅ Login with Amazon OAuth
 2. ✅ Add/edit AMC instance
 3. ✅ Create query from template
 4. ✅ Edit query in builder with schema browser
 5. ✅ Execute workflow with parameters
 6. ✅ View execution progress
-7. ✅ View results in modal
-8. ✅ Browse data sources and examples
+7. ✅ View results in modal (inline and full)
+8. ✅ Browse data sources with preview
+9. ✅ Use Cmd+K to search schemas
+10. ✅ Multi-select data sources for bulk actions
