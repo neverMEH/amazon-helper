@@ -110,13 +110,14 @@ amc_manager/services/
 ```
 src/
 ├── pages/                      # Route components
-│   ├── QueryBuilder.tsx        # 3-step wizard
-│   ├── DataSources.tsx         # 3-column layout with preview
+│   ├── QueryBuilder.tsx        # 3-step wizard with test execution
+│   ├── DataSources.tsx         # Advanced filtering and compare mode
 │   └── DataSourceDetail.tsx    # Schema detail view
 ├── components/
 │   ├── query-builder/          # Wizard steps
 │   ├── data-sources/           # Data source UI components
 │   ├── workflows/              # Execution monitoring
+│   ├── executions/             # Error display and results
 │   └── common/                 # Shared components
 └── services/
     ├── api.ts                  # Axios instance with interceptors
@@ -157,6 +158,16 @@ headers = {
     'Authorization': f'Bearer {access_token}',
     'Amazon-Advertising-API-AdvertiserId': entity_id  # Critical!
 }
+```
+
+### AMC Error Handling
+```python
+# Extract detailed error information from AMC 400 responses
+if response.status_code == 400 and 'details' in response_data:
+    # Parse SQL compilation errors
+    # Extract line/column information
+    # Identify missing tables/columns
+    # Structure into errorDetails object
 ```
 
 ### FastAPI Router Registration
@@ -293,32 +304,33 @@ return (
 
 // Nested modal must be higher
 <NestedModal className="z-60" />
+
+// Error detail modal highest
+<ErrorDetailsModal className="z-70" />
 ```
 
-## Recent UI Improvements (2025-08-14)
+## Recent Feature Additions (2025-08-14)
 
-### Data Sources Page Enhanced Features
-- **Advanced Filter Builder**: Complex nested AND/OR conditions with visual grouping
+### Enhanced Error Display System
+- **ErrorDetailsModal**: Full-screen error viewer with structured/raw/SQL views
+- **Copy Functionality**: One-click copy for all error sections
+- **Export Reports**: Download error details as JSON
+- **Query Builder Integration**: Test execution with inline error display
+- **AMC Compilation Errors**: Proper extraction and formatting of SQL syntax errors
+
+### Data Sources Page Enhancements
+- **Advanced Filter Builder**: Complex nested AND/OR conditions
 - **Filter Presets**: 7 default presets + custom preset creation
 - **Compare Mode**: Side-by-side comparison of 2-4 data sources
 - **Bulk Actions**: Export JSON/CSV, copy IDs, generate documentation
 - **Command Palette**: Cmd+K fuzzy search across all schemas
 - **Multi-Select**: Visual bulk selection with action bar
 
-### New Component Structure
-```
-components/data-sources/
-├── AdvancedFilterBuilder.tsx    # Complex filter creation UI
-├── FilterPresets.tsx            # Preset management with defaults
-├── DataSourceCompare.tsx        # Side-by-side comparison modal
-├── DataSourceCommandPalette.tsx # Cmd+K search interface
-├── BulkActions.tsx              # Multi-select action bar
-├── DataSourceCard.tsx           # Card/table row component
-├── DataSourcePreview.tsx        # Side panel preview
-├── DataSourceSkeleton.tsx       # Loading states
-├── FieldExplorer.tsx            # Advanced field browser
-└── TableOfContents.tsx          # Sticky navigation
-```
+### Query Builder Improvements
+- **Test Execute Button**: Run queries during development
+- **Error Display**: Immediate feedback on SQL syntax errors
+- **Dynamic Schema Loading**: Real-time data source fetching from API
+- **Parameter Detection**: Automatic extraction of {{parameters}}
 
 ## Deployment
 
@@ -343,3 +355,20 @@ Manual testing flow:
 10. ✅ Multi-select data sources for bulk actions
 11. ✅ Apply advanced filters with nested conditions
 12. ✅ Compare multiple data sources side-by-side
+13. ✅ Test execute queries in Query Builder
+14. ✅ View detailed error messages with copy functionality
+
+## Known Issues & Workarounds
+
+### Token Encryption
+- If seeing "Failed to decrypt token" errors, the FERNET_KEY may have changed
+- Tokens are automatically cleared and users must re-authenticate
+
+### Execution Polling
+- Background poller may show "coroutine was never awaited" warnings
+- This doesn't affect functionality but indicates async/await mismatch
+
+### AMC API Errors
+- 400 errors with "unable to compile workflow" need special parsing
+- Error details are in the `details` field, not `message`
+- Table not found errors include line/column information
