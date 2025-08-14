@@ -403,6 +403,7 @@ export default function ErrorDetailsModal({
               <div className="border border-gray-200 rounded-lg overflow-hidden">
                 <SQLEditor
                   value={sqlQuery}
+                  onChange={() => {}} // No-op for read-only
                   readOnly={true}
                   height="400px"
                 />

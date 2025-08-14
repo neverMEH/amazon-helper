@@ -98,7 +98,14 @@ export default function ExecutionErrorDetails({
               </h3>
               <div className="flex items-center space-x-2">
                 <button
-                  onClick={() => copyToClipboard(errorSections.mainError || errorMessage || '', 'main')}
+                  onClick={() => {
+                    const errorText = typeof errorSections.mainError === 'string' 
+                      ? errorSections.mainError 
+                      : Array.isArray(errorSections.mainError) 
+                        ? errorSections.mainError.join('\n')
+                        : errorMessage || '';
+                    copyToClipboard(errorText, 'main');
+                  }}
                   className="text-red-600 hover:text-red-800"
                   title="Copy error message"
                 >
@@ -120,7 +127,11 @@ export default function ExecutionErrorDetails({
           
           {/* Main Error */}
           <div className="mt-2 text-sm text-red-700">
-            {errorSections.mainError || errorMessage}
+            {typeof errorSections.mainError === 'string' 
+              ? errorSections.mainError 
+              : Array.isArray(errorSections.mainError)
+                ? errorSections.mainError.join('\n')
+                : errorMessage}
           </div>
           
           {/* Error Code */}
