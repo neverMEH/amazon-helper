@@ -191,7 +191,7 @@ def update_dsp_impressions():
                 data_source_id = result.data[0]['id']
             
             # Delete existing fields for this data source
-            supabase.table('schema_fields').delete().eq('data_source_id', data_source_id).execute()
+            supabase.table('amc_schema_fields').delete().eq('data_source_id', data_source_id).execute()
             print(f"  Cleared existing fields for {source['schema_id']}")
             
             # Insert fields
@@ -200,20 +200,18 @@ def update_dsp_impressions():
                 fields_to_insert.append({
                     'id': str(uuid.uuid4()),
                     'data_source_id': data_source_id,
-                    'name': field['name'],
+                    'field_name': field['name'],
                     'data_type': field['data_type'],
-                    'field_type': field['field_type'],
+                    'dimension_or_metric': field['field_type'],
                     'description': field['description'],
-                    'aggregation_threshold': field.get('aggregation_threshold'),
-                    'created_at': datetime.utcnow().isoformat(),
-                    'updated_at': datetime.utcnow().isoformat()
+                    'aggregation_threshold': field.get('aggregation_threshold')
                 })
             
             # Insert in batches of 50 to avoid size limits
             batch_size = 50
             for i in range(0, len(fields_to_insert), batch_size):
                 batch = fields_to_insert[i:i+batch_size]
-                supabase.table('schema_fields').insert(batch).execute()
+                supabase.table('amc_schema_fields').insert(batch).execute()
                 print(f"  Inserted {len(batch)} fields (batch {i//batch_size + 1})")
             
             print(f"✅ Inserted {len(fields_to_insert)} fields for {source['schema_id']}\n")
@@ -234,10 +232,10 @@ def update_dsp_impressions():
             print(f"  Description: {result.data[0]['description'][:100]}...")
             
             # Count fields
-            fields = supabase.table('schema_fields').select('id').eq('data_source_id', 
-                supabase.table('amc_data_sources').select('id').eq('schema_id', schema_id).execute().data[0]['id']
-            ).execute()
-            print(f"  Field count: {len(fields.data)}")
+            ds_result = supabase.table('amc_data_sources').select('id').eq('schema_id', schema_id).execute()
+            if ds_result.data:
+                fields = supabase.table('amc_schema_fields').select('id').eq('data_source_id', ds_result.data[0]['id']).execute()
+                print(f"  Field count: {len(fields.data)}")
 
 if __name__ == "__main__":
     update_dsp_impressions()
