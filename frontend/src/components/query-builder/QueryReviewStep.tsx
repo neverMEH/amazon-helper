@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react';
-import { AlertTriangle, Database, Clock, FileText, DollarSign, Info } from 'lucide-react';
+import { AlertTriangle, Database, Clock, FileText, DollarSign, Info, Play, Loader, CheckCircle, XCircle, Eye } from 'lucide-react';
+import { useMutation } from '@tanstack/react-query';
+import { toast } from 'react-hot-toast';
+import api from '../../services/api';
+import ExecutionErrorDetails from '../executions/ExecutionErrorDetails';
+import AMCExecutionDetail from '../executions/AMCExecutionDetail';
 
 interface QueryReviewStepProps {
   state: any;
@@ -11,8 +16,63 @@ export default function QueryReviewStep({ state, instances }: QueryReviewStepPro
   const [estimatedCost, setEstimatedCost] = useState<number | null>(null);
   const [estimatedRuntime, setEstimatedRuntime] = useState<number | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
+  const [executionResult, setExecutionResult] = useState<any>(null);
+  const [executionStatus, setExecutionStatus] = useState<'idle' | 'executing' | 'completed' | 'failed'>('idle');
+  const [showExecutionDetail, setShowExecutionDetail] = useState(false);
+  const [executionId, setExecutionId] = useState<string | null>(null);
 
   const selectedInstance = instances.find(i => i.instanceId === state.instanceId || i.id === state.instanceId);
+
+  // Test execution mutation
+  const executeMutation = useMutation({
+    mutationFn: async () => {
+      if (!state.instanceId || !state.sqlQuery) {
+        throw new Error('Instance and SQL query are required');
+      }
+
+      // First, save the workflow if needed
+      const workflowPayload = {
+        name: state.name || `Test Query - ${new Date().toISOString()}`,
+        description: state.description || 'Test execution from Query Builder',
+        instance_id: state.instanceId,
+        sql_query: state.sqlQuery,
+        parameters: state.parameters,
+        is_draft: true
+      };
+
+      // Create or update workflow
+      const workflowResponse = await api.post('/workflows/', workflowPayload);
+      const workflowId = workflowResponse.data.workflow_id || workflowResponse.data.id;
+
+      // Execute the workflow
+      const executePayload = {
+        workflow_id: workflowId,
+        instance_id: state.instanceId,
+        execution_parameters: state.parameters
+      };
+
+      const response = await api.post('/workflows/execute', executePayload);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      setExecutionResult(data);
+      setExecutionId(data.execution_id);
+      setExecutionStatus('completed');
+      toast.success('Query executed successfully');
+    },
+    onError: (error: any) => {
+      const errorData = error.response?.data || error;
+      setExecutionResult(errorData);
+      setExecutionStatus('failed');
+      toast.error('Query execution failed');
+    }
+  });
+
+  const handleTestExecution = () => {
+    setExecutionStatus('executing');
+    setExecutionResult(null);
+    executeMutation.mutate();
+  };
 
   useEffect(() => {
     // Simulate cost and runtime estimation
@@ -69,6 +129,7 @@ export default function QueryReviewStep({ state, instances }: QueryReviewStepPro
   };
 
   return (
+    <>
     <div className="max-w-6xl mx-auto p-6">
       <div className="mb-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-2">Review & Execute</h2>
@@ -179,6 +240,74 @@ export default function QueryReviewStep({ state, instances }: QueryReviewStepPro
               </div>
             </div>
           </div>
+
+          {/* Test Execution Card */}
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">Test Execution</h3>
+                <p className="text-xs text-gray-500 mt-1">Run a test to validate your query</p>
+              </div>
+              <button
+                onClick={handleTestExecution}
+                disabled={executionStatus === 'executing' || !state.instanceId || !state.sqlQuery}
+                className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                {executionStatus === 'executing' ? (
+                  <>
+                    <Loader className="h-3 w-3 mr-1 animate-spin" />
+                    Executing...
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-3 w-3 mr-1" />
+                    Test Execute
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Execution Status Display */}
+            {executionStatus !== 'idle' && (
+              <div className="mt-3">
+                {executionStatus === 'executing' && (
+                  <div className="flex items-center text-blue-600">
+                    <Loader className="h-4 w-4 mr-2 animate-spin" />
+                    <span className="text-sm">Query is being executed...</span>
+                  </div>
+                )}
+
+                {executionStatus === 'completed' && executionResult && (
+                  <div>
+                    <div className="flex items-center text-green-600 mb-2">
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      <span className="text-sm font-medium">Execution successful</span>
+                    </div>
+                    {executionId && (
+                      <button
+                        onClick={() => setShowExecutionDetail(true)}
+                        className="inline-flex items-center px-2 py-1 text-xs font-medium text-indigo-600 hover:text-indigo-800"
+                      >
+                        <Eye className="h-3 w-3 mr-1" />
+                        View Results
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {executionStatus === 'failed' && executionResult && (
+                  <ExecutionErrorDetails
+                    errorMessage={executionResult.error || executionResult.message || 'Query execution failed'}
+                    errorDetails={executionResult.errorDetails}
+                    status="failed"
+                    sqlQuery={state.sqlQuery}
+                    executionId={executionId || undefined}
+                    instanceName={selectedInstance?.instance_name}
+                  />
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* SQL Preview - Right Column */}
@@ -248,5 +377,16 @@ export default function QueryReviewStep({ state, instances }: QueryReviewStepPro
         </div>
       </div>
     </div>
+
+    {/* Execution Detail Modal */}
+    {showExecutionDetail && executionId && state.instanceId && (
+      <AMCExecutionDetail
+        instanceId={state.instanceId}
+        executionId={executionId}
+        isOpen={showExecutionDetail}
+        onClose={() => setShowExecutionDetail(false)}
+      />
+    )}
+  </>
   );
 }
