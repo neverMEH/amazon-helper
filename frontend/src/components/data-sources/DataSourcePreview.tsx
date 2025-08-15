@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { X, Database, Tag, Lock, Globe, Table, Code, ExternalLink, TrendingUp, Hash, Loader2, AlertCircle } from 'lucide-react';
+import { X, Database, Tag, Lock, Globe, Table, Code, ExternalLink, TrendingUp, Hash, Loader2, AlertCircle, Link2, Users, Clock, GitBranch, Filter } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { dataSourceService } from '../../services/dataSourceService';
 import type { DataSource, SchemaField } from '../../types/dataSource';
@@ -27,6 +27,15 @@ function DataSourcePreviewContent({ dataSource, onClose, onOpenDetail }: DataSou
   const { data: examples, isLoading: examplesLoading, error: examplesError } = useQuery({
     queryKey: ['dataSourceExamples', dataSource?.schema_id],
     queryFn: () => dataSourceService.getQueryExamples(dataSource!.schema_id),
+    enabled: !!dataSource,
+    staleTime: 10 * 60 * 1000,
+    retry: 1
+  });
+
+  // Fetch relationships
+  const { data: relationships } = useQuery({
+    queryKey: ['dataSourceRelationships', dataSource?.schema_id],
+    queryFn: () => dataSourceService.getSchemaRelationships(dataSource!.schema_id),
     enabled: !!dataSource,
     staleTime: 10 * 60 * 1000,
     retry: 1
@@ -149,6 +158,91 @@ function DataSourcePreviewContent({ dataSource, onClose, onOpenDetail }: DataSou
               ))}
             </div>
           </div>
+
+          {/* Audience Capabilities */}
+          {dataSource.audience_capabilities && dataSource.audience_capabilities.length > 0 && (
+            <div>
+              <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2 flex items-center gap-1">
+                <Users className="h-3 w-3" />
+                Audience Capabilities
+              </h4>
+              <div className="flex flex-wrap gap-1">
+                {dataSource.audience_capabilities.map((capability, idx) => (
+                  <span key={idx} className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium">
+                    {capability}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Joinable Data Sources */}
+          {dataSource.joinable_sources && dataSource.joinable_sources.length > 0 && (
+            <div>
+              <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2 flex items-center gap-1">
+                <Link2 className="h-3 w-3" />
+                Can Join With
+              </h4>
+              <div className="space-y-1">
+                {dataSource.joinable_sources.slice(0, 5).map((source, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-sm">
+                    <GitBranch className="h-3 w-3 text-blue-500" />
+                    <span className="text-gray-700">{source.name}</span>
+                  </div>
+                ))}
+                {dataSource.joinable_sources.length > 5 && (
+                  <span className="text-xs text-gray-500">+{dataSource.joinable_sources.length - 5} more</span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Data Freshness */}
+          <div>
+            <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2 flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              Data Freshness
+            </h4>
+            <div className="bg-gray-50 rounded p-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Data Lag</span>
+                <span className={`text-sm font-medium ${
+                  dataSource.data_lag_days === 0 ? 'text-green-600' :
+                  dataSource.data_lag_days && dataSource.data_lag_days <= 7 ? 'text-blue-600' :
+                  dataSource.data_lag_days && dataSource.data_lag_days <= 14 ? 'text-yellow-600' :
+                  'text-orange-600'
+                }`}>
+                  {dataSource.data_lag_days === 0 ? 'Real-time' : 
+                   dataSource.data_lag_days ? `${dataSource.data_lag_days} days` : '—'}
+                </span>
+              </div>
+              {dataSource.update_frequency && (
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-sm text-gray-600">Update Frequency</span>
+                  <span className="text-sm font-medium text-gray-900">{dataSource.update_frequency}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Common JOIN Patterns */}
+          {relationships && relationships.from && relationships.from.length > 0 && (
+            <div>
+              <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2 flex items-center gap-1">
+                <Filter className="h-3 w-3" />
+                Common JOIN Patterns
+              </h4>
+              <div className="bg-gray-50 rounded p-2 space-y-2">
+                {relationships.from.slice(0, 2).map((rel: any, idx: number) => (
+                  <div key={idx} className="text-xs font-mono text-gray-700">
+                    <div className="text-blue-600">-- Join with {rel.target?.name}</div>
+                    <div>LEFT JOIN {rel.target?.schema_id}</div>
+                    <div className="pl-2">ON {rel.join_condition || 'matching_field'}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Error Message */}
           {hasError && (

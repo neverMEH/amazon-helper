@@ -18,8 +18,18 @@ export interface DataSource {
     historical_data_notes?: string;
   };
   field_count?: number;
+  dimension_count?: number;
+  metric_count?: number;
   example_count?: number;
   complexity?: 'simple' | 'medium' | 'complex';
+  relationship_count?: number;
+  joinable_sources?: Array<{
+    schema_id: string;
+    name: string;
+  }>;
+  audience_capabilities?: string[];
+  data_lag_days?: number;
+  update_frequency?: string;
   created_at: string;
   updated_at: string;
 }
