@@ -12,7 +12,8 @@ import {
   X,
   SlidersHorizontal,
   Command,
-  Filter
+  Filter,
+  ChevronDown
 } from 'lucide-react';
 import { dataSourceService } from '../services/dataSourceService';
 import { DataSourceCard } from '../components/data-sources/DataSourceCard';
@@ -38,7 +39,7 @@ export default function DataSources() {
   // Master-detail view pattern
   const [selectedDataSourceId, setSelectedDataSourceId] = useState<string | null>(null);
   const [previewDataSource, setPreviewDataSource] = useState<DataSource | null>(null);
-  const [showPreview, setShowPreview] = useState(true);
+  const [showPreview, setShowPreview] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
@@ -47,6 +48,7 @@ export default function DataSources() {
   const [filterPresets, setFilterPresets] = useState(DEFAULT_PRESETS);
   const [activePresetId, setActivePresetId] = useState<string>('all');
   const [showCompareMode, setShowCompareMode] = useState(false);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
 
   // Fetch data sources
   const { data: dataSources = [], isLoading } = useQuery({
@@ -72,8 +74,6 @@ export default function DataSources() {
     queryFn: () => dataSourceService.getPopularTags(30),
     staleTime: 10 * 60 * 1000
   });
-
-  // Group data sources by category - removed as not being used
 
   // Update URL params when filters change
   useEffect(() => {
@@ -110,6 +110,7 @@ export default function DataSources() {
 
   // Double click opens full details
   const handleDataSourceDoubleClick = useCallback((dataSource: DataSource) => {
+    console.log('Double-click navigating to:', `/data-sources/${dataSource.schema_id}`);
     navigate(`/data-sources/${dataSource.schema_id}`);
   }, [navigate]);
 
@@ -217,6 +218,17 @@ export default function DataSources() {
     }
   }, [selectedIds]);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (showCategoryDropdown && !(e.target as HTMLElement).closest('.category-dropdown')) {
+        setShowCategoryDropdown(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showCategoryDropdown]);
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -233,7 +245,7 @@ export default function DataSources() {
                   Browse and search Amazon Marketing Cloud schema documentation
                 </p>
                 <p className="mt-0.5 text-xs text-gray-400">
-                  Click to select • Double-click to open • ↑↓ arrows to navigate
+                  Double-click to open details • ↑↓ arrows to navigate • Space to toggle preview
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -270,9 +282,10 @@ export default function DataSources() {
               </div>
             </div>
 
-            {/* Search Bar */}
-            <div className="mt-4">
-              <div className="relative">
+            {/* Search and Filters Bar */}
+            <div className="mt-4 flex gap-3">
+              {/* Search Input */}
+              <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
                   id="search-input"
@@ -299,125 +312,71 @@ export default function DataSources() {
                   </button>
                 </div>
               </div>
-            </div>
 
-            {/* Filter Presets */}
-            <div className="mt-4">
-              <FilterPresets
-                presets={filterPresets}
-                activePresetId={activePresetId}
-                onSelectPreset={(preset) => {
-                  setActivePresetId(preset.id);
-                  setAdvancedFilter(preset.filter);
-                  // Apply the preset filter
-                  console.log('Applying preset:', preset);
-                }}
-                onCreateNew={() => setShowAdvancedFilter(true)}
-                onDeletePreset={(id) => {
-                  setFilterPresets(filterPresets.filter(p => p.id !== id));
-                  if (activePresetId === id) {
-                    setActivePresetId('all');
-                  }
-                }}
-              />
-            </div>
-
-            {/* Active Filters Summary */}
-            {hasActiveFilters && (
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <span className="text-sm text-gray-500">Active filters:</span>
-                {selectedCategory && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-md text-sm">
-                    {selectedCategory}
-                    <button
-                      onClick={() => setSelectedCategory('')}
-                      className="hover:text-blue-900"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </span>
-                )}
-                {selectedTags.map(tag => (
-                  <span
-                    key={tag}
-                    className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-md text-sm"
-                  >
-                    {tag}
-                    <button
-                      onClick={() => handleTagToggle(tag)}
-                      className="hover:text-green-900"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </span>
-                ))}
+              {/* Category Dropdown */}
+              <div className="relative category-dropdown">
                 <button
-                  onClick={clearFilters}
-                  className="text-sm text-gray-500 hover:text-gray-700 underline"
-                >
-                  Clear all
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex h-[calc(100vh-180px)]">
-        {/* Sidebar Filters */}
-        <aside className="w-64 flex-shrink-0 bg-white border-r overflow-y-auto">
-          <div className="p-4">
-            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4">Filters</h3>
-
-            {/* Categories */}
-            <div className="mb-6">
-              <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Category</h4>
-              <div className="space-y-1">
-                <button
-                  onClick={() => setSelectedCategory('')}
-                  className={`w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors ${
-                    !selectedCategory
-                      ? 'bg-blue-100 text-blue-700 font-medium'
-                      : 'text-gray-600 hover:bg-gray-50'
+                  onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                  className={`px-4 py-2.5 border rounded-lg flex items-center gap-2 transition-colors ${
+                    selectedCategory 
+                      ? 'bg-blue-50 border-blue-300 text-blue-700' 
+                      : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
                   }`}
                 >
-                  All Categories
-                  {!selectedCategory && (
-                    <span className="float-right text-xs bg-blue-600 text-white px-1.5 py-0.5 rounded">
-                      {dataSources.length}
-                    </span>
-                  )}
+                  <span className="text-sm font-medium">
+                    {selectedCategory || 'All Categories'}
+                  </span>
+                  <ChevronDown className="h-4 w-4" />
                 </button>
-                {categories.map(category => {
-                  const count = dataSources.filter(ds => ds.category === category).length;
-                  return (
-                    <button
-                      key={category}
-                      onClick={() => setSelectedCategory(category)}
-                      className={`w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors flex items-center justify-between ${
-                        selectedCategory === category
-                          ? 'bg-blue-100 text-blue-700 font-medium'
-                          : 'text-gray-600 hover:bg-gray-50'
-                      }`}
-                    >
-                      <span>{category}</span>
-                      {selectedCategory === category && (
-                        <span className="text-xs bg-blue-600 text-white px-1.5 py-0.5 rounded">
-                          {count}
+                
+                {showCategoryDropdown && (
+                  <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-30">
+                    <div className="py-1">
+                      <button
+                        onClick={() => {
+                          setSelectedCategory('');
+                          setShowCategoryDropdown(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
+                          !selectedCategory ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
+                        }`}
+                      >
+                        All Categories
+                        <span className="float-right text-xs text-gray-500">
+                          {dataSources.length}
                         </span>
-                      )}
-                    </button>
-                  );
-                })}
+                      </button>
+                      {categories.map(category => {
+                        const count = dataSources.filter(ds => ds.category === category).length;
+                        return (
+                          <button
+                            key={category}
+                            onClick={() => {
+                              setSelectedCategory(category);
+                              setShowCategoryDropdown(false);
+                            }}
+                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
+                              selectedCategory === category ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
+                            }`}
+                          >
+                            {category}
+                            <span className="float-right text-xs text-gray-500">
+                              {count}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Popular Tags */}
-            <div>
-              <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Popular Tags</h4>
+            {/* Quick Tag Filters */}
+            <div className="mt-3 flex items-center gap-2">
+              <span className="text-xs text-gray-500 font-medium">Quick filters:</span>
               <div className="flex flex-wrap gap-1.5">
-                {popularTags.slice(0, 12).map(({ tag, count }) => (
+                {popularTags.slice(0, 8).map(({ tag, count }) => (
                   <button
                     key={tag}
                     onClick={() => handleTagToggle(tag)}
@@ -431,12 +390,43 @@ export default function DataSources() {
                     <span className="text-gray-400 text-xs">({count})</span>
                   </button>
                 ))}
+                {hasActiveFilters && (
+                  <button
+                    onClick={clearFilters}
+                    className="text-xs text-red-600 hover:text-red-700 underline ml-2"
+                  >
+                    Clear all
+                  </button>
+                )}
               </div>
             </div>
-          </div>
-        </aside>
 
-        {/* Main Content */}
+            {/* Filter Presets */}
+            <div className="mt-3">
+              <FilterPresets
+                presets={filterPresets}
+                activePresetId={activePresetId}
+                onSelectPreset={(preset) => {
+                  setActivePresetId(preset.id);
+                  setAdvancedFilter(preset.filter);
+                  console.log('Applying preset:', preset);
+                }}
+                onCreateNew={() => setShowAdvancedFilter(true)}
+                onDeletePreset={(id) => {
+                  setFilterPresets(filterPresets.filter(p => p.id !== id));
+                  if (activePresetId === id) {
+                    setActivePresetId('all');
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex h-[calc(100vh-220px)]">
+        {/* Main Content Area - Full Width */}
         <main className="flex-1 overflow-y-auto bg-gray-50">
           <div className="p-6">
             {/* Results Header */}
@@ -475,7 +465,7 @@ export default function DataSources() {
                 </p>
               </div>
             ) : (
-              // List Table View (only view mode now)
+              // List Table View
               <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                 <table className="min-w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">
@@ -531,7 +521,7 @@ export default function DataSources() {
 
         {/* Preview Panel */}
         {showPreview && (
-          <aside className="w-[350px] flex-shrink-0 border-l bg-white overflow-hidden">
+          <aside className="w-[400px] flex-shrink-0 border-l bg-white overflow-hidden">
             <DataSourcePreview
               dataSource={previewDataSource}
               onClose={() => {
@@ -569,7 +559,6 @@ export default function DataSources() {
         onClose={() => setShowAdvancedFilter(false)}
         onApply={(filter) => {
           setAdvancedFilter(filter);
-          // TODO: Apply the filter to the data sources
           console.log('Applying advanced filter:', filter);
         }}
         currentFilter={advancedFilter || undefined}

@@ -27,3 +27,5 @@ INFO:     127.0.0.1:34408 - "GET /health HTTP/1.1" 200 OK
 INFO:     127.0.0.1:34412 - "GET /health HTTP/1.1" 200 OK
 INFO:     127.0.0.1:44180 - "GET /api/health HTTP/1.1" 200 OK
 INFO:     127.0.0.1:57690 - "GET /api/data-sources?limit=2 HTTP/1.1" 403 Forbidden
+2025-08-15 19:19:19 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
+2025-08-15 19:19:19 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 1 successful, 0 failed
