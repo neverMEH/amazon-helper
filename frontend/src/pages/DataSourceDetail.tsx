@@ -7,19 +7,14 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import ReactMarkdown from 'react-markdown';
 import {
   ArrowLeft,
   Database,
-  Code,
-  Link2,
   Tag,
   Lock,
   Globe,
   Copy,
   Check,
-  ChevronDown,
-  ChevronRight,
   ExternalLink,
   Download,
   PlayCircle
@@ -34,7 +29,6 @@ export default function DataSourceDetail() {
   const { schemaId } = useParams<{ schemaId: string }>();
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState('overview');
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [copiedExample, setCopiedExample] = useState<string | null>(null);
   const [fieldSearch] = useState('');
   const contentRef = useRef<HTMLDivElement>(null);
@@ -64,7 +58,6 @@ export default function DataSourceDetail() {
     if (!schema) return [];
     const fields = schema.fields || [];
     const examples = schema.examples || [];
-    const sections = schema.sections || [];
     
     const items = [
       { id: 'overview', title: 'Overview', level: 1 },
@@ -129,19 +122,6 @@ export default function DataSourceDetail() {
 
     return () => observer.disconnect();
   }, [schema, tocItems]);
-
-
-  const toggleSection = (section: string) => {
-    setExpandedSections(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(section)) {
-        newSet.delete(section);
-      } else {
-        newSet.add(section);
-      }
-      return newSet;
-    });
-  };
 
   const copyExample = async (example: QueryExample) => {
     try {
