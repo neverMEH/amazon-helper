@@ -7,7 +7,9 @@ import {
   Code,
   BarChart3,
   Layers,
-  TrendingUp
+  TrendingUp,
+  Eye,
+  ExternalLink
 } from 'lucide-react';
 import type { DataSource } from '../../types/dataSource';
 import { highlightMatch } from './utils';
@@ -15,8 +17,11 @@ import { highlightMatch } from './utils';
 interface DataSourceCardProps {
   dataSource: DataSource;
   onClick: () => void;
-  onPreview?: (dataSource: DataSource) => void;
-  isSelected?: boolean;
+  onDoubleClick?: () => void;
+  onPreview?: () => void;
+  onViewDetails?: () => void;
+  isSelected?: boolean;  // Visual selection highlight
+  isChecked?: boolean;    // Checkbox selection for bulk actions
   searchQuery?: string;
   onSelect?: (id: string, selected: boolean) => void;
   selectionMode?: boolean;
@@ -37,9 +42,12 @@ function getComplexityConfig(complexity?: 'simple' | 'medium' | 'complex'): { la
 
 export const DataSourceCard = memo(({ 
   dataSource, 
-  onClick, 
+  onClick,
+  onDoubleClick,
   onPreview,
+  onViewDetails,
   isSelected = false,
+  isChecked = false,
   searchQuery = '',
   onSelect,
   selectionMode = false
@@ -55,38 +63,51 @@ export const DataSourceCard = memo(({
 
   const handleCheckboxClick = (e: MouseEvent) => {
     e.stopPropagation();
-    onSelect?.(dataSource.id, !isSelected);
+    onSelect?.(dataSource.id, !isChecked);
   };
 
-  // Since we're only using list/compact view, return the table row directly
+  const handlePreviewClick = (e: MouseEvent) => {
+    e.stopPropagation();
+    onPreview?.();
+  };
+
+  const handleDetailsClick = (e: MouseEvent) => {
+    e.stopPropagation();
+    onViewDetails?.();
+  };
+
+  // Table row with master-detail selection pattern
   return (
     <tr 
-      className={`hover:bg-gray-50 cursor-pointer transition-colors ${isSelected ? 'bg-blue-50' : ''}`}
+      className={`
+        hover:bg-gray-50 cursor-pointer transition-colors
+        ${isSelected ? 'bg-blue-50 hover:bg-blue-100' : ''}
+      `}
       onClick={(e) => {
         if (selectionMode && e.target instanceof HTMLInputElement && e.target.type === 'checkbox') {
           return;
         }
-        // Click to preview instead of hover
-        if (e.ctrlKey || e.metaKey) {
-          onPreview?.(dataSource);
-        } else {
-          onClick();
-        }
+        onClick();
       }}
+      onDoubleClick={onDoubleClick}
+      title="Click to select • Double-click to open details"
     >
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
           {selectionMode && (
             <input
               type="checkbox"
-              checked={isSelected}
-              onChange={() => onSelect?.(dataSource.id, !isSelected)}
+              checked={isChecked}
+              onChange={() => onSelect?.(dataSource.id, !isChecked)}
               onClick={handleCheckboxClick}
               className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
             />
           )}
           <Database className="h-4 w-4 text-gray-400" />
-          <span className="font-medium text-gray-900">
+          <span 
+            className="font-medium text-gray-900"
+            title={dataSource.description || dataSource.name}
+          >
             {searchQuery ? highlightMatch(dataSource.name, searchQuery) : dataSource.name}
           </span>
           {dataSource.is_paid_feature && (
@@ -127,6 +148,24 @@ export const DataSourceCard = memo(({
           {dataSource.tags.length > 2 && (
             <span className="text-xs text-gray-400">+{dataSource.tags.length - 2}</span>
           )}
+        </div>
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handlePreviewClick}
+            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+            title="Preview"
+          >
+            <Eye className="h-4 w-4" />
+          </button>
+          <button
+            onClick={handleDetailsClick}
+            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+            title="View Details"
+          >
+            <ExternalLink className="h-4 w-4" />
+          </button>
         </div>
       </td>
     </tr>

@@ -24,3 +24,5 @@ INFO:     Application startup complete.
 2025-08-14 23:47:28 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 1 successful, 0 failed
 INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
 INFO:     127.0.0.1:45016 - "GET /api/health HTTP/1.1" 200 OK
+2025-08-14 23:57:28 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
+2025-08-14 23:57:28 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 1 successful, 0 failed

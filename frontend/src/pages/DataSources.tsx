@@ -35,7 +35,8 @@ export default function DataSources() {
   const [selectedTags, setSelectedTags] = useState<string[]>(
     searchParams.getAll('tag') || []
   );
-  // List view is the only view mode now
+  // Master-detail view pattern
+  const [selectedDataSourceId, setSelectedDataSourceId] = useState<string | null>(null);
   const [previewDataSource, setPreviewDataSource] = useState<DataSource | null>(null);
   const [showPreview, setShowPreview] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -99,15 +100,30 @@ export default function DataSources() {
 
   const hasActiveFilters = search || selectedCategory || selectedTags.length > 0;
 
+  // Single click selects and shows preview
   const handleDataSourceClick = useCallback((dataSource: DataSource) => {
+    setSelectedDataSourceId(dataSource.id);
+    if (showPreview) {
+      setPreviewDataSource(dataSource);
+    }
+  }, [showPreview]);
+
+  // Double click opens full details
+  const handleDataSourceDoubleClick = useCallback((dataSource: DataSource) => {
+    navigate(`/data-sources/${dataSource.schema_id}`);
+  }, [navigate]);
+
+  // Navigate to details (from preview or action button)
+  const handleViewDetails = useCallback((dataSource: DataSource) => {
     navigate(`/data-sources/${dataSource.schema_id}`);
   }, [navigate]);
 
   const handlePreview = useCallback((dataSource: DataSource) => {
-    if (showPreview) {
-      // Set preview data source when explicitly requested
-      setPreviewDataSource(dataSource);
+    if (!showPreview) {
+      setShowPreview(true);
     }
+    setSelectedDataSourceId(dataSource.id);
+    setPreviewDataSource(dataSource);
   }, [showPreview]);
 
   const handleSelect = useCallback((id: string, selected: boolean) => {
@@ -130,9 +146,12 @@ export default function DataSources() {
     setSelectedIds(new Set());
   }, []);
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts and navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't handle navigation if typing in search
+      const isSearching = document.activeElement?.id === 'search-input';
+      
       // Cmd/Ctrl + K for command palette
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
@@ -143,15 +162,53 @@ export default function DataSources() {
         e.preventDefault();
         handleSelectAll();
       }
-      // Escape to clear search
-      if (e.key === 'Escape' && document.activeElement?.id === 'search-input') {
-        setSearch('');
+      // Escape to clear search or close preview
+      if (e.key === 'Escape') {
+        if (isSearching) {
+          setSearch('');
+        } else if (previewDataSource) {
+          setPreviewDataSource(null);
+          setSelectedDataSourceId(null);
+        }
+      }
+      
+      // Arrow key navigation (when not searching)
+      if (!isSearching && dataSources.length > 0) {
+        const currentIndex = dataSources.findIndex(ds => ds.id === selectedDataSourceId);
+        
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          const nextIndex = currentIndex < dataSources.length - 1 ? currentIndex + 1 : 0;
+          const nextDataSource = dataSources[nextIndex];
+          handleDataSourceClick(nextDataSource);
+        }
+        
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          const prevIndex = currentIndex > 0 ? currentIndex - 1 : dataSources.length - 1;
+          const prevDataSource = dataSources[prevIndex];
+          handleDataSourceClick(prevDataSource);
+        }
+        
+        // Enter to open details
+        if (e.key === 'Enter' && selectedDataSourceId) {
+          const selectedDataSource = dataSources.find(ds => ds.id === selectedDataSourceId);
+          if (selectedDataSource) {
+            handleDataSourceDoubleClick(selectedDataSource);
+          }
+        }
+        
+        // Space to toggle preview panel
+        if (e.key === ' ' && !isSearching) {
+          e.preventDefault();
+          setShowPreview(prev => !prev);
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectionMode, handleSelectAll]);
+  }, [selectionMode, handleSelectAll, dataSources, selectedDataSourceId, previewDataSource, handleDataSourceClick, handleDataSourceDoubleClick]);
 
   // Enable selection mode when items are selected
   useEffect(() => {
@@ -173,10 +230,10 @@ export default function DataSources() {
                   AMC Data Sources
                 </h1>
                 <p className="mt-1 text-sm text-gray-500">
-                  Browse and search Amazon Marketing Cloud schema documentation.
-                  <span className="ml-1 text-xs text-gray-400">
-                    Tip: Cmd/Ctrl+Click to preview, Click to open details
-                  </span>
+                  Browse and search Amazon Marketing Cloud schema documentation
+                </p>
+                <p className="mt-0.5 text-xs text-gray-400">
+                  Click to select • Double-click to open • ↑↓ arrows to navigate
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -438,6 +495,9 @@ export default function DataSources() {
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Tags
                       </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -446,8 +506,11 @@ export default function DataSources() {
                         key={dataSource.id}
                         dataSource={dataSource}
                         onClick={() => handleDataSourceClick(dataSource)}
-                        onPreview={handlePreview}
-                        isSelected={selectedIds.has(dataSource.id)}
+                        onDoubleClick={() => handleDataSourceDoubleClick(dataSource)}
+                        onPreview={() => handlePreview(dataSource)}
+                        onViewDetails={() => handleViewDetails(dataSource)}
+                        isSelected={selectedDataSourceId === dataSource.id}
+                        isChecked={selectedIds.has(dataSource.id)}
                         searchQuery={search}
                         onSelect={handleSelect}
                         selectionMode={selectionMode}
@@ -465,8 +528,11 @@ export default function DataSources() {
           <aside className="w-[350px] flex-shrink-0 border-l bg-white overflow-hidden">
             <DataSourcePreview
               dataSource={previewDataSource}
-              onClose={() => setPreviewDataSource(null)}
-              onOpenDetail={handleDataSourceClick}
+              onClose={() => {
+                setPreviewDataSource(null);
+                setSelectedDataSourceId(null);
+              }}
+              onOpenDetail={handleViewDetails}
             />
           </aside>
         )}
