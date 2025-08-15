@@ -57,8 +57,20 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
+    // Don't try to refresh if this is already the refresh endpoint
+    const isRefreshEndpoint = originalRequest.url?.includes('/auth/refresh');
+    const hasToken = !!localStorage.getItem('access_token');
+    
+    // If 401 on refresh endpoint or no token exists, redirect to login immediately
+    if (error.response?.status === 401 && (isRefreshEndpoint || !hasToken)) {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+      return Promise.reject(error);
+    }
+    
     // Check if this is a 401 error and we haven't already tried to refresh
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && !originalRequest._retry && !isRefreshEndpoint) {
       if (isRefreshing) {
         // If we're already refreshing, queue this request
         return new Promise((resolve, reject) => {
