@@ -51,9 +51,33 @@ class DataSourceService {
     console.log('dataSourceService.getCompleteSchema - Fetching:', schemaId);
     const url = `/data-sources/${schemaId}/complete`;
     console.log('dataSourceService.getCompleteSchema - URL:', url);
-    const response = await api.get(url);
-    console.log('dataSourceService.getCompleteSchema - Response:', response.data);
-    return response.data;
+    
+    try {
+      const response = await api.get(url);
+      console.log('dataSourceService.getCompleteSchema - Response:', response.data);
+      
+      // Validate response structure
+      if (!response.data || !response.data.schema) {
+        console.error('Invalid response structure:', response.data);
+        throw new Error('Invalid schema data received from server');
+      }
+      
+      return response.data;
+    } catch (error: any) {
+      console.error('dataSourceService.getCompleteSchema - Error:', error);
+      console.error('Error response:', error.response);
+      
+      // Add more context to the error
+      if (error.response?.status === 404) {
+        throw new Error(`Schema "${schemaId}" not found in database`);
+      } else if (error.response?.status === 403) {
+        throw new Error('Authentication required to view schema details');
+      } else if (error.response?.status >= 500) {
+        throw new Error('Server error - please try again later');
+      }
+      
+      throw error;
+    }
   }
 
   /**

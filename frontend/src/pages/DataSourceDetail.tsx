@@ -43,12 +43,20 @@ export default function DataSourceDetail() {
   console.log('DataSourceDetail - schemaId from URL:', schemaId);
   const { data: schema, isLoading, error } = useQuery<CompleteSchema>({
     queryKey: ['dataSource', schemaId],
-    queryFn: () => {
+    queryFn: async () => {
       console.log('Fetching schema for:', schemaId);
-      return dataSourceService.getCompleteSchema(schemaId!);
+      try {
+        const result = await dataSourceService.getCompleteSchema(schemaId!);
+        console.log('Schema fetch successful:', result);
+        return result;
+      } catch (err) {
+        console.error('Schema fetch error:', err);
+        throw err;
+      }
     },
     enabled: !!schemaId,
-    staleTime: 10 * 60 * 1000
+    staleTime: 10 * 60 * 1000,
+    retry: 1
   });
 
   // Build TOC items
@@ -161,28 +169,62 @@ export default function DataSourceDetail() {
     // Log the error for debugging
     if (error) {
       console.error('Error loading schema:', error);
+      console.error('Error details:', {
+        message: (error as any)?.message,
+        response: (error as any)?.response,
+        status: (error as any)?.response?.status,
+        data: (error as any)?.response?.data
+      });
     }
+    
+    // Check for specific error types
+    const isAuthError = (error as any)?.response?.status === 403 || (error as any)?.response?.status === 401;
+    const isNotFound = (error as any)?.response?.status === 404;
+    const isServerError = (error as any)?.response?.status >= 500;
     
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center max-w-md">
           <Database className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            {error ? 'Unable to load schema' : 'Schema not found'}
+            {isAuthError ? 'Authentication Required' : 
+             isNotFound ? 'Schema Not Found' :
+             isServerError ? 'Server Error' :
+             error ? 'Unable to load schema' : 'Schema not found'}
           </h3>
           <p className="text-sm text-gray-600 mb-4">
-            {error ? 
-              'There was an error loading the schema details. Please ensure you are logged in and try again.' : 
-              `Schema "${schemaId}" could not be found.`}
+            {isAuthError ? 'Please log in to view this data source.' :
+             isNotFound ? `The schema "${schemaId}" could not be found in the database.` :
+             isServerError ? 'The server encountered an error. Please try again later.' :
+             error ? 'There was an error loading the schema details. Please ensure you are logged in and try again.' : 
+             `Schema "${schemaId}" could not be found.`}
           </p>
+          {/* Show error details in development */}
+          {process.env.NODE_ENV === 'development' && error && (
+            <details className="text-left mb-4">
+              <summary className="text-xs text-gray-500 cursor-pointer">Error Details</summary>
+              <pre className="text-xs bg-gray-100 p-2 rounded mt-2 overflow-auto">
+                {JSON.stringify((error as any)?.response?.data || error, null, 2)}
+              </pre>
+            </details>
+          )}
           <div className="flex gap-3 justify-center">
-            <button
-              onClick={() => navigate('/data-sources')}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Return to data sources
-            </button>
-            {error && (
+            {isAuthError ? (
+              <button
+                onClick={() => navigate('/login')}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Go to Login
+              </button>
+            ) : (
+              <button
+                onClick={() => navigate('/data-sources')}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Return to data sources
+              </button>
+            )}
+            {error && !isAuthError && (
               <button
                 onClick={() => window.location.reload()}
                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
