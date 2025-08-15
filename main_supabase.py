@@ -223,10 +223,18 @@ if frontend_dist.exists():
             # Return 404 but don't override FastAPI's error handling
             raise HTTPException(status_code=404)
         
-        # Serve index.html for all other routes
+        # Check if it's a static file that exists (favicon, manifest, etc.)
+        static_file = frontend_dist / full_path
+        if static_file.exists() and static_file.is_file():
+            # Serve the static file directly
+            return FileResponse(str(static_file))
+        
+        # For all other routes (including /data-sources/*), serve index.html
+        # This allows React Router to handle client-side routing
         index_path = frontend_dist / "index.html"
         if index_path.exists():
-            return FileResponse(str(index_path))
+            # Important: Set correct content type for HTML
+            return FileResponse(str(index_path), media_type="text/html")
         else:
             raise HTTPException(status_code=404, detail="Frontend not found")
     
