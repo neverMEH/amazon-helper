@@ -47,6 +47,16 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Handle 403 Forbidden - user needs to log in
+    if (error.response?.status === 403) {
+      console.error('403 Forbidden - User not authenticated');
+      // Clear local storage and redirect to login
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+      return Promise.reject(error);
+    }
+
     // Check if this is a 401 error and we haven't already tried to refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {

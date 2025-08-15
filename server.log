@@ -31,3 +31,4 @@ INFO:     Application startup complete.
 2025-08-15 19:44:34 - amc_manager.services.token_refresh_service - INFO - Removed user fe841586-7807-48b1-8808-02877834fce0 from token refresh tracking
 2025-08-15 19:44:34 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 0 successful, 1 failed
 INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:     127.0.0.1:46406 - "GET /api/data-sources/amazon_attributed_events_by_conversion_time/complete HTTP/1.1" 403 Forbidden

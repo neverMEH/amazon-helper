@@ -158,17 +158,39 @@ export default function DataSourceDetail() {
   }
 
   if (error || !schema) {
+    // Log the error for debugging
+    if (error) {
+      console.error('Error loading schema:', error);
+    }
+    
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
+        <div className="text-center max-w-md">
           <Database className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Schema not found</h3>
-          <button
-            onClick={() => navigate('/data-sources')}
-            className="text-blue-600 hover:text-blue-700"
-          >
-            Return to data sources
-          </button>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            {error ? 'Unable to load schema' : 'Schema not found'}
+          </h3>
+          <p className="text-sm text-gray-600 mb-4">
+            {error ? 
+              'There was an error loading the schema details. Please ensure you are logged in and try again.' : 
+              `Schema "${schemaId}" could not be found.`}
+          </p>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => navigate('/data-sources')}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Return to data sources
+            </button>
+            {error && (
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Try again
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
