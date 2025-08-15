@@ -48,7 +48,11 @@ class DataSourceService {
    * Get complete schema with all related data
    */
   async getCompleteSchema(schemaId: string): Promise<CompleteSchema> {
-    const response = await api.get(`/data-sources/${schemaId}/complete`);
+    console.log('dataSourceService.getCompleteSchema - Fetching:', schemaId);
+    const url = `/data-sources/${schemaId}/complete`;
+    console.log('dataSourceService.getCompleteSchema - URL:', url);
+    const response = await api.get(url);
+    console.log('dataSourceService.getCompleteSchema - Response:', response.data);
     return response.data;
   }
 

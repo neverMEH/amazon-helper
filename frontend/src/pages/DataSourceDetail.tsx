@@ -40,11 +40,18 @@ export default function DataSourceDetail() {
   const contentRef = useRef<HTMLDivElement>(null);
 
   // Fetch complete schema
+  console.log('DataSourceDetail - schemaId from URL:', schemaId);
   const { data: schema, isLoading, error } = useQuery({
     queryKey: ['dataSource', schemaId],
-    queryFn: () => dataSourceService.getCompleteSchema(schemaId!),
+    queryFn: () => {
+      console.log('Fetching schema for:', schemaId);
+      return dataSourceService.getCompleteSchema(schemaId!);
+    },
     enabled: !!schemaId,
-    staleTime: 10 * 60 * 1000
+    staleTime: 10 * 60 * 1000,
+    onError: (err) => {
+      console.error('Error fetching schema:', err);
+    }
   });
 
   // Build TOC items

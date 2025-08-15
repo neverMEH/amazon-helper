@@ -56,6 +56,7 @@ export const DataSourceCard = memo(({
 
   const handleDetailsClick = (e: MouseEvent) => {
     e.stopPropagation();
+    console.log('DataSourceCard - Viewing details for:', dataSource.name, 'with schema_id:', dataSource.schema_id);
     onViewDetails?.();
   };
 
