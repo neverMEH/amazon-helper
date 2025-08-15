@@ -200,7 +200,7 @@ export default function DataSourceDetail() {
              `Schema "${schemaId}" could not be found.`}
           </p>
           {/* Show error details in development */}
-          {process.env.NODE_ENV === 'development' && error && (
+          {import.meta.env.DEV && error && (
             <details className="text-left mb-4">
               <summary className="text-xs text-gray-500 cursor-pointer">Error Details</summary>
               <pre className="text-xs bg-gray-100 p-2 rounded mt-2 overflow-auto">
