@@ -38,7 +38,7 @@ mypy amc_manager/                            # Type check
 
 # Database operations
 python scripts/check_supabase_connection.py  # Check connection
-python scripts/import_initial_data.py        # Import initial data
+python scripts/import_amc_schemas.py         # Import AMC schema documentation
 python scripts/apply_performance_indexes.py  # Apply indexes
 python scripts/create_cja_workflow.py        # Create CJA workflow
 python scripts/add_execution_results_fields.py  # Add results fields
@@ -247,13 +247,13 @@ if (draft) {
 }
 ```
 
-### React Hook Dependencies
-```typescript
-// Wrap computed values in useMemo to prevent effect re-runs
-const tocItems = useMemo(() => {
-  // Compute table of contents items
-  return items;
-}, [schema]);  // Only recompute when schema changes
+### JSON Field Parsing in Supabase
+```python
+# Supabase may return JSON fields as strings
+if isinstance(schema.get('data_sources'), str):
+    schema['data_sources'] = json.loads(schema['data_sources'])
+if isinstance(schema.get('tags'), str):
+    schema['tags'] = json.loads(schema['tags'])
 ```
 
 ## Database Schema
@@ -295,10 +295,20 @@ workflow_executions
 
 amc_data_sources                  -- Schema documentation
 ├── id (uuid, PK)
-├── schema_id (text, unique)
-├── name
+├── schema_id (text, unique)       -- Hyphenated ID (e.g., 'dsp-impressions')
+├── name                           -- AMC table name (e.g., 'dsp_impressions')
+├── data_sources (jsonb)           -- Array of actual AMC table names
+├── tags (jsonb)                   -- Array of tag strings
 ├── category
-└── fields (relation → schema_fields)
+└── fields (relation → amc_schema_fields)
+
+amc_schema_fields
+├── id (uuid, PK)
+├── data_source_id (FK → amc_data_sources)
+├── field_name
+├── data_type
+├── dimension_or_metric            -- 'Dimension' or 'Metric'
+└── description
 
 query_templates                   -- Pre-built query library
 ├── id (uuid, PK)
@@ -387,15 +397,6 @@ return (
 </div>
 ```
 
-### Tailwind Animation Classes
-```javascript
-// Define animations in tailwind.config.js
-animation: {
-  'fade-in': 'fadeIn 0.2s ease-in-out',
-}
-// Use as: className="animate-fade-in"
-```
-
 ## Background Services
 
 The application runs two critical background services:
@@ -413,33 +414,52 @@ The application runs two critical background services:
 - **Features**: Fetches results when execution completes
 - **Auto-cleanup**: Removes completed executions from polling
 
+## AMC Data Sources
+
+AMC schemas are imported from markdown files in `amc_dataset/` directory:
+- Run `python scripts/import_amc_schemas.py` to import/update schemas
+- Schemas are stored with proper AMC table names (e.g., `dsp_impressions`)
+- Each schema includes fields, examples, and relationships
+
 ## Deployment
 
-Railway deployment via single Dockerfile:
+### Docker Build
+```bash
+docker build -t recomamp .
+docker run -p 8001:8001 --env-file .env recomamp
+```
+
+### Railway Deployment
+- Uses single Dockerfile for both frontend and backend
 - Frontend built during image creation
 - Single container serves both frontend (`/frontend/dist`) and backend
-- Frontend proxies `/api` to backend in development
 - Use `./prepare_railway.sh` for deployment preparation
 
-## Testing Checklist
+## Testing Approach
 
-Manual testing flow:
-1. ✅ Login with Amazon OAuth
-2. ✅ Add/edit AMC instance with brand tags
-3. ✅ Create query from template
-4. ✅ Edit query in builder with schema browser
-5. ✅ Execute workflow with parameters
-6. ✅ View execution progress
-7. ✅ View results in modal (inline and full)
-8. ✅ Browse data sources with list view and side preview
-9. ✅ Use Cmd+K to search schemas
-10. ✅ Multi-select data sources for bulk actions
-11. ✅ Apply advanced filters with nested conditions
-12. ✅ Compare multiple data sources side-by-side
-13. ✅ Test execute queries in Query Builder
-14. ✅ View detailed error messages with copy functionality
-15. ✅ Verify token auto-refresh on expiry
-16. ✅ Campaign filtering by brand associations
+### Backend Tests
+```bash
+# Unit tests for individual services
+pytest tests/unit/
+
+# Integration tests with database
+pytest tests/integration/
+
+# AMC API tests (requires credentials)
+pytest tests/amc/
+
+# Supabase connection tests
+pytest tests/supabase/
+```
+
+### Frontend Tests
+```bash
+# E2E tests with Playwright
+npx playwright test
+
+# Component testing (if implemented)
+npm test
+```
 
 ## Known Issues & Workarounds
 
@@ -462,40 +482,7 @@ Manual testing flow:
 - System auto-creates workflows on first execution if missing
 - Falls back to ad-hoc execution if creation fails
 
-## Recent Updates (2025-08-14)
-
-### Component Consolidation
-- Merged DataSourceDetailV2 features into main DataSourceDetail
-- Added two-panel layout with Table of Contents
-- Integrated FieldExplorer for advanced field browsing
-- Removed card view from DataSources (list view only)
-
-### Automatic Token Refresh
-- Tokens refresh automatically before expiry
-- API calls retry with fresh tokens on 401 errors
-- Frontend queues requests during token refresh
-- Background service checks every 10 minutes
-
-### Enhanced Error Display
-- Full-screen error viewer with structured/raw/SQL views
-- One-click copy for all error sections
-- Export error reports as JSON
-- SQL compilation error extraction with line/column info
-
-### Data Sources Enhancements
-- Advanced filter builder with nested AND/OR conditions
-- Compare mode for side-by-side schema comparison
-- Command palette (Cmd+K) for fuzzy search
-- Bulk export to JSON/CSV
-
-### Query Builder Improvements
-- Test execute button for development
-- Dynamic schema loading from API
-- Automatic parameter detection ({{param}})
-- SQL editor with expand-to-fullscreen feature
-
-### Brand Management
-- Editable brand tags on instance detail pages
-- Campaign filtering based on brand associations
-- Autocomplete search for existing brands
-- Visual feedback for brand operations
+### JSON Fields from Supabase
+- `data_sources` and `tags` fields may be returned as strings
+- Always parse these fields when fetching from database
+- Use `json.loads()` to convert string to array/object

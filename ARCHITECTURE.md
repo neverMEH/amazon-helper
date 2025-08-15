@@ -1,78 +1,212 @@
-# Architecture Documentation - Recom AMP
+# Architecture Documentation - RecomAMP
 
 ## System Architecture Overview
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                        Frontend (React)                       │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │   Components │  │   Services   │  │    Hooks     │      │
-│  │              │  │              │  │              │      │
-│  │ - Workflows  │  │ - API Client │  │ - useAuth    │      │
-│  │ - Instances  │  │ - Auth       │  │ - useQuery   │      │
-│  │ - Templates  │  │ - Workflow   │  │ - useMutation│      │
-│  └──────────────┘  └──────────────┘  └──────────────┘      │
-│                                                              │
-│  ┌────────────────────────────────────────────────────┐    │
-│  │              Error Boundary Layer                   │    │
-│  │         (Graceful error handling & recovery)        │    │
-│  └────────────────────────────────────────────────────┘    │
-└──────────────────────────────────────────────────────────────┘
-                               │
-                               │ HTTPS + JWT Auth
-                               ▼
-┌──────────────────────────────────────────────────────────────┐
-│                    Security Middleware Layer                  │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │ Rate Limiter │  │   Security   │  │     CORS     │      │
-│  │   (slowapi)  │  │   Headers    │  │  Middleware  │      │
-│  └──────────────┘  └──────────────┘  └──────────────┘      │
-└──────────────────────────────────────────────────────────────┘
-                               │
-                               ▼
-┌──────────────────────────────────────────────────────────────┐
-│                      FastAPI Backend                          │
-│  ┌────────────────────────────────────────────────────┐      │
-│  │            Input Validation Layer (Pydantic)        │      │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────────┐    │      │
-│  │  │   Auth   │  │ Workflow │  │   Template   │    │      │
-│  │  │  Schema  │  │  Schema  │  │    Schema    │    │      │
-│  │  └──────────┘  └──────────┘  └──────────────┘    │      │
-│  └────────────────────────────────────────────────────┘      │
-│                                                               │
-│  ┌────────────────────────────────────────────────────┐      │
-│  │                  API Routes Layer                   │      │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────────┐    │      │
-│  │  │   Auth   │  │ Workflows│  │   Templates  │    │      │
-│  │  │ /login   │  │ /api/    │  │ /api/query-  │    │      │
-│  │  │ /refresh │  │ workflows│  │  templates   │    │      │
-│  │  └──────────┘  └──────────┘  └──────────────┘    │      │
-│  └────────────────────────────────────────────────────┘      │
-│                                                               │
-│  ┌────────────────────────────────────────────────────┐      │
-│  │                  Service Layer                      │      │
-│  │  ┌──────────────┐  ┌──────────────┐  ┌─────────┐ │      │
-│  │  │   Database   │  │     AMC      │  │  Token  │ │      │
-│  │  │   Service    │  │   Service    │  │ Service │ │      │
-│  │  │              │  │              │  │         │ │      │
-│  │  │ - User CRUD  │  │ - Execute    │  │ - Encrypt│ │      │
-│  │  │ - Workflow   │  │ - Monitor    │  │ - Decrypt│ │      │
-│  │  │ - Instance   │  │ - Results    │  │ - Refresh│ │      │
-│  │  └──────────────┘  └──────────────┘  └─────────┘ │      │
-│  └────────────────────────────────────────────────────┘      │
-└──────────────────────────────────────────────────────────────┘
-                               │
-                               ▼
-┌──────────────────────────────────────────────────────────────┐
-│                     External Services                         │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │   Supabase   │  │   AMC API    │  │    Amazon    │      │
-│  │   Database   │  │              │  │     OAuth    │      │
-│  └──────────────┘  └──────────────┘  └──────────────┘      │
-└──────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                         Frontend (React + TypeScript)                │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐    │
+│  │    Pages        │  │   Components    │  │    Services     │    │
+│  │                 │  │                 │  │                 │    │
+│  │ - QueryBuilder  │  │ - DataSources   │  │ - API Client    │    │
+│  │ - DataSources   │  │ - SQLEditor     │  │ - Auth Service  │    │
+│  │ - DataDetail    │  │ - FieldExplorer │  │ - Data Service  │    │
+│  │ - MyQueries     │  │ - TOC           │  │ - Workflow      │    │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘    │
+│                                                                     │
+│  ┌───────────────────────────────────────────────────────────┐    │
+│  │              State Management Layer                        │    │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐       │    │
+│  │  │ React Query │  │ Context API │  │ SessionStore│       │    │
+│  │  │ (Caching)   │  │ (Auth State)│  │ (Temp Data) │       │    │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘       │    │
+│  └───────────────────────────────────────────────────────────┘    │
+│                                                                     │
+│  ┌───────────────────────────────────────────────────────────┐    │
+│  │              Error Boundary & Monitoring                  │    │
+│  │         (Graceful error handling & performance)           │    │
+│  └───────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────────┘
+                                │
+                                │ HTTPS + JWT + Token Refresh
+                                ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                      Security & Rate Limiting                       │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐│
+│  │ Rate Limiter│  │  Security   │  │    CORS     │  │  Request    ││
+│  │  (SlowAPI)  │  │  Headers    │  │ Middleware  │  │ Validation  ││
+│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘│
+└─────────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                         FastAPI Backend                             │
+│  ┌───────────────────────────────────────────────────────────┐     │
+│  │                Input Validation (Pydantic)                │     │
+│  │  ┌─────────┐  ┌─────────────┐  ┌─────────┐  ┌─────────┐  │     │
+│  │  │  Auth   │  │  Workflow   │  │Template │  │DataSrc  │  │     │
+│  │  │ Schema  │  │   Schema    │  │ Schema  │  │ Schema  │  │     │
+│  │  └─────────┘  └─────────────┘  └─────────┘  └─────────┘  │     │
+│  └───────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│  ┌───────────────────────────────────────────────────────────┐     │
+│  │                    API Routes Layer                       │     │
+│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────┐ │     │
+│  │  │  Auth   │ │Workflow │ │Template │ │DataSrc  │ │Exec │ │     │
+│  │  │/api/auth│ │/api/wf  │ │/api/tmpl│ │/api/ds  │ │/api/│ │     │
+│  │  └─────────┘ └─────────┘ └─────────┘ └─────────┘ └─────┘ │     │
+│  └───────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│  ┌───────────────────────────────────────────────────────────┐     │
+│  │                   Service Layer                            │     │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌──────┐ │     │
+│  │  │  Database   │ │ AMC Client  │ │   Token     │ │ Data │ │     │
+│  │  │  Service    │ │  + Retry    │ │   Service   │ │Source│ │     │
+│  │  │             │ │             │ │             │ │      │ │     │
+│  │  │ - Base CRUD │ │ - Execute   │ │ - Encrypt   │ │-Schema│ │     │
+│  │  │ - Auto      │ │ - Monitor   │ │ - Decrypt   │ │-Fields│ │     │
+│  │  │   Reconnect │ │ - Results   │ │ - Refresh   │ │-Search│ │     │
+│  │  │ - 30min TTL │ │ - Retry401  │ │ - Validate  │ │-Filter│ │     │
+│  │  └─────────────┘ └─────────────┘ └─────────────┘ └──────┘ │     │
+│  └───────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│  ┌───────────────────────────────────────────────────────────┐     │
+│  │                Background Services                         │     │
+│  │  ┌─────────────────┐           ┌─────────────────┐        │     │
+│  │  │ Token Refresh   │           │ Execution Poll  │        │     │
+│  │  │ - Every 10min   │           │ - Every 15sec   │        │     │
+│  │  │ - 15min buffer  │           │ - Auto cleanup  │        │     │
+│  │  │ - Track users   │           │ - Status update │        │     │
+│  │  └─────────────────┘           └─────────────────┘        │     │
+│  └───────────────────────────────────────────────────────────┘     │
+└─────────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                        External Services                            │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐│
+│  │  Supabase   │  │   AMC API   │  │   Amazon    │  │   GitHub    ││
+│  │ PostgreSQL  │  │             │  │    OAuth    │  │   (Docs)    ││
+│  │             │  │- Workflows  │  │- Token Mgmt │  │             ││
+│  │- Users      │  │- Executions │  │- Entity ID  │  │- Templates  ││
+│  │- Workflows  │  │- Results    │  │- Refresh    │  │- Examples   ││
+│  │- Instances  │  │- Schemas    │  │- Validation │  │- Schemas    ││
+│  │- DataSources│  │- Test Exec  │  │             │  │             ││
+│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘│
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Component Architecture
+
+### Critical Implementation Patterns
+
+#### AMC ID Field Duality
+The system manages two types of IDs that must be carefully handled:
+```typescript
+// AMC's actual instance ID (use for API calls)
+instanceId: string  // e.g., "amcinstance123"
+
+// Internal UUID (use for database relationships)  
+id: string         // e.g., "550e8400-e29b-41d4-a716-446655440000"
+
+// CORRECT: Use instanceId for AMC API
+await amcApiClient.executeQuery(instance.instanceId, query)
+
+// WRONG: Internal UUID causes 403 errors
+await amcApiClient.executeQuery(instance.id, query)  // ✗
+```
+
+#### Token Auto-Refresh Architecture
+```typescript
+// Frontend: Request queuing during token refresh
+let isRefreshing = false;
+const failedQueue: QueuedRequest[] = [];
+
+api.interceptors.response.use(
+  response => response,
+  async error => {
+    if (error.response?.status === 401 && !isRefreshing) {
+      isRefreshing = true;
+      // Queue all subsequent requests
+      return new Promise((resolve, reject) => {
+        failedQueue.push({ resolve, reject });
+      });
+    }
+  }
+);
+
+// Backend: Automatic retry with fresh tokens
+@execute_with_retry
+async def api_call(instance_id, user_id, entity_id, ...):
+    # Automatically retries with refreshed token on 401
+```
+
+#### Date Handling for AMC
+```python
+# AMC requires specific date format WITHOUT timezone
+'2025-07-15T00:00:00'    # ✓ Correct
+'2025-07-15T00:00:00Z'   # ✗ Causes empty results
+
+# Account for 14-day data lag
+end_date = datetime.utcnow() - timedelta(days=14)
+start_date = end_date - timedelta(days=7)
+```
+
+#### JSON Field Parsing from Supabase
+```python
+def parse_json_fields(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    """Handle Supabase JSON array returns properly"""
+    # Supabase returns JSON arrays as strings, need to parse
+    if isinstance(data.get('tags'), str):
+        try:
+            data['tags'] = json.loads(data['tags'])
+        except json.JSONDecodeError:
+            data['tags'] = []
+    return data
+```
+
+#### Frontend Component Communication
+```tsx
+// SessionStorage for cross-route communication
+sessionStorage.setItem('queryBuilderDraft', JSON.stringify({
+  sql_query: example.sql_query,
+  name: example.name,
+  parameters: example.parameters || {}
+}));
+
+// QueryBuilder loads and immediately clears
+const draft = sessionStorage.getItem('queryBuilderDraft');
+if (draft) {
+  setQueryState(JSON.parse(draft));
+  sessionStorage.removeItem('queryBuilderDraft');  // Prevent stale data
+}
+```
+
+### Recent Updates (2025-08-15)
+
+#### Component Consolidation
+- Merged DataSourceDetailV2 features into main DataSourceDetail
+- Added two-panel layout with Table of Contents
+- Integrated FieldExplorer for advanced field browsing
+- Removed card view from DataSources (list view only)
+
+#### Enhanced Error Handling
+- Full-screen error viewer with structured/raw/SQL views
+- One-click copy for all error sections
+- Export error reports as JSON
+- SQL compilation error extraction with line/column info
+
+#### Data Sources Improvements
+- Advanced filter builder with nested AND/OR conditions
+- Compare mode for side-by-side schema comparison
+- Command palette (Cmd+K) for fuzzy search
+- Bulk export to JSON/CSV
+
+#### Background Services Enhancement
+- Token refresh every 10 minutes with 15-minute buffer
+- Execution polling every 15 seconds with auto-cleanup
+- Request queuing during token refresh
+- Automatic fallback to workflow creation on 404
 
 ### 1. Frontend Layer
 
@@ -139,7 +273,60 @@ amc_manager/
     └── logger_simple.py   # Logging configuration
 ```
 
-### 4. Service Layer Architecture
+### 4. API Endpoints Overview
+
+#### Authentication Endpoints
+```
+POST /api/auth/login          # Amazon OAuth login
+POST /api/auth/refresh        # Refresh JWT token  
+GET  /api/auth/user          # Current user info
+POST /api/auth/logout        # Logout user
+```
+
+#### AMC Instance Management
+```
+GET    /api/instances        # List user instances
+POST   /api/instances        # Create new instance
+PUT    /api/instances/{id}   # Update instance details
+DELETE /api/instances/{id}   # Delete instance
+```
+
+#### Workflow Management
+```
+GET    /api/workflows        # List user workflows
+POST   /api/workflows        # Create workflow
+PUT    /api/workflows/{id}   # Update workflow
+DELETE /api/workflows/{id}   # Delete workflow
+POST   /api/workflows/{id}/execute  # Execute workflow
+POST   /api/workflows/{id}/sync     # Sync to AMC
+```
+
+#### Execution Management
+```
+GET    /api/executions       # List executions
+GET    /api/executions/{id}  # Get execution details
+GET    /api/executions/{id}/status   # Check status
+GET    /api/executions/{id}/results  # Get results
+POST   /api/executions/{id}/cancel   # Cancel execution
+```
+
+#### Data Source Management
+```
+GET    /api/data-sources     # List AMC schemas
+GET    /api/data-sources/{id}         # Get schema details
+GET    /api/data-sources/search       # Search schemas
+GET    /api/data-sources/compare      # Compare schemas
+GET    /api/data-sources/categories   # List categories
+```
+
+#### Query Template Management
+```
+GET    /api/query-templates           # List templates
+GET    /api/query-templates/{id}      # Get template
+POST   /api/query-templates/{id}/create-workflow  # Create from template
+```
+
+### 5. Service Layer Architecture
 
 #### Database Service Pattern
 ```python
