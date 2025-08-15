@@ -28,7 +28,7 @@ import { dataSourceService } from '../services/dataSourceService';
 import SQLEditor from '../components/common/SQLEditor';
 import { TableOfContents } from '../components/data-sources/TableOfContents';
 import { FieldExplorer } from '../components/data-sources/FieldExplorer';
-import type { QueryExample } from '../types/dataSource';
+import type { QueryExample, CompleteSchema } from '../types/dataSource';
 
 export default function DataSourceDetail() {
   const { schemaId } = useParams<{ schemaId: string }>();
@@ -41,17 +41,14 @@ export default function DataSourceDetail() {
 
   // Fetch complete schema
   console.log('DataSourceDetail - schemaId from URL:', schemaId);
-  const { data: schema, isLoading, error } = useQuery({
+  const { data: schema, isLoading, error } = useQuery<CompleteSchema>({
     queryKey: ['dataSource', schemaId],
     queryFn: () => {
       console.log('Fetching schema for:', schemaId);
       return dataSourceService.getCompleteSchema(schemaId!);
     },
     enabled: !!schemaId,
-    staleTime: 10 * 60 * 1000,
-    onError: (err) => {
-      console.error('Error fetching schema:', err);
-    }
+    staleTime: 10 * 60 * 1000
   });
 
   // Build TOC items
