@@ -199,7 +199,6 @@ export function FilterPresets({
     <div className="relative">
       {/* Preset Pills */}
       <div className="flex flex-wrap gap-2 items-center">
-        <span className="text-sm font-medium text-gray-700">Quick Filters:</span>
         
         {/* Show first 5 presets as pills */}
         {presets.slice(0, 5).map(preset => (

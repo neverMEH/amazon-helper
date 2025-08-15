@@ -371,60 +371,64 @@ export default function DataSources() {
               </div>
             </div>
 
-            {/* Quick Tag Filters */}
-            <div className="mt-3 flex items-center gap-2">
-              <span className="text-xs text-gray-500 font-medium">Quick filters:</span>
-              <div className="flex flex-wrap gap-1.5">
-                {popularTags.slice(0, 8).map(({ tag, count }) => (
-                  <button
-                    key={tag}
-                    onClick={() => handleTagToggle(tag)}
-                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs transition-colors ${
-                      selectedTags.includes(tag)
-                        ? 'bg-green-100 text-green-700 font-medium'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    {tag}
-                    <span className="text-gray-400 text-xs">({count})</span>
-                  </button>
-                ))}
-                {hasActiveFilters && (
-                  <button
-                    onClick={clearFilters}
-                    className="text-xs text-red-600 hover:text-red-700 underline ml-2"
-                  >
-                    Clear all
-                  </button>
-                )}
+            {/* Combined Filters Section */}
+            <div className="mt-3 space-y-2">
+              {/* Tag Filters */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500 font-medium">Popular tags:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {popularTags.slice(0, 8).map(({ tag, count }) => (
+                    <button
+                      key={tag}
+                      onClick={() => handleTagToggle(tag)}
+                      className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs transition-colors ${
+                        selectedTags.includes(tag)
+                          ? 'bg-green-100 text-green-700 font-medium'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {tag}
+                      <span className="text-gray-400 text-xs">({count})</span>
+                    </button>
+                  ))}
+                  {hasActiveFilters && (
+                    <button
+                      onClick={clearFilters}
+                      className="text-xs text-red-600 hover:text-red-700 underline ml-2"
+                    >
+                      Clear all
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
 
-            {/* Filter Presets */}
-            <div className="mt-3">
-              <FilterPresets
-                presets={filterPresets}
-                activePresetId={activePresetId}
-                onSelectPreset={(preset) => {
-                  setActivePresetId(preset.id);
-                  setAdvancedFilter(preset.filter);
-                  console.log('Applying preset:', preset);
-                }}
-                onCreateNew={() => setShowAdvancedFilter(true)}
-                onDeletePreset={(id) => {
-                  setFilterPresets(filterPresets.filter(p => p.id !== id));
-                  if (activePresetId === id) {
-                    setActivePresetId('all');
-                  }
-                }}
-              />
+              {/* Filter Presets */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500 font-medium">Presets:</span>
+                <FilterPresets
+                  presets={filterPresets.filter(p => p.id !== 'all')} // Remove the 'All Data Sources' preset
+                  activePresetId={activePresetId}
+                  onSelectPreset={(preset) => {
+                    setActivePresetId(preset.id);
+                    setAdvancedFilter(preset.filter);
+                    console.log('Applying preset:', preset);
+                  }}
+                  onCreateNew={() => setShowAdvancedFilter(true)}
+                  onDeletePreset={(id) => {
+                    setFilterPresets(filterPresets.filter(p => p.id !== id));
+                    if (activePresetId === id) {
+                      setActivePresetId('all');
+                    }
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex h-[calc(100vh-220px)]">
+      <div className="flex h-[calc(100vh-230px)]">
         {/* Main Content Area - Full Width */}
         <main className="flex-1 overflow-y-auto bg-gray-50">
           <div className="p-6">
