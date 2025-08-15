@@ -9,7 +9,6 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Search,
   Database,
-  X,
   SlidersHorizontal,
   Command,
   Filter,
