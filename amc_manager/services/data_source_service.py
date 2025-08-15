@@ -432,6 +432,15 @@ class DataSourceService(SupabaseService):
                 result = self.client.rpc('get_amc_schema_details', {'p_schema_id': schema_id}).execute()
                 
                 if result.data:
+                    # Parse JSON fields in the schema object if they're strings
+                    if 'schema' in result.data and result.data['schema']:
+                        schema_data = result.data['schema']
+                        if isinstance(schema_data.get('data_sources'), str):
+                            schema_data['data_sources'] = json.loads(schema_data['data_sources']) if schema_data['data_sources'] else []
+                        if isinstance(schema_data.get('tags'), str):
+                            schema_data['tags'] = json.loads(schema_data['tags']) if schema_data['tags'] else []
+                        if isinstance(schema_data.get('availability'), str):
+                            schema_data['availability'] = json.loads(schema_data['availability']) if schema_data['availability'] else None
                     return result.data
             except Exception as rpc_error:
                 logger.debug(f"RPC function not available, falling back to manual assembly: {rpc_error}")
