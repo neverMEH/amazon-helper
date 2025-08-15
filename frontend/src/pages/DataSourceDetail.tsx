@@ -66,19 +66,24 @@ export default function DataSourceDetail() {
     const examples = schema.examples || [];
     const sections = schema.sections || [];
     
-    return [
+    const items = [
       { id: 'overview', title: 'Overview', level: 1 },
       { id: 'schema', title: `Fields (${fields.length})`, level: 1 },
-      { id: 'examples', title: `Examples (${examples.length})`, level: 1 },
-      { id: 'relationships', title: 'Relationships', level: 1 },
-      ...sections.map(section => ({
-        id: section.id,
-        title: section.section_type.replace(/_/g, ' ').split(' ')
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(' '),
-        level: 2
-      }))
     ];
+    
+    // Only add examples section if there are examples
+    if (examples.length > 0) {
+      items.push({ id: 'examples', title: `Examples (${examples.length})`, level: 1 });
+    }
+    
+    // Only add relationships section if there are relationships
+    const hasRelationships = (schema.relationships?.from?.length || 0) > 0 || 
+                             (schema.relationships?.to?.length || 0) > 0;
+    if (hasRelationships) {
+      items.push({ id: 'relationships', title: 'Relationships', level: 1 });
+    }
+    
+    return items;
   }, [schema]);
 
   // Handle section navigation
@@ -379,32 +384,6 @@ export default function DataSourceDetail() {
                   </div>
                 </div>
               </div>
-
-              {/* Documentation Sections */}
-              {(schema.sections || []).map(section => (
-                <div key={section.id} id={section.id} className="scroll-mt-24 mt-6">
-                  <div className="bg-white rounded-lg border border-gray-200">
-                    <button
-                      onClick={() => toggleSection(section.id)}
-                      className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-                    >
-                      <h3 className="text-lg font-semibold capitalize">
-                        {section.section_type.replace(/_/g, ' ')}
-                      </h3>
-                      {expandedSections.has(section.id) ? (
-                        <ChevronDown className="h-5 w-5 text-gray-400" />
-                      ) : (
-                        <ChevronRight className="h-5 w-5 text-gray-400" />
-                      )}
-                    </button>
-                    {expandedSections.has(section.id) && (
-                      <div className="px-6 pb-6 prose prose-sm max-w-none">
-                        <ReactMarkdown>{section.content_markdown}</ReactMarkdown>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
             </section>
 
             {/* Schema Fields Section */}
@@ -415,18 +394,13 @@ export default function DataSourceDetail() {
               </div>
             </section>
 
-            {/* Query Examples Section */}
-            <section id="examples" className="scroll-mt-24">
-              <div className="">
-                <h2 className="text-xl font-semibold mb-4">Query Examples</h2>
-                {(schema.examples?.length || 0) === 0 ? (
-                  <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-                    <Code className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">No query examples available yet</p>
-                  </div>
-                ) : (
+            {/* Query Examples Section - Only show if there are examples */}
+            {(schema.examples?.length || 0) > 0 && (
+              <section id="examples" className="scroll-mt-24">
+                <div className="">
+                  <h2 className="text-xl font-semibold mb-4">Query Examples</h2>
                   <div className="space-y-4">
-                    {(schema.examples || []).map(example => (
+                    {schema.examples.map(example => (
                       <div key={example.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                         <div className="px-6 py-4 border-b bg-gray-50">
                           <div className="flex items-start justify-between">
@@ -477,89 +451,85 @@ export default function DataSourceDetail() {
                       </div>
                     ))}
                   </div>
-                )}
-              </div>
-            </section>
+                </div>
+              </section>
+            )}
 
-            {/* Relationships Section */}
-            <section id="relationships" className="scroll-mt-24">
-              <div className="">
-                <h2 className="text-xl font-semibold mb-4">Relationships</h2>
-                
-                {/* Outgoing Relationships */}
-                {(schema.relationships?.from?.length || 0) > 0 && (
-                  <div className="bg-white rounded-lg border border-gray-200 p-6 mb-4">
-                    <h3 className="text-lg font-semibold mb-4">Related Schemas</h3>
-                    <div className="space-y-3">
-                      {(schema.relationships?.from || []).map(rel => (
-                        <div
-                          key={rel.id}
-                          className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors"
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
-                              {rel.relationship_type}
-                            </span>
-                            <div>
-                              <button
-                                onClick={() => navigate(`/data-sources/${rel.target?.schema_id}`)}
-                                className="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
-                              >
-                                {rel.target?.name}
-                                <ExternalLink className="h-3 w-3" />
-                              </button>
-                              {rel.description && (
-                                <p className="text-sm text-gray-600 mt-1">{rel.description}</p>
-                              )}
+            {/* Relationships Section - Only show if there are relationships */}
+            {((schema.relationships?.from?.length || 0) > 0 || (schema.relationships?.to?.length || 0) > 0) && (
+              <section id="relationships" className="scroll-mt-24">
+                <div className="">
+                  <h2 className="text-xl font-semibold mb-4">Relationships</h2>
+                  
+                  {/* Outgoing Relationships */}
+                  {(schema.relationships?.from?.length || 0) > 0 && (
+                    <div className="bg-white rounded-lg border border-gray-200 p-6 mb-4">
+                      <h3 className="text-lg font-semibold mb-4">Related Schemas</h3>
+                      <div className="space-y-3">
+                        {(schema.relationships?.from || []).map(rel => (
+                          <div
+                            key={rel.id}
+                            className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
+                                {rel.relationship_type}
+                              </span>
+                              <div>
+                                <button
+                                  onClick={() => navigate(`/data-sources/${rel.target?.schema_id}`)}
+                                  className="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+                                >
+                                  {rel.target?.name}
+                                  <ExternalLink className="h-3 w-3" />
+                                </button>
+                                {rel.description && (
+                                  <p className="text-sm text-gray-600 mt-1">{rel.description}</p>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Incoming Relationships */}
-                {(schema.relationships?.to?.length || 0) > 0 && (
-                  <div className="bg-white rounded-lg border border-gray-200 p-6">
-                    <h3 className="text-lg font-semibold mb-4">Referenced By</h3>
-                    <div className="space-y-3">
-                      {(schema.relationships?.to || []).map(rel => (
-                        <div
-                          key={rel.id}
-                          className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors"
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded">
-                              {rel.relationship_type}
-                            </span>
-                            <div>
-                              <button
-                                onClick={() => navigate(`/data-sources/${rel.source?.schema_id}`)}
-                                className="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
-                              >
-                                {rel.source?.name}
-                                <ExternalLink className="h-3 w-3" />
-                              </button>
-                              {rel.description && (
-                                <p className="text-sm text-gray-600 mt-1">{rel.description}</p>
-                              )}
+                  {/* Incoming Relationships */}
+                  {(schema.relationships?.to?.length || 0) > 0 && (
+                    <div className="bg-white rounded-lg border border-gray-200 p-6">
+                      <h3 className="text-lg font-semibold mb-4">Referenced By</h3>
+                      <div className="space-y-3">
+                        {(schema.relationships?.to || []).map(rel => (
+                          <div
+                            key={rel.id}
+                            className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded">
+                                {rel.relationship_type}
+                              </span>
+                              <div>
+                                <button
+                                  onClick={() => navigate(`/data-sources/${rel.source?.schema_id}`)}
+                                  className="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+                                >
+                                  {rel.source?.name}
+                                  <ExternalLink className="h-3 w-3" />
+                                </button>
+                                {rel.description && (
+                                  <p className="text-sm text-gray-600 mt-1">{rel.description}</p>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {(schema.relationships?.from?.length || 0) === 0 && (schema.relationships?.to?.length || 0) === 0 && (
-                  <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-                    <Link2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">No relationships defined for this schema</p>
-                  </div>
-                )}
-              </div>
-            </section>
+                </div>
+              </section>
+            )}
           </div>
         </main>
       </div>
