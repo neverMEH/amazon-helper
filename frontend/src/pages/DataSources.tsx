@@ -21,7 +21,6 @@ import { DataSourceCommandPalette } from '../components/data-sources/DataSourceC
 import { DataSourceSkeleton } from '../components/data-sources/DataSourceSkeleton';
 import { BulkActions } from '../components/data-sources/BulkActions';
 import { AdvancedFilterBuilder, type FilterGroup } from '../components/data-sources/AdvancedFilterBuilder';
-import { FilterPresets, DEFAULT_PRESETS } from '../components/data-sources/FilterPresets';
 import { DataSourceCompare } from '../components/data-sources/DataSourceCompare';
 import type { DataSource } from '../types/dataSource';
 
@@ -44,8 +43,6 @@ export default function DataSources() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [showAdvancedFilter, setShowAdvancedFilter] = useState(false);
   const [advancedFilter, setAdvancedFilter] = useState<FilterGroup | null>(null);
-  const [filterPresets, setFilterPresets] = useState(DEFAULT_PRESETS);
-  const [activePresetId, setActivePresetId] = useState<string>('all');
   const [showCompareMode, setShowCompareMode] = useState(false);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
 
@@ -371,56 +368,32 @@ export default function DataSources() {
               </div>
             </div>
 
-            {/* Combined Filters Section */}
-            <div className="mt-3 space-y-2">
-              {/* Tag Filters */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500 font-medium">Popular tags:</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {popularTags.slice(0, 8).map(({ tag, count }) => (
-                    <button
-                      key={tag}
-                      onClick={() => handleTagToggle(tag)}
-                      className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs transition-colors ${
-                        selectedTags.includes(tag)
-                          ? 'bg-green-100 text-green-700 font-medium'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                    >
-                      {tag}
-                      <span className="text-gray-400 text-xs">({count})</span>
-                    </button>
-                  ))}
-                  {hasActiveFilters && (
-                    <button
-                      onClick={clearFilters}
-                      className="text-xs text-red-600 hover:text-red-700 underline ml-2"
-                    >
-                      Clear all
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Filter Presets */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500 font-medium">Presets:</span>
-                <FilterPresets
-                  presets={filterPresets.filter(p => p.id !== 'all')} // Remove the 'All Data Sources' preset
-                  activePresetId={activePresetId}
-                  onSelectPreset={(preset) => {
-                    setActivePresetId(preset.id);
-                    setAdvancedFilter(preset.filter);
-                    console.log('Applying preset:', preset);
-                  }}
-                  onCreateNew={() => setShowAdvancedFilter(true)}
-                  onDeletePreset={(id) => {
-                    setFilterPresets(filterPresets.filter(p => p.id !== id));
-                    if (activePresetId === id) {
-                      setActivePresetId('all');
-                    }
-                  }}
-                />
+            {/* Tag Filters */}
+            <div className="mt-3 flex items-center gap-2">
+              <span className="text-xs text-gray-500 font-medium">Popular tags:</span>
+              <div className="flex flex-wrap gap-1.5">
+                {popularTags.slice(0, 8).map(({ tag, count }) => (
+                  <button
+                    key={tag}
+                    onClick={() => handleTagToggle(tag)}
+                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs transition-colors ${
+                      selectedTags.includes(tag)
+                        ? 'bg-green-100 text-green-700 font-medium'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {tag}
+                    <span className="text-gray-400 text-xs">({count})</span>
+                  </button>
+                ))}
+                {hasActiveFilters && (
+                  <button
+                    onClick={clearFilters}
+                    className="text-xs text-red-600 hover:text-red-700 underline ml-2"
+                  >
+                    Clear all
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -428,7 +401,7 @@ export default function DataSources() {
       </div>
 
       {/* Main Content */}
-      <div className="flex h-[calc(100vh-230px)]">
+      <div className="flex h-[calc(100vh-200px)]">
         {/* Main Content Area - Full Width */}
         <main className="flex-1 overflow-y-auto bg-gray-50">
           <div className="p-6">
