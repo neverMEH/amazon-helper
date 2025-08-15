@@ -62,12 +62,16 @@ export default function DataSourceDetail() {
   // Build TOC items
   const tocItems = useMemo(() => {
     if (!schema) return [];
+    const fields = schema.fields || [];
+    const examples = schema.examples || [];
+    const sections = schema.sections || [];
+    
     return [
       { id: 'overview', title: 'Overview', level: 1 },
-      { id: 'schema', title: `Fields (${schema.fields.length})`, level: 1 },
-      { id: 'examples', title: `Examples (${schema.examples.length})`, level: 1 },
+      { id: 'schema', title: `Fields (${fields.length})`, level: 1 },
+      { id: 'examples', title: `Examples (${examples.length})`, level: 1 },
       { id: 'relationships', title: 'Relationships', level: 1 },
-      ...schema.sections.map(section => ({
+      ...sections.map(section => ({
         id: section.id,
         title: section.section_type.replace(/_/g, ' ').split(' ')
           .map(word => word.charAt(0).toUpperCase() + word.slice(1))
@@ -283,7 +287,7 @@ export default function DataSourceDetail() {
                   <Download className="h-4 w-4" />
                   Export
                 </button>
-                {schema.examples.length > 0 && (
+                {(schema.examples?.length || 0) > 0 && (
                   <button
                     onClick={() => navigateToQueryBuilder(schema.examples[0])}
                     className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
@@ -324,7 +328,7 @@ export default function DataSourceDetail() {
                 <div className="mb-6">
                   <h3 className="text-sm font-medium text-gray-700 mb-2">AMC Tables</h3>
                   <div className="flex flex-wrap gap-2">
-                    {schema.schema.data_sources.map(source => (
+                    {(schema.schema.data_sources || []).map(source => (
                       <code
                         key={source}
                         className="px-3 py-1 bg-gray-100 text-gray-800 rounded text-sm font-mono"
@@ -339,7 +343,7 @@ export default function DataSourceDetail() {
                 <div className="mb-6">
                   <h3 className="text-sm font-medium text-gray-700 mb-2">Tags</h3>
                   <div className="flex flex-wrap gap-2">
-                    {schema.schema.tags.map(tag => (
+                    {(schema.schema.tags || []).map(tag => (
                       <span
                         key={tag}
                         className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm"
@@ -354,30 +358,30 @@ export default function DataSourceDetail() {
                 {/* Statistics */}
                 <div className="grid grid-cols-4 gap-4">
                   <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="text-2xl font-bold text-gray-900">{schema.fields.length}</div>
+                    <div className="text-2xl font-bold text-gray-900">{schema.fields?.length || 0}</div>
                     <div className="text-sm text-gray-500">Total Fields</div>
                   </div>
                   <div className="bg-blue-50 rounded-lg p-4">
                     <div className="text-2xl font-bold text-blue-900">
-                      {schema.fields.filter(f => f.dimension_or_metric === 'Dimension').length}
+                      {(schema.fields || []).filter(f => f.dimension_or_metric === 'Dimension').length}
                     </div>
                     <div className="text-sm text-blue-600">Dimensions</div>
                   </div>
                   <div className="bg-green-50 rounded-lg p-4">
                     <div className="text-2xl font-bold text-green-900">
-                      {schema.fields.filter(f => f.dimension_or_metric === 'Metric').length}
+                      {(schema.fields || []).filter(f => f.dimension_or_metric === 'Metric').length}
                     </div>
                     <div className="text-sm text-green-600">Metrics</div>
                   </div>
                   <div className="bg-purple-50 rounded-lg p-4">
-                    <div className="text-2xl font-bold text-purple-900">{schema.examples.length}</div>
+                    <div className="text-2xl font-bold text-purple-900">{schema.examples?.length || 0}</div>
                     <div className="text-sm text-purple-600">Examples</div>
                   </div>
                 </div>
               </div>
 
               {/* Documentation Sections */}
-              {schema.sections.map(section => (
+              {(schema.sections || []).map(section => (
                 <div key={section.id} id={section.id} className="scroll-mt-24 mt-6">
                   <div className="bg-white rounded-lg border border-gray-200">
                     <button
@@ -407,7 +411,7 @@ export default function DataSourceDetail() {
             <section id="schema" className="scroll-mt-24">
               <div className="">
                 <h2 className="text-xl font-semibold mb-4">Schema Fields</h2>
-                <FieldExplorer fields={schema.fields} searchQuery={fieldSearch} />
+                <FieldExplorer fields={schema.fields || []} searchQuery={fieldSearch} />
               </div>
             </section>
 
@@ -415,14 +419,14 @@ export default function DataSourceDetail() {
             <section id="examples" className="scroll-mt-24">
               <div className="">
                 <h2 className="text-xl font-semibold mb-4">Query Examples</h2>
-                {schema.examples.length === 0 ? (
+                {(schema.examples?.length || 0) === 0 ? (
                   <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
                     <Code className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-500">No query examples available yet</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {schema.examples.map(example => (
+                    {(schema.examples || []).map(example => (
                       <div key={example.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                         <div className="px-6 py-4 border-b bg-gray-50">
                           <div className="flex items-start justify-between">
@@ -483,11 +487,11 @@ export default function DataSourceDetail() {
                 <h2 className="text-xl font-semibold mb-4">Relationships</h2>
                 
                 {/* Outgoing Relationships */}
-                {schema.relationships.from.length > 0 && (
+                {(schema.relationships?.from?.length || 0) > 0 && (
                   <div className="bg-white rounded-lg border border-gray-200 p-6 mb-4">
                     <h3 className="text-lg font-semibold mb-4">Related Schemas</h3>
                     <div className="space-y-3">
-                      {schema.relationships.from.map(rel => (
+                      {(schema.relationships?.from || []).map(rel => (
                         <div
                           key={rel.id}
                           className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors"
@@ -516,11 +520,11 @@ export default function DataSourceDetail() {
                 )}
 
                 {/* Incoming Relationships */}
-                {schema.relationships.to.length > 0 && (
+                {(schema.relationships?.to?.length || 0) > 0 && (
                   <div className="bg-white rounded-lg border border-gray-200 p-6">
                     <h3 className="text-lg font-semibold mb-4">Referenced By</h3>
                     <div className="space-y-3">
-                      {schema.relationships.to.map(rel => (
+                      {(schema.relationships?.to || []).map(rel => (
                         <div
                           key={rel.id}
                           className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors"
@@ -548,7 +552,7 @@ export default function DataSourceDetail() {
                   </div>
                 )}
 
-                {schema.relationships.from.length === 0 && schema.relationships.to.length === 0 && (
+                {(schema.relationships?.from?.length || 0) === 0 && (schema.relationships?.to?.length || 0) === 0 && (
                   <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
                     <Link2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-500">No relationships defined for this schema</p>
