@@ -1,12 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { X, Play, Loader, CheckCircle, XCircle, Download, Eye, BarChart, Code, Search, Edit2 } from 'lucide-react';
+import { X, Play, Loader, CheckCircle, XCircle, Eye, Code, Search, Edit2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import JSONEditor from '../common/JSONEditor';
 import ParameterEditor from './ParameterEditor';
-import ResultsVisualization from './ResultsVisualization';
 import ExecutionErrorDetails from '../executions/ExecutionErrorDetails';
 import DateRangeSelector from '../common/DateRangeSelector';
 import AMCExecutionDetail from '../executions/AMCExecutionDetail';
@@ -40,16 +39,6 @@ interface ExecutionStatus {
   amc_execution_id?: string;
 }
 
-interface ExecutionResult {
-  columns: Array<{ name: string; type: string }>;
-  rows: unknown[][];
-  total_rows: number;
-  execution_details?: {
-    query_runtime_seconds: number;
-    data_scanned_gb: number;
-    cost_estimate_usd: number;
-  };
-}
 
 export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: propWorkflowId, instanceId }: ExecutionModalProps) {
   const queryClient = useQueryClient();
@@ -85,8 +74,6 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
   const workflowInstanceId = workflowData?.instance?.id || instanceId;
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | undefined>(workflowInstanceId);
   const [executionId, setExecutionId] = useState<string | null>(null);
-  const [showResults, setShowResults] = useState(false);
-  const [showVisualization, setShowVisualization] = useState(false);
   const [useAdvancedEditor, setUseAdvancedEditor] = useState(false);
   const [instanceSearchQuery, setInstanceSearchQuery] = useState('');
   const [showInstanceDropdown, setShowInstanceDropdown] = useState(false);
@@ -144,8 +131,6 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
     if (isOpen && workflowData) {
       setParameters(workflowData.parameters || {});
       setExecutionId(null);
-      setShowResults(false);
-      setShowVisualization(false);
     }
   }, [isOpen, workflowData]);
 
@@ -187,15 +172,6 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
     }
   }, [status, executionId, queryClient]);
 
-  // Fetch results
-  const { data: results, isLoading: loadingResults } = useQuery<ExecutionResult>({
-    queryKey: ['execution-results', executionId],
-    queryFn: async () => {
-      const response = await api.get(`/workflows/executions/${executionId}/results`);
-      return response.data;
-    },
-    enabled: !!executionId && status?.status === 'completed' && showResults,
-  });
 
   const handleExecute = () => {
     if (!instanceId && !selectedInstanceId) {
@@ -222,29 +198,6 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
     executeMutation.mutate(executionParams);
   };
 
-  const handleDownloadResults = async () => {
-    if (!results) return;
-
-    // Convert results to CSV
-    const headers = results.columns.map(col => col.name).join(',');
-    const rows = results.rows.map(row => row.map(cell => 
-      typeof cell === 'string' && cell.includes(',') ? `"${cell}"` : cell
-    ).join(',')).join('\n');
-    
-    const csv = `${headers}\n${rows}`;
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${(workflowData?.name || 'workflow').replace(/\s+/g, '_')}_results_${executionId}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    toast.success('Results downloaded');
-  };
 
   if (!isOpen) return null;
   
@@ -564,118 +517,17 @@ export default function ExecutionModal({ isOpen, onClose, workflow, workflowId: 
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-medium">Results</h3>
-                    <div className="space-x-2">
-                      {!showResults && (
-                        <>
-                          <button
-                            onClick={() => setShowResults(true)}
-                            className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                          >
-                            <Eye className="h-4 w-4 mr-2" />
-                            View Results Here
-                          </button>
-                          <button
-                            onClick={() => setShowExecutionDetail(true)}
-                            className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                          >
-                            <Eye className="h-4 w-4 mr-2" />
-                            Open Full Results
-                          </button>
-                        </>
-                      )}
-                      {showResults && results && (
-                        <button
-                          onClick={() => setShowVisualization(!showVisualization)}
-                          className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                        >
-                          <BarChart className="h-4 w-4 mr-2" />
-                          {showVisualization ? 'Show Table' : 'Show Insights'}
-                        </button>
-                      )}
-                      <button
-                        onClick={handleDownloadResults}
-                        disabled={!results}
-                        className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400"
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Download CSV
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => setShowExecutionDetail(true)}
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      View Results
+                    </button>
                   </div>
-
-                  {showResults && (
-                    <>
-                      {loadingResults ? (
-                        <div className="text-center py-8">
-                          <Loader className="h-8 w-8 animate-spin mx-auto text-gray-400" />
-                          <p className="mt-2 text-sm text-gray-500">Loading results...</p>
-                        </div>
-                      ) : results ? (
-                        <div>
-                          {results.execution_details && (
-                            <div className="grid grid-cols-3 gap-4 mb-4 text-sm">
-                              <div className="bg-blue-50 p-3 rounded">
-                                <p className="text-blue-600 font-medium">Runtime</p>
-                                <p className="text-blue-900">{results.execution_details.query_runtime_seconds}s</p>
-                              </div>
-                              <div className="bg-green-50 p-3 rounded">
-                                <p className="text-green-600 font-medium">Data Scanned</p>
-                                <p className="text-green-900">{results.execution_details.data_scanned_gb} GB</p>
-                              </div>
-                              <div className="bg-purple-50 p-3 rounded">
-                                <p className="text-purple-600 font-medium">Est. Cost</p>
-                                <p className="text-purple-900">${results.execution_details.cost_estimate_usd.toFixed(4)}</p>
-                              </div>
-                            </div>
-                          )}
-
-                          {showVisualization ? (
-                            <ResultsVisualization columns={results.columns} rows={results.rows} />
-                          ) : (
-                            <div className="border rounded-lg overflow-hidden">
-                            <div className="overflow-x-auto">
-                              <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                  <tr>
-                                    {results.columns.map((col, idx) => (
-                                      <th
-                                        key={idx}
-                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                      >
-                                        {col.name}
-                                        <span className="ml-1 text-gray-400 normal-case">({col.type})</span>
-                                      </th>
-                                    ))}
-                                  </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                  {results.rows.slice(0, 100).map((row, idx) => (
-                                    <tr key={idx} className="hover:bg-gray-50">
-                                      {row.map((cell, cellIdx) => (
-                                        <td key={cellIdx} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                          {cell === null ? <span className="text-gray-400">null</span> : String(cell)}
-                                        </td>
-                                      ))}
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                            {results.total_rows > 100 && (
-                              <div className="bg-gray-50 px-6 py-3 text-sm text-gray-600">
-                                Showing first 100 of {results.total_rows?.toLocaleString() || '0'} rows
-                              </div>
-                            )}
-                          </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="text-center py-8 text-gray-500">
-                          No results available
-                        </div>
-                      )}
-                    </>
-                  )}
+                  <div className="text-sm text-gray-600">
+                    Execution completed successfully. Click "View Results" to see the full results and download options.
+                  </div>
                 </div>
               )}
             </div>

@@ -27,10 +27,8 @@ python main_supabase.py                      # Port 8001
 # Testing
 pytest tests/                                # All tests
 pytest tests/test_api_auth.py::test_login_success  # Specific test
-python -m pytest -v                          # Verbose output
 pytest tests/integration/                    # Integration tests only
 pytest tests/supabase/                       # Supabase tests only
-pytest tests/unit/                           # Unit tests
 pytest tests/amc/                            # AMC API tests (requires credentials)
 
 # Code quality
@@ -43,7 +41,6 @@ python scripts/check_supabase_connection.py  # Check connection
 python scripts/import_amc_schemas.py         # Import AMC schema documentation
 python scripts/apply_performance_indexes.py  # Apply indexes
 python scripts/create_cja_workflow.py        # Create CJA workflow
-python scripts/add_execution_results_fields.py  # Add results fields
 
 # Token testing
 python test_token_refresh.py                 # Test automatic token refresh
@@ -64,7 +61,6 @@ npx tsc --noEmit --watch                    # Type checking in watch mode
 npx playwright test                         # Run all tests
 npx playwright test --ui                    # Interactive mode
 npx playwright test test-name.spec.ts       # Specific test file
-npx playwright test -g "test name"          # Specific test by name
 npx playwright test --debug                 # Debug mode with inspector
 ```
 
@@ -121,14 +117,15 @@ src/
 ├── pages/                      # Route components
 │   ├── QueryBuilder.tsx        # 3-step wizard with test execution
 │   ├── DataSources.tsx         # List view with side panel preview
-│   └── DataSourceDetail.tsx    # Enhanced with TOC, field explorer, and quick actions
+│   ├── DataSourceDetail.tsx    # Enhanced with TOC, field explorer, and quick actions
+│   └── MyQueries.tsx          # Workflows with advanced filtering/sorting
 ├── components/
 │   ├── query-builder/          # Wizard steps
 │   ├── data-sources/           # Data source UI components
-│   │   ├── TableOfContents.tsx # Scroll-synced navigation
-│   │   ├── FieldExplorer.tsx   # Advanced field browser
-│   │   └── DataSourcePreview.tsx # Preview panel with quick actions
-│   ├── workflows/              # Execution monitoring
+│   ├── workflows/              # Workflow management components
+│   │   ├── WorkflowFilters.tsx        # Advanced filter sidebar
+│   │   ├── WorkflowSortDropdown.tsx   # Sort options dropdown
+│   │   └── ActiveFilterBadges.tsx     # Filter status display
 │   ├── executions/             # Error display and results
 │   └── common/                 # Shared components
 └── services/
@@ -182,26 +179,7 @@ result = await amc_api_client_with_retry.create_workflow_execution(
     instance_id=instance_id,
     user_id=user_id,  # Required for token refresh
     entity_id=entity_id,
-    # ... other params
 )
-```
-
-### Frontend Token Refresh with Request Queuing
-```typescript
-// api.ts implements request queuing during token refresh
-// Failed requests are automatically queued and retried
-// All queued requests execute after successful refresh
-// Automatic logout after refresh failure
-```
-
-### AMC Error Handling
-```python
-# Extract detailed error information from AMC 400 responses
-if response.status_code == 400 and 'details' in response_data:
-    # Parse SQL compilation errors
-    # Extract line/column information
-    # Identify missing tables/columns
-    # Structure into errorDetails object
 ```
 
 ### FastAPI Router Registration
@@ -250,36 +228,6 @@ if (draft) {
 }
 ```
 
-### JSON Field Parsing in Supabase
-```python
-# Supabase may return JSON fields as strings
-if isinstance(schema.get('data_sources'), str):
-    schema['data_sources'] = json.loads(schema['data_sources'])
-if isinstance(schema.get('tags'), str):
-    schema['tags'] = json.loads(schema['tags'])
-```
-
-### Quick Actions Pattern
-```typescript
-// Data Source Quick Actions (Detail Page & Preview Panel)
-// 1. Copy Schema ID - Copies to clipboard with confirmation
-// 2. Export Documentation - Downloads as Markdown file
-// 3. Open in Query Builder - Creates template with schema context
-
-// Implementation in DataSourceDetail.tsx:
-const copySchemaId = async () => {
-  await navigator.clipboard.writeText(schema.schema_id);
-  setCopiedSchemaId(true);
-  setTimeout(() => setCopiedSchemaId(false), 2000);
-};
-
-const exportDocumentation = () => {
-  // Generate markdown with metadata, fields, and examples
-  const blob = new Blob([markdown], { type: 'text/markdown' });
-  // Trigger download
-};
-```
-
 ## Database Schema
 
 Key Supabase tables and their relationships:
@@ -307,6 +255,10 @@ workflows
 ├── parameters (jsonb)
 ├── amc_workflow_id                -- AMC API workflow ID
 ├── is_synced_to_amc               -- Sync status
+├── tags (text[])                  -- Workflow tags
+├── status                         -- active/draft/archived
+├── last_executed_at               -- For sorting
+├── execution_count                -- Track usage
 └── user_id (FK → users)
 
 workflow_executions
@@ -325,15 +277,6 @@ amc_data_sources                  -- Schema documentation
 ├── tags (jsonb)                   -- Array of tag strings
 ├── category
 └── fields (relation → amc_schema_fields)
-
-amc_schema_fields
-├── id (uuid, PK)
-├── data_source_id (FK → amc_data_sources)
-├── field_name
-├── data_type
-├── dimension_or_metric            -- 'Dimension' or 'Metric'
-├── examples (jsonb)               -- Array that may contain strings or objects
-└── description
 
 query_templates                   -- Pre-built query library
 ├── id (uuid, PK)
@@ -422,6 +365,15 @@ return (
 </div>
 ```
 
+### JSON Field Parsing in Supabase
+```python
+# Supabase may return JSON fields as strings
+if isinstance(schema.get('data_sources'), str):
+    schema['data_sources'] = json.loads(schema['data_sources'])
+if isinstance(schema.get('tags'), str):
+    schema['tags'] = json.loads(schema['tags'])
+```
+
 ### Field Examples Array Handling
 ```typescript
 // amc_schema_fields.examples may be null, array of strings, or array of objects
@@ -443,7 +395,6 @@ The application runs two critical background services:
 - **Purpose**: Refreshes Amazon OAuth tokens before expiry
 - **Buffer**: 15 minutes before token expiration
 - **Auto-start**: Launches on application startup
-- **Tracking**: Maintains list of users with valid tokens
 
 ### 2. Execution Status Poller
 - **Frequency**: Every 15 seconds
@@ -479,10 +430,6 @@ docker run -p 8001:8001 --env-file .env recomamp
 - Tokens are automatically cleared and users must re-authenticate
 - Prevention: Keep FERNET_KEY consistent across deployments
 
-### Execution Polling
-- Background poller may show "coroutine was never awaited" warnings
-- This doesn't affect functionality but indicates async/await mismatch
-
 ### AMC API Errors
 - 400 errors with "unable to compile workflow" need special parsing
 - Error details are in the `details` field, not `message`
@@ -492,11 +439,6 @@ docker run -p 8001:8001 --env-file .env recomamp
 - AMC workflows may be deleted externally
 - System auto-creates workflows on first execution if missing
 - Falls back to ad-hoc execution if creation fails
-
-### JSON Fields from Supabase
-- `data_sources` and `tags` fields may be returned as strings
-- Always parse these fields when fetching from database
-- Use `json.loads()` to convert string to array/object
 
 ### TypeScript Unused Imports
 - When removing UI elements, also remove related props and imports
