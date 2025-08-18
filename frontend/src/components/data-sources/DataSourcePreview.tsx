@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { X, Database, Tag, Lock, Globe, Table, Code, ExternalLink, TrendingUp, Hash, Loader2, AlertCircle, Link2, Users, Clock, GitBranch, Filter, Copy, Download, PlayCircle, Check } from 'lucide-react';
+import { X, Database, Tag, Lock, Globe, Table, Code, ExternalLink, TrendingUp, Hash, Loader2, AlertCircle, Link2, Users, Clock, GitBranch, Filter, Copy, PlayCircle, Check } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { dataSourceService } from '../../services/dataSourceService';
