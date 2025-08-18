@@ -15,8 +15,7 @@ import {
   Cloud,
   CloudOff,
   Copy,
-  Filter,
-  ArrowUpDown
+  Filter
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../services/api';
@@ -151,7 +150,8 @@ export default function MyQueries() {
         instanceMap.set(w.instance.instanceId, {
           id: w.instance.id,
           instanceId: w.instance.instanceId,
-          name: w.instance.instanceName || w.instance.name || 'Unknown'
+          name: w.instance.instanceName || 'Unknown',
+          instanceName: w.instance.instanceName || 'Unknown'
         });
       }
     });
