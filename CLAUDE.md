@@ -486,3 +486,25 @@ npm test
 - `data_sources` and `tags` fields may be returned as strings
 - Always parse these fields when fetching from database
 - Use `json.loads()` to convert string to array/object
+
+### Recent Fixes and Enhancements
+
+#### 2025-08-18 (Auto-Generated Update)
+
+**New Features:**
+- fix: Add null checks for schema properties to prevent runtime errors
+- fix: Add comprehensive error handling for DataSourceDetail page
+- debug: Add logging to troubleshoot DataSourceDetail navigation issue
+- feat: Redesign Data Sources page with AMC-specific columns
+- feat: Implement master-detail pattern for data sources page
+
+**Bug Fixes:**
+- fix: Remove unused imports and variables from DataSourceDetail
+- fix: Clean up DataSourceDetail page to remove empty sections
+- fix: Ensure data_sources and tags fields are properly parsed as arrays
+- fix: Remove non-functional presets feature from data sources page
+- fix: Remove duplicate quick filters and clean up filter sections on data sources page
+
+**Performance Improvements:**
+- perf: Reduce execution status check delays from 45s to 10s
+- perf: Optimize execution fetching to use Supabase first
