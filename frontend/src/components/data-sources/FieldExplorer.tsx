@@ -298,11 +298,14 @@ export function FieldExplorer({ fields, searchQuery = '', onShowExample }: Field
                           <p className="text-sm text-gray-600 line-clamp-2">
                             {field.description}
                           </p>
-                          {field.examples && field.examples.length > 0 && (
+                          {field.examples && Array.isArray(field.examples) && field.examples.length > 0 && (
                             <div className="mt-1">
                               <span className="text-xs text-gray-500">Examples: </span>
                               <span className="text-xs text-gray-600">
-                                {field.examples.slice(0, 2).join(', ')}
+                                {field.examples
+                                  .slice(0, 2)
+                                  .map(ex => typeof ex === 'string' ? ex : JSON.stringify(ex))
+                                  .join(', ')}
                                 {field.examples.length > 2 && '...'}
                               </span>
                             </div>
@@ -312,7 +315,7 @@ export function FieldExplorer({ fields, searchQuery = '', onShowExample }: Field
                         {/* Actions Column */}
                         <td className="px-4 py-3 w-[10%]">
                           <div className="flex items-center gap-0.5">
-                            {field.examples && field.examples.length > 0 && onShowExample && (
+                            {field.examples && Array.isArray(field.examples) && field.examples.length > 0 && onShowExample && (
                               <button
                                 onClick={() => onShowExample(field.field_name)}
                                 className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
