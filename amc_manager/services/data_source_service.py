@@ -441,6 +441,17 @@ class DataSourceService(SupabaseService):
                             schema_data['tags'] = json.loads(schema_data['tags']) if schema_data['tags'] else []
                         if isinstance(schema_data.get('availability'), str):
                             schema_data['availability'] = json.loads(schema_data['availability']) if schema_data['availability'] else None
+                    
+                    # Ensure all array fields are never None
+                    if 'fields' not in result.data or result.data['fields'] is None:
+                        result.data['fields'] = []
+                    if 'examples' not in result.data or result.data['examples'] is None:
+                        result.data['examples'] = []
+                    if 'sections' not in result.data or result.data['sections'] is None:
+                        result.data['sections'] = []
+                    if 'relationships' not in result.data or result.data['relationships'] is None:
+                        result.data['relationships'] = {'from': [], 'to': []}
+                    
                     return result.data
             except Exception as rpc_error:
                 logger.debug(f"RPC function not available, falling back to manual assembly: {rpc_error}")
