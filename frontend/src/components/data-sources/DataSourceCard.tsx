@@ -94,7 +94,7 @@ export const DataSourceCard = memo(({
       title="Click to open details • ⌘/Ctrl+Click to select"
     >
       {/* Data Source Name & Description */}
-      <td className="px-4 py-3">
+      <td className="px-4 py-3 w-[25%]">
         <div className="flex items-start gap-2">
           {selectionMode && (
             <input
@@ -102,26 +102,28 @@ export const DataSourceCard = memo(({
               checked={isChecked}
               onChange={() => onSelect?.(dataSource.id, !isChecked)}
               onClick={handleCheckboxClick}
-              className="h-4 w-4 mt-0.5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+              className="h-4 w-4 mt-0.5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 flex-shrink-0"
             />
           )}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5">
-              <Database className="h-4 w-4 text-gray-400 flex-shrink-0" />
-              <span 
-                className="font-medium text-gray-900 truncate"
-                title={dataSource.name}
-              >
-                {searchQuery ? highlightMatch(dataSource.name, searchQuery) : dataSource.name}
-              </span>
-              {dataSource.is_paid_feature && (
-                <span title="Premium Feature">
-                  <Lock className="h-3 w-3 text-yellow-600 flex-shrink-0" />
-                </span>
-              )}
+          <div className="flex-1 overflow-hidden">
+            <div className="flex items-start gap-1.5">
+              <Database className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <div 
+                  className="font-medium text-gray-900 break-words"
+                  title={dataSource.name}
+                >
+                  {searchQuery ? highlightMatch(dataSource.name, searchQuery) : dataSource.name}
+                </div>
+                {dataSource.is_paid_feature && (
+                  <span title="Premium Feature" className="inline-block mt-1">
+                    <Lock className="h-3 w-3 text-yellow-600" />
+                  </span>
+                )}
+              </div>
             </div>
             {dataSource.description && (
-              <p className="text-xs text-gray-500 truncate mt-0.5" title={dataSource.description}>
+              <p className="text-xs text-gray-500 mt-1 line-clamp-2" title={dataSource.description}>
                 {dataSource.description}
               </p>
             )}
@@ -130,13 +132,13 @@ export const DataSourceCard = memo(({
       </td>
 
       {/* Tables */}
-      <td className="px-4 py-3">
+      <td className="px-4 py-3 w-[20%]">
         {dataSource.data_sources && dataSource.data_sources.length > 0 ? (
           <div className="text-sm">
             {dataSource.data_sources.length <= 2 ? (
               <div className="space-y-0.5">
                 {dataSource.data_sources.map((table, idx) => (
-                  <div key={idx} className="text-gray-600 text-xs font-mono">
+                  <div key={idx} className="text-gray-600 text-xs font-mono break-all">
                     {table}
                   </div>
                 ))}
@@ -157,9 +159,9 @@ export const DataSourceCard = memo(({
                   </span>
                 </button>
                 {showAllTables && (
-                  <div className="mt-1 space-y-0.5">
+                  <div className="mt-1 space-y-0.5 max-h-32 overflow-y-auto">
                     {dataSource.data_sources.map((table, idx) => (
-                      <div key={idx} className="text-gray-600 text-xs font-mono pl-4">
+                      <div key={idx} className="text-gray-600 text-xs font-mono pl-4 break-all">
                         {table}
                       </div>
                     ))}
@@ -174,7 +176,7 @@ export const DataSourceCard = memo(({
       </td>
 
       {/* Fields (Dimensions & Metrics) */}
-      <td className="px-4 py-3">
+      <td className="px-4 py-3 w-[8%]">
         <div className="flex items-center gap-2 text-sm">
           {dataSource.dimension_count !== undefined || dataSource.metric_count !== undefined ? (
             <>
@@ -195,22 +197,22 @@ export const DataSourceCard = memo(({
       </td>
 
       {/* Audience Types */}
-      <td className="px-4 py-3">
+      <td className="px-4 py-3 w-[12%]">
         {dataSource.audience_capabilities && dataSource.audience_capabilities.length > 0 ? (
-          <div className="flex flex-wrap gap-1">
-            {dataSource.audience_capabilities.slice(0, 3).map((capability, idx) => (
-              <span 
+          <div className="space-y-1">
+            {dataSource.audience_capabilities.slice(0, 2).map((capability, idx) => (
+              <div 
                 key={idx} 
-                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs bg-purple-100 text-purple-700"
+                className="text-xs text-purple-700"
                 title={capability}
               >
-                <Users className="h-3 w-3" />
-                <span className="truncate max-w-[100px]">{capability}</span>
-              </span>
+                <Users className="h-3 w-3 inline mr-1" />
+                <span>{capability.length > 20 ? capability.substring(0, 20) + '...' : capability}</span>
+              </div>
             ))}
-            {dataSource.audience_capabilities.length > 3 && (
+            {dataSource.audience_capabilities.length > 2 && (
               <span className="text-xs text-gray-500">
-                +{dataSource.audience_capabilities.length - 3}
+                +{dataSource.audience_capabilities.length - 2} more
               </span>
             )}
           </div>
@@ -220,22 +222,22 @@ export const DataSourceCard = memo(({
       </td>
 
       {/* Joins With */}
-      <td className="px-4 py-3">
+      <td className="px-4 py-3 w-[10%]">
         {dataSource.joinable_sources && dataSource.joinable_sources.length > 0 ? (
-          <div className="flex flex-wrap gap-1">
-            {dataSource.joinable_sources.slice(0, 3).map((source, idx) => (
-              <span 
+          <div className="space-y-0.5">
+            {dataSource.joinable_sources.slice(0, 2).map((source, idx) => (
+              <div 
                 key={idx} 
-                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors cursor-pointer"
+                className="text-xs text-blue-700"
                 title={`Joins with ${source.name}`}
               >
-                <Link2 className="h-3 w-3" />
-                <span className="truncate max-w-[80px]">{source.name}</span>
-              </span>
+                <Link2 className="h-3 w-3 inline mr-1" />
+                <span>{source.name.length > 15 ? source.name.substring(0, 15) + '...' : source.name}</span>
+              </div>
             ))}
-            {dataSource.joinable_sources.length > 3 && (
+            {dataSource.joinable_sources.length > 2 && (
               <span className="text-xs text-gray-500">
-                +{dataSource.joinable_sources.length - 3}
+                +{dataSource.joinable_sources.length - 2}
               </span>
             )}
           </div>
@@ -245,7 +247,7 @@ export const DataSourceCard = memo(({
       </td>
 
       {/* Data Freshness */}
-      <td className="px-4 py-3">
+      <td className="px-4 py-3 w-[10%]">
         <div className="flex items-center gap-1">
           <Clock className={`h-3 w-3 ${getFreshnessColor(dataSource.data_lag_days)}`} />
           <div>
@@ -268,7 +270,7 @@ export const DataSourceCard = memo(({
       </td>
 
       {/* Use Cases (Tags) */}
-      <td className="px-4 py-3">
+      <td className="px-4 py-3 w-[10%]">
         <div className="flex flex-wrap gap-1">
           {dataSource.tags.slice(0, 2).map(tag => (
             <span 
@@ -285,28 +287,28 @@ export const DataSourceCard = memo(({
       </td>
 
       {/* Actions */}
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-1">
+      <td className="px-4 py-3 w-[5%]">
+        <div className="flex items-center gap-0.5">
           <button
             onClick={handlePreviewClick}
-            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+            className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
             title="Preview"
           >
-            <Eye className="h-4 w-4" />
+            <Eye className="h-3.5 w-3.5" />
           </button>
           <button
             onClick={handleExamplesClick}
-            className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+            className="p-1 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
             title="View Examples"
           >
-            <Code className="h-4 w-4" />
+            <Code className="h-3.5 w-3.5" />
           </button>
           <button
             onClick={handleDetailsClick}
-            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+            className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
             title="View Full Details"
           >
-            <ExternalLink className="h-4 w-4" />
+            <ExternalLink className="h-3.5 w-3.5" />
           </button>
         </div>
       </td>
