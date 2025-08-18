@@ -96,19 +96,35 @@ export default function DataSources() {
 
   const hasActiveFilters = search || selectedCategory || selectedTags.length > 0;
 
-  // Single click selects and shows preview
-  const handleDataSourceClick = useCallback((dataSource: DataSource) => {
-    setSelectedDataSourceId(dataSource.id);
-    if (showPreview) {
-      setPreviewDataSource(dataSource);
-    }
-  }, [showPreview]);
+  const handleSelect = useCallback((id: string, selected: boolean) => {
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      if (selected) {
+        newSet.add(id);
+      } else {
+        newSet.delete(id);
+      }
+      return newSet;
+    });
+  }, []);
 
-  // Double click opens full details
-  const handleDataSourceDoubleClick = useCallback((dataSource: DataSource) => {
-    console.log('Double-click navigating to:', `/data-sources/${dataSource.schema_id}`);
-    navigate(`/data-sources/${dataSource.schema_id}`);
-  }, [navigate]);
+  // Single click navigates to details (Cmd/Ctrl+Click for selection only)
+  const handleDataSourceClick = useCallback((dataSource: DataSource, event: React.MouseEvent) => {
+    // If Cmd/Ctrl is held, just select without navigating
+    if (event.metaKey || event.ctrlKey) {
+      setSelectedDataSourceId(dataSource.id);
+      if (showPreview) {
+        setPreviewDataSource(dataSource);
+      }
+      if (selectionMode) {
+        handleSelect(dataSource.id, !selectedIds.has(dataSource.id));
+      }
+    } else {
+      // Navigate on regular click
+      console.log('Navigating to:', `/data-sources/${dataSource.schema_id}`);
+      navigate(`/data-sources/${dataSource.schema_id}`);
+    }
+  }, [navigate, showPreview, selectionMode, selectedIds, handleSelect]);
 
   // Navigate to details (from preview or action button)
   const handleViewDetails = useCallback((dataSource: DataSource) => {
@@ -122,18 +138,6 @@ export default function DataSources() {
     setSelectedDataSourceId(dataSource.id);
     setPreviewDataSource(dataSource);
   }, [showPreview]);
-
-  const handleSelect = useCallback((id: string, selected: boolean) => {
-    setSelectedIds(prev => {
-      const newSet = new Set(prev);
-      if (selected) {
-        newSet.add(id);
-      } else {
-        newSet.delete(id);
-      }
-      return newSet;
-    });
-  }, []);
 
   const handleSelectAll = useCallback(() => {
     setSelectedIds(new Set(dataSources.map(ds => ds.id)));
@@ -177,21 +181,28 @@ export default function DataSources() {
           e.preventDefault();
           const nextIndex = currentIndex < dataSources.length - 1 ? currentIndex + 1 : 0;
           const nextDataSource = dataSources[nextIndex];
-          handleDataSourceClick(nextDataSource);
+          setSelectedDataSourceId(nextDataSource.id);
+          if (showPreview) {
+            setPreviewDataSource(nextDataSource);
+          }
         }
         
         if (e.key === 'ArrowUp') {
           e.preventDefault();
           const prevIndex = currentIndex > 0 ? currentIndex - 1 : dataSources.length - 1;
           const prevDataSource = dataSources[prevIndex];
-          handleDataSourceClick(prevDataSource);
+          setSelectedDataSourceId(prevDataSource.id);
+          if (showPreview) {
+            setPreviewDataSource(prevDataSource);
+          }
         }
         
         // Enter to open details
         if (e.key === 'Enter' && selectedDataSourceId) {
           const selectedDataSource = dataSources.find(ds => ds.id === selectedDataSourceId);
           if (selectedDataSource) {
-            handleDataSourceDoubleClick(selectedDataSource);
+            console.log('Enter key navigating to:', `/data-sources/${selectedDataSource.schema_id}`);
+            navigate(`/data-sources/${selectedDataSource.schema_id}`);
           }
         }
         
@@ -205,7 +216,7 @@ export default function DataSources() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectionMode, handleSelectAll, dataSources, selectedDataSourceId, previewDataSource, handleDataSourceClick, handleDataSourceDoubleClick]);
+  }, [selectionMode, handleSelectAll, dataSources, selectedDataSourceId, previewDataSource, navigate, showPreview]);
 
   // Enable selection mode when items are selected
   useEffect(() => {
@@ -241,7 +252,7 @@ export default function DataSources() {
                   Browse and search Amazon Marketing Cloud schema documentation
                 </p>
                 <p className="mt-0.5 text-xs text-gray-400">
-                  Double-click to open details • ↑↓ arrows to navigate • Space to toggle preview
+                  Click to open details • ⌘/Ctrl+Click to select • ↑↓ arrows to navigate • Space to toggle preview
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -477,8 +488,7 @@ export default function DataSources() {
                       <DataSourceCard
                         key={dataSource.id}
                         dataSource={dataSource}
-                        onClick={() => handleDataSourceClick(dataSource)}
-                        onDoubleClick={() => handleDataSourceDoubleClick(dataSource)}
+                        onClick={(event) => handleDataSourceClick(dataSource, event)}
                         onPreview={() => handlePreview(dataSource)}
                         onViewDetails={() => handleViewDetails(dataSource)}
                         isSelected={selectedDataSourceId === dataSource.id}

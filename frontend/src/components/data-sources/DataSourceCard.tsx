@@ -19,8 +19,7 @@ import { highlightMatch } from './utils';
 
 interface DataSourceCardProps {
   dataSource: DataSource;
-  onClick: () => void;
-  onDoubleClick?: () => void;
+  onClick: (event: React.MouseEvent) => void;
   onPreview?: () => void;
   onViewDetails?: () => void;
   isSelected?: boolean;  // Visual selection highlight
@@ -33,7 +32,6 @@ interface DataSourceCardProps {
 export const DataSourceCard = memo(({ 
   dataSource, 
   onClick,
-  onDoubleClick,
   onPreview,
   onViewDetails,
   isSelected = false,
@@ -91,10 +89,9 @@ export const DataSourceCard = memo(({
         if (selectionMode && e.target instanceof HTMLInputElement && e.target.type === 'checkbox') {
           return;
         }
-        onClick();
+        onClick(e);
       }}
-      onDoubleClick={onDoubleClick}
-      title="Click to select • Double-click to open details"
+      title="Click to open details • ⌘/Ctrl+Click to select"
     >
       {/* Data Source Name & Description */}
       <td className="px-4 py-3">
