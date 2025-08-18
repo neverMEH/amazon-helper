@@ -13,7 +13,8 @@ import {
   ChevronRight,
   Info,
   Copy,
-  Check
+  Check,
+  Code
 } from 'lucide-react';
 import type { SchemaField } from '../../types/dataSource';
 import { dataSourceService } from '../../services/dataSourceService';
@@ -21,9 +22,10 @@ import { dataSourceService } from '../../services/dataSourceService';
 interface FieldExplorerProps {
   fields: SchemaField[];
   searchQuery?: string;
+  onShowExample?: (fieldName: string) => void;
 }
 
-export function FieldExplorer({ fields, searchQuery = '' }: FieldExplorerProps) {
+export function FieldExplorer({ fields, searchQuery = '', onShowExample }: FieldExplorerProps) {
   const [localSearch, setLocalSearch] = useState('');
   const [selectedType, setSelectedType] = useState<'all' | 'Dimension' | 'Metric'>('all');
   const [selectedDataType, setSelectedDataType] = useState<string>('all');
@@ -178,119 +180,164 @@ export function FieldExplorer({ fields, searchQuery = '' }: FieldExplorerProps) 
         </div>
       </div>
 
-      {/* Fields by Category */}
-      <div className="space-y-2">
-        {Object.entries(groupedFields).map(([category, categoryFields]) => {
-          const isExpanded = expandedCategories.has(category) || Object.keys(groupedFields).length === 1;
-          
-          return (
-            <div key={category} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-              {/* Category Header */}
-              <button
-                onClick={() => toggleCategory(category)}
-                className="w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors flex items-center justify-between"
-              >
-                <div className="flex items-center gap-2">
-                  {isExpanded ? (
-                    <ChevronDown className="h-4 w-4 text-gray-500" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-gray-500" />
-                  )}
-                  <h3 className="text-sm font-medium text-gray-700">
-                    {category}
-                  </h3>
-                  <span className="text-xs text-gray-500">
-                    ({categoryFields.length} fields)
-                  </span>
-                </div>
-              </button>
-
-              {/* Fields */}
-              {isExpanded && (
-                <div className="divide-y divide-gray-100">
-                  {categoryFields.map(field => {
+      {/* Fields Table */}
+      <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
+        <table className="w-full table-fixed">
+          <thead className="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th className="w-[5%] px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Type
+              </th>
+              <th className="w-[25%] px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Field Name
+              </th>
+              <th className="w-[15%] px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Data Type
+              </th>
+              <th className="w-[10%] px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Threshold
+              </th>
+              <th className="w-[35%] px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Description
+              </th>
+              <th className="w-[10%] px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {Object.entries(groupedFields).map(([category, categoryFields]) => {
+              const isExpanded = expandedCategories.has(category) || Object.keys(groupedFields).length === 1;
+              
+              return (
+                <>
+                  {/* Category Header Row */}
+                  <tr key={`category-${category}`} className="bg-gray-50">
+                    <td colSpan={6} className="px-4 py-2">
+                      <button
+                        onClick={() => toggleCategory(category)}
+                        className="w-full flex items-center gap-2 text-left"
+                      >
+                        {isExpanded ? (
+                          <ChevronDown className="h-4 w-4 text-gray-500" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 text-gray-500" />
+                        )}
+                        <span className="text-sm font-medium text-gray-700">
+                          {category}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          ({categoryFields.length} fields)
+                        </span>
+                      </button>
+                    </td>
+                  </tr>
+                  
+                  {/* Field Rows */}
+                  {isExpanded && categoryFields.map(field => {
                     const Icon = getDataTypeIcon(field.data_type);
-                    const isShowingDetails = showDetails === field.id;
                     
                     return (
-                      <div key={field.id} className="p-3 hover:bg-gray-50 transition-colors">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className={`px-1.5 py-0.5 text-xs rounded font-medium ${
-                                field.dimension_or_metric === 'Dimension' 
-                                  ? 'bg-blue-100 text-blue-700' 
-                                  : 'bg-green-100 text-green-700'
-                              }`}>
-                                {field.dimension_or_metric === 'Dimension' ? 'D' : 'M'}
-                              </span>
-                              <code className="text-sm font-mono text-gray-900 font-medium">
-                                {field.field_name}
-                              </code>
-                              <button
-                                onClick={() => copyFieldName(field.field_name)}
-                                className="p-1 hover:bg-gray-200 rounded transition-colors"
-                                title="Copy field name"
-                              >
-                                {copiedField === field.field_name ? (
-                                  <Check className="h-3 w-3 text-green-600" />
-                                ) : (
-                                  <Copy className="h-3 w-3 text-gray-400" />
-                                )}
-                              </button>
-                            </div>
-                            
-                            <div className="flex items-center gap-3 text-xs text-gray-500 mb-1">
-                              <span className="flex items-center gap-1">
-                                <Icon className="h-3 w-3" />
-                                {field.data_type}
-                              </span>
-                              <span className={`px-1.5 py-0.5 rounded ${
-                                dataSourceService.getThresholdColor(field.aggregation_threshold)
-                              }`}>
-                                {field.aggregation_threshold}
-                              </span>
-                              {field.is_nullable && (
-                                <span className="text-gray-400">Nullable</span>
+                      <tr key={field.id} className="hover:bg-gray-50">
+                        {/* Type Column */}
+                        <td className="px-4 py-3 w-[5%]">
+                          <span className={`px-1.5 py-0.5 text-xs rounded font-medium ${
+                            field.dimension_or_metric === 'Dimension' 
+                              ? 'bg-blue-100 text-blue-700' 
+                              : 'bg-green-100 text-green-700'
+                          }`}>
+                            {field.dimension_or_metric === 'Dimension' ? 'D' : 'M'}
+                          </span>
+                        </td>
+                        
+                        {/* Field Name Column */}
+                        <td className="px-4 py-3 w-[25%]">
+                          <div className="flex items-center gap-2">
+                            <code className="text-sm font-mono text-gray-900 font-medium break-all">
+                              {field.field_name}
+                            </code>
+                            <button
+                              onClick={() => copyFieldName(field.field_name)}
+                              className="p-1 hover:bg-gray-200 rounded transition-colors flex-shrink-0"
+                              title="Copy field name"
+                            >
+                              {copiedField === field.field_name ? (
+                                <Check className="h-3 w-3 text-green-600" />
+                              ) : (
+                                <Copy className="h-3 w-3 text-gray-400" />
                               )}
-                              {field.is_array && (
-                                <span className="text-gray-400">Array</span>
-                              )}
-                            </div>
-                            
-                            <p className="text-sm text-gray-600">
-                              {field.description}
-                            </p>
-
-                            {/* Examples and Details */}
-                            {field.examples && field.examples.length > 0 && (
-                              <button
-                                onClick={() => setShowDetails(isShowingDetails ? null : field.id)}
-                                className="mt-2 text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
-                              >
-                                <Info className="h-3 w-3" />
-                                {isShowingDetails ? 'Hide' : 'Show'} examples
-                              </button>
-                            )}
-                            
-                            {isShowingDetails && field.examples && (
-                              <div className="mt-2 p-2 bg-gray-50 rounded text-xs">
-                                <span className="font-medium text-gray-700">Examples: </span>
-                                <span className="text-gray-600">
-                                  {field.examples.join(', ')}
-                                </span>
-                              </div>
-                            )}
+                            </button>
                           </div>
-                        </div>
-                      </div>
+                        </td>
+                        
+                        {/* Data Type Column */}
+                        <td className="px-4 py-3 w-[15%]">
+                          <div className="flex items-center gap-1 text-xs text-gray-600">
+                            <Icon className="h-3 w-3" />
+                            <span>{field.data_type}</span>
+                          </div>
+                          {field.is_nullable && (
+                            <span className="text-xs text-gray-400">Nullable</span>
+                          )}
+                          {field.is_array && (
+                            <span className="text-xs text-gray-400 ml-1">Array</span>
+                          )}
+                        </td>
+                        
+                        {/* Threshold Column */}
+                        <td className="px-4 py-3 w-[10%]">
+                          <span className={`px-1.5 py-0.5 text-xs rounded ${
+                            dataSourceService.getThresholdColor(field.aggregation_threshold)
+                          }`}>
+                            {field.aggregation_threshold}
+                          </span>
+                        </td>
+                        
+                        {/* Description Column */}
+                        <td className="px-4 py-3 w-[35%]">
+                          <p className="text-sm text-gray-600 line-clamp-2">
+                            {field.description}
+                          </p>
+                          {field.examples && field.examples.length > 0 && (
+                            <div className="mt-1">
+                              <span className="text-xs text-gray-500">Examples: </span>
+                              <span className="text-xs text-gray-600">
+                                {field.examples.slice(0, 2).join(', ')}
+                                {field.examples.length > 2 && '...'}
+                              </span>
+                            </div>
+                          )}
+                        </td>
+                        
+                        {/* Actions Column */}
+                        <td className="px-4 py-3 w-[10%]">
+                          <div className="flex items-center gap-0.5">
+                            {field.examples && field.examples.length > 0 && onShowExample && (
+                              <button
+                                onClick={() => onShowExample(field.field_name)}
+                                className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                title="View examples using this field"
+                              >
+                                <Code className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setShowDetails(showDetails === field.id ? null : field.id)}
+                              className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                              title="View field details"
+                            >
+                              <Info className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
                     );
                   })}
-                </div>
-              )}
-            </div>
-          );
-        })}
+                </>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
 
       {/* No Results */}

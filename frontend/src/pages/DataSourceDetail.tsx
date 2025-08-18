@@ -95,6 +95,16 @@ export default function DataSourceDetail() {
     }
   };
 
+  // Handle showing examples for a specific field
+  const handleShowFieldExample = (fieldName: string) => {
+    // Navigate to examples section
+    handleSectionClick('examples');
+    
+    // Optionally, you could filter examples to show only those using this field
+    // For now, just navigate to the examples section
+    console.log(`Showing examples for field: ${fieldName}`);
+  };
+
   // Observe active section based on scroll
   useEffect(() => {
     if (!schema) return;
@@ -370,7 +380,11 @@ export default function DataSourceDetail() {
             <section id="schema" className="scroll-mt-24">
               <div className="">
                 <h2 className="text-xl font-semibold mb-4">Schema Fields</h2>
-                <FieldExplorer fields={schema.fields || []} searchQuery={fieldSearch} />
+                <FieldExplorer 
+                  fields={schema.fields || []} 
+                  searchQuery={fieldSearch}
+                  onShowExample={handleShowFieldExample}
+                />
               </div>
             </section>
 
