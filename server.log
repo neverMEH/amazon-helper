@@ -1,33 +1,20 @@
-2025-08-15 22:21:23 - amc_manager.services.token_service - INFO - Using existing FERNET_KEY from environment
-2025-08-15 22:21:23 - amc_manager.services.token_service - INFO - Fernet encryption initialized successfully
-2025-08-15 22:21:23 - amc_manager.services.amc_execution_service - INFO - AMC Execution Service configured to use REAL AMC API
-2025-08-15 22:21:23 - __main__ - INFO - All API routers loaded successfully with rate limiting
-2025-08-15 22:21:23 - __main__ - INFO - Frontend static files mounted
-2025-08-15 22:21:23 - main_supabase - INFO - All API routers loaded successfully with rate limiting
-2025-08-15 22:21:23 - main_supabase - INFO - Frontend static files mounted
-INFO:     Started server process [1521054]
+2025-08-18 23:23:38 - amc_manager.services.token_service - INFO - Using existing FERNET_KEY from environment
+2025-08-18 23:23:38 - amc_manager.services.token_service - INFO - Fernet encryption initialized successfully
+2025-08-18 23:23:38 - amc_manager.services.amc_execution_service - INFO - AMC Execution Service configured to use REAL AMC API
+2025-08-18 23:23:38 - __main__ - INFO - All API routers loaded successfully with rate limiting
+2025-08-18 23:23:38 - __main__ - INFO - Frontend static files mounted
+2025-08-18 23:23:38 - main_supabase - INFO - All API routers loaded successfully with rate limiting
+2025-08-18 23:23:38 - main_supabase - INFO - Frontend static files mounted
+INFO:     Started server process [1652372]
 INFO:     Waiting for application startup.
-2025-08-15 22:21:23 - main_supabase - INFO - Starting Recom AMP application with Supabase...
-2025-08-15 22:21:23 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-15 22:21:23 - main_supabase - INFO - ✓ Supabase connection successful
-2025-08-15 22:21:23 - amc_manager.services.token_refresh_service - INFO - Token refresh service started
-2025-08-15 22:21:23 - main_supabase - INFO - ✓ Token refresh service started
-2025-08-15 22:21:23 - main_supabase - INFO - ✓ Execution status poller started
-2025-08-15 22:21:23 - amc_manager.services.token_refresh_service - INFO - Added user fe841586-7807-48b1-8808-02877834fce0 to token refresh tracking
-2025-08-15 22:21:23 - main_supabase - INFO - ✓ Added 1 users with tokens to refresh tracking (out of 15 total)
-2025-08-15 22:21:23 - amc_manager.services.token_refresh_service - INFO - Starting token refresh service (interval: 600s)
-2025-08-15 22:21:23 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
+2025-08-18 23:23:38 - main_supabase - INFO - Starting Recom AMP application with Supabase...
+2025-08-18 23:23:39 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-08-18 23:23:39 - main_supabase - INFO - ✓ Supabase connection successful
+2025-08-18 23:23:39 - amc_manager.services.token_refresh_service - INFO - Token refresh service started
+2025-08-18 23:23:39 - main_supabase - INFO - ✓ Token refresh service started
+2025-08-18 23:23:39 - main_supabase - INFO - ✓ Execution status poller started
+2025-08-18 23:23:39 - main_supabase - INFO - ✓ Added 0 users with tokens to refresh tracking (out of 15 total)
+2025-08-18 23:23:39 - amc_manager.services.token_refresh_service - INFO - Starting token refresh service (interval: 600s)
 INFO:     Application startup complete.
-2025-08-15 22:21:23 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-15 22:21:23 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-15 22:21:23 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-15 22:21:24 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 1 successful, 0 failed
 INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     127.0.0.1:55022 - "GET /api/health HTTP/1.1" 200 OK
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-2025-08-15 22:24:32 - main_supabase - INFO - Shutting down Recom AMP application...
-2025-08-15 22:24:32 - amc_manager.services.token_refresh_service - INFO - Token refresh loop cancelled
-2025-08-15 22:24:32 - amc_manager.services.token_refresh_service - INFO - Token refresh service stopped
-INFO:     Application shutdown complete.
-INFO:     Finished server process [1521054]
+INFO:     127.0.0.1:52770 - "GET /api/health HTTP/1.1" 200 OK

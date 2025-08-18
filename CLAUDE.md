@@ -30,6 +30,8 @@ pytest tests/test_api_auth.py::test_login_success  # Specific test
 python -m pytest -v                          # Verbose output
 pytest tests/integration/                    # Integration tests only
 pytest tests/supabase/                       # Supabase tests only
+pytest tests/unit/                           # Unit tests
+pytest tests/amc/                            # AMC API tests (requires credentials)
 
 # Code quality
 black amc_manager/                           # Format
@@ -119,12 +121,13 @@ src/
 ├── pages/                      # Route components
 │   ├── QueryBuilder.tsx        # 3-step wizard with test execution
 │   ├── DataSources.tsx         # List view with side panel preview
-│   └── DataSourceDetail.tsx    # Enhanced with TOC and field explorer
+│   └── DataSourceDetail.tsx    # Enhanced with TOC, field explorer, and quick actions
 ├── components/
 │   ├── query-builder/          # Wizard steps
 │   ├── data-sources/           # Data source UI components
 │   │   ├── TableOfContents.tsx # Scroll-synced navigation
-│   │   └── FieldExplorer.tsx   # Advanced field browser
+│   │   ├── FieldExplorer.tsx   # Advanced field browser
+│   │   └── DataSourcePreview.tsx # Preview panel with quick actions
 │   ├── workflows/              # Execution monitoring
 │   ├── executions/             # Error display and results
 │   └── common/                 # Shared components
@@ -256,6 +259,27 @@ if isinstance(schema.get('tags'), str):
     schema['tags'] = json.loads(schema['tags'])
 ```
 
+### Quick Actions Pattern
+```typescript
+// Data Source Quick Actions (Detail Page & Preview Panel)
+// 1. Copy Schema ID - Copies to clipboard with confirmation
+// 2. Export Documentation - Downloads as Markdown file
+// 3. Open in Query Builder - Creates template with schema context
+
+// Implementation in DataSourceDetail.tsx:
+const copySchemaId = async () => {
+  await navigator.clipboard.writeText(schema.schema_id);
+  setCopiedSchemaId(true);
+  setTimeout(() => setCopiedSchemaId(false), 2000);
+};
+
+const exportDocumentation = () => {
+  // Generate markdown with metadata, fields, and examples
+  const blob = new Blob([markdown], { type: 'text/markdown' });
+  // Trigger download
+};
+```
+
 ## Database Schema
 
 Key Supabase tables and their relationships:
@@ -308,6 +332,7 @@ amc_schema_fields
 ├── field_name
 ├── data_type
 ├── dimension_or_metric            -- 'Dimension' or 'Metric'
+├── examples (jsonb)               -- Array that may contain strings or objects
 └── description
 
 query_templates                   -- Pre-built query library
@@ -397,6 +422,18 @@ return (
 </div>
 ```
 
+### Field Examples Array Handling
+```typescript
+// amc_schema_fields.examples may be null, array of strings, or array of objects
+// Always check type before using array methods:
+{field.examples && Array.isArray(field.examples) && field.examples.length > 0 && (
+  field.examples
+    .slice(0, 2)
+    .map(ex => typeof ex === 'string' ? ex : JSON.stringify(ex))
+    .join(', ')
+)}
+```
+
 ## Background Services
 
 The application runs two critical background services:
@@ -435,32 +472,6 @@ docker run -p 8001:8001 --env-file .env recomamp
 - Single container serves both frontend (`/frontend/dist`) and backend
 - Use `./prepare_railway.sh` for deployment preparation
 
-## Testing Approach
-
-### Backend Tests
-```bash
-# Unit tests for individual services
-pytest tests/unit/
-
-# Integration tests with database
-pytest tests/integration/
-
-# AMC API tests (requires credentials)
-pytest tests/amc/
-
-# Supabase connection tests
-pytest tests/supabase/
-```
-
-### Frontend Tests
-```bash
-# E2E tests with Playwright
-npx playwright test
-
-# Component testing (if implemented)
-npm test
-```
-
 ## Known Issues & Workarounds
 
 ### Token Encryption
@@ -486,3 +497,8 @@ npm test
 - `data_sources` and `tags` fields may be returned as strings
 - Always parse these fields when fetching from database
 - Use `json.loads()` to convert string to array/object
+
+### TypeScript Unused Imports
+- When removing UI elements, also remove related props and imports
+- Common issue: onPreview, onViewDetails props after removing action buttons
+- Solution: Remove from both component interface and usage
