@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { X, Database, Tag, Lock, Globe, Table, Code, ExternalLink, TrendingUp, Hash, Loader2, AlertCircle, Link2, Users, Clock, GitBranch, Filter } from 'lucide-react';
+import { X, Database, Tag, Lock, Globe, Table, Code, ExternalLink, TrendingUp, Hash, Loader2, AlertCircle, Link2, Users, Clock, GitBranch, Filter, Copy, Download, PlayCircle, Check } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { dataSourceService } from '../../services/dataSourceService';
 import type { DataSource, SchemaField } from '../../types/dataSource';
 import { ErrorBoundary } from '../common/ErrorBoundary';
@@ -12,7 +13,9 @@ interface DataSourcePreviewProps {
 }
 
 function DataSourcePreviewContent({ dataSource, onClose, onOpenDetail }: DataSourcePreviewProps) {
+  const navigate = useNavigate();
   const [topFields, setTopFields] = useState<SchemaField[]>([]);
+  const [copiedSchemaId, setCopiedSchemaId] = useState(false);
 
   // Fetch fields when a data source is selected
   const { data: fields, isLoading: fieldsLoading, error: fieldsError } = useQuery({
@@ -46,6 +49,31 @@ function DataSourcePreviewContent({ dataSource, onClose, onOpenDetail }: DataSou
       setTopFields(fields.slice(0, 10));
     }
   }, [fields]);
+
+  const copySchemaId = async () => {
+    if (!dataSource) return;
+    try {
+      await navigator.clipboard.writeText(dataSource.schema_id);
+      setCopiedSchemaId(true);
+      setTimeout(() => setCopiedSchemaId(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy schema ID:', err);
+    }
+  };
+
+  const navigateToQueryBuilder = () => {
+    if (!dataSource) return;
+    
+    // Create a basic template for this data source
+    sessionStorage.setItem('queryBuilderDraft', JSON.stringify({
+      name: `New ${dataSource.name} Query`,
+      description: `Query for ${dataSource.name}`,
+      sql_query: `-- Query for ${dataSource.name}\n-- Available tables: ${dataSource.data_sources?.join(', ') || ''}\n\nSELECT\n  *\nFROM ${dataSource.data_sources?.[0] || 'table_name'}\nLIMIT 100`,
+      parameters: {},
+      fromDataSource: dataSource.schema_id
+    }));
+    navigate('/query-builder/new');
+  };
 
   if (!dataSource) {
     return (
@@ -316,7 +344,37 @@ function DataSourcePreviewContent({ dataSource, onClose, onOpenDetail }: DataSou
       </div>
 
       {/* Footer */}
-      <div className="px-4 py-3 border-t bg-gray-50">
+      <div className="px-4 py-3 border-t bg-gray-50 space-y-2">
+        {/* Quick Actions */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={copySchemaId}
+            className="px-3 py-1.5 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-100 border border-gray-300 rounded transition-colors flex items-center justify-center gap-1"
+            title="Copy schema ID"
+          >
+            {copiedSchemaId ? (
+              <>
+                <Check className="h-3 w-3 text-green-600" />
+                <span>Copied!</span>
+              </>
+            ) : (
+              <>
+                <Copy className="h-3 w-3" />
+                <span>Copy ID</span>
+              </>
+            )}
+          </button>
+          <button
+            onClick={navigateToQueryBuilder}
+            className="px-3 py-1.5 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-100 border border-gray-300 rounded transition-colors flex items-center justify-center gap-1"
+            title="Open in Query Builder"
+          >
+            <PlayCircle className="h-3 w-3" />
+            <span>Query Builder</span>
+          </button>
+        </div>
+        
+        {/* View Full Details Button */}
         <button
           onClick={() => onOpenDetail(dataSource)}
           className="w-full px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"

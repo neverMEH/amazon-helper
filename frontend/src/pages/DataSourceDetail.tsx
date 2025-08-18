@@ -30,6 +30,7 @@ export default function DataSourceDetail() {
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState('overview');
   const [copiedExample, setCopiedExample] = useState<string | null>(null);
+  const [copiedSchemaId, setCopiedSchemaId] = useState(false);
   const [fieldSearch] = useState('');
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -143,15 +144,90 @@ export default function DataSourceDetail() {
     }
   };
 
-  const navigateToQueryBuilder = (example: QueryExample) => {
-    // Store the example in session storage
-    sessionStorage.setItem('queryBuilderDraft', JSON.stringify({
-      name: example.title,
-      description: example.description,
-      sql_query: example.sql_query,
-      parameters: example.parameters || {},
-      fromDataSource: schema?.schema.schema_id
-    }));
+  const copySchemaId = async () => {
+    try {
+      if (schema?.schema.schema_id) {
+        await navigator.clipboard.writeText(schema.schema.schema_id);
+        setCopiedSchemaId(true);
+        setTimeout(() => setCopiedSchemaId(false), 2000);
+      }
+    } catch (err) {
+      console.error('Failed to copy schema ID:', err);
+    }
+  };
+
+  const exportDocumentation = () => {
+    if (!schema) return;
+    
+    // Create markdown documentation
+    let markdown = `# ${schema.schema.name}\n\n`;
+    markdown += `## Overview\n${schema.schema.description}\n\n`;
+    
+    // Add metadata
+    markdown += `### Metadata\n`;
+    markdown += `- **Schema ID**: ${schema.schema.schema_id}\n`;
+    markdown += `- **Category**: ${schema.schema.category}\n`;
+    markdown += `- **Version**: ${schema.schema.version}\n`;
+    markdown += `- **AMC Tables**: ${schema.schema.data_sources?.join(', ') || 'N/A'}\n`;
+    markdown += `- **Tags**: ${schema.schema.tags?.join(', ') || 'N/A'}\n\n`;
+    
+    // Add fields
+    if (schema.fields && schema.fields.length > 0) {
+      markdown += `## Fields (${schema.fields.length})\n\n`;
+      markdown += `| Field Name | Type | Dimension/Metric | Description |\n`;
+      markdown += `|------------|------|------------------|-------------|\n`;
+      schema.fields.forEach(field => {
+        markdown += `| ${field.field_name} | ${field.data_type} | ${field.dimension_or_metric} | ${field.description} |\n`;
+      });
+      markdown += '\n';
+    }
+    
+    // Add examples
+    if (schema.examples && schema.examples.length > 0) {
+      markdown += `## Query Examples\n\n`;
+      schema.examples.forEach(example => {
+        markdown += `### ${example.title}\n`;
+        if (example.description) {
+          markdown += `${example.description}\n\n`;
+        }
+        markdown += '```sql\n';
+        markdown += example.sql_query;
+        markdown += '\n```\n\n';
+      });
+    }
+    
+    // Create and download the file
+    const blob = new Blob([markdown], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${schema.schema.schema_id}-documentation.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const navigateToQueryBuilder = (example?: QueryExample) => {
+    if (example) {
+      // Store the example in session storage
+      sessionStorage.setItem('queryBuilderDraft', JSON.stringify({
+        name: example.title,
+        description: example.description,
+        sql_query: example.sql_query,
+        parameters: example.parameters || {},
+        fromDataSource: schema?.schema.schema_id
+      }));
+    } else if (schema) {
+      // Navigate with just the schema context
+      sessionStorage.setItem('queryBuilderDraft', JSON.stringify({
+        name: `New ${schema.schema.name} Query`,
+        description: `Query for ${schema.schema.name}`,
+        sql_query: `-- Query for ${schema.schema.name}\n-- Available tables: ${schema.schema.data_sources?.join(', ') || ''}\n\nSELECT\n  *\nFROM ${schema.schema.data_sources?.[0] || 'table_name'}\nLIMIT 100`,
+        parameters: {},
+        fromDataSource: schema.schema.schema_id
+      }));
+    }
     navigate('/query-builder/new');
   };
 
@@ -278,19 +354,34 @@ export default function DataSourceDetail() {
               </div>
               
               <div className="flex items-center gap-2">
-                <button className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2">
-                  <Download className="h-4 w-4" />
-                  Export
+                <button 
+                  onClick={copySchemaId}
+                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2"
+                  title="Copy schema ID to clipboard"
+                >
+                  {copiedSchemaId ? (
+                    <Check className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                  {copiedSchemaId ? 'Copied!' : 'Copy Schema ID'}
                 </button>
-                {(schema.examples?.length || 0) > 0 && (
-                  <button
-                    onClick={() => navigateToQueryBuilder(schema.examples[0])}
-                    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-                  >
-                    <PlayCircle className="h-4 w-4" />
-                    Open in Query Builder
-                  </button>
-                )}
+                <button 
+                  onClick={exportDocumentation}
+                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2"
+                  title="Export documentation as Markdown"
+                >
+                  <Download className="h-4 w-4" />
+                  Export Docs
+                </button>
+                <button
+                  onClick={() => navigateToQueryBuilder(schema.examples?.[0])}
+                  className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                  title="Open in Query Builder with example or template"
+                >
+                  <PlayCircle className="h-4 w-4" />
+                  Open in Query Builder
+                </button>
               </div>
             </div>
 
