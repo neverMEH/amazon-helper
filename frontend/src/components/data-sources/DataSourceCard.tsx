@@ -5,14 +5,11 @@ import {
   Lock,
   Hash,
   TrendingUp,
-  Eye,
-  ExternalLink,
   ChevronDown,
   ChevronRight,
   Clock,
   Users,
-  Link2,
-  Code
+  Link2
 } from 'lucide-react';
 import type { DataSource } from '../../types/dataSource';
 import { highlightMatch } from './utils';
@@ -47,22 +44,6 @@ export const DataSourceCard = memo(({
     onSelect?.(dataSource.id, !isChecked);
   };
 
-  const handlePreviewClick = (e: MouseEvent) => {
-    e.stopPropagation();
-    onPreview?.();
-  };
-
-  const handleDetailsClick = (e: MouseEvent) => {
-    e.stopPropagation();
-    console.log('DataSourceCard - Viewing details for:', dataSource.name, 'with schema_id:', dataSource.schema_id);
-    onViewDetails?.();
-  };
-
-  const handleExamplesClick = (e: MouseEvent) => {
-    e.stopPropagation();
-    // Navigate to examples or show examples modal
-    onViewDetails?.();
-  };
 
   const toggleTables = (e: MouseEvent) => {
     e.stopPropagation();
@@ -270,7 +251,7 @@ export const DataSourceCard = memo(({
       </td>
 
       {/* Use Cases (Tags) */}
-      <td className="px-4 py-3 w-[10%]">
+      <td className="px-4 py-3 w-[15%]">
         <div className="flex flex-wrap gap-1">
           {dataSource.tags.slice(0, 2).map(tag => (
             <span 
@@ -283,33 +264,6 @@ export const DataSourceCard = memo(({
           {dataSource.tags.length > 2 && (
             <span className="text-xs text-gray-400">+{dataSource.tags.length - 2}</span>
           )}
-        </div>
-      </td>
-
-      {/* Actions */}
-      <td className="px-4 py-3 w-[5%]">
-        <div className="flex items-center gap-0.5">
-          <button
-            onClick={handlePreviewClick}
-            className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-            title="Preview"
-          >
-            <Eye className="h-3.5 w-3.5" />
-          </button>
-          <button
-            onClick={handleExamplesClick}
-            className="p-1 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
-            title="View Examples"
-          >
-            <Code className="h-3.5 w-3.5" />
-          </button>
-          <button
-            onClick={handleDetailsClick}
-            className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-            title="View Full Details"
-          >
-            <ExternalLink className="h-3.5 w-3.5" />
-          </button>
         </div>
       </td>
     </tr>
