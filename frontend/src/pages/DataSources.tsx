@@ -131,14 +131,6 @@ export default function DataSources() {
     navigate(`/data-sources/${dataSource.schema_id}`);
   }, [navigate]);
 
-  const handlePreview = useCallback((dataSource: DataSource) => {
-    if (!showPreview) {
-      setShowPreview(true);
-    }
-    setSelectedDataSourceId(dataSource.id);
-    setPreviewDataSource(dataSource);
-  }, [showPreview]);
-
   const handleSelectAll = useCallback(() => {
     setSelectedIds(new Set(dataSources.map(ds => ds.id)));
   }, [dataSources]);
