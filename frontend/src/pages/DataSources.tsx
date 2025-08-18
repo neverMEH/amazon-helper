@@ -486,8 +486,6 @@ export default function DataSources() {
                         key={dataSource.id}
                         dataSource={dataSource}
                         onClick={(event) => handleDataSourceClick(dataSource, event)}
-                        onPreview={() => handlePreview(dataSource)}
-                        onViewDetails={() => handleViewDetails(dataSource)}
                         isSelected={selectedDataSourceId === dataSource.id}
                         isChecked={selectedIds.has(dataSource.id)}
                         searchQuery={search}

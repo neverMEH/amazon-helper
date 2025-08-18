@@ -17,8 +17,6 @@ import { highlightMatch } from './utils';
 interface DataSourceCardProps {
   dataSource: DataSource;
   onClick: (event: React.MouseEvent) => void;
-  onPreview?: () => void;
-  onViewDetails?: () => void;
   isSelected?: boolean;  // Visual selection highlight
   isChecked?: boolean;    // Checkbox selection for bulk actions
   searchQuery?: string;
@@ -29,8 +27,6 @@ interface DataSourceCardProps {
 export const DataSourceCard = memo(({ 
   dataSource, 
   onClick,
-  onPreview,
-  onViewDetails,
   isSelected = false,
   isChecked = false,
   searchQuery = '',
