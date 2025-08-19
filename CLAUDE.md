@@ -809,7 +809,63 @@ tail -f server.log
 - Background refetching
 - DevTools for debugging
 
-## Recent UI Improvements
+## Recent Feature Additions
+
+### Workflow Scheduling System (2025-08-19)
+Complete scheduling implementation with flexible recurring intervals and comprehensive execution tracking.
+
+#### New Files Created
+**Backend Services:**
+- `amc_manager/services/enhanced_schedule_service.py` - Core scheduling with presets
+- `amc_manager/services/schedule_executor_service.py` - Background execution service
+- `amc_manager/services/schedule_history_service.py` - History and metrics tracking
+- `amc_manager/api/supabase/schedule_endpoints.py` - REST API endpoints
+
+**Frontend Components:**
+- `frontend/src/pages/ScheduleManager.tsx` - Schedule management dashboard
+- `frontend/src/components/schedules/ScheduleWizard.tsx` - 4-step creation wizard
+- `frontend/src/components/schedules/ScheduleHistory.tsx` - Execution history viewer
+- `frontend/src/services/scheduleService.ts` - API client service
+- `frontend/src/types/schedule.ts` - TypeScript definitions
+
+**Database Migration:**
+- `apply_schedule_migrations.sql` - Schema changes for scheduling
+
+#### Key Features
+- **Scheduling Intervals**: Daily, 3/7/14/30/60/90 days, weekly, monthly, business days
+- **Background Executor**: Runs every minute checking for due schedules
+- **Auto Token Refresh**: Ensures valid tokens before execution
+- **Execution History**: Complete tracking with metrics and cost analysis
+- **Failure Handling**: Auto-pause after consecutive failures
+- **Timezone Support**: Full timezone-aware scheduling with date-fns-tz
+
+#### Important Implementation Details
+1. **Workflow ID Handling**: 
+   - Database stores UUID (`workflows.id`)
+   - API accepts string ID (`workflows.workflow_id` like "wf_xxx")
+   - Service converts between formats automatically
+
+2. **DateTime Serialization**:
+   - All datetime objects must be converted to ISO strings
+   - Use `.isoformat()` before database operations
+   - PostgreSQL expects string format, not Python datetime
+
+3. **Service Architecture**:
+   - All schedule services inherit from `DatabaseService`
+   - Use `self.client` not `self.db` for database access
+   - Services are synchronous (no async/await with Supabase client)
+
+4. **API Response Format**:
+   - Return raw data with relations included
+   - Don't use strict Pydantic models that strip nested data
+   - Frontend expects `schedule.workflows.name` structure
+
+#### Common Issues and Solutions
+- **"exec is a keyword"**: Use `execution` instead of `exec` as variable name
+- **422 Validation Errors**: Check for conflicting endpoints in workflows.py
+- **UUID Conversion**: Always convert workflow_id strings to UUIDs for database
+- **JSON Serialization**: Convert all datetime objects to ISO strings
+- **Unnamed Workflow**: Ensure workflows relation is included in responses
 
 ### Query Builder Enhancements (2025-08-19)
 - **Full Width Layout**: QueryReviewStep now uses full viewport width
