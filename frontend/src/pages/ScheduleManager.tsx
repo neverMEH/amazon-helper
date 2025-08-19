@@ -375,10 +375,10 @@ const ScheduleManager: React.FC = () => {
             setShowDetailModal(false);
             setSelectedSchedule(null);
           }}
-          onUpdate={(updatedSchedule) => {
+          onUpdate={() => {
             queryClient.invalidateQueries({ queryKey: ['schedules'] });
           }}
-          onDelete={(scheduleId) => {
+          onDelete={() => {
             setShowDetailModal(false);
             setSelectedSchedule(null);
             queryClient.invalidateQueries({ queryKey: ['schedules'] });

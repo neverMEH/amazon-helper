@@ -1,21 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   X,
-  Calendar,
-  Clock,
-  Settings,
-  Activity,
-  DollarSign,
-  Bell,
-  AlertTriangle,
   Save,
   Edit2,
   Power,
   Play,
   Trash2,
   CheckCircle,
-  XCircle,
-  RefreshCw
+  XCircle
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -53,7 +45,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
     is_active: schedule.is_active,
     auto_pause_on_failure: schedule.auto_pause_on_failure || false,
     failure_threshold: schedule.failure_threshold || 3,
-    cost_limit: schedule.cost_limit || null
+    cost_limit: schedule.cost_limit || undefined
   });
 
   // Update mutation
@@ -368,7 +360,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
           )}
 
           {activeTab === 'history' && (
-            <ScheduleHistory schedule={schedule} />
+            <ScheduleHistory schedule={schedule} onClose={() => {}} />
           )}
 
           {activeTab === 'settings' && (
@@ -484,7 +476,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
                     value={editData.cost_limit || ''}
                     onChange={(e) => setEditData({
                       ...editData,
-                      cost_limit: e.target.value ? parseFloat(e.target.value) : null
+                      cost_limit: e.target.value ? parseFloat(e.target.value) : undefined
                     })}
                     disabled={!isEditing}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
@@ -552,7 +544,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
                       is_active: schedule.is_active,
                       auto_pause_on_failure: schedule.auto_pause_on_failure || false,
                       failure_threshold: schedule.failure_threshold || 3,
-                      cost_limit: schedule.cost_limit || null
+                      cost_limit: schedule.cost_limit || undefined
                     });
                   }}
                   className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
