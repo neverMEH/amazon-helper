@@ -21,6 +21,7 @@ import { scheduleService } from '../services/scheduleService';
 import type { Schedule } from '../types/schedule';
 import ScheduleWizard from '../components/schedules/ScheduleWizard';
 import ScheduleHistory from '../components/schedules/ScheduleHistory';
+import ScheduleDetailModal from '../components/schedules/ScheduleDetailModal';
 
 type ViewMode = 'grid' | 'list' | 'calendar';
 
@@ -30,6 +31,7 @@ const ScheduleManager: React.FC = () => {
   const [showCreateWizard, setShowCreateWizard] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [filterActive, setFilterActive] = useState<boolean | null>(null);
 
   // Fetch schedules
@@ -102,7 +104,10 @@ const ScheduleManager: React.FC = () => {
         <div
           key={schedule.id}
           className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
-          onClick={() => setSelectedSchedule(schedule)}
+          onClick={() => {
+            setSelectedSchedule(schedule);
+            setShowDetailModal(true);
+          }}
         >
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center">
@@ -199,7 +204,10 @@ const ScheduleManager: React.FC = () => {
             <tr
               key={schedule.id}
               className="hover:bg-gray-50 cursor-pointer"
-              onClick={() => setSelectedSchedule(schedule)}
+              onClick={() => {
+                setSelectedSchedule(schedule);
+                setShowDetailModal(true);
+              }}
             >
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="flex items-center">
@@ -356,6 +364,25 @@ const ScheduleManager: React.FC = () => {
           workflowName=""
           onComplete={() => setShowCreateWizard(false)}
           onCancel={() => setShowCreateWizard(false)}
+        />
+      )}
+
+      {/* Schedule Detail Modal */}
+      {selectedSchedule && showDetailModal && (
+        <ScheduleDetailModal
+          schedule={selectedSchedule}
+          onClose={() => {
+            setShowDetailModal(false);
+            setSelectedSchedule(null);
+          }}
+          onUpdate={(updatedSchedule) => {
+            queryClient.invalidateQueries({ queryKey: ['schedules'] });
+          }}
+          onDelete={(scheduleId) => {
+            setShowDetailModal(false);
+            setSelectedSchedule(null);
+            queryClient.invalidateQueries({ queryKey: ['schedules'] });
+          }}
         />
       )}
 
