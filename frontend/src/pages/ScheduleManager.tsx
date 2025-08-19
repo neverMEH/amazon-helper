@@ -9,10 +9,8 @@ import {
   Play,
   Trash2,
   ChevronRight,
-  AlertCircle,
   CheckCircle,
   XCircle,
-  Filter,
   Grid3x3,
   List,
   CalendarDays

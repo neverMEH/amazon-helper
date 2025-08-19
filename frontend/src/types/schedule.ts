@@ -164,4 +164,6 @@ export interface ScheduleConfig {
     onFailure: boolean;
     email?: string;
   };
+  autoPauseOnFailure?: boolean;
+  costLimit?: number;
 }

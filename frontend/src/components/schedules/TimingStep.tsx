@@ -52,7 +52,7 @@ const TimingStep: React.FC<TimingStepProps> = ({ config, onChange, onNext, onBac
     // Preview next runs
     const calculateNextRuns = () => {
       const runs: string[] = [];
-      const cron = scheduleService.generateCronExpression(config);
+      scheduleService.generateCronExpression(config);
       
       // Simple preview calculation
       const now = new Date();

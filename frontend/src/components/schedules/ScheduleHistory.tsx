@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { scheduleService } from '../../services/scheduleService';
-import type { Schedule, ScheduleRun, ScheduleMetrics } from '../../types/schedule';
+import type { Schedule, ScheduleRun } from '../../types/schedule';
 
 interface ScheduleHistoryProps {
   schedule: Schedule;
@@ -26,6 +26,7 @@ type ViewMode = 'timeline' | 'table' | 'metrics';
 const ScheduleHistory: React.FC<ScheduleHistoryProps> = ({ schedule, onClose }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('timeline');
   const [selectedRun, setSelectedRun] = useState<ScheduleRun | null>(null);
+  console.log(selectedRun); // TODO: Implement detailed run view
 
   // Fetch schedule runs
   const { data: runs, isLoading: runsLoading } = useQuery({

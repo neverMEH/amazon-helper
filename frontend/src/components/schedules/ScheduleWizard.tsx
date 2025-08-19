@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { X, ChevronLeft, ChevronRight, Calendar, Clock, Bell, CheckCircle } from 'lucide-react';
-import { format } from 'date-fns';
+import { X, ChevronRight, Calendar, Clock, Bell, CheckCircle } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { scheduleService } from '../../services/scheduleService';

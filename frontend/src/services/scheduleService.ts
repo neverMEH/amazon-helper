@@ -231,7 +231,7 @@ class ScheduleService {
   /**
    * Calculate next run time locally (for UI preview)
    */
-  calculateNextRun(cron: string, timezone: string = 'UTC'): Date {
+  calculateNextRun(_cron: string, _timezone: string = 'UTC'): Date {
     // This is a simplified calculation for UI preview
     // The actual calculation happens on the backend
     const now = new Date();

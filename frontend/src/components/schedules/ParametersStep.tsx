@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Mail, Webhook, DollarSign, AlertTriangle } from 'lucide-react';
+import { Bell, Mail, DollarSign, AlertTriangle } from 'lucide-react';
 import type { ScheduleConfig } from '../../types/schedule';
 
 interface ParametersStepProps {
@@ -20,15 +20,6 @@ const ParametersStep: React.FC<ParametersStepProps> = ({ config, onChange, onNex
     });
   };
 
-  const handleParameterChange = (key: string, value: any) => {
-    onChange({
-      ...config,
-      parameters: {
-        ...config.parameters,
-        [key]: value,
-      },
-    });
-  };
 
   const getLookbackDays = () => {
     if (config.type === 'interval' && config.intervalDays) {
@@ -79,7 +70,7 @@ const ParametersStep: React.FC<ParametersStepProps> = ({ config, onChange, onNex
               Custom Parameters (Optional)
             </label>
             <textarea
-              placeholder='{"aggregation": "daily", "filter": "campaign_type=\'SD\'"}'
+              placeholder='{"aggregation": "daily", "filter": "campaign_type=SD"}'
               value={JSON.stringify(config.parameters, null, 2)}
               onChange={(e) => {
                 try {
