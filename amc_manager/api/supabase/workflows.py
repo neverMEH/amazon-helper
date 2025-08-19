@@ -85,10 +85,10 @@ def list_workflows(
                               reverse=True)
             
             # Take the most recent execution for each workflow
-            for exec in executions:
-                wf_uuid = exec['workflow_id']
+            for execution in executions:
+                wf_uuid = execution['workflow_id']
                 if wf_uuid not in last_executions:
-                    last_executions[wf_uuid] = exec['started_at']
+                    last_executions[wf_uuid] = execution['started_at']
         
         # Filter by instance if provided
         if instance_id:
