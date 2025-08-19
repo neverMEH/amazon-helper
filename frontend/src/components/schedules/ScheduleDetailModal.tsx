@@ -33,6 +33,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState<'details' | 'history' | 'settings'>('details');
+  const [showHistory, setShowHistory] = useState(false);
   const [editData, setEditData] = useState({
     cron_expression: schedule.cron_expression,
     timezone: schedule.timezone,
@@ -360,7 +361,20 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
           )}
 
           {activeTab === 'history' && (
-            <ScheduleHistory schedule={schedule} onClose={() => {}} />
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 className="text-lg font-medium mb-2">Execution History</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  View detailed execution history and metrics for this schedule.
+                </p>
+                <button
+                  onClick={() => setShowHistory(true)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  View Full History
+                </button>
+              </div>
+            </div>
           )}
 
           {activeTab === 'settings' && (
@@ -572,6 +586,14 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Schedule History Modal - separate overlay */}
+      {showHistory && (
+        <ScheduleHistory
+          schedule={schedule}
+          onClose={() => setShowHistory(false)}
+        />
+      )}
     </div>
   );
 };
