@@ -94,7 +94,7 @@ class EnhancedScheduleService(DatabaseService):
                 'created_at': datetime.utcnow()
             }
             
-            result = await self.db.table('workflow_schedules').insert(schedule_data).execute()
+            result = self.db.table('workflow_schedules').insert(schedule_data).execute()
             
             if result.data:
                 logger.info(f"Created schedule {schedule_data['schedule_id']} for workflow {workflow_id}")
@@ -152,7 +152,7 @@ class EnhancedScheduleService(DatabaseService):
                 'created_at': datetime.utcnow()
             }
             
-            result = await self.db.table('workflow_schedules').insert(schedule_data).execute()
+            result = self.db.table('workflow_schedules').insert(schedule_data).execute()
             
             if result.data:
                 logger.info(f"Created custom schedule {schedule_data['schedule_id']} for workflow {workflow_id}")
@@ -175,7 +175,7 @@ class EnhancedScheduleService(DatabaseService):
             Schedule record or None
         """
         try:
-            result = await self.db.table('workflow_schedules').select(
+            result = self.db.table('workflow_schedules').select(
                 '*',
                 'workflows(*)'
             ).eq('schedule_id', schedule_id).single().execute()
@@ -231,7 +231,7 @@ class EnhancedScheduleService(DatabaseService):
             query = query.order('created_at', desc=True)
             query = query.range(offset, offset + limit - 1)
             
-            result = await query.execute()
+            result = query.execute()
             
             schedules = result.data or []
             
@@ -272,7 +272,7 @@ class EnhancedScheduleService(DatabaseService):
             
             # Recalculate next run if CRON or timezone changed
             if 'cron_expression' in updates or 'timezone' in updates:
-                schedule = await self.get_schedule(schedule_id)
+                schedule = self.get_schedule(schedule_id)
                 if schedule:
                     cron = updates.get('cron_expression', schedule['cron_expression'])
                     tz = updates.get('timezone', schedule['timezone'])
@@ -280,7 +280,7 @@ class EnhancedScheduleService(DatabaseService):
             
             updates['updated_at'] = datetime.utcnow()
             
-            result = await self.db.table('workflow_schedules').update(
+            result = self.db.table('workflow_schedules').update(
                 updates
             ).eq('schedule_id', schedule_id).execute()
             
@@ -304,7 +304,7 @@ class EnhancedScheduleService(DatabaseService):
             True if deleted, False otherwise
         """
         try:
-            result = await self.db.table('workflow_schedules').delete().eq(
+            result = self.db.table('workflow_schedules').delete().eq(
                 'schedule_id', schedule_id
             ).execute()
             
@@ -323,20 +323,20 @@ class EnhancedScheduleService(DatabaseService):
         }
         
         # Get schedule to recalculate next run
-        schedule = await self.get_schedule(schedule_id)
+        schedule = self.get_schedule(schedule_id)
         if schedule:
             updates['next_run_at'] = self._calculate_next_run(
                 schedule['cron_expression'],
                 schedule['timezone']
             )
         
-        result = await self.update_schedule(schedule_id, updates)
+        result = self.update_schedule(schedule_id, updates)
         return result is not None
     
     def disable_schedule(self, schedule_id: str) -> bool:
         """Disable a schedule"""
         updates = {'is_active': False}
-        result = await self.update_schedule(schedule_id, updates)
+        result = self.update_schedule(schedule_id, updates)
         return result is not None
     
     def calculate_next_runs(
@@ -355,7 +355,7 @@ class EnhancedScheduleService(DatabaseService):
             List of datetime objects for next runs
         """
         try:
-            schedule = await self.get_schedule(schedule_id)
+            schedule = self.get_schedule(schedule_id)
             if not schedule:
                 return []
             
@@ -391,7 +391,7 @@ class EnhancedScheduleService(DatabaseService):
             now = datetime.utcnow()
             buffer_time = now + timedelta(minutes=buffer_minutes)
             
-            result = await self.db.table('workflow_schedules').select(
+            result = self.db.table('workflow_schedules').select(
                 '*',
                 'workflows(*)'
             ).eq('is_active', True).lte('next_run_at', buffer_time).execute()
@@ -429,7 +429,7 @@ class EnhancedScheduleService(DatabaseService):
             True if updated successfully
         """
         try:
-            schedule = await self.get_schedule(schedule_id)
+            schedule = self.get_schedule(schedule_id)
             if not schedule:
                 return False
             
@@ -456,7 +456,7 @@ class EnhancedScheduleService(DatabaseService):
             elif success:
                 updates['consecutive_failures'] = 0
             
-            result = await self.update_schedule(schedule_id, updates)
+            result = self.update_schedule(schedule_id, updates)
             return result is not None
             
         except Exception as e:
@@ -593,7 +593,7 @@ class EnhancedScheduleService(DatabaseService):
             if exclude_schedule_id:
                 query = query.neq('schedule_id', exclude_schedule_id)
             
-            result = await query.execute()
+            result = query.execute()
             
             conflicts = []
             for schedule in result.data or []:
