@@ -51,21 +51,25 @@ class ScheduleUpdate(BaseModel):
 
 class ScheduleResponse(BaseModel):
     """Model for schedule response"""
-    id: str
+    id: Optional[str] = None
     schedule_id: str
     workflow_id: str
-    schedule_type: str
-    interval_days: Optional[int]
+    schedule_type: Optional[str] = None
+    interval_days: Optional[int] = None
     cron_expression: str
     timezone: str
-    default_parameters: Dict[str, Any]
-    notification_config: Dict[str, Any]
+    default_parameters: Optional[Any] = None  # Can be string or dict
+    notification_config: Optional[Any] = None  # Can be string or dict
     is_active: bool
-    last_run_at: Optional[datetime]
-    next_run_at: Optional[datetime]
-    created_at: datetime
-    updated_at: Optional[datetime]
+    last_run_at: Optional[Any] = None
+    next_run_at: Optional[Any] = None
+    created_at: Optional[Any] = None
+    updated_at: Optional[Any] = None
     workflow: Optional[Dict[str, Any]] = None
+    
+    class Config:
+        # Allow any field types for flexibility with Supabase responses
+        arbitrary_types_allowed = True
 
 
 class ScheduleRunResponse(BaseModel):
@@ -96,6 +100,14 @@ class ScheduleMetricsResponse(BaseModel):
     total_cost: float
     next_run: Optional[datetime]
     last_run: Optional[datetime]
+
+
+@router.post("/test-schedule-validation")
+async def test_schedule_validation(
+    schedule_data: ScheduleCreatePreset
+):
+    """Test endpoint to validate schedule data"""
+    return {"message": "Validation passed", "data": schedule_data.dict()}
 
 
 @router.post("/workflows/{workflow_id}/schedules", response_model=ScheduleResponse)

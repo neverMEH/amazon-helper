@@ -53,22 +53,34 @@ const ScheduleWizard: React.FC<ScheduleWizardProps> = ({
       onComplete();
     },
     onError: (error: any) => {
-      console.error('Schedule creation error:', error.response?.data);
+      console.error('Schedule creation error - Full error:', error);
+      console.error('Response status:', error.response?.status);
+      console.error('Response data:', error.response?.data);
+      console.error('Response detail:', error.response?.data?.detail);
       
       // Handle validation errors from FastAPI
-      if (error.response?.status === 422 && error.response?.data?.detail) {
-        const details = error.response.data.detail;
-        if (Array.isArray(details)) {
-          // FastAPI validation error format
-          const errorMsg = details.map((d: any) => 
-            `${d.loc?.join(' > ')}: ${d.msg}`
-          ).join(', ');
-          toast.error(`Validation error: ${errorMsg}`);
+      if (error.response?.status === 422) {
+        const data = error.response.data;
+        console.error('422 Error data structure:', data);
+        
+        if (data?.detail) {
+          if (Array.isArray(data.detail)) {
+            // FastAPI validation error format
+            const errorMsg = data.detail.map((d: any) => {
+              console.error('Validation error item:', d);
+              return `${d.loc?.join(' > ')}: ${d.msg}`;
+            }).join(', ');
+            toast.error(`Validation error: ${errorMsg}`);
+          } else if (typeof data.detail === 'string') {
+            toast.error(data.detail);
+          } else {
+            toast.error('Validation error: ' + JSON.stringify(data.detail));
+          }
         } else {
-          toast.error(error.response.data.detail);
+          toast.error('Validation error: ' + JSON.stringify(data));
         }
       } else {
-        toast.error(error.response?.data?.detail || 'Failed to create schedule');
+        toast.error(error.response?.data?.detail || error.message || 'Failed to create schedule');
       }
     },
   });
