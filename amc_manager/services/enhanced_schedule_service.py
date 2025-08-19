@@ -36,7 +36,7 @@ class EnhancedScheduleService(DatabaseService):
         """Initialize the enhanced schedule service"""
         super().__init__()
         
-    async def create_schedule_from_preset(
+    def create_schedule_from_preset(
         self,
         workflow_id: str,
         preset_type: str,
@@ -106,7 +106,7 @@ class EnhancedScheduleService(DatabaseService):
             logger.error(f"Error creating schedule from preset: {e}")
             raise
     
-    async def create_custom_schedule(
+    def create_custom_schedule(
         self,
         workflow_id: str,
         cron_expression: str,
@@ -164,7 +164,7 @@ class EnhancedScheduleService(DatabaseService):
             logger.error(f"Error creating custom schedule: {e}")
             raise
     
-    async def get_schedule(self, schedule_id: str) -> Optional[Dict[str, Any]]:
+    def get_schedule(self, schedule_id: str) -> Optional[Dict[str, Any]]:
         """
         Get a schedule by ID
         
@@ -194,7 +194,7 @@ class EnhancedScheduleService(DatabaseService):
             logger.error(f"Error getting schedule {schedule_id}: {e}")
             return None
     
-    async def list_schedules(
+    def list_schedules(
         self,
         workflow_id: Optional[str] = None,
         user_id: Optional[str] = None,
@@ -248,7 +248,7 @@ class EnhancedScheduleService(DatabaseService):
             logger.error(f"Error listing schedules: {e}")
             return []
     
-    async def update_schedule(
+    def update_schedule(
         self,
         schedule_id: str,
         updates: Dict[str, Any]
@@ -293,7 +293,7 @@ class EnhancedScheduleService(DatabaseService):
             logger.error(f"Error updating schedule {schedule_id}: {e}")
             return None
     
-    async def delete_schedule(self, schedule_id: str) -> bool:
+    def delete_schedule(self, schedule_id: str) -> bool:
         """
         Delete a schedule
         
@@ -315,7 +315,7 @@ class EnhancedScheduleService(DatabaseService):
             logger.error(f"Error deleting schedule {schedule_id}: {e}")
             return False
     
-    async def enable_schedule(self, schedule_id: str) -> bool:
+    def enable_schedule(self, schedule_id: str) -> bool:
         """Enable a schedule"""
         updates = {
             'is_active': True,
@@ -333,13 +333,13 @@ class EnhancedScheduleService(DatabaseService):
         result = await self.update_schedule(schedule_id, updates)
         return result is not None
     
-    async def disable_schedule(self, schedule_id: str) -> bool:
+    def disable_schedule(self, schedule_id: str) -> bool:
         """Disable a schedule"""
         updates = {'is_active': False}
         result = await self.update_schedule(schedule_id, updates)
         return result is not None
     
-    async def calculate_next_runs(
+    def calculate_next_runs(
         self,
         schedule_id: str,
         count: int = 10
@@ -377,7 +377,7 @@ class EnhancedScheduleService(DatabaseService):
             logger.error(f"Error calculating next runs for schedule {schedule_id}: {e}")
             return []
     
-    async def get_due_schedules(self, buffer_minutes: int = 1) -> List[Dict[str, Any]]:
+    def get_due_schedules(self, buffer_minutes: int = 1) -> List[Dict[str, Any]]:
         """
         Get schedules that are due to run
         
@@ -411,7 +411,7 @@ class EnhancedScheduleService(DatabaseService):
             logger.error(f"Error getting due schedules: {e}")
             return []
     
-    async def update_after_run(
+    def update_after_run(
         self,
         schedule_id: str,
         last_run_at: datetime,
@@ -568,7 +568,7 @@ class EnhancedScheduleService(DatabaseService):
             # Default to 1 hour from now
             return datetime.utcnow() + timedelta(hours=1)
     
-    async def check_schedule_conflicts(
+    def check_schedule_conflicts(
         self,
         workflow_id: str,
         cron_expression: str,

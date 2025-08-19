@@ -53,7 +53,23 @@ const ScheduleWizard: React.FC<ScheduleWizardProps> = ({
       onComplete();
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to create schedule');
+      console.error('Schedule creation error:', error.response?.data);
+      
+      // Handle validation errors from FastAPI
+      if (error.response?.status === 422 && error.response?.data?.detail) {
+        const details = error.response.data.detail;
+        if (Array.isArray(details)) {
+          // FastAPI validation error format
+          const errorMsg = details.map((d: any) => 
+            `${d.loc?.join(' > ')}: ${d.msg}`
+          ).join(', ');
+          toast.error(`Validation error: ${errorMsg}`);
+        } else {
+          toast.error(error.response.data.detail);
+        }
+      } else {
+        toast.error(error.response?.data?.detail || 'Failed to create schedule');
+      }
     },
   });
 
