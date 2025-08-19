@@ -35,17 +35,18 @@ class WorkflowUpdate(BaseModel):
     status: Optional[str] = None
 
 
-class ScheduleCreate(BaseModel):
-    cron_expression: str
-    timezone: Optional[str] = "UTC"
-    default_parameters: Optional[Dict[str, Any]] = {}
-
-
-class ScheduleUpdate(BaseModel):
-    cron_expression: Optional[str] = None
-    timezone: Optional[str] = None
-    default_parameters: Optional[Dict[str, Any]] = None
-    is_active: Optional[bool] = None
+# Schedule models - DISABLED: Using schedule_endpoints.py instead
+# class ScheduleCreate(BaseModel):
+#     cron_expression: str
+#     timezone: Optional[str] = "UTC"
+#     default_parameters: Optional[Dict[str, Any]] = {}
+# 
+# 
+# class ScheduleUpdate(BaseModel):
+#     cron_expression: Optional[str] = None
+#     timezone: Optional[str] = None
+#     default_parameters: Optional[Dict[str, Any]] = None
+#     is_active: Optional[bool] = None
 
 
 @router.get("")
@@ -629,7 +630,9 @@ def get_execution_results(
         raise HTTPException(status_code=500, detail="Failed to fetch execution results")
 
 
-# Schedule endpoints
+# Schedule endpoints - DISABLED: Using schedule_endpoints.py instead
+# These endpoints are now handled by schedule_endpoints.py which has more comprehensive functionality
+"""
 @router.post("/{workflow_id}/schedules")
 def create_workflow_schedule(
     workflow_id: str,
@@ -746,7 +749,7 @@ def delete_schedule(
     except Exception as e:
         logger.error(f"Error deleting schedule: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete schedule")
-
+"""  # End of commented schedule endpoints
 
 # AMC Workflow Sync Endpoints
 
