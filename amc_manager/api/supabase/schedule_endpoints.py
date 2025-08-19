@@ -108,7 +108,7 @@ async def create_schedule_preset(
     try:
         logger.info(f"Creating preset schedule for workflow {workflow_id}")
         
-        schedule = await schedule_service.create_schedule_from_preset(
+        schedule = schedule_service.create_schedule_from_preset(
             workflow_id=workflow_id,
             preset_type=schedule_data.preset_type,
             user_id=current_user['id'],
@@ -138,7 +138,7 @@ async def create_schedule_custom(
     try:
         logger.info(f"Creating custom schedule for workflow {workflow_id}")
         
-        schedule = await schedule_service.create_custom_schedule(
+        schedule = schedule_service.create_custom_schedule(
             workflow_id=workflow_id,
             cron_expression=schedule_data.cron_expression,
             user_id=current_user['id'],
@@ -166,7 +166,7 @@ async def list_workflow_schedules(
 ):
     """List schedules for a workflow"""
     try:
-        schedules = await schedule_service.list_schedules(
+        schedules = schedule_service.list_schedules(
             workflow_id=workflow_id,
             user_id=current_user['id'],
             is_active=is_active,
@@ -190,7 +190,7 @@ async def list_all_schedules(
 ):
     """List all schedules for the current user"""
     try:
-        schedules = await schedule_service.list_schedules(
+        schedules = schedule_service.list_schedules(
             user_id=current_user['id'],
             is_active=is_active,
             limit=limit,
@@ -211,7 +211,7 @@ async def get_schedule(
 ):
     """Get schedule details"""
     try:
-        schedule = await schedule_service.get_schedule(schedule_id)
+        schedule = schedule_service.get_schedule(schedule_id)
         
         if not schedule:
             raise HTTPException(status_code=404, detail="Schedule not found")
@@ -238,7 +238,7 @@ async def update_schedule(
     """Update a schedule"""
     try:
         # Check ownership
-        schedule = await schedule_service.get_schedule(schedule_id)
+        schedule = schedule_service.get_schedule(schedule_id)
         if not schedule:
             raise HTTPException(status_code=404, detail="Schedule not found")
         
@@ -246,7 +246,7 @@ async def update_schedule(
             raise HTTPException(status_code=403, detail="Access denied")
         
         # Update schedule
-        updated_schedule = await schedule_service.update_schedule(
+        updated_schedule = schedule_service.update_schedule(
             schedule_id,
             updates.dict(exclude_unset=True)
         )
@@ -271,7 +271,7 @@ async def delete_schedule(
     """Delete a schedule"""
     try:
         # Check ownership
-        schedule = await schedule_service.get_schedule(schedule_id)
+        schedule = schedule_service.get_schedule(schedule_id)
         if not schedule:
             raise HTTPException(status_code=404, detail="Schedule not found")
         
@@ -279,7 +279,7 @@ async def delete_schedule(
             raise HTTPException(status_code=403, detail="Access denied")
         
         # Delete schedule
-        success = await schedule_service.delete_schedule(schedule_id)
+        success = schedule_service.delete_schedule(schedule_id)
         
         if not success:
             raise HTTPException(status_code=500, detail="Failed to delete schedule")
@@ -301,7 +301,7 @@ async def enable_schedule(
     """Enable a schedule"""
     try:
         # Check ownership
-        schedule = await schedule_service.get_schedule(schedule_id)
+        schedule = schedule_service.get_schedule(schedule_id)
         if not schedule:
             raise HTTPException(status_code=404, detail="Schedule not found")
         
@@ -309,7 +309,7 @@ async def enable_schedule(
             raise HTTPException(status_code=403, detail="Access denied")
         
         # Enable schedule
-        success = await schedule_service.enable_schedule(schedule_id)
+        success = schedule_service.enable_schedule(schedule_id)
         
         if not success:
             raise HTTPException(status_code=500, detail="Failed to enable schedule")
@@ -331,7 +331,7 @@ async def disable_schedule(
     """Disable a schedule"""
     try:
         # Check ownership
-        schedule = await schedule_service.get_schedule(schedule_id)
+        schedule = schedule_service.get_schedule(schedule_id)
         if not schedule:
             raise HTTPException(status_code=404, detail="Schedule not found")
         
@@ -339,7 +339,7 @@ async def disable_schedule(
             raise HTTPException(status_code=403, detail="Access denied")
         
         # Disable schedule
-        success = await schedule_service.disable_schedule(schedule_id)
+        success = schedule_service.disable_schedule(schedule_id)
         
         if not success:
             raise HTTPException(status_code=500, detail="Failed to disable schedule")
@@ -362,7 +362,7 @@ async def get_next_runs(
     """Preview next execution times for a schedule"""
     try:
         # Check ownership
-        schedule = await schedule_service.get_schedule(schedule_id)
+        schedule = schedule_service.get_schedule(schedule_id)
         if not schedule:
             raise HTTPException(status_code=404, detail="Schedule not found")
         
@@ -370,7 +370,7 @@ async def get_next_runs(
             raise HTTPException(status_code=403, detail="Access denied")
         
         # Calculate next runs
-        next_runs = await schedule_service.calculate_next_runs(schedule_id, count)
+        next_runs = schedule_service.calculate_next_runs(schedule_id, count)
         
         return {
             "schedule_id": schedule_id,
@@ -393,7 +393,7 @@ async def test_run_schedule(
     """Execute a schedule immediately for testing"""
     try:
         # Check ownership
-        schedule = await schedule_service.get_schedule(schedule_id)
+        schedule = schedule_service.get_schedule(schedule_id)
         if not schedule:
             raise HTTPException(status_code=404, detail="Schedule not found")
         
@@ -429,7 +429,7 @@ async def get_schedule_runs(
     """Get execution history for a schedule"""
     try:
         # Check ownership
-        schedule = await schedule_service.get_schedule(schedule_id)
+        schedule = schedule_service.get_schedule(schedule_id)
         if not schedule:
             raise HTTPException(status_code=404, detail="Schedule not found")
         
@@ -464,7 +464,7 @@ async def get_schedule_metrics(
     """Get performance metrics for a schedule"""
     try:
         # Check ownership
-        schedule = await schedule_service.get_schedule(schedule_id)
+        schedule = schedule_service.get_schedule(schedule_id)
         if not schedule:
             raise HTTPException(status_code=404, detail="Schedule not found")
         

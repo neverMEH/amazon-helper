@@ -500,3 +500,5 @@ Error polling execution exec_687a2ba6: 'coroutine' object has no attribute 'get'
 Error polling execution exec_687a2ba6: 'coroutine' object has no attribute 'get'
 Error polling execution exec_687a2ba6: 'coroutine' object has no attribute 'get'
 Error polling execution exec_687a2ba6: 'coroutine' object has no attribute 'get'
+INFO:     142.93.121.158:51884 - "GET / HTTP/1.1" 200 OK
+INFO:     142.93.121.158:51900 - "GET /favicon.png HTTP/1.1" 200 OK

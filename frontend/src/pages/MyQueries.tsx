@@ -727,7 +727,6 @@ export default function MyQueries() {
             setShowScheduleWizard(false);
             setSelectedWorkflowForSchedule(null);
             queryClient.invalidateQueries({ queryKey: ['schedules'] });
-            toast.success('Schedule created successfully');
           }}
           onCancel={() => {
             setShowScheduleWizard(false);
