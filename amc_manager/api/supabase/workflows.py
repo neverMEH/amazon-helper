@@ -639,7 +639,7 @@ def create_workflow_schedule(
     schedule: ScheduleCreate,
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
-    """Create a schedule for a workflow"""
+    # Create a schedule for a workflow
     try:
         from ...services.enhanced_schedule_service import EnhancedScheduleService
         schedule_service = EnhancedScheduleService()
@@ -665,7 +665,7 @@ def list_workflow_schedules(
     workflow_id: str,
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> List[Dict[str, Any]]:
-    """List schedules for a workflow"""
+    # List schedules for a workflow
     try:
         from ...services.enhanced_schedule_service import EnhancedScheduleService
         schedule_service = EnhancedScheduleService()
@@ -682,7 +682,7 @@ def get_schedule(
     schedule_id: str,
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
-    """Get schedule details"""
+    # Get schedule details
     try:
         from ...services.enhanced_schedule_service import EnhancedScheduleService
         schedule_service = EnhancedScheduleService()
@@ -705,7 +705,7 @@ def update_schedule(
     updates: ScheduleUpdate,
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
-    """Update a schedule"""
+    # Update a schedule
     try:
         from ...services.enhanced_schedule_service import EnhancedScheduleService
         schedule_service = EnhancedScheduleService()
@@ -734,7 +734,7 @@ def delete_schedule(
     schedule_id: str,
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, str]:
-    """Delete a schedule"""
+    # Delete a schedule
     try:
         from ...services.enhanced_schedule_service import EnhancedScheduleService
         schedule_service = EnhancedScheduleService()
