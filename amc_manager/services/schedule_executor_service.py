@@ -7,7 +7,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 
 from ..core.logger_simple import get_logger
-from ..core.supabase_client import get_supabase_client
+from ..core.supabase_client import SupabaseManager
 from .enhanced_schedule_service import EnhancedScheduleService
 from .token_service import TokenService
 from .amc_api_client_with_retry import amc_api_client_with_retry
@@ -24,7 +24,7 @@ class ScheduleExecutorService:
         self.check_interval = 60  # Check every minute
         self.schedule_service = EnhancedScheduleService()
         self.token_service = TokenService()
-        self.db = get_supabase_client()
+        self.db = SupabaseManager.get_client()
         self._execution_tasks = {}  # Track running executions
         self._max_concurrent_executions = 10
         self._execution_semaphore = asyncio.Semaphore(self._max_concurrent_executions)

@@ -437,10 +437,10 @@ async def get_schedule_runs(
             raise HTTPException(status_code=403, detail="Access denied")
         
         # Get schedule runs from database
-        from ...core.supabase_client import get_supabase_client
-        db = get_supabase_client()
+        from ...core.supabase_client import SupabaseManager
+        db = SupabaseManager.get_client()
         
-        result = await db.table('schedule_runs').select('*').eq(
+        result = db.table('schedule_runs').select('*').eq(
             'schedule_id', schedule['id']
         ).order('scheduled_at', desc=True).range(offset, offset + limit - 1).execute()
         
@@ -472,15 +472,15 @@ async def get_schedule_metrics(
             raise HTTPException(status_code=403, detail="Access denied")
         
         # Calculate metrics
-        from ...core.supabase_client import get_supabase_client
+        from ...core.supabase_client import SupabaseManager
         from datetime import timedelta
         
-        db = get_supabase_client()
+        db = SupabaseManager.get_client()
         
         # Get runs within period
         cutoff_date = datetime.utcnow() - timedelta(days=period_days)
         
-        result = await db.table('schedule_runs').select('*').eq(
+        result = db.table('schedule_runs').select('*').eq(
             'schedule_id', schedule['id']
         ).gte('scheduled_at', cutoff_date.isoformat()).execute()
         
