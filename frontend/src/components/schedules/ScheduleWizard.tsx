@@ -100,6 +100,9 @@ const ScheduleWizard: React.FC<ScheduleWizardProps> = ({
       },
     };
 
+    console.log('Sending schedule data:', scheduleData);
+    console.log('Workflow ID:', workflowId);
+    
     createScheduleMutation.mutate(scheduleData);
   };
 

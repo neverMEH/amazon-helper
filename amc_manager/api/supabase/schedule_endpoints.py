@@ -107,6 +107,16 @@ async def create_schedule_preset(
     """Create a schedule from a preset"""
     try:
         logger.info(f"Creating preset schedule for workflow {workflow_id}")
+        logger.info(f"Schedule data received: {schedule_data.dict()}")
+        logger.info(f"Current user: {current_user.get('id', 'Unknown')}")
+        
+        # Check if workflow exists
+        from ...core.supabase_client import SupabaseManager
+        db = SupabaseManager.get_client()
+        workflow_check = db.table('workflows').select('id').eq('id', workflow_id).execute()
+        if not workflow_check.data:
+            logger.error(f"Workflow {workflow_id} not found")
+            raise HTTPException(status_code=404, detail=f"Workflow {workflow_id} not found")
         
         schedule = schedule_service.create_schedule_from_preset(
             workflow_id=workflow_id,
@@ -121,11 +131,17 @@ async def create_schedule_preset(
         
         return ScheduleResponse(**schedule)
         
+    except HTTPException:
+        raise
     except ValueError as e:
+        logger.error(f"ValueError creating schedule: {e}")
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Error creating schedule: {e}")
-        raise HTTPException(status_code=500, detail="Failed to create schedule")
+        logger.error(f"Exception type: {type(e).__name__}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Failed to create schedule: {str(e)}")
 
 
 @router.post("/workflows/{workflow_id}/schedules/custom", response_model=ScheduleResponse)
