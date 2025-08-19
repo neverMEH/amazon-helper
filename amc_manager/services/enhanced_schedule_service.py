@@ -78,10 +78,17 @@ class EnhancedScheduleService(DatabaseService):
             # Calculate next run time
             next_run_at = self._calculate_next_run(cron_expression, timezone)
             
+            # First, get the actual UUID of the workflow from the workflows table
+            workflow_result = self.client.table('workflows').select('id').eq('workflow_id', workflow_id).execute()
+            if not workflow_result.data:
+                raise ValueError(f"Workflow {workflow_id} not found")
+            
+            workflow_uuid = workflow_result.data[0]['id']
+            
             # Create schedule record
             schedule_data = {
                 'schedule_id': f"sched_{uuid.uuid4().hex[:12]}",
-                'workflow_id': workflow_id,
+                'workflow_id': workflow_uuid,  # Use the UUID, not the workflow_id string
                 'user_id': user_id,
                 'schedule_type': preset_type,
                 'interval_days': interval_days,
@@ -137,10 +144,17 @@ class EnhancedScheduleService(DatabaseService):
             # Calculate next run time
             next_run_at = self._calculate_next_run(cron_expression, timezone)
             
+            # First, get the actual UUID of the workflow from the workflows table
+            workflow_result = self.client.table('workflows').select('id').eq('workflow_id', workflow_id).execute()
+            if not workflow_result.data:
+                raise ValueError(f"Workflow {workflow_id} not found")
+            
+            workflow_uuid = workflow_result.data[0]['id']
+            
             # Create schedule record
             schedule_data = {
                 'schedule_id': f"sched_{uuid.uuid4().hex[:12]}",
-                'workflow_id': workflow_id,
+                'workflow_id': workflow_uuid,  # Use the UUID, not the workflow_id string
                 'user_id': user_id,
                 'schedule_type': 'custom',
                 'cron_expression': cron_expression,

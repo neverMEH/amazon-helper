@@ -122,14 +122,6 @@ async def create_schedule_preset(
         logger.info(f"Schedule data received: {schedule_data.dict()}")
         logger.info(f"Current user: {current_user.get('id', 'Unknown')}")
         
-        # Check if workflow exists
-        from ...core.supabase_client import SupabaseManager
-        db = SupabaseManager.get_client()
-        workflow_check = db.table('workflows').select('id').eq('id', workflow_id).execute()
-        if not workflow_check.data:
-            logger.error(f"Workflow {workflow_id} not found")
-            raise HTTPException(status_code=404, detail=f"Workflow {workflow_id} not found")
-        
         schedule = schedule_service.create_schedule_from_preset(
             workflow_id=workflow_id,
             preset_type=schedule_data.preset_type,
