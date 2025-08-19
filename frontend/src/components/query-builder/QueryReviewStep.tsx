@@ -198,7 +198,7 @@ export default function QueryReviewStep({ state, instances, onNavigateToStep }: 
 
   return (
     <>
-    <div className="max-w-6xl mx-auto p-6">
+    <div className="p-6 h-full flex flex-col">
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-lg font-semibold text-gray-900">Review & Execute</h2>
@@ -246,7 +246,7 @@ export default function QueryReviewStep({ state, instances, onNavigateToStep }: 
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 flex-1 min-h-0">
         {/* Configuration Summary - Left Column */}
         <div className="lg:col-span-1 space-y-4">
           {/* Instance Card */}
@@ -417,9 +417,9 @@ export default function QueryReviewStep({ state, instances, onNavigateToStep }: 
         </div>
 
         {/* SQL Preview - Right Column */}
-        <div className="lg:col-span-2">
-          <div className="bg-white border border-gray-200 rounded-lg h-full flex flex-col">
-            <div className="px-4 py-3 border-b border-gray-200">
+        <div className="lg:col-span-3">
+          <div className="bg-white border border-gray-200 rounded-lg flex flex-col" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+            <div className="px-4 py-3 border-b border-gray-200 flex-shrink-0">
               <h3 className="text-sm font-semibold text-gray-900">Final SQL Query</h3>
               <p className="text-xs text-gray-500 mt-1">
                 Parameters have been substituted with their values
@@ -428,7 +428,7 @@ export default function QueryReviewStep({ state, instances, onNavigateToStep }: 
             
             {/* Parameters Summary */}
             {Object.keys(state.parameters).length > 0 && (
-              <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
+              <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 flex-shrink-0">
                 <h4 className="text-xs font-medium text-gray-700 mb-2">Parameter Values:</h4>
                 <div className="grid grid-cols-2 gap-2">
                   {Object.entries(state.parameters).map(([param, value]) => (
@@ -444,13 +444,13 @@ export default function QueryReviewStep({ state, instances, onNavigateToStep }: 
               </div>
             )}
 
-            <div className="flex-1 p-4 overflow-auto">
+            <div className="flex-1 p-4 overflow-y-auto min-h-0">
               <pre className="text-xs font-mono text-gray-800 whitespace-pre-wrap">
                 {getPreviewSQL()}
               </pre>
             </div>
 
-            <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
+            <div className="px-4 py-3 border-t border-gray-200 bg-gray-50 flex-shrink-0">
               <div className="flex items-center justify-between text-xs text-gray-500">
                 <div className="flex items-center space-x-4">
                   <span>{state.sqlQuery.split('\n').length} lines</span>
