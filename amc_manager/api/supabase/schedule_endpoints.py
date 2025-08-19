@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from ...core.logger_simple import get_logger
 from ...services.enhanced_schedule_service import EnhancedScheduleService
 from ...services.schedule_executor_service import get_schedule_executor
-from ..auth import get_current_user
+from .auth import get_current_user
 
 logger = get_logger(__name__)
 
