@@ -110,7 +110,7 @@ async def test_schedule_validation(
     return {"message": "Validation passed", "data": schedule_data.dict()}
 
 
-@router.post("/workflows/{workflow_id}/schedules", response_model=ScheduleResponse)
+@router.post("/workflows/{workflow_id}/schedules")
 async def create_schedule_preset(
     workflow_id: str,
     schedule_data: ScheduleCreatePreset,
@@ -133,7 +133,12 @@ async def create_schedule_preset(
             notification_config=schedule_data.notification_config
         )
         
-        return ScheduleResponse(**schedule)
+        # Get the full schedule with workflow data
+        if schedule and 'schedule_id' in schedule:
+            full_schedule = schedule_service.get_schedule(schedule['schedule_id'])
+            return full_schedule if full_schedule else schedule
+        
+        return schedule
         
     except HTTPException:
         raise
@@ -176,7 +181,7 @@ async def create_schedule_custom(
         raise HTTPException(status_code=500, detail="Failed to create schedule")
 
 
-@router.get("/workflows/{workflow_id}/schedules", response_model=List[ScheduleResponse])
+@router.get("/workflows/{workflow_id}/schedules")
 async def list_workflow_schedules(
     workflow_id: str,
     is_active: Optional[bool] = Query(None, description="Filter by active status"),
@@ -194,14 +199,15 @@ async def list_workflow_schedules(
             offset=offset
         )
         
-        return [ScheduleResponse(**s) for s in schedules]
+        # Return raw schedules with workflows data included
+        return schedules
         
     except Exception as e:
         logger.error(f"Error listing schedules: {e}")
         raise HTTPException(status_code=500, detail="Failed to list schedules")
 
 
-@router.get("/schedules", response_model=List[ScheduleResponse])
+@router.get("/schedules")
 async def list_all_schedules(
     is_active: Optional[bool] = Query(None, description="Filter by active status"),
     limit: int = Query(100, ge=1, le=1000),
@@ -217,7 +223,8 @@ async def list_all_schedules(
             offset=offset
         )
         
-        return [ScheduleResponse(**s) for s in schedules]
+        # Return raw schedules with workflows data included
+        return schedules
         
     except Exception as e:
         logger.error(f"Error listing schedules: {e}")

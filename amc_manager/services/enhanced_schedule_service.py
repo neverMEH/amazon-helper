@@ -236,7 +236,18 @@ class EnhancedScheduleService(DatabaseService):
             )
             
             if workflow_id:
-                query = query.eq('workflow_id', workflow_id)
+                # If workflow_id looks like a string ID (e.g., wf_xxxxx), look up the UUID
+                if workflow_id.startswith('wf_'):
+                    workflow_result = self.client.table('workflows').select('id').eq('workflow_id', workflow_id).execute()
+                    if workflow_result.data:
+                        workflow_uuid = workflow_result.data[0]['id']
+                        query = query.eq('workflow_id', workflow_uuid)
+                    else:
+                        # No matching workflow, return empty list
+                        return []
+                else:
+                    # Assume it's already a UUID
+                    query = query.eq('workflow_id', workflow_id)
             if user_id:
                 query = query.eq('user_id', user_id)
             if is_active is not None:
