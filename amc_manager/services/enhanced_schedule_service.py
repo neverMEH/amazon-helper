@@ -97,8 +97,8 @@ class EnhancedScheduleService(DatabaseService):
                 'default_parameters': json.dumps(parameters or {}),
                 'notification_config': json.dumps(notification_config or {}),
                 'is_active': True,
-                'next_run_at': next_run_at,
-                'created_at': datetime.utcnow()
+                'next_run_at': next_run_at.isoformat() if next_run_at else None,
+                'created_at': datetime.utcnow().isoformat()
             }
             
             result = self.client.table('workflow_schedules').insert(schedule_data).execute()
@@ -162,8 +162,8 @@ class EnhancedScheduleService(DatabaseService):
                 'default_parameters': json.dumps(parameters or {}),
                 'notification_config': json.dumps(notification_config or {}),
                 'is_active': True,
-                'next_run_at': next_run_at,
-                'created_at': datetime.utcnow()
+                'next_run_at': next_run_at.isoformat() if next_run_at else None,
+                'created_at': datetime.utcnow().isoformat()
             }
             
             result = self.client.table('workflow_schedules').insert(schedule_data).execute()
@@ -290,9 +290,10 @@ class EnhancedScheduleService(DatabaseService):
                 if schedule:
                     cron = updates.get('cron_expression', schedule['cron_expression'])
                     tz = updates.get('timezone', schedule['timezone'])
-                    updates['next_run_at'] = self._calculate_next_run(cron, tz)
+                    next_run = self._calculate_next_run(cron, tz)
+                    updates['next_run_at'] = next_run.isoformat() if next_run else None
             
-            updates['updated_at'] = datetime.utcnow()
+            updates['updated_at'] = datetime.utcnow().isoformat()
             
             result = self.client.table('workflow_schedules').update(
                 updates
@@ -339,10 +340,11 @@ class EnhancedScheduleService(DatabaseService):
         # Get schedule to recalculate next run
         schedule = self.get_schedule(schedule_id)
         if schedule:
-            updates['next_run_at'] = self._calculate_next_run(
+            next_run = self._calculate_next_run(
                 schedule['cron_expression'],
                 schedule['timezone']
             )
+            updates['next_run_at'] = next_run.isoformat() if next_run else None
         
         result = self.update_schedule(schedule_id, updates)
         return result is not None
@@ -455,8 +457,8 @@ class EnhancedScheduleService(DatabaseService):
             )
             
             updates = {
-                'last_run_at': last_run_at,
-                'next_run_at': next_run_at
+                'last_run_at': last_run_at.isoformat() if isinstance(last_run_at, datetime) else last_run_at,
+                'next_run_at': next_run_at.isoformat() if next_run_at else None
             }
             
             # Handle failure threshold if configured
