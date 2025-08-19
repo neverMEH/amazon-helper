@@ -23,6 +23,9 @@ import Executions from './pages/Executions';
 import DataSources from './pages/DataSources';
 import DataSourceDetail from './pages/DataSourceDetail';
 
+// Schedule imports
+import ScheduleManager from './pages/ScheduleManager';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -63,6 +66,7 @@ function App() {
               {/* New Query Builder routes */}
               <Route path="/query-library" element={<QueryLibrary />} />
               <Route path="/my-queries" element={<MyQueries />} />
+              <Route path="/schedules" element={<ScheduleManager />} />
               <Route path="/query-builder/new" element={<QueryBuilder />} />
               <Route path="/query-builder/template/:templateId" element={<QueryBuilder />} />
               <Route path="/query-builder/edit/:workflowId" element={<QueryBuilder />} />

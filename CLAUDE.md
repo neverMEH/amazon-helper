@@ -54,7 +54,7 @@ FERNET_KEY=xxx  # Auto-generated if missing, keep consistent!
 
 ### Backend Commands
 ```bash
-# Run backend server
+# Run backend server (note: system uses 'python' not 'python3' in scripts)
 python main_supabase.py                      # Port 8001
 uvicorn main_supabase:app --reload --port 8001  # With auto-reload
 
@@ -77,6 +77,7 @@ python scripts/import_amc_schemas.py         # Import AMC schema documentation
 python scripts/apply_performance_indexes.py  # Apply indexes
 python scripts/create_cja_workflow.py        # Create CJA workflow
 python scripts/populate_all_fields.py        # Populate field metadata
+python scripts/add_execution_results_fields.py # Add results fields to executions
 
 # Token management
 python test_token_refresh.py                 # Test automatic token refresh
@@ -92,7 +93,7 @@ npm run dev                                  # Dev server on port 5173
 npm run build                                # Production build
 npm run lint                                 # ESLint
 npm run preview                              # Preview production build
-npx tsc --noEmit                            # TypeScript type checking
+npm run typecheck                           # TypeScript type checking
 npx tsc --noEmit --watch                    # Type checking in watch mode
 
 # E2E testing with Playwright
@@ -204,7 +205,7 @@ src/
 │   ├── query-builder/          # Wizard steps
 │   │   ├── QueryEditorStep.tsx       # SQL editor + schema explorer
 │   │   ├── QueryConfigurationStep.tsx # Instance & parameters
-│   │   └── QueryReviewStep.tsx       # Final review & cost
+│   │   └── QueryReviewStep.tsx       # Final review & cost (full width)
 │   ├── data-sources/           # Data source UI components
 │   ├── workflows/              # Workflow management
 │   │   ├── WorkflowFilters.tsx       # Advanced filter sidebar
@@ -297,6 +298,17 @@ result = await amc_api_client_with_retry.create_workflow_execution(
     user_id=user_id,  # Required for token refresh
     entity_id=entity_id,
 )
+```
+
+### Async/Await Patterns
+```python
+# ALWAYS await async methods in async contexts
+result = await async_method()  # ✓ Correct
+result = async_method()  # ✗ Returns coroutine, not result
+
+# Common error in execution_status_poller.py:
+status = await amc_execution_service.poll_and_update_execution(...)  # ✓
+status = amc_execution_service.poll_and_update_execution(...)  # ✗ Missing await
 ```
 
 ### FastAPI Router Registration
@@ -494,6 +506,10 @@ api.post('/workflows', data)        # ✗ Returns 405
 async def api_endpoint():
     await service_method()          # ✓ Correct
     asyncio.run(service_method())   # ✗ Event loop error
+
+# Always await async methods
+result = await async_method()      # ✓ Correct
+result = async_method()            # ✗ Returns coroutine object
 ```
 
 ### React Fragment Syntax
@@ -556,6 +572,14 @@ if isinstance(schema.get('tags'), str):
 )}
 ```
 
+### Python Command Variations
+```bash
+# Scripts use 'python' not 'python3'
+# start_services.sh uses: python main_supabase.py
+# If python3 is required on your system, create an alias:
+alias python=python3
+```
+
 ## Background Services
 
 The application runs two critical background services:
@@ -576,6 +600,7 @@ The application runs two critical background services:
 - **Frequency**: Every 15 seconds
 - **Purpose**: Updates status of pending AMC executions
 - **Implementation**: `execution_status_poller.py`
+- **Common Issue**: Missing await on async methods
 - **Features**:
   - Polls only PENDING/RUNNING executions
   - Fetches results when execution completes
@@ -651,7 +676,7 @@ pytest --cov=amc_manager tests/
 ### Frontend Testing
 ```bash
 # Type checking
-npx tsc --noEmit
+npm run typecheck
 npx tsc --noEmit --watch  # Watch mode
 
 # E2E tests with Playwright
@@ -712,6 +737,11 @@ npm run lint
 - Implement exponential backoff on 429 errors
 - Use batch operations where possible
 
+### Execution Polling Coroutine Error
+- Error: `'coroutine' object has no attribute 'get'`
+- Cause: Missing `await` in execution_status_poller.py
+- Fix: Always await async methods in async contexts
+
 ## Debugging Tips
 
 ### Common Error Patterns
@@ -729,6 +759,10 @@ npm run lint
 # Token decryption failures
 # Check: FERNET_KEY hasn't changed
 # Solution: User must re-authenticate
+
+# Coroutine errors in logs
+# Check: Missing await on async method calls
+# Fix: Add await to all async method calls
 ```
 
 ### Useful Debug Commands
@@ -744,6 +778,9 @@ python scripts/validate_tokens.py
 
 # Check running executions
 python scripts/find_running_executions.py
+
+# Monitor server logs
+tail -f server.log
 ```
 
 ## Architecture Decisions
@@ -771,3 +808,18 @@ python scripts/find_running_executions.py
 - Optimistic updates
 - Background refetching
 - DevTools for debugging
+
+## Recent UI Improvements
+
+### Query Builder Enhancements (2025-08-19)
+- **Full Width Layout**: QueryReviewStep now uses full viewport width
+- **Better Space Distribution**: SQL preview uses 75% width (3/4 columns)
+- **Scrollable SQL Window**: Fixed height with internal scrolling
+- **No Page Scroll Required**: Create Workflow button always accessible
+
+### Recent Fixes (2025-08-13)
+- **Dynamic Schema Loading**: Removed hardcoded tables, loads from API
+- **SessionStorage Integration**: Examples populate in query editor
+- **Dual Results View**: Inline and full modal viewing options
+- **React Fragment Fixes**: Proper JSX structure throughout
+- **Modal Z-Index Layering**: Correct stacking for nested modals

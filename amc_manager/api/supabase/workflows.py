@@ -638,7 +638,8 @@ def create_workflow_schedule(
 ) -> Dict[str, Any]:
     """Create a schedule for a workflow"""
     try:
-        from ...services.schedule_service import schedule_service
+        from ...services.enhanced_schedule_service import EnhancedScheduleService
+        schedule_service = EnhancedScheduleService()
         
         result = schedule_service.create_schedule(
             workflow_id=workflow_id,
@@ -663,7 +664,8 @@ def list_workflow_schedules(
 ) -> List[Dict[str, Any]]:
     """List schedules for a workflow"""
     try:
-        from ...services.schedule_service import schedule_service
+        from ...services.enhanced_schedule_service import EnhancedScheduleService
+        schedule_service = EnhancedScheduleService()
         
         schedules = schedule_service.list_schedules(workflow_id, current_user['id'])
         return schedules
@@ -679,7 +681,8 @@ def get_schedule(
 ) -> Dict[str, Any]:
     """Get schedule details"""
     try:
-        from ...services.schedule_service import schedule_service
+        from ...services.enhanced_schedule_service import EnhancedScheduleService
+        schedule_service = EnhancedScheduleService()
         
         schedule = schedule_service.get_schedule(schedule_id, current_user['id'])
         if not schedule:
@@ -701,7 +704,8 @@ def update_schedule(
 ) -> Dict[str, Any]:
     """Update a schedule"""
     try:
-        from ...services.schedule_service import schedule_service
+        from ...services.enhanced_schedule_service import EnhancedScheduleService
+        schedule_service = EnhancedScheduleService()
         
         result = schedule_service.update_schedule(
             schedule_id=schedule_id,
@@ -729,7 +733,8 @@ def delete_schedule(
 ) -> Dict[str, str]:
     """Delete a schedule"""
     try:
-        from ...services.schedule_service import schedule_service
+        from ...services.enhanced_schedule_service import EnhancedScheduleService
+        schedule_service = EnhancedScheduleService()
         
         success = schedule_service.delete_schedule(schedule_id, current_user['id'])
         if not success:

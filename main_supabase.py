@@ -11,6 +11,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 import uvicorn
 import os
+import asyncio
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -22,6 +23,7 @@ from amc_manager.core.logger_simple import get_logger
 from amc_manager.core.supabase_client import SupabaseManager
 from amc_manager.services.token_refresh_service import token_refresh_service
 from amc_manager.services.execution_status_poller import execution_status_poller
+from amc_manager.services.schedule_executor_service import get_schedule_executor
 
 logger = get_logger(__name__)
 
@@ -55,6 +57,11 @@ async def lifespan(app: FastAPI):
     await execution_status_poller.start()
     logger.info("✓ Execution status poller started")
     
+    # Start schedule executor service
+    schedule_executor = get_schedule_executor()
+    asyncio.create_task(schedule_executor.start())
+    logger.info("✓ Schedule executor service started")
+    
     # Load only users with valid tokens for token refresh tracking
     try:
         users_response = client.table('users').select('id, auth_tokens').execute()
@@ -75,6 +82,7 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down Recom AMP application...")
     await token_refresh_service.stop()
     await execution_status_poller.stop()
+    await schedule_executor.stop()
 
 
 # Create FastAPI app
@@ -166,6 +174,7 @@ from amc_manager.api.supabase.brands import router as brands_router
 from amc_manager.api.supabase.amc_executions import router as amc_executions_router
 from amc_manager.api.supabase.profile import router as profile_router
 from amc_manager.api.supabase.data_sources import router as data_sources_router
+from amc_manager.api.supabase.schedule_endpoints import router as schedules_router
 
 # Add redirect for misconfigured callback URL (must be before router includes)
 @app.get("/api/auth/callback")
@@ -187,6 +196,7 @@ app.include_router(query_templates_router, prefix="/api/query-templates", tags=[
 app.include_router(brands_router, prefix="/api/brands", tags=["Brands"])
 app.include_router(amc_executions_router, prefix="/api/amc-executions", tags=["AMC Executions"])
 app.include_router(data_sources_router, prefix="/api/data-sources", tags=["Data Sources"])
+app.include_router(schedules_router, prefix="/api", tags=["Schedules"])
 
 # Apply rate limiting to specific endpoints
 for route in app.routes:

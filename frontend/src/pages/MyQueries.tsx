@@ -15,7 +15,8 @@ import {
   Cloud,
   CloudOff,
   Copy,
-  Filter
+  Filter,
+  CalendarClock
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../services/api';
@@ -23,6 +24,9 @@ import { formatDistanceToNow, isAfter, isBefore, parseISO } from 'date-fns';
 import WorkflowSortDropdown, { type SortConfig } from '../components/workflows/WorkflowSortDropdown';
 import WorkflowFilters, { type WorkflowFiltersConfig } from '../components/workflows/WorkflowFilters';
 import ActiveFilterBadges, { type FilterBadge } from '../components/workflows/ActiveFilterBadges';
+import ScheduleWizard from '../components/schedules/ScheduleWizard';
+import { scheduleService } from '../services/scheduleService';
+import type { Schedule } from '../types/schedule';
 
 interface Workflow {
   id: string;
@@ -78,6 +82,8 @@ export default function MyQueries() {
   const [sortConfig, setSortConfig] = useState<SortConfig>(defaultSort);
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [showScheduleWizard, setShowScheduleWizard] = useState(false);
+  const [selectedWorkflowForSchedule, setSelectedWorkflowForSchedule] = useState<Workflow | null>(null);
 
   // Debounce search input
   useEffect(() => {
@@ -126,6 +132,22 @@ export default function MyQueries() {
       return response.data;
     }
   });
+
+  // Fetch schedules for workflows
+  const { data: schedules = [] } = useQuery<Schedule[]>({
+    queryKey: ['schedules'],
+    queryFn: () => scheduleService.listAllSchedules(),
+  });
+
+  // Map schedules to workflows
+  const workflowSchedules = useMemo(() => {
+    const map = new Map<string, Schedule[]>();
+    schedules.forEach(schedule => {
+      const existing = map.get(schedule.workflow_id) || [];
+      map.set(schedule.workflow_id, [...existing, schedule]);
+    });
+    return map;
+  }, [schedules]);
 
   // Delete workflow mutation
   const deleteMutation = useMutation({
@@ -404,11 +426,9 @@ export default function MyQueries() {
     }
   };
 
-  const handleSchedule = () => {
-    // TODO: Open schedule modal
-    toast('Schedule feature coming soon', {
-      icon: 'ℹ️'
-    });
+  const handleSchedule = (workflow: Workflow) => {
+    setSelectedWorkflowForSchedule(workflow);
+    setShowScheduleWizard(true);
   };
 
   const handleCopy = (workflowId: string) => {
@@ -561,8 +581,16 @@ export default function MyQueries() {
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {workflow.name}
+                      <div className="flex items-center">
+                        <span className="text-sm font-medium text-gray-900">
+                          {workflow.name}
+                        </span>
+                        {workflowSchedules.get(workflow.id)?.some(s => s.is_active) && (
+                          <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                            <CalendarClock className="w-3 h-3 mr-1" />
+                            Scheduled
+                          </span>
+                        )}
                       </div>
                       {workflow.description && (
                         <div className="text-xs text-gray-500 truncate max-w-xs">
@@ -624,11 +652,11 @@ export default function MyQueries() {
                         <Copy className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => handleSchedule()}
+                        onClick={() => handleSchedule(workflow)}
                         className="text-gray-600 hover:text-gray-900"
                         title="Schedule"
                       >
-                        <Calendar className="h-4 w-4" />
+                        <CalendarClock className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleDelete(workflow.workflowId)}
@@ -690,6 +718,24 @@ export default function MyQueries() {
         isOpen={showFilterSidebar}
         onClose={() => setShowFilterSidebar(false)}
       />
+
+      {/* Schedule Wizard Modal */}
+      {showScheduleWizard && selectedWorkflowForSchedule && (
+        <ScheduleWizard
+          workflowId={selectedWorkflowForSchedule.id}
+          workflowName={selectedWorkflowForSchedule.name}
+          onComplete={() => {
+            setShowScheduleWizard(false);
+            setSelectedWorkflowForSchedule(null);
+            queryClient.invalidateQueries({ queryKey: ['schedules'] });
+            toast.success('Schedule created successfully');
+          }}
+          onCancel={() => {
+            setShowScheduleWizard(false);
+            setSelectedWorkflowForSchedule(null);
+          }}
+        />
+      )}
     </div>
   );
 }

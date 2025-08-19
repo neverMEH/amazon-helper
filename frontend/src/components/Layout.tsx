@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Database, Tag, BookOpen, FileText, LogOut, User, History, Book } from 'lucide-react';
+import { LayoutDashboard, Database, Tag, BookOpen, FileText, LogOut, User, History, Book, CalendarClock } from 'lucide-react';
 import { authService } from '../services/auth';
 import AuthStatusBanner from './common/AuthStatusBanner';
 import Breadcrumb from './common/Breadcrumb';
@@ -12,6 +12,7 @@ const navigation = [
   { name: 'Data Sources', href: '/data-sources', icon: Book },
   { name: 'Query Library', href: '/query-library', icon: BookOpen },
   { name: 'Workflows', href: '/my-queries', icon: FileText },
+  { name: 'Schedules', href: '/schedules', icon: CalendarClock },
   { name: 'Executions', href: '/executions', icon: History },
 ];
 
