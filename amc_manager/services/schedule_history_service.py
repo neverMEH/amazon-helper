@@ -17,7 +17,7 @@ class ScheduleHistoryService(DatabaseService):
         """Initialize the schedule history service"""
         super().__init__()
     
-    async def get_schedule_runs(
+    def get_schedule_runs(
         self,
         schedule_id: str,
         limit: int = 30,
@@ -37,7 +37,7 @@ class ScheduleHistoryService(DatabaseService):
             List of schedule run records
         """
         try:
-            query = self.db.table('schedule_runs').select(
+            query = self.client.table('schedule_runs').select(
                 '*',
                 'workflow_executions(*)'
             ).eq('schedule_id', schedule_id)
@@ -48,7 +48,7 @@ class ScheduleHistoryService(DatabaseService):
             query = query.order('scheduled_at', desc=True)
             query = query.range(offset, offset + limit - 1)
             
-            result = await query.execute()
+            result = query.execute()
             
             return result.data or []
             
@@ -56,7 +56,7 @@ class ScheduleHistoryService(DatabaseService):
             logger.error(f"Error getting schedule runs: {e}")
             return []
     
-    async def get_run_executions(
+    def get_run_executions(
         self,
         run_id: str
     ) -> List[Dict[str, Any]]:
@@ -70,7 +70,7 @@ class ScheduleHistoryService(DatabaseService):
             List of execution records
         """
         try:
-            result = await self.db.table('workflow_executions').select(
+            result = self.client.table('workflow_executions').select(
                 '*',
                 'workflows(name, workflow_id)'
             ).eq('schedule_run_id', run_id).execute()
@@ -92,7 +92,7 @@ class ScheduleHistoryService(DatabaseService):
             logger.error(f"Error getting run executions: {e}")
             return []
     
-    async def get_schedule_metrics(
+    def get_schedule_metrics(
         self,
         schedule_id: str,
         period_days: int = 30
@@ -112,7 +112,7 @@ class ScheduleHistoryService(DatabaseService):
             cutoff_date = datetime.utcnow() - timedelta(days=period_days)
             
             # Get all runs within period
-            result = await self.db.table('schedule_runs').select('*').eq(
+            result = self.client.table('schedule_runs').select('*').eq(
                 'schedule_id', schedule_id
             ).gte('scheduled_at', cutoff_date.isoformat()).execute()
             
@@ -144,7 +144,7 @@ class ScheduleHistoryService(DatabaseService):
             total_cost = sum(r.get('total_cost', 0) for r in runs)
             
             # Get schedule details for next/last run
-            schedule_result = await self.db.table('workflow_schedules').select('*').eq(
+            schedule_result = self.client.table('workflow_schedules').select('*').eq(
                 'id', schedule_id
             ).single().execute()
             
@@ -187,7 +187,7 @@ class ScheduleHistoryService(DatabaseService):
                 'error': str(e)
             }
     
-    async def compare_periods(
+    def compare_periods(
         self,
         schedule_id: str,
         period1_start: datetime,
@@ -210,7 +210,7 @@ class ScheduleHistoryService(DatabaseService):
         """
         try:
             # Get runs for period 1
-            period1_result = await self.db.table('schedule_runs').select('*').eq(
+            period1_result = self.client.table('schedule_runs').select('*').eq(
                 'schedule_id', schedule_id
             ).gte('scheduled_at', period1_start.isoformat()).lte(
                 'scheduled_at', period1_end.isoformat()
@@ -219,7 +219,7 @@ class ScheduleHistoryService(DatabaseService):
             period1_runs = period1_result.data or []
             
             # Get runs for period 2
-            period2_result = await self.db.table('schedule_runs').select('*').eq(
+            period2_result = self.client.table('schedule_runs').select('*').eq(
                 'schedule_id', schedule_id
             ).gte('scheduled_at', period2_start.isoformat()).lte(
                 'scheduled_at', period2_end.isoformat()
@@ -279,7 +279,7 @@ class ScheduleHistoryService(DatabaseService):
                 'error': str(e)
             }
     
-    async def get_execution_timeline(
+    def get_execution_timeline(
         self,
         schedule_id: str,
         days: int = 7
@@ -298,7 +298,7 @@ class ScheduleHistoryService(DatabaseService):
             cutoff_date = datetime.utcnow() - timedelta(days=days)
             
             # Get all runs and executions
-            result = await self.db.table('schedule_runs').select(
+            result = self.client.table('schedule_runs').select(
                 '*',
                 'workflow_executions(*)'
             ).eq('schedule_id', schedule_id).gte(
@@ -349,7 +349,7 @@ class ScheduleHistoryService(DatabaseService):
             logger.error(f"Error getting execution timeline: {e}")
             return []
     
-    async def get_aggregated_results(
+    def get_aggregated_results(
         self,
         schedule_id: str,
         aggregation_type: str = 'daily',
@@ -370,7 +370,7 @@ class ScheduleHistoryService(DatabaseService):
             cutoff_date = datetime.utcnow() - timedelta(days=days)
             
             # Get all runs with executions
-            result = await self.db.table('schedule_runs').select(
+            result = self.client.table('schedule_runs').select(
                 '*',
                 'workflow_executions(results, row_count, status)'
             ).eq('schedule_id', schedule_id).gte(

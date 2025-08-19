@@ -57,7 +57,7 @@ class ScheduleExecutorService:
         """Check for due schedules and execute them"""
         try:
             # Get all due schedules
-            due_schedules = await self.schedule_service.get_due_schedules(buffer_minutes=2)
+            due_schedules = self.schedule_service.get_due_schedules(buffer_minutes=2)
             
             if due_schedules:
                 logger.info(f"Found {len(due_schedules)} due schedules")
@@ -134,7 +134,7 @@ class ScheduleExecutorService:
                 )
                 
                 # Update schedule record
-                await self.schedule_service.update_after_run(
+                self.schedule_service.update_after_run(
                     schedule_id,
                     datetime.utcnow(),
                     success=True
@@ -149,7 +149,7 @@ class ScheduleExecutorService:
                 logger.error(f"Error executing schedule {schedule_id}: {e}", exc_info=True)
                 
                 # Update schedule with failure
-                await self.schedule_service.update_after_run(
+                self.schedule_service.update_after_run(
                     schedule_id,
                     datetime.utcnow(),
                     success=False

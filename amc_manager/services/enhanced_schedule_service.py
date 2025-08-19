@@ -94,7 +94,7 @@ class EnhancedScheduleService(DatabaseService):
                 'created_at': datetime.utcnow()
             }
             
-            result = self.db.table('workflow_schedules').insert(schedule_data).execute()
+            result = self.client.table('workflow_schedules').insert(schedule_data).execute()
             
             if result.data:
                 logger.info(f"Created schedule {schedule_data['schedule_id']} for workflow {workflow_id}")
@@ -152,7 +152,7 @@ class EnhancedScheduleService(DatabaseService):
                 'created_at': datetime.utcnow()
             }
             
-            result = self.db.table('workflow_schedules').insert(schedule_data).execute()
+            result = self.client.table('workflow_schedules').insert(schedule_data).execute()
             
             if result.data:
                 logger.info(f"Created custom schedule {schedule_data['schedule_id']} for workflow {workflow_id}")
@@ -175,7 +175,7 @@ class EnhancedScheduleService(DatabaseService):
             Schedule record or None
         """
         try:
-            result = self.db.table('workflow_schedules').select(
+            result = self.client.table('workflow_schedules').select(
                 '*',
                 'workflows(*)'
             ).eq('schedule_id', schedule_id).single().execute()
@@ -216,7 +216,7 @@ class EnhancedScheduleService(DatabaseService):
             List of schedule records
         """
         try:
-            query = self.db.table('workflow_schedules').select(
+            query = self.client.table('workflow_schedules').select(
                 '*',
                 'workflows(id, workflow_id, name)'
             )
@@ -280,7 +280,7 @@ class EnhancedScheduleService(DatabaseService):
             
             updates['updated_at'] = datetime.utcnow()
             
-            result = self.db.table('workflow_schedules').update(
+            result = self.client.table('workflow_schedules').update(
                 updates
             ).eq('schedule_id', schedule_id).execute()
             
@@ -304,7 +304,7 @@ class EnhancedScheduleService(DatabaseService):
             True if deleted, False otherwise
         """
         try:
-            result = self.db.table('workflow_schedules').delete().eq(
+            result = self.client.table('workflow_schedules').delete().eq(
                 'schedule_id', schedule_id
             ).execute()
             
@@ -391,7 +391,7 @@ class EnhancedScheduleService(DatabaseService):
             now = datetime.utcnow()
             buffer_time = now + timedelta(minutes=buffer_minutes)
             
-            result = self.db.table('workflow_schedules').select(
+            result = self.client.table('workflow_schedules').select(
                 '*',
                 'workflows(*)'
             ).eq('is_active', True).lte('next_run_at', buffer_time).execute()
@@ -586,7 +586,7 @@ class EnhancedScheduleService(DatabaseService):
             List of conflicting schedules
         """
         try:
-            query = self.db.table('workflow_schedules').select('*').eq(
+            query = self.client.table('workflow_schedules').select('*').eq(
                 'workflow_id', workflow_id
             ).eq('is_active', True)
             
