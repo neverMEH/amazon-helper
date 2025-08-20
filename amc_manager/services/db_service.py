@@ -122,7 +122,7 @@ class DatabaseService:
     def get_user_campaigns_sync(self, user_id: str, brand_tag: Optional[str] = None) -> List[Dict[str, Any]]:
         """Get campaigns for user - sync version"""
         try:
-            query = self.client.table('campaign_mappings').select('id, user_id, profile_id, brand_tag, campaign_id, campaign_name, impressions, clicks, spend, created_at').eq('user_id', user_id).limit(1000)
+            query = self.client.table('campaign_mappings').select('id, user_id, profile_id, brand_tag, campaign_id, campaign_name, campaign_type, marketplace_id, first_seen_at, last_seen_at').eq('user_id', user_id).limit(1000)
             if brand_tag:
                 query = query.eq('brand_tag', brand_tag)
             response = query.execute()
@@ -635,7 +635,7 @@ class DatabaseService:
     async def get_user_campaigns(self, user_id: str, brand_tag: Optional[str] = None) -> List[Dict[str, Any]]:
         """Get campaigns for a user, optionally filtered by brand"""
         try:
-            query = self.client.table('campaign_mappings').select('id, user_id, profile_id, brand_tag, campaign_id, campaign_name, impressions, clicks, spend, created_at').eq('user_id', user_id).limit(1000)
+            query = self.client.table('campaign_mappings').select('id, user_id, profile_id, brand_tag, campaign_id, campaign_name, campaign_type, marketplace_id, first_seen_at, last_seen_at').eq('user_id', user_id).limit(1000)
             
             if brand_tag:
                 query = query.eq('brand_tag', brand_tag)
