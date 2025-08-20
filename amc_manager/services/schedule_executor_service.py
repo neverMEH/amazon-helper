@@ -436,12 +436,7 @@ class ScheduleExecutorService:
             
             if result.data:
                 logger.info(f"Created execution {execution_data['id']} for scheduled workflow")
-                
-                # Update schedule run with workflow execution ID
-                self.db.table('schedule_runs').update({
-                    'workflow_execution_id': execution_data['id']
-                }).eq('id', schedule_run_id).execute()
-                
+                # The relationship is tracked via schedule_run_id in workflow_executions table
                 return result.data[0]
             else:
                 raise Exception("Failed to create execution record")
