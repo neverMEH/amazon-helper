@@ -1,38 +1,45 @@
-2025-08-20 21:44:06 - amc_manager.services.token_service - INFO - Using existing FERNET_KEY from environment
-2025-08-20 21:44:06 - amc_manager.services.token_service - INFO - Fernet encryption initialized successfully
-2025-08-20 21:44:06 - amc_manager.services.amc_execution_service - INFO - AMC Execution Service configured to use REAL AMC API
-2025-08-20 21:44:06 - __main__ - INFO - All API routers loaded successfully with rate limiting
-2025-08-20 21:44:06 - __main__ - INFO - Frontend static files mounted
-2025-08-20 21:44:06 - main_supabase - INFO - All API routers loaded successfully with rate limiting
-2025-08-20 21:44:06 - main_supabase - INFO - Frontend static files mounted
-INFO:     Started server process [1875642]
+2025-08-20 22:26:39 - amc_manager.services.token_service - INFO - Using existing FERNET_KEY from environment
+2025-08-20 22:26:39 - amc_manager.services.token_service - INFO - Fernet encryption initialized successfully
+2025-08-20 22:26:39 - amc_manager.services.amc_execution_service - INFO - AMC Execution Service configured to use REAL AMC API
+2025-08-20 22:26:39 - __main__ - INFO - All API routers loaded successfully with rate limiting
+2025-08-20 22:26:39 - __main__ - INFO - Frontend static files mounted
+2025-08-20 22:26:39 - main_supabase - INFO - All API routers loaded successfully with rate limiting
+2025-08-20 22:26:39 - main_supabase - INFO - Frontend static files mounted
+INFO:     Started server process [1889719]
 INFO:     Waiting for application startup.
-2025-08-20 21:44:06 - main_supabase - INFO - Starting Recom AMP application with Supabase...
-2025-08-20 21:44:06 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-20 21:44:07 - main_supabase - INFO - ✓ Supabase connection successful
-2025-08-20 21:44:07 - amc_manager.services.token_refresh_service - INFO - Token refresh service started
-2025-08-20 21:44:07 - main_supabase - INFO - ✓ Token refresh service started
-2025-08-20 21:44:07 - main_supabase - INFO - ✓ Execution status poller started
-2025-08-20 21:44:07 - amc_manager.services.token_service - INFO - Using existing FERNET_KEY from environment
-2025-08-20 21:44:07 - amc_manager.services.token_service - INFO - Fernet encryption initialized successfully
-2025-08-20 21:44:07 - main_supabase - INFO - ✓ Schedule executor service started
-2025-08-20 21:44:07 - amc_manager.services.token_refresh_service - INFO - Added user fe841586-7807-48b1-8808-02877834fce0 to token refresh tracking
-2025-08-20 21:44:07 - main_supabase - INFO - ✓ Added 1 users with tokens to refresh tracking (out of 15 total)
-2025-08-20 21:44:07 - amc_manager.services.token_refresh_service - INFO - Starting token refresh service (interval: 600s)
-2025-08-20 21:44:07 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
-2025-08-20 21:44:07 - amc_manager.services.schedule_executor_service - INFO - Starting Schedule Executor Service
-2025-08-20 21:44:07 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-20 21:44:07 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-20 21:44:07 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-08-20 22:26:39 - main_supabase - INFO - Starting Recom AMP application with Supabase...
+2025-08-20 22:26:39 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-08-20 22:26:40 - main_supabase - INFO - ✓ Supabase connection successful
+2025-08-20 22:26:40 - amc_manager.services.token_refresh_service - INFO - Token refresh service started
+2025-08-20 22:26:40 - main_supabase - INFO - ✓ Token refresh service started
+2025-08-20 22:26:40 - main_supabase - INFO - ✓ Execution status poller started
+2025-08-20 22:26:40 - amc_manager.services.token_service - INFO - Using existing FERNET_KEY from environment
+2025-08-20 22:26:40 - amc_manager.services.token_service - INFO - Fernet encryption initialized successfully
+2025-08-20 22:26:40 - main_supabase - INFO - ✓ Schedule executor service started
+2025-08-20 22:26:40 - amc_manager.services.token_refresh_service - INFO - Added user fe841586-7807-48b1-8808-02877834fce0 to token refresh tracking
+2025-08-20 22:26:40 - main_supabase - INFO - ✓ Added 1 users with tokens to refresh tracking (out of 15 total)
+2025-08-20 22:26:40 - amc_manager.services.token_refresh_service - INFO - Starting token refresh service (interval: 600s)
+2025-08-20 22:26:40 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
+2025-08-20 22:26:40 - amc_manager.services.schedule_executor_service - INFO - Starting Schedule Executor Service
+2025-08-20 22:26:40 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-08-20 22:26:40 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-08-20 22:26:40 - amc_manager.services.db_service - INFO - Supabase connection refreshed
 INFO:     Application startup complete.
-2025-08-20 21:44:08 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-20 21:44:08 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-20 21:44:08 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-20 21:44:08 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 1 successful, 0 failed
+2025-08-20 22:26:40 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-08-20 22:26:40 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-08-20 22:26:40 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-08-20 22:26:40 - amc_manager.services.token_refresh_service - INFO - Token for user fe841586-7807-48b1-8808-02877834fce0 expires in 503s, refreshing...
+2025-08-20 22:26:40 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-08-20 22:26:40 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABopj-I2c3jqsZN
+2025-08-20 22:26:40 - amc_manager.services.token_service - ERROR - Error decrypting access token for user fe841586-7807-48b1-8808-02877834fce0: Failed to decrypt token: 
+2025-08-20 22:26:40 - amc_manager.services.token_service - ERROR - Token decryption failed - likely due to encryption key mismatch
+2025-08-20 22:26:40 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user fe841586-7807-48b1-8808-02877834fce0 - removing from tracking
+2025-08-20 22:26:40 - amc_manager.services.token_refresh_service - INFO - Removed user fe841586-7807-48b1-8808-02877834fce0 from token refresh tracking
+2025-08-20 22:26:40 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 0 successful, 1 failed
 INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     127.0.0.1:48498 - "GET /api/health HTTP/1.1" 200 OK
-2025-08-20 21:54:08 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
-2025-08-20 21:54:08 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 1 successful, 0 failed
-2025-08-20 22:04:08 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
-2025-08-20 22:04:08 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 1 successful, 0 failed
-INFO:     127.0.0.1:51836 - "GET /api/schedules/sched_d0d8b2c5f533 HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:49340 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45904 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51804 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     45.156.129.77:51323 - "GET /ms/1.0/ HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+INFO:     45.156.129.75:48915 - "GET / HTTP/1.1" 200 OK

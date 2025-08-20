@@ -43,7 +43,7 @@ export interface Schedule {
     amc_instances?: {
       id: string;
       instance_id: string;
-      name: string;
+      instance_name: string;
     };
   };
 }

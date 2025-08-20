@@ -443,6 +443,29 @@ const mutation = useMutation({
 
 These patterns MUST be followed to avoid common errors and ensure the application works correctly.
 
+### Critical Bugs to Fix Immediately
+
+Based on recent code audit (2025-08-20), these issues must be fixed:
+
+1. **asyncio.run() in async context** (token_refresh_service.py:118)
+   - Will crash in production
+   - Replace with `await self.token_service.refresh_token(...)`
+
+2. **Token logging security issue** (token_service.py:194)
+   - Sensitive OAuth tokens being logged
+   - Remove the logger.info line that logs decrypted tokens
+
+3. **Wrong method call** (token_refresh_service.py:86)
+   - Calling `encrypt_tokens()` instead of `update_tokens()`
+   - Fix to use correct method
+
+4. **Missing await statements**:
+   - execution_status_poller.py:91 - Add await before poll_and_update_execution
+   - schedule_executor_service.py:153 - Add await before execute_schedule_task
+
+5. **Sync/async confusion** (enhanced_schedule_service.py:87)
+   - Supabase client is synchronous, remove await
+
 ### AMC ID Field Duality
 ```typescript
 // Two ID systems must be carefully managed:
@@ -748,6 +771,15 @@ async def api_endpoint():
 # Always await async methods
 result = await async_method()      # ✓ Correct
 result = async_method()            # ✗ Returns coroutine object
+
+# CRITICAL: Never use asyncio.run() inside async functions
+# This is found in token_refresh_service.py and causes crashes
+# WRONG:
+async def refresh_all_tokens(self):
+    asyncio.run(self.token_service.refresh_token(...))  # ✗ Crashes
+# CORRECT:
+async def refresh_all_tokens(self):
+    await self.token_service.refresh_token(...)  # ✓ Works
 ```
 
 ### React Fragment Syntax
@@ -1069,6 +1101,7 @@ Before committing code, ensure:
 - If seeing "Failed to decrypt token" errors, the FERNET_KEY may have changed
 - Tokens are automatically cleared and users must re-authenticate
 - Prevention: Keep FERNET_KEY consistent across deployments
+- **SECURITY WARNING**: Never log decrypted tokens (found in token_service.py line 194)
 
 ### AMC API Errors
 - 400 errors with "unable to compile workflow" need special parsing
