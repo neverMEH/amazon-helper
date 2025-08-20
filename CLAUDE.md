@@ -1,10 +1,27 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides comprehensive guidance to Claude Code (claude.ai/code) when working with the RecomAMP codebase. Follow these patterns and conventions to ensure consistent, high-quality code.
+
+## ⚡ Most Important Things to Remember
+
+1. **AMC ID Duality**: Always use `instance_id` for AMC API calls, not the internal `id` UUID
+2. **Date Format**: AMC requires dates without timezone: `2025-07-15T00:00:00` (no 'Z')
+3. **Token Refresh**: Use `amc_api_client_with_retry` for automatic token handling
+4. **Async/Await**: Always await async methods, but Supabase client is synchronous (no await)
+5. **Type Imports**: Use `import type` for TypeScript type-only imports
+6. **Monaco Editor**: Must use pixel heights, not percentages
+7. **FastAPI Routes**: Collections need trailing slash for POST/PUT
+8. **Environment**: Use `python` not `python3` in scripts
 
 ## Project Overview
 
-RecomAMP - Amazon Marketing Cloud (AMC) query development and execution platform for managing AMC instances, creating and executing SQL queries with iterative workflow tracking, and building a comprehensive query library.
+**RecomAMP** - A full-stack Amazon Marketing Cloud (AMC) platform for:
+- Managing multiple AMC instances across different advertiser accounts
+- Building and testing SQL queries with a visual editor and schema explorer
+- Executing workflows with parameter substitution and result visualization
+- Scheduling automated recurring executions with smart date handling
+- Building a reusable query library with templates and examples
+- Tracking execution history with comprehensive error reporting
 
 ## Tech Stack
 
@@ -14,6 +31,7 @@ RecomAMP - Amazon Marketing Cloud (AMC) query development and execution platform
 - **Python 3.11**: With full async/await support
 - **Fernet**: Symmetric encryption for OAuth tokens
 - **httpx/tenacity**: HTTP client with retry logic
+- **croniter**: CRON expression parsing for scheduling
 
 ### Frontend  
 - **React 19.1.0**: With new JSX transform
@@ -24,18 +42,40 @@ RecomAMP - Amazon Marketing Cloud (AMC) query development and execution platform
 - **Tailwind CSS**: Utility-first CSS framework
 - **Vite**: Build tool and dev server
 
-## Development Commands
+## 🚀 Quick Start Guide
 
-### Quick Start
+### One-Command Launch
 ```bash
-# Start both backend and frontend services
+# Start everything with one command
 ./start_services.sh
 
-# Services:
-# Frontend: http://localhost:5173
-# Backend API: http://localhost:8001  
-# API Docs: http://localhost:8001/docs
+# This launches:
+# ✓ Backend API: http://localhost:8001
+# ✓ Frontend UI: http://localhost:5173
+# ✓ API Documentation: http://localhost:8001/docs
+# ✓ Background services (token refresh, execution polling, scheduling)
 ```
+
+### First-Time Setup
+```bash
+# 1. Clone and setup environment
+cp .env.example .env
+# Edit .env with your Supabase and Amazon credentials
+
+# 2. Install dependencies
+pip install -r requirements.txt
+cd frontend && npm install && cd ..
+
+# 3. Initialize database
+python scripts/check_supabase_connection.py
+python scripts/import_amc_schemas.py
+python scripts/apply_performance_indexes.py
+
+# 4. Launch application
+./start_services.sh
+```
+
+## Development Commands
 
 ### Environment Setup
 ```bash
@@ -83,6 +123,11 @@ python scripts/add_execution_results_fields.py # Add results fields to execution
 python test_token_refresh.py                 # Test automatic token refresh
 python scripts/validate_tokens.py            # Validate encrypted tokens
 python scripts/fix_token_encryption.py       # Fix token encryption issues
+
+# Scheduling operations
+python scripts/apply_schedule_migrations.py  # Apply scheduling schema
+python scripts/test_schedule_executor.py     # Test schedule execution
+python scripts/validate_schedules.py         # Validate active schedules
 ```
 
 ### Frontend Commands
@@ -117,7 +162,10 @@ amazon-helper/
 │   └── services/              # Business logic layer
 │       ├── db_service.py     # Base class with reconnection
 │       ├── amc_api_client*.py # AMC API integration
-│       └── token_service.py  # OAuth token management
+│       ├── token_service.py  # OAuth token management
+│       ├── enhanced_schedule_service.py # Schedule management
+│       ├── schedule_executor_service.py # Schedule execution
+│       └── schedule_history_service.py  # History tracking
 ├── frontend/                   # React application
 │   ├── src/
 │   │   ├── pages/            # Route components
@@ -153,8 +201,9 @@ amazon-helper/
 │                    Backend (FastAPI)                          │
 │  • Service layer pattern                                      │
 │  • Async/await throughout                                     │
-│  • Background services (token refresh, execution polling)     │
+│  • Background services (token refresh, polling, scheduling)   │
 │  • Token encryption with Fernet                               │
+│  • CRON-based workflow scheduling                             │
 └──────────────────────┬──────────────────────────────────────┘
                        │
            ┌───────────┴────────────┬─────────────────┐
@@ -188,7 +237,21 @@ amc_manager/services/
 ├── data_source_service.py     # AMC schema documentation
 ├── workflow_service.py        # Query workflow management
 ├── instance_service.py        # AMC instance CRUD
-└── amc_execution_service.py   # Execution lifecycle management
+├── amc_execution_service.py   # Execution lifecycle management
+├── enhanced_schedule_service.py # Schedule CRUD with presets
+│   ├── create_schedule()      # Create with interval presets
+│   ├── update_schedule()      # Update configuration
+│   ├── get_schedule_with_relations() # Include workflow data
+│   └── validate_cron_expression() # CRON validation
+├── schedule_executor_service.py # Background execution (1-min intervals)
+│   └── ScheduleExecutorService # Singleton with asyncio tasks
+│       ├── check_due_schedules() # Find schedules ready to run
+│       ├── execute_schedule()    # Run workflow with parameters
+│       └── update_next_run()    # Calculate next execution time
+└── schedule_history_service.py # Execution history tracking
+    ├── record_execution()     # Log each run
+    ├── get_execution_history() # Retrieve history
+    └── calculate_metrics()    # Success rate, costs, etc.
 ```
 
 ### Frontend Component Architecture
@@ -200,7 +263,8 @@ src/
 │   ├── DataSources.tsx         # List view with side panel preview
 │   ├── DataSourceDetail.tsx    # Enhanced with TOC, field explorer
 │   ├── MyQueries.tsx          # Workflows with advanced filtering/sorting
-│   └── InstanceDetail.tsx     # Instance management with tabs
+│   ├── InstanceDetail.tsx     # Instance management with tabs
+│   └── ScheduleManager.tsx    # Schedule dashboard with grid/list views
 ├── components/
 │   ├── query-builder/          # Wizard steps
 │   │   ├── QueryEditorStep.tsx       # SQL editor + schema explorer
@@ -215,6 +279,12 @@ src/
 │   ├── executions/             # Execution viewing
 │   │   ├── AMCExecutionDetail.tsx    # Primary execution viewer
 │   │   └── ExecutionResults.tsx      # Results table/chart view
+│   ├── schedules/              # Scheduling components
+│   │   ├── ScheduleWizard.tsx        # 4-step creation wizard
+│   │   ├── ScheduleDetailModal.tsx   # View/edit with 3 tabs
+│   │   ├── ScheduleHistory.tsx       # Execution history overlay
+│   │   ├── IntervalSelector.tsx      # Preset interval picker
+│   │   └── CronExpressionBuilder.tsx # Custom CRON builder
 │   └── common/                 # Shared components
 │       ├── SQLEditor.tsx             # Monaco Editor wrapper
 │       └── LoadingSpinner.tsx        # Loading states
@@ -225,7 +295,8 @@ src/
     ├── workflowService.ts      # Workflow CRUD operations
     ├── instanceService.ts      # AMC instance management
     ├── dataSourceService.ts    # Schema documentation
-    └── amcExecutionService.ts  # Execution lifecycle
+    ├── amcExecutionService.ts  # Execution lifecycle
+    └── scheduleService.ts      # Schedule management API
 ```
 
 ## Routing Structure
@@ -248,10 +319,129 @@ src/
 /executions                        // All executions
 /data-sources                      // Schema browser
 /data-sources/:schemaId            // Schema detail
+/schedules                         // Schedule management dashboard
+/schedules/new                     // Create schedule wizard
+/schedules/:scheduleId             // Schedule detail modal
 /profile                           // User settings
 ```
 
-## Critical Implementation Patterns
+## 📐 Code Patterns & Best Practices
+
+### Backend Patterns
+
+#### Service Layer Pattern
+```python
+# ALL services inherit from DatabaseService for auto-reconnection
+class MyService(DatabaseService):
+    def __init__(self):
+        super().__init__()
+        # Service-specific initialization
+    
+    @with_connection_retry
+    async def my_method(self):
+        # Database operations auto-retry on disconnect
+        pass
+```
+
+#### Error Handling
+```python
+# AMC API errors need special parsing
+try:
+    result = await amc_api_client.execute_query(...)
+except Exception as e:
+    error_detail = e.response.json() if hasattr(e, 'response') else {}
+    # Check 'details' field for AMC-specific errors
+    if 'details' in error_detail:
+        line = error_detail['details'].get('line')
+        column = error_detail['details'].get('column')
+        message = error_detail['details'].get('message')
+```
+
+#### Token Management
+```python
+# Always use the retry client for AMC operations
+from amc_manager.services.amc_api_client_with_retry import amc_api_client_with_retry
+
+# This automatically handles:
+# - Token refresh on 401
+# - Retry with new token
+# - User ID lookup for token refresh
+result = await amc_api_client_with_retry.create_workflow_execution(
+    instance_id=instance_id,  # Use AMC instance ID, not UUID!
+    user_id=user_id,
+    entity_id=entity_id,
+)
+```
+
+### Frontend Patterns
+
+#### Component Structure
+```tsx
+// Use explicit type imports (verbatimModuleSyntax)
+import type { FC, ReactNode } from 'react';
+import type { Workflow } from '../types';
+
+// Export interfaces for cross-component use
+export interface MyComponentProps {
+  workflow: Workflow;
+  onUpdate: (workflow: Workflow) => void;
+}
+
+// Functional component with proper typing
+export const MyComponent: FC<MyComponentProps> = ({ workflow, onUpdate }) => {
+  // Component logic
+};
+```
+
+#### React Query Patterns
+```tsx
+// Consistent query key structure
+const { data, isLoading } = useQuery({
+  queryKey: ['workflows', { instanceId, status, tags }],
+  queryFn: () => workflowService.getWorkflows({ instanceId, status, tags }),
+  staleTime: 5 * 60 * 1000, // 5 minutes
+  enabled: !!instanceId, // Conditional fetching
+});
+
+// Optimistic updates
+const mutation = useMutation({
+  mutationFn: workflowService.updateWorkflow,
+  onMutate: async (newData) => {
+    // Cancel queries and update cache optimistically
+    await queryClient.cancelQueries(['workflows']);
+    const previous = queryClient.getQueryData(['workflows']);
+    queryClient.setQueryData(['workflows'], old => ({
+      ...old,
+      data: old.data.map(w => w.id === newData.id ? newData : w)
+    }));
+    return { previous };
+  },
+  onError: (err, newData, context) => {
+    // Rollback on error
+    queryClient.setQueryData(['workflows'], context.previous);
+  },
+  onSettled: () => {
+    queryClient.invalidateQueries(['workflows']);
+  },
+});
+```
+
+#### Modal Stacking
+```tsx
+// Proper z-index hierarchy for modals
+<MainModal className="z-50">
+  {showNested && (
+    <NestedModal className="z-60" />
+  )}
+  {showError && (
+    <ErrorModal className="z-70" />
+  )}
+</MainModal>
+```
+
+## 🚨 Critical Implementation Patterns
+
+These patterns MUST be followed to avoid common errors and ensure the application works correctly.
 
 ### AMC ID Field Duality
 ```typescript
@@ -357,9 +547,9 @@ if (draft) {
 }
 ```
 
-## Database Schema
+## 📊 Database Schema
 
-Key Supabase tables and their relationships (RLS enabled on all tables):
+Complete Supabase schema with relationships and key fields. All tables have Row Level Security (RLS) enabled.
 
 ```sql
 users
@@ -458,6 +648,52 @@ query_templates                   -- Pre-built query library
 ├── tags (text[])
 ├── is_public (boolean)
 └── created_at
+
+workflow_schedules                -- Automated execution schedules
+├── id (uuid, PK)
+├── workflow_id (uuid, FK → workflows)
+├── name                           -- Schedule display name
+├── description                    -- Optional description
+├── interval_preset                -- daily/weekly/monthly/etc
+├── cron_expression                -- CRON format schedule
+├── timezone                       -- IANA timezone (e.g., 'America/New_York')
+├── is_active (boolean)            -- Enable/disable schedule
+├── default_parameters (jsonb)     -- Override workflow parameters
+│   ├── startDate                  -- Dynamic or fixed date
+│   ├── endDate                    -- Dynamic or fixed date
+│   └── [custom params]            -- Any workflow-specific params
+├── notification_settings (jsonb)  -- Email notification config
+│   ├── on_success (boolean)       -- Notify on successful run
+│   ├── on_failure (boolean)       -- Notify on failed run
+│   └── recipients (text[])        -- Email addresses
+├── max_retries (integer)          -- Retry count on failure
+├── retry_delay_minutes (integer)  -- Wait between retries
+├── pause_on_failure (boolean)     -- Auto-pause after failures
+├── failure_threshold (integer)    -- Consecutive failures to pause
+├── cost_limit (decimal)           -- Maximum cost per execution
+├── last_run (timestamp)           -- Last execution time
+├── next_run (timestamp)           -- Next scheduled execution
+├── execution_count (integer)      -- Total runs
+├── success_count (integer)        -- Successful runs
+├── failure_count (integer)        -- Failed runs
+├── consecutive_failures (integer) -- Current failure streak
+├── user_id (FK → users)
+├── created_at
+└── updated_at
+
+schedule_runs                     -- Schedule execution history
+├── id (uuid, PK)
+├── schedule_id (FK → workflow_schedules)
+├── workflow_execution_id (FK → workflow_executions)
+├── triggered_at (timestamp)       -- When schedule triggered
+├── started_at (timestamp)         -- Actual execution start
+├── completed_at (timestamp)       -- Execution completion
+├── status                         -- PENDING/RUNNING/SUCCESS/FAILED/SKIPPED
+├── error_message (text)           -- Error details if failed
+├── parameters_used (jsonb)        -- Actual parameters at runtime
+├── cost (decimal)                 -- Execution cost
+├── retry_count (integer)          -- Number of retries attempted
+└── created_at
 ```
 
 ## Environment Variables
@@ -491,7 +727,9 @@ SLOWAPI_LIMIT=100                   # Requests per minute
 FRONTEND_URL=http://localhost:5173
 ```
 
-## Common Pitfalls & Solutions
+## ⚠️ Common Pitfalls & Solutions
+
+These are the most frequent issues encountered and their solutions.
 
 ### FastAPI Trailing Slashes
 ```python
@@ -582,7 +820,7 @@ alias python=python3
 
 ## Background Services
 
-The application runs two critical background services:
+The application runs three critical background services:
 
 ### 1. Token Refresh Service
 - **Frequency**: Every 10 minutes
@@ -607,6 +845,22 @@ The application runs two critical background services:
   - Updates error details on failure
   - Auto-cleanup: Removes completed executions from polling
   - Handles AMC API rate limits
+
+### 3. Schedule Executor Service
+- **Frequency**: Every 60 seconds
+- **Purpose**: Executes scheduled workflows at their due times
+- **Implementation**: `schedule_executor_service.py`
+- **Auto-start**: Launches on application startup
+- **Features**:
+  - Checks all active schedules for due execution
+  - Ensures valid OAuth tokens before execution
+  - Handles timezone conversions for global schedules
+  - Applies default parameters with date calculations
+  - Records execution history for tracking
+  - Auto-pauses schedules after consecutive failures
+  - Updates next run time after each execution
+  - Supports retry logic with configurable delays
+  - Cost tracking and limit enforcement
 
 ## AMC Data Sources
 
@@ -656,37 +910,141 @@ docker run -p 8001:8001 --env-file .env recomamp
 - Environment variables set in Railway dashboard
 - Auto-deploys on GitHub push
 
-## Testing Strategy
+## 🧪 Testing Strategy
 
 ### Backend Testing
+
+#### Unit Tests
 ```bash
-# Unit tests
+# Run all unit tests
 pytest tests/ -v
 
-# Integration tests (requires DB)
+# Run specific test file
+pytest tests/test_token_service.py -v
+
+# Run specific test
+pytest tests/test_api_auth.py::test_login_success -v
+
+# With coverage report
+pytest --cov=amc_manager --cov-report=html tests/
+# Open htmlcov/index.html to view coverage
+```
+
+#### Integration Tests
+```bash
+# Database integration tests (requires Supabase)
 pytest tests/integration/ --tb=short
 
-# AMC API tests (requires credentials)
+# AMC API integration tests (requires credentials)
 AMC_USE_REAL_API=true pytest tests/amc/
 
-# Test coverage
-pytest --cov=amc_manager tests/
+# Test with real token refresh
+python test_token_refresh.py
+```
+
+#### Testing Patterns
+```python
+# Use pytest fixtures for setup
+@pytest.fixture
+async def mock_instance():
+    return {
+        "id": str(uuid4()),
+        "instance_id": "test_instance_123",
+        "entity_id": "ENTITY123",
+        "name": "Test Instance"
+    }
+
+# Mock external services
+@patch('amc_manager.services.amc_api_client.AMCAPIClient.execute_query')
+async def test_execution(mock_execute):
+    mock_execute.return_value = {"executionId": "exec123"}
+    # Test logic here
+
+# Test async functions properly
+@pytest.mark.asyncio
+async def test_async_function():
+    result = await async_service_method()
+    assert result is not None
 ```
 
 ### Frontend Testing
+
+#### Type Checking
 ```bash
-# Type checking
+# Check all TypeScript types
 npm run typecheck
-npx tsc --noEmit --watch  # Watch mode
 
-# E2E tests with Playwright
-npx playwright test
-npx playwright test --ui  # Interactive mode
-npx playwright test --debug  # Debug mode
+# Watch mode for development
+npx tsc --noEmit --watch
 
-# Linting
-npm run lint
+# Fix type-only import issues
+# Search for: import { SomeType }
+# Replace with: import type { SomeType }
 ```
+
+#### E2E Testing with Playwright
+```bash
+# Install Playwright browsers
+npx playwright install
+
+# Run all E2E tests
+npx playwright test
+
+# Interactive mode with browser
+npx playwright test --ui
+
+# Debug specific test
+npx playwright test test-name.spec.ts --debug
+
+# Generate test code by recording
+npx playwright codegen http://localhost:5173
+```
+
+#### Component Testing Patterns
+```tsx
+// Mock API responses
+import { rest } from 'msw';
+import { setupServer } from 'msw/node';
+
+const server = setupServer(
+  rest.get('/api/workflows', (req, res, ctx) => {
+    return res(ctx.json({ data: mockWorkflows }));
+  })
+);
+
+beforeAll(() => server.listen());
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
+
+// Test React Query hooks
+import { renderHook, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const wrapper = ({ children }) => (
+  <QueryClientProvider client={new QueryClient()}>
+    {children}
+  </QueryClientProvider>
+);
+
+test('loads workflows', async () => {
+  const { result } = renderHook(() => useWorkflows(), { wrapper });
+  await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  expect(result.current.data).toHaveLength(2);
+});
+```
+
+### Testing Checklist
+
+Before committing code, ensure:
+- [ ] All unit tests pass: `pytest tests/`
+- [ ] Type checking passes: `npm run typecheck`
+- [ ] Linting passes: `npm run lint`
+- [ ] No console errors in browser
+- [ ] API endpoints return expected status codes
+- [ ] Error states are handled gracefully
+- [ ] Loading states display correctly
+- [ ] Modal z-indexes stack properly
+- [ ] Schedule executions trigger on time
 
 ## Performance Optimizations
 
@@ -732,6 +1090,38 @@ npm run lint
 - "Server disconnected" errors are automatically retried
 - Keep SUPABASE_SERVICE_ROLE_KEY consistent across deploys
 
+### Scheduling-Specific Patterns
+```python
+# Workflow ID conversion for schedules
+# Database expects UUID, API accepts string
+workflow_uuid = UUID(workflow_id) if isinstance(workflow_id, str) else workflow_id
+
+# DateTime must be ISO strings for JSON
+schedule['next_run'] = schedule['next_run'].isoformat()
+schedule['last_run'] = schedule['last_run'].isoformat() if schedule['last_run'] else None
+
+# Supabase client is synchronous
+result = self.client.table('workflow_schedules').select().execute()  # No await!
+# NOT: result = await self.client.table(...).execute()  # Error!
+```
+
+### Schedule History Modal Pattern
+```tsx
+// ScheduleHistory must be rendered as overlay, not embedded
+// CORRECT: Separate modal with own z-index
+{showHistory && (
+  <ScheduleHistory
+    scheduleId={schedule.id}
+    onClose={() => setShowHistory(false)}
+  />
+)}
+
+// WRONG: Embedded in parent modal
+<div className="modal-content">
+  <ScheduleHistory />  // Won't display properly
+</div>
+```
+
 ### AMC API Rate Limits
 - AMC API has undocumented rate limits
 - Implement exponential backoff on 429 errors
@@ -742,9 +1132,105 @@ npm run lint
 - Cause: Missing `await` in execution_status_poller.py
 - Fix: Always await async methods in async contexts
 
-## Debugging Tips
+### Schedule Service UUID Errors
+- Error: `Invalid input syntax for type uuid`
+- Cause: Passing string workflow_id instead of UUID
+- Fix: Convert workflow_id to UUID before database operations
+```python
+workflow_uuid = UUID(workflow_id) if isinstance(workflow_id, str) else workflow_id
+```
+
+### Schedule DateTime Serialization
+- Error: `Object of type datetime is not JSON serializable`
+- Cause: Returning Python datetime objects in API responses
+- Fix: Convert all datetime fields to ISO strings
+```python
+schedule['next_run'] = schedule['next_run'].isoformat()
+```
+
+### Supabase Async/Await Confusion
+- Error: `'coroutine' object has no attribute 'data'`
+- Cause: Using await with Supabase synchronous client
+- Fix: Supabase Python client is synchronous, don't use await
+```python
+# CORRECT
+result = self.client.table('schedules').select().execute()
+# WRONG
+result = await self.client.table('schedules').select().execute()
+```
+
+## 🔧 Troubleshooting Guide
+
+### Quick Fixes for Common Issues
+
+#### "Failed to decrypt token" Error
+```bash
+# User tokens corrupted due to FERNET_KEY change
+# Solution: User must re-authenticate
+curl -X POST http://localhost:8001/api/auth/logout
+# Then login again via UI
+```
+
+#### "Server disconnected" Error
+```python
+# Supabase connection timeout (happens after 30 minutes)
+# Solution: Automatic retry is built-in via @with_connection_retry decorator
+# If persists, restart backend:
+pkill -f "python main_supabase.py"
+./start_services.sh
+```
+
+#### Empty AMC Query Results
+```python
+# Check date format - AMC requires no timezone
+'2025-07-15T00:00:00'    # ✓ Correct
+'2025-07-15T00:00:00Z'   # ✗ Wrong - 'Z' causes empty results
+
+# Check for 14-day data lag
+from datetime import datetime, timedelta
+end_date = datetime.utcnow() - timedelta(days=14)  # Account for lag
+```
+
+#### 403 Forbidden on AMC API
+```python
+# Using wrong instance ID
+instance.instance_id  # ✓ Use AMC's actual ID
+instance.id          # ✗ Internal UUID causes 403
+
+# Missing entity_id in headers
+headers['Amazon-Advertising-API-AdvertiserId'] = entity_id  # Required!
+```
+
+#### TypeScript Build Errors
+```bash
+# Type-only imports not marked correctly
+import type { Workflow } from '../types';  # ✓ Correct
+import { Workflow } from '../types';       # ✗ Error with verbatimModuleSyntax
+
+# Fix all at once:
+npm run typecheck
+# Then fix reported errors
+```
+
+#### Schedule Not Executing
+```sql
+-- Check schedule status
+SELECT id, name, is_active, next_run, last_run, consecutive_failures
+FROM workflow_schedules
+WHERE next_run < NOW() AND is_active = true;
+
+-- Check user has valid tokens
+SELECT u.email, u.auth_tokens->>'expires_at' as token_expires
+FROM users u
+JOIN workflow_schedules ws ON ws.user_id = u.id
+WHERE ws.id = 'schedule-id-here';
+```
+
+## 🔍 Debugging Guide
 
 ### Common Error Patterns
+
+When you encounter these errors, here's what to check:
 ```python
 # 403 Forbidden on AMC API
 # Check: Using instance_id not internal UUID
@@ -763,6 +1249,17 @@ npm run lint
 # Coroutine errors in logs
 # Check: Missing await on async method calls
 # Fix: Add await to all async method calls
+
+# Schedule not executing
+# Check: Schedule is active (is_active = true)
+# Check: Next run time is in the past
+# Check: User has valid OAuth tokens
+# Check: Timezone calculations are correct
+
+# Schedule history not showing
+# Check: ScheduleHistory rendered as overlay, not embedded
+# Check: Proper z-index for modal stacking
+# Check: schedule_runs table has entries
 ```
 
 ### Useful Debug Commands
@@ -779,11 +1276,19 @@ python scripts/validate_tokens.py
 # Check running executions
 python scripts/find_running_executions.py
 
+# Check due schedules
+python scripts/check_due_schedules.py
+
+# Test schedule execution
+python scripts/test_schedule_executor.py
+
 # Monitor server logs
 tail -f server.log
 ```
 
-## Architecture Decisions
+## 🏗️ Architecture Decisions
+
+Key technology choices and their rationale:
 
 ### Why Supabase?
 - Built-in auth and RLS (Row Level Security)
@@ -809,63 +1314,243 @@ tail -f server.log
 - Background refetching
 - DevTools for debugging
 
-## Recent Feature Additions
+## ✅ Working Features
 
-### Workflow Scheduling System (2025-08-19)
-Complete scheduling implementation with flexible recurring intervals and comprehensive execution tracking.
+Currently implemented and tested functionality:
 
-#### New Files Created
-**Backend Services:**
-- `amc_manager/services/enhanced_schedule_service.py` - Core scheduling with presets
-- `amc_manager/services/schedule_executor_service.py` - Background execution service
-- `amc_manager/services/schedule_history_service.py` - History and metrics tracking
-- `amc_manager/api/supabase/schedule_endpoints.py` - REST API endpoints
+### Core Functionality
+- **AMC Instance Management**: Create, configure, and manage multiple AMC instances
+- **Query Builder**: 3-step wizard with SQL editor, schema explorer, and test execution
+- **Workflow Management**: Create, edit, duplicate, and organize SQL workflows
+- **Query Execution**: Execute workflows on AMC with parameter substitution
+- **Data Source Browser**: Explore AMC schemas with field details and examples
+- **Query Library**: Pre-built templates for common AMC queries
+- **Execution History**: Track all executions with results and error details
 
-**Frontend Components:**
-- `frontend/src/pages/ScheduleManager.tsx` - Schedule management dashboard
-- `frontend/src/components/schedules/ScheduleWizard.tsx` - 4-step creation wizard
-- `frontend/src/components/schedules/ScheduleHistory.tsx` - Execution history viewer
-- `frontend/src/services/scheduleService.ts` - API client service
-- `frontend/src/types/schedule.ts` - TypeScript definitions
-
-**Database Migration:**
-- `apply_schedule_migrations.sql` - Schema changes for scheduling
+### Workflow Scheduling System
+Complete automated scheduling implementation with flexible recurring intervals and comprehensive execution tracking.
 
 #### Key Features
-- **Scheduling Intervals**: Daily, 3/7/14/30/60/90 days, weekly, monthly, business days
-- **Background Executor**: Runs every minute checking for due schedules
-- **Auto Token Refresh**: Ensures valid tokens before execution
-- **Execution History**: Complete tracking with metrics and cost analysis
-- **Failure Handling**: Auto-pause after consecutive failures
-- **Timezone Support**: Full timezone-aware scheduling with date-fns-tz
+- **Flexible Intervals**: 
+  - Preset options: Daily, Every 3/7/14/30/60/90 days
+  - Weekly on specific days
+  - Monthly on specific dates
+  - Business days only
+  - Custom CRON expressions
+- **Smart Date Parameters**: 
+  - Dynamic date calculations (e.g., "last 7 days")
+  - Fixed date ranges
+  - Timezone-aware scheduling
+- **Execution Management**:
+  - Automatic retry on failure with configurable delays
+  - Auto-pause after consecutive failures
+  - Cost tracking and limits
+  - Email notifications on success/failure
+- **Comprehensive History**:
+  - Timeline view of all executions
+  - Metrics dashboard with success rates
+  - Cost analysis and trending
+  - Detailed error tracking
 
-#### Important Implementation Details
-1. **Workflow ID Handling**: 
-   - Database stores UUID (`workflows.id`)
-   - API accepts string ID (`workflows.workflow_id` like "wf_xxx")
-   - Service converts between formats automatically
+#### Scheduling UI/UX Patterns
+
+**Schedule Creation Wizard**:
+1. **Workflow Selection**: Choose workflow to schedule
+2. **Interval Configuration**: Select preset or custom CRON
+3. **Parameter Defaults**: Override workflow parameters
+4. **Notification Settings**: Configure email alerts
+
+**Schedule Management Dashboard**:
+- **Grid View**: Card layout with key metrics
+- **List View**: Table with sortable columns
+- **Quick Actions**: Pause/resume, test run, view history
+- **Status Indicators**: Active, paused, failed states
+
+**Schedule Detail Modal**:
+- **Details Tab**: Configuration and next run info
+- **History Tab**: Execution timeline with filters
+- **Settings Tab**: Edit schedule configuration
+
+**History Viewer**:
+- **Timeline View**: Chronological execution list
+- **Table View**: Sortable data grid
+- **Metrics View**: Charts and statistics
+- **Export Options**: Download history as CSV/JSON
+
+#### Implementation Architecture
+
+**Backend Services**:
+- `EnhancedScheduleService`: CRUD operations with CRON validation
+- `ScheduleExecutorService`: Background worker checking every minute
+- `ScheduleHistoryService`: History tracking and metrics calculation
+
+**Frontend Components**:
+- `ScheduleManager`: Main dashboard page
+- `ScheduleWizard`: Multi-step creation flow
+- `ScheduleDetailModal`: View/edit interface
+- `ScheduleHistory`: Execution history overlay
+
+**Database Schema**:
+- `workflow_schedules`: Schedule configurations
+- `schedule_runs`: Execution history records
+
+#### Common Scheduling Pitfalls
+
+1. **Workflow ID Type Mismatch**:
+   ```python
+   # Always convert string IDs to UUID for database
+   workflow_uuid = UUID(workflow_id) if isinstance(workflow_id, str) else workflow_id
+   ```
 
 2. **DateTime Serialization**:
-   - All datetime objects must be converted to ISO strings
-   - Use `.isoformat()` before database operations
-   - PostgreSQL expects string format, not Python datetime
+   ```python
+   # Convert datetime to ISO string for JSON responses
+   schedule['next_run'] = schedule['next_run'].isoformat()
+   ```
 
-3. **Service Architecture**:
-   - All schedule services inherit from `DatabaseService`
-   - Use `self.client` not `self.db` for database access
-   - Services are synchronous (no async/await with Supabase client)
+3. **Supabase Client Usage**:
+   ```python
+   # Supabase client is synchronous - no await!
+   result = self.client.table('schedules').select().execute()
+   ```
 
-4. **API Response Format**:
-   - Return raw data with relations included
-   - Don't use strict Pydantic models that strip nested data
-   - Frontend expects `schedule.workflows.name` structure
+4. **Modal Rendering**:
+   ```tsx
+   // ScheduleHistory must be overlay, not embedded
+   {showHistory && <ScheduleHistory />}  // Separate modal
+   ```
 
-#### Common Issues and Solutions
-- **"exec is a keyword"**: Use `execution` instead of `exec` as variable name
-- **422 Validation Errors**: Check for conflicting endpoints in workflows.py
-- **UUID Conversion**: Always convert workflow_id strings to UUIDs for database
-- **JSON Serialization**: Convert all datetime objects to ISO strings
-- **Unnamed Workflow**: Ensure workflows relation is included in responses
+5. **CRON Expression Validation**:
+   ```python
+   # Validate before saving to prevent execution errors
+   from croniter import croniter
+   if not croniter.is_valid(cron_expression):
+       raise ValueError("Invalid CRON expression")
+   ```
+
+## 📚 API Documentation
+
+### Core API Endpoints
+
+#### Authentication
+```http
+POST   /api/auth/login              # Email/password login
+POST   /api/auth/amazon/callback    # OAuth callback
+POST   /api/auth/logout             # Clear session
+GET    /api/auth/me                 # Current user info
+```
+
+#### Workflows
+```http
+GET    /api/workflows/              # List workflows (trailing slash!)
+POST   /api/workflows/              # Create workflow
+GET    /api/workflows/{id}          # Get workflow details
+PUT    /api/workflows/{id}          # Update workflow
+DELETE /api/workflows/{id}          # Delete workflow
+POST   /api/workflows/{id}/execute  # Execute workflow
+```
+
+#### AMC Instances
+```http
+GET    /api/instances/              # List instances
+POST   /api/instances/              # Create instance
+GET    /api/instances/{id}          # Get instance
+PUT    /api/instances/{id}          # Update instance
+DELETE /api/instances/{id}          # Delete instance
+```
+
+#### Schedules
+```http
+GET    /api/schedules/              # List schedules
+POST   /api/schedules/              # Create schedule
+GET    /api/schedules/{id}          # Get schedule with relations
+PUT    /api/schedules/{id}          # Update schedule
+DELETE /api/schedules/{id}          # Delete schedule
+POST   /api/schedules/{id}/pause    # Pause schedule
+POST   /api/schedules/{id}/resume   # Resume schedule
+GET    /api/schedules/{id}/history  # Get execution history
+```
+
+#### Data Sources
+```http
+GET    /api/data-sources/           # List AMC schemas
+GET    /api/data-sources/{id}       # Get schema with fields
+GET    /api/data-sources/{id}/examples  # Get query examples
+```
+
+### Common Workflows
+
+#### Creating and Executing a Query
+```python
+# 1. Create workflow
+workflow = await workflow_service.create_workflow(
+    name="My Query",
+    sql_query="SELECT * FROM dsp_impressions WHERE dt >= '{{startDate}}'",
+    parameters={"startDate": "2025-07-01T00:00:00"},
+    user_id=user_id
+)
+
+# 2. Execute on AMC instance
+execution = await amc_api_client_with_retry.create_workflow_execution(
+    instance_id=instance.instance_id,  # Use AMC ID!
+    workflow_id=workflow.id,
+    user_id=user_id,
+    entity_id=instance.entity_id
+)
+
+# 3. Poll for results (automatic via background service)
+# Or manually:
+result = await amc_execution_service.poll_and_update_execution(
+    execution_id=execution.id,
+    user_id=user_id
+)
+```
+
+#### Setting Up a Schedule
+```python
+# 1. Create schedule with preset interval
+schedule = await schedule_service.create_schedule(
+    workflow_id=workflow_id,
+    name="Daily Report",
+    interval_preset="daily",
+    timezone="America/New_York",
+    default_parameters={
+        "startDate": "dynamic:yesterday",
+        "endDate": "dynamic:today"
+    },
+    user_id=user_id
+)
+
+# 2. Schedule executor will automatically run it
+# Background service checks every minute for due schedules
+```
+
+#### Handling AMC Errors
+```python
+try:
+    result = await amc_api_client.execute_query(...)
+except HTTPException as e:
+    if e.status_code == 400:
+        # Parse AMC-specific error
+        detail = e.detail
+        if isinstance(detail, dict) and 'details' in detail:
+            error_info = detail['details']
+            line = error_info.get('line')
+            column = error_info.get('column')
+            message = error_info.get('message', '')
+            
+            # Handle specific errors
+            if 'table not found' in message.lower():
+                # Table doesn't exist in AMC
+                pass
+            elif 'syntax error' in message.lower():
+                # SQL syntax issue
+                pass
+```
+
+## 📋 Recent Changes & Improvements
+
+Latest updates to be aware of:
 
 ### Query Builder Enhancements (2025-08-19)
 - **Full Width Layout**: QueryReviewStep now uses full viewport width
@@ -873,9 +1558,27 @@ Complete scheduling implementation with flexible recurring intervals and compreh
 - **Scrollable SQL Window**: Fixed height with internal scrolling
 - **No Page Scroll Required**: Create Workflow button always accessible
 
+### Schedule Management System (2025-08-18)
+- **Complete Scheduling**: Full CRUD operations with CRON support
+- **History Tracking**: Comprehensive execution history with metrics
+- **Smart Retries**: Automatic retry logic with configurable delays
+- **Cost Management**: Track and limit execution costs
+
 ### Recent Fixes (2025-08-13)
 - **Dynamic Schema Loading**: Removed hardcoded tables, loads from API
 - **SessionStorage Integration**: Examples populate in query editor
 - **Dual Results View**: Inline and full modal viewing options
 - **React Fragment Fixes**: Proper JSX structure throughout
 - **Modal Z-Index Layering**: Correct stacking for nested modals
+
+## 🎯 Future Enhancements
+
+Planned improvements and features:
+- Real-time collaboration on workflows
+- Advanced query optimization suggestions
+- Automated anomaly detection in results
+- Template marketplace for sharing queries
+- Multi-region instance management
+- Advanced cost optimization analytics
+- Webhook integrations for execution events
+- Custom dashboard builder with widgets

@@ -115,7 +115,7 @@ class ExecutionStatusPoller:
                     
                     # Use the amc_execution_service to poll and update
                     user_id = workflow_response.data.get('user_id')
-                    status = amc_execution_service.poll_and_update_execution(
+                    status = await amc_execution_service.poll_and_update_execution(
                         execution_id=execution_id,
                         user_id=user_id
                     )

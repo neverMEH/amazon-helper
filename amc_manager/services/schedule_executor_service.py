@@ -10,7 +10,6 @@ from ..core.logger_simple import get_logger
 from ..core.supabase_client import SupabaseManager
 from .enhanced_schedule_service import EnhancedScheduleService
 from .token_service import TokenService
-from .amc_api_client_with_retry import amc_api_client_with_retry
 
 logger = get_logger(__name__)
 
@@ -346,12 +345,12 @@ class ScheduleExecutorService:
         schedule_run_id: str
     ) -> Dict[str, Any]:
         """
-        Execute a workflow via AMC API
+        Execute a workflow via AMC API using the existing amc_execution_service
         
         Args:
             workflow_id: Internal workflow ID
-            workflow_amc_id: AMC workflow ID
-            instance: Instance record
+            workflow_amc_id: AMC workflow ID (not used anymore, kept for compatibility)
+            instance: Instance record  
             user_id: User ID
             parameters: Execution parameters
             schedule_run_id: Schedule run ID
@@ -360,86 +359,55 @@ class ScheduleExecutorService:
             Execution record
         """
         try:
-            # Get workflow details
-            workflow_result = self.db.table('workflows').select('*').eq(
-                'id', workflow_id
-            ).single().execute()
+            # Import the amc_execution_service
+            from .amc_execution_service import amc_execution_service
             
-            if not workflow_result.data:
-                raise ValueError(f"Workflow {workflow_id} not found")
+            # Add schedule metadata to parameters
+            execution_params = parameters.copy()
+            execution_params['_schedule_run_id'] = schedule_run_id
+            execution_params['_triggered_by'] = 'schedule'
             
-            workflow = workflow_result.data
+            # Use the amc_execution_service to execute the workflow
+            # This handles all the complexity of workflow creation, token refresh, etc.
+            logger.info(f"Executing workflow {workflow_id} via amc_execution_service for schedule")
             
-            # Create or get AMC workflow if needed
-            if not workflow_amc_id:
-                logger.info(f"Creating AMC workflow for {workflow_id}")
-                
-                # Generate a unique workflow ID for AMC
-                import string
-                import random
-                random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
-                new_workflow_id = f"wf_{random_suffix}"
-                
-                # Convert parameters to input_parameters format for AMC
-                input_parameters = []
-                if parameters:
-                    for key, value in parameters.items():
-                        input_parameters.append({
-                            'name': key,
-                            'dataType': 'STRING',
-                            'defaultValue': str(value) if value else None
-                        })
-                
-                amc_workflow = await amc_api_client_with_retry.create_workflow(
-                    instance_id=instance['instance_id'],
-                    workflow_id=new_workflow_id,
-                    sql_query=workflow['sql_query'],
-                    user_id=user_id,
-                    entity_id=instance.get('entity_id'),
-                    input_parameters=input_parameters if input_parameters else None
-                )
-                workflow_amc_id = amc_workflow.get('workflowId') or new_workflow_id
-                
-                # Update workflow with AMC ID
-                self.db.table('workflows').update({
-                    'amc_workflow_id': workflow_amc_id,
-                    'is_synced_to_amc': True
-                }).eq('id', workflow_id).execute()
-            
-            # Execute the workflow
-            logger.info(f"Executing AMC workflow {workflow_amc_id} on instance {instance['instance_id']}")
-            
-            amc_execution = await amc_api_client_with_retry.create_workflow_execution(
-                instance_id=instance['instance_id'],
+            result = await amc_execution_service.execute_workflow(
+                workflow_id=workflow_id,
                 user_id=user_id,
-                entity_id=instance.get('entity_id'),
-                workflow_id=workflow_amc_id,
-                parameter_values=parameters
+                execution_parameters=execution_params,
+                triggered_by="schedule",
+                instance_id=instance['instance_id']  # Pass the AMC instance ID
             )
             
-            # Create execution record
-            execution_data = {
-                'id': str(uuid.uuid4()),
-                'execution_id': f"exec_{uuid.uuid4().hex[:8]}",  # Required field
-                'workflow_id': workflow_id,
-                'instance_id': instance['instance_id'],
-                'amc_execution_id': amc_execution.get('executionId'),
-                'amc_workflow_id': workflow_amc_id,
-                'status': 'PENDING',
-                'execution_parameters': json.dumps(parameters),  # Use correct column name
-                'schedule_run_id': schedule_run_id,
-                'started_at': datetime.utcnow().isoformat(),
-                'created_at': datetime.utcnow().isoformat()
-            }
+            # Check if execution was successful
+            if result.get('status') == 'failed':
+                error_msg = result.get('error', 'Unknown error')
+                raise Exception(f"Failed to execute workflow: {error_msg}")
             
-            result = self.db.table('workflow_executions').insert(execution_data).execute()
+            # Get the execution ID from the result
+            execution_id = result.get('execution_id')
+            if not execution_id:
+                raise Exception("No execution ID returned from amc_execution_service")
             
-            if result.data:
-                logger.info(f"Created execution {execution_data['id']} for scheduled workflow")
-                # The relationship is tracked via schedule_run_id in workflow_executions table
-                return result.data[0]
-            else:
-                raise Exception("Failed to create execution record")
+            # Get the full execution record to return
+            execution_result = self.db.table('workflow_executions').select('*').eq(
+                'execution_id', execution_id
+            ).single().execute()
+            
+            if not execution_result.data:
+                raise Exception(f"Execution record {execution_id} not found after creation")
+            
+            execution = execution_result.data
+            
+            # Update the execution with the schedule_run_id if not already set
+            if not execution.get('schedule_run_id'):
+                self.db.table('workflow_executions').update({
+                    'schedule_run_id': schedule_run_id
+                }).eq('execution_id', execution_id).execute()
+                execution['schedule_run_id'] = schedule_run_id
+            
+            logger.info(f"Successfully created execution {execution_id} for scheduled workflow")
+            return execution
                 
         except Exception as e:
             logger.error(f"Error executing workflow {workflow_id}: {e}")
