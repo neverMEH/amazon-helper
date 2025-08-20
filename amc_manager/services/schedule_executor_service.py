@@ -373,17 +373,32 @@ class ScheduleExecutorService:
             # Create or get AMC workflow if needed
             if not workflow_amc_id:
                 logger.info(f"Creating AMC workflow for {workflow_id}")
+                
+                # Generate a unique workflow ID for AMC
+                import string
+                import random
+                random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+                new_workflow_id = f"wf_{random_suffix}"
+                
+                # Convert parameters to input_parameters format for AMC
+                input_parameters = []
+                if parameters:
+                    for key, value in parameters.items():
+                        input_parameters.append({
+                            'name': key,
+                            'dataType': 'STRING',
+                            'defaultValue': str(value) if value else None
+                        })
+                
                 amc_workflow = await amc_api_client_with_retry.create_workflow(
                     instance_id=instance['instance_id'],
+                    workflow_id=new_workflow_id,
+                    sql_query=workflow['sql_query'],
                     user_id=user_id,
                     entity_id=instance.get('entity_id'),
-                    workflow_data={
-                        'name': workflow['name'],
-                        'sqlQuery': workflow['sql_query'],
-                        'parameters': parameters
-                    }
+                    input_parameters=input_parameters if input_parameters else None
                 )
-                workflow_amc_id = amc_workflow.get('workflowId')
+                workflow_amc_id = amc_workflow.get('workflowId') or new_workflow_id
                 
                 # Update workflow with AMC ID
                 self.db.table('workflows').update({
