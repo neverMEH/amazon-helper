@@ -43,3 +43,6 @@ INFO:     127.0.0.1:51804 - "GET /api/health HTTP/1.1" 200 OK
 INFO:     45.156.129.77:51323 - "GET /ms/1.0/ HTTP/1.1" 200 OK
 WARNING:  Invalid HTTP request received.
 INFO:     45.156.129.75:48915 - "GET / HTTP/1.1" 200 OK
+2025-08-20 22:56:45 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-08-20 22:56:45 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-08-20 22:56:45 - amc_manager.services.db_service - INFO - Supabase connection refreshed

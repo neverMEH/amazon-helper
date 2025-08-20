@@ -243,7 +243,7 @@ class EnhancedScheduleService(DatabaseService):
         try:
             query = self.client.table('workflow_schedules').select(
                 '*',
-                'workflows(id, workflow_id, name)'
+                'workflows(id, workflow_id, name, instance_id, amc_instances(id, instance_id, instance_name))'
             )
             
             if workflow_id:

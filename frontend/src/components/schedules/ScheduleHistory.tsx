@@ -25,10 +25,20 @@ interface ScheduleHistoryProps {
 
 type ViewMode = 'timeline' | 'table' | 'metrics';
 
-const ScheduleHistory: React.FC<ScheduleHistoryProps> = ({ schedule, onClose }) => {
+const ScheduleHistory: React.FC<ScheduleHistoryProps> = ({ schedule: initialSchedule, onClose }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('timeline');
   const [selectedRun, setSelectedRun] = useState<ScheduleRun | null>(null);
   const [showExecutionDetail, setShowExecutionDetail] = useState(false);
+
+  // Fetch complete schedule data with all relations
+  const { data: scheduleData } = useQuery({
+    queryKey: ['schedule-detail', initialSchedule.schedule_id],
+    queryFn: () => scheduleService.getSchedule(initialSchedule.schedule_id),
+    initialData: initialSchedule,
+  });
+
+  // Use the fetched schedule data or fall back to initial
+  const schedule = scheduleData || initialSchedule;
 
   // Fetch schedule runs
   const { data: runs, isLoading: runsLoading } = useQuery({
@@ -424,12 +434,26 @@ const ScheduleHistory: React.FC<ScheduleHistoryProps> = ({ schedule, onClose }) 
       </div>
       
       {/* Execution Detail Modal */}
-      {showExecutionDetail && selectedRun?.workflow_execution_id && (
-        <>
-          {/* Try to get instance_id from the nested amc_instances relation if available */}
-          {schedule.workflows?.amc_instances?.instance_id ? (
+      {showExecutionDetail && selectedRun?.workflow_execution_id && (() => {
+        // Try multiple ways to get the instance_id
+        let instanceId = null;
+        
+        // Method 1: From nested amc_instances relation
+        if (schedule.workflows?.amc_instances?.instance_id) {
+          instanceId = schedule.workflows.amc_instances.instance_id;
+        }
+        // Method 2: If workflows has instance_id directly (though this would be a UUID)
+        // We might need to fetch the actual instance_id from somewhere else
+        
+        // Debug logging
+        console.log('Schedule data:', schedule);
+        console.log('Workflow data:', schedule.workflows);
+        console.log('Instance ID found:', instanceId);
+        
+        if (instanceId) {
+          return (
             <AMCExecutionDetail
-              instanceId={schedule.workflows.amc_instances.instance_id}
+              instanceId={instanceId}
               executionId={selectedRun.workflow_execution_id}
               isOpen={showExecutionDetail}
               onClose={() => {
@@ -437,12 +461,20 @@ const ScheduleHistory: React.FC<ScheduleHistoryProps> = ({ schedule, onClose }) 
                 setSelectedRun(null);
               }}
             />
-          ) : (
-            // Fallback: If amc_instances relation is not loaded, we can't show the detail
+          );
+        } else {
+          // Fallback: If we can't find the instance ID
+          return (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white rounded-lg p-6 max-w-md">
                 <h3 className="text-lg font-semibold mb-2">Unable to Load Execution Details</h3>
-                <p className="text-gray-600 mb-4">The AMC instance information is not available. Please refresh the page and try again.</p>
+                <p className="text-gray-600 mb-4">
+                  The AMC instance information is not available. Please try refreshing the page or contact support if the issue persists.
+                </p>
+                <div className="text-xs text-gray-500 mb-4">
+                  Debug: workflow_id={schedule.workflows?.workflow_id || 'N/A'}, 
+                  has_instance={!!schedule.workflows?.amc_instances ? 'yes' : 'no'}
+                </div>
                 <button
                   onClick={() => {
                     setShowExecutionDetail(false);
@@ -454,9 +486,9 @@ const ScheduleHistory: React.FC<ScheduleHistoryProps> = ({ schedule, onClose }) 
                 </button>
               </div>
             </div>
-          )}
-        </>
-      )}
+          );
+        }
+      })()}
     </div>
   );
 };
