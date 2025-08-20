@@ -466,7 +466,7 @@ Based on recent code audit (2025-08-20), these issues must be fixed:
 5. **Sync/async confusion** (enhanced_schedule_service.py:87)
    - Supabase client is synchronous, remove await
 
-### AMC ID Field Duality
+### AMC ID Field Duality - CRITICAL FOR AVOIDING ERRORS
 ```typescript
 // Two ID systems must be carefully managed:
 instanceId  // AMC's actual instance ID (use for API calls)
@@ -478,6 +478,37 @@ await amcApiClient.executeQuery(instanceId, query)
 // WRONG: Internal UUID causes 403 errors
 await amcApiClient.executeQuery(instance.id, query)  // ✗
 ```
+
+### 🔴 CRITICAL: ID Fields Reference Guide
+
+**ALWAYS use the correct ID field to avoid 404/403 errors:**
+
+#### AMC Instances
+- `id` (UUID): Internal database primary key - NEVER use for AMC API calls
+- `instance_id` (string): AMC's actual instance identifier - ALWAYS use for AMC API calls
+- `instance_name` (string): Display name - Note: column is `instance_name` NOT `name`
+
+#### Workflow Executions  
+- `id` (UUID): Internal database primary key
+- `amc_execution_id` (string): AMC's execution identifier - ALWAYS use for AMC API calls
+- `workflow_execution_id` in schedule_runs: Should reference `amc_execution_id` NOT internal `id`
+
+#### Workflows
+- `id` (UUID): Internal database primary key
+- `workflow_id` (string, e.g., "wf_xxxxx"): Human-readable identifier
+- `amc_workflow_id` (string): AMC's workflow identifier when synced
+- `instance_id` (UUID FK): References amc_instances.id - needs join to get actual instance_id
+
+#### Schedules
+- `id` (UUID): Internal database primary key  
+- `schedule_id` (string, e.g., "sched_xxxxx"): Human-readable identifier
+- When fetching schedules, must include full relations: `workflows(*, amc_instances(...))`
+
+#### Common Pitfalls & Solutions
+1. **Execution Details 404**: Using internal UUID instead of `amc_execution_id`
+2. **Instance 403 Forbidden**: Using `id` instead of `instance_id` for AMC calls
+3. **Column doesn't exist**: Using `name` instead of `instance_name` for amc_instances
+4. **Missing instance info**: Not fetching complete relations in queries
 
 ### Date Handling for AMC
 ```python
@@ -1103,6 +1134,36 @@ Before committing code, ensure:
 - Prevention: Keep FERNET_KEY consistent across deployments
 - **SECURITY WARNING**: Never log decrypted tokens (found in token_service.py line 194)
 
+## 🔧 Troubleshooting Guide - Schedule History & Execution Details
+
+### Common Error Messages and Solutions
+
+#### "Unable to Load Execution Details - The AMC instance information is not available"
+**Cause**: Schedule data missing AMC instance relation
+**Solution**: 
+1. Ensure queries fetch full relations: `workflows(*, amc_instances(id, instance_id, instance_name))`
+2. Check that `list_schedules` and `get_schedule` methods include instance data
+3. Verify workflow has `instance_id` foreign key populated
+
+#### "404 Not Found" when viewing execution details
+**Cause**: Using internal UUID instead of AMC execution ID
+**Solutions**:
+1. Use `amc_execution_id` NOT `id` from workflow_executions table
+2. When extracting from schedule_runs, get `workflow_executions[0].amc_execution_id`
+3. Check logs for "AMC execution ID:" vs "Internal execution ID:" to verify correct ID
+
+#### "column amc_instances_2.name does not exist" 
+**Cause**: Wrong column name in query
+**Solution**: Use `instance_name` NOT `name` for amc_instances table
+
+#### "column campaign_mappings.impressions does not exist"
+**Cause**: Querying non-existent columns
+**Solution**: Remove impressions, clicks, spend from query - use actual columns like campaign_type, marketplace_id
+
+#### "Workflow execution with ID xxx does not exist"
+**Cause**: Using database UUID for AMC API call
+**Solution**: Ensure using `amc_execution_id` field which contains the actual AMC execution identifier
+
 ### AMC API Errors
 - 400 errors with "unable to compile workflow" need special parsing
 - Error details are in the `details` field, not `message`
@@ -1596,6 +1657,22 @@ Latest updates to be aware of:
 - **History Tracking**: Comprehensive execution history with metrics
 - **Smart Retries**: Automatic retry logic with configurable delays
 - **Cost Management**: Track and limit execution costs
+
+### Schedule History Fixes (2025-08-20)
+**Critical fixes to prevent recurring issues:**
+
+1. **Timeline Sorting**: Runs are sorted by `scheduled_at` DESC with null safety checks
+2. **Execution Detail Viewing**: 
+   - Must fetch complete schedule data with relations: `workflows(*, amc_instances(...))`
+   - Use `amc_execution_id` NOT internal `id` for AMC API calls
+   - Instance ID comes from `schedule.workflows.amc_instances.instance_id`
+3. **Database Column Names**:
+   - AMC instances: Use `instance_name` NOT `name` 
+   - Campaign mappings: Removed non-existent columns (impressions, clicks, spend)
+4. **Data Flow**:
+   - Schedule → workflows (via workflow_id FK) → amc_instances (via instance_id FK)
+   - schedule_runs → workflow_executions (via schedule_run_id FK)
+   - Must extract `amc_execution_id` from workflow_executions for API calls
 
 ### Recent Fixes (2025-08-13)
 - **Dynamic Schema Loading**: Removed hardcoded tables, loads from API
