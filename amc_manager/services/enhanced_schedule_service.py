@@ -192,7 +192,7 @@ class EnhancedScheduleService(DatabaseService):
             result = self.client.table('workflow_schedules').select(
                 '*',
                 'workflows(*)'
-            ).eq('schedule_id', schedule_id).single().execute()
+            ).eq('id', schedule_id).single().execute()
             
             if result.data:
                 # Parse JSON fields
