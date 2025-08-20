@@ -183,16 +183,27 @@ class EnhancedScheduleService(DatabaseService):
         Get a schedule by ID
         
         Args:
-            schedule_id: Schedule ID
+            schedule_id: Schedule ID (can be UUID or string format like sched_xxx)
             
         Returns:
             Schedule record or None
         """
         try:
-            result = self.client.table('workflow_schedules').select(
-                '*',
-                'workflows(*)'
-            ).eq('id', schedule_id).single().execute()
+            # Check if schedule_id looks like a UUID or a string ID
+            # If it starts with 'sched_' it's likely a string ID stored in schedule_id column
+            # Otherwise treat it as the UUID id column
+            if schedule_id.startswith('sched_'):
+                # Query by schedule_id column
+                result = self.client.table('workflow_schedules').select(
+                    '*',
+                    'workflows(*)'
+                ).eq('schedule_id', schedule_id).single().execute()
+            else:
+                # Query by id column (UUID)
+                result = self.client.table('workflow_schedules').select(
+                    '*',
+                    'workflows(*)'
+                ).eq('id', schedule_id).single().execute()
             
             if result.data:
                 # Parse JSON fields

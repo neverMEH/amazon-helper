@@ -37,9 +37,24 @@ class ScheduleHistoryService(DatabaseService):
             List of schedule run records
         """
         try:
+            # Handle both UUID and string schedule IDs
+            # schedule_runs table likely uses the internal UUID for foreign key
+            # But we might receive the string schedule_id from the API
+            
+            # If it's a string schedule ID, first get the UUID
+            if schedule_id.startswith('sched_'):
+                schedule_result = self.client.table('workflow_schedules').select('id').eq('schedule_id', schedule_id).single().execute()
+                if schedule_result.data:
+                    actual_schedule_id = schedule_result.data['id']
+                else:
+                    logger.warning(f"No schedule found with schedule_id {schedule_id}")
+                    return []
+            else:
+                actual_schedule_id = schedule_id
+            
             query = self.client.table('schedule_runs').select(
                 '*'
-            ).eq('schedule_id', schedule_id)
+            ).eq('schedule_id', actual_schedule_id)
             
             if status:
                 query = query.eq('status', status)
@@ -107,12 +122,22 @@ class ScheduleHistoryService(DatabaseService):
             Dictionary of metrics
         """
         try:
+            # Handle both UUID and string schedule IDs
+            if schedule_id.startswith('sched_'):
+                schedule_result = self.client.table('workflow_schedules').select('id').eq('schedule_id', schedule_id).single().execute()
+                if schedule_result.data:
+                    actual_schedule_id = schedule_result.data['id']
+                else:
+                    return self._empty_metrics()
+            else:
+                actual_schedule_id = schedule_id
+            
             # Calculate cutoff date
             cutoff_date = datetime.utcnow() - timedelta(days=period_days)
             
             # Get all runs within period
             result = self.client.table('schedule_runs').select('*').eq(
-                'schedule_id', schedule_id
+                'schedule_id', actual_schedule_id
             ).gte('scheduled_at', cutoff_date.isoformat()).execute()
             
             runs = result.data or []
@@ -428,6 +453,29 @@ class ScheduleHistoryService(DatabaseService):
         except Exception as e:
             logger.error(f"Error getting aggregated results: {e}")
             return []
+    
+    def _empty_metrics(self) -> Dict[str, Any]:
+        """
+        Return empty metrics structure when schedule not found
+        
+        Returns:
+            Dictionary with empty/default metric values
+        """
+        return {
+            'total_runs': 0,
+            'successful_runs': 0,
+            'failed_runs': 0,
+            'pending_runs': 0,
+            'running_runs': 0,
+            'success_rate': 0.0,
+            'avg_runtime_seconds': None,
+            'total_rows_processed': 0,
+            'total_cost': 0.0,
+            'next_run': None,
+            'last_run': None,
+            'first_run_in_period': None,
+            'last_run_in_period': None
+        }
     
     def _parse_datetime(self, dt_str: str) -> Optional[datetime]:
         """
