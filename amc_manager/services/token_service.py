@@ -168,6 +168,24 @@ class TokenService:
             logger.error(f"Error storing tokens: {e}")
             return False
     
+    async def clear_user_tokens(self, user_id: str) -> bool:
+        """
+        Explicitly clear tokens for a user
+        
+        Args:
+            user_id: User ID
+            
+        Returns:
+            True if successful
+        """
+        try:
+            await db_service.update_user(user_id, {'auth_tokens': None})
+            logger.info(f"Cleared tokens for user {user_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to clear tokens for user {user_id}: {e}")
+            return False
+    
     async def get_valid_token(self, user_id: str) -> Optional[str]:
         """
         Get a valid access token for a user, refreshing if necessary
@@ -191,14 +209,10 @@ class TokenService:
             try:
                 access_token = self.decrypt_token(auth_tokens['access_token'])
             except Exception as e:
-                logger.error(f"Error decrypting access token: {e}")
-                logger.error("Token encryption key may have changed. Clearing tokens to force re-authentication.")
-                # Clear the invalid tokens so the user will be prompted to re-authenticate
-                try:
-                    await db_service.update_user(user_id, {'auth_tokens': None})
-                    logger.info(f"Cleared invalid tokens for user {user_id}")
-                except Exception as clear_error:
-                    logger.error(f"Failed to clear invalid tokens: {clear_error}")
+                logger.error(f"Error decrypting access token for user {user_id}: {e}")
+                logger.error("Token decryption failed - likely due to encryption key mismatch")
+                # Don't automatically clear tokens - just return None
+                # This prevents clearing valid tokens due to temporary key issues
                 return None
             
             # Check if token is expired
