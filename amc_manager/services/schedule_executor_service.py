@@ -425,8 +425,7 @@ class ScheduleExecutorService:
                 'amc_execution_id': amc_execution.get('executionId'),
                 'amc_workflow_id': workflow_amc_id,
                 'status': 'PENDING',
-                'query_text': workflow['sql_query'],
-                'parameters': json.dumps(parameters),
+                'execution_parameters': json.dumps(parameters),  # Use correct column name
                 'schedule_run_id': schedule_run_id,
                 'started_at': datetime.utcnow().isoformat(),
                 'created_at': datetime.utcnow().isoformat()
