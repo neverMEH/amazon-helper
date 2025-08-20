@@ -10,11 +10,13 @@ import {
   TrendingUp,
   Activity,
   BarChart3,
-  Table
+  Table,
+  ExternalLink
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { scheduleService } from '../../services/scheduleService';
 import type { Schedule, ScheduleRun } from '../../types/schedule';
+import AMCExecutionDetail from '../executions/AMCExecutionDetail';
 
 interface ScheduleHistoryProps {
   schedule: Schedule;
@@ -26,7 +28,7 @@ type ViewMode = 'timeline' | 'table' | 'metrics';
 const ScheduleHistory: React.FC<ScheduleHistoryProps> = ({ schedule, onClose }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('timeline');
   const [selectedRun, setSelectedRun] = useState<ScheduleRun | null>(null);
-  console.log(selectedRun); // TODO: Implement detailed run view
+  const [showExecutionDetail, setShowExecutionDetail] = useState(false);
 
   // Fetch schedule runs
   const { data: runs, isLoading: runsLoading } = useQuery({
@@ -88,21 +90,26 @@ const ScheduleHistory: React.FC<ScheduleHistoryProps> = ({ schedule, onClose }) 
     }
   };
 
-  const renderTimeline = () => (
-    <div className="space-y-4">
-      {runs?.map((run, index) => (
+  const renderTimeline = () => {
+    // Sort runs by scheduled_at in descending order (most recent first)
+    const sortedRuns = Array.isArray(runs) ? [...runs].sort((a, b) => {
+      const dateA = a.scheduled_at ? new Date(a.scheduled_at).getTime() : 0;
+      const dateB = b.scheduled_at ? new Date(b.scheduled_at).getTime() : 0;
+      return dateB - dateA; // Descending order
+    }) : [];
+    
+    return (
+      <div className="space-y-4">
+        {sortedRuns.map((run, index) => (
         <div key={run.id} className="relative">
-          {index < (runs?.length || 0) - 1 && (
+          {index < sortedRuns.length - 1 && (
             <div className="absolute top-10 left-6 w-0.5 h-full bg-gray-200" />
           )}
           <div className="flex items-start">
             <div className="flex-shrink-0 w-12 flex justify-center">
               {getStatusIcon(run.status)}
             </div>
-            <div
-              className="flex-1 ml-4 bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => setSelectedRun(run)}
-            >
+            <div className="flex-1 ml-4 bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center">
@@ -137,12 +144,27 @@ const ScheduleHistory: React.FC<ScheduleHistoryProps> = ({ schedule, onClose }) 
                   {run.error_summary}
                 </div>
               )}
+              {run.workflow_execution_id && (
+                <div className="mt-3 pt-3 border-t">
+                  <button
+                    onClick={() => {
+                      setSelectedRun(run);
+                      setShowExecutionDetail(true);
+                    }}
+                    className="flex items-center text-sm text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    <ExternalLink className="w-4 h-4 mr-1" />
+                    View Execution Details
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
       ))}
     </div>
-  );
+    );
+  };
 
   const renderTable = () => (
     <div className="overflow-x-auto">
@@ -167,14 +189,16 @@ const ScheduleHistory: React.FC<ScheduleHistoryProps> = ({ schedule, onClose }) 
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Cost
             </th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Actions
+            </th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {runs?.map((run) => (
             <tr
               key={run.id}
-              className="hover:bg-gray-50 cursor-pointer"
-              onClick={() => setSelectedRun(run)}
+              className="hover:bg-gray-50"
             >
               <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
                 #{run.run_number}
@@ -196,6 +220,19 @@ const ScheduleHistory: React.FC<ScheduleHistoryProps> = ({ schedule, onClose }) 
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
                 {run.total_cost > 0 ? `$${run.total_cost.toFixed(2)}` : '-'}
+              </td>
+              <td className="px-4 py-3 whitespace-nowrap">
+                {run.workflow_execution_id && (
+                  <button
+                    onClick={() => {
+                      setSelectedRun(run);
+                      setShowExecutionDetail(true);
+                    }}
+                    className="text-blue-600 hover:text-blue-800"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </button>
+                )}
               </td>
             </tr>
           ))}
@@ -385,6 +422,41 @@ const ScheduleHistory: React.FC<ScheduleHistoryProps> = ({ schedule, onClose }) 
           )}
         </div>
       </div>
+      
+      {/* Execution Detail Modal */}
+      {showExecutionDetail && selectedRun?.workflow_execution_id && (
+        <>
+          {/* Try to get instance_id from the nested amc_instances relation if available */}
+          {schedule.workflows?.amc_instances?.instance_id ? (
+            <AMCExecutionDetail
+              instanceId={schedule.workflows.amc_instances.instance_id}
+              executionId={selectedRun.workflow_execution_id}
+              isOpen={showExecutionDetail}
+              onClose={() => {
+                setShowExecutionDetail(false);
+                setSelectedRun(null);
+              }}
+            />
+          ) : (
+            // Fallback: If amc_instances relation is not loaded, we can't show the detail
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 max-w-md">
+                <h3 className="text-lg font-semibold mb-2">Unable to Load Execution Details</h3>
+                <p className="text-gray-600 mb-4">The AMC instance information is not available. Please refresh the page and try again.</p>
+                <button
+                  onClick={() => {
+                    setShowExecutionDetail(false);
+                    setSelectedRun(null);
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 };

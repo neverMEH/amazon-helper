@@ -196,13 +196,13 @@ class EnhancedScheduleService(DatabaseService):
                 # Query by schedule_id column
                 result = self.client.table('workflow_schedules').select(
                     '*',
-                    'workflows(*)'
+                    'workflows(*, amc_instances(id, instance_id, name))'
                 ).eq('schedule_id', schedule_id).single().execute()
             else:
                 # Query by id column (UUID)
                 result = self.client.table('workflow_schedules').select(
                     '*',
-                    'workflows(*)'
+                    'workflows(*, amc_instances(id, instance_id, name))'
                 ).eq('id', schedule_id).single().execute()
             
             if result.data:

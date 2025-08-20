@@ -87,6 +87,7 @@ class ScheduleRunResponse(BaseModel):
     total_rows: int
     total_cost: float
     error_summary: Optional[str]
+    workflow_execution_id: Optional[str]
 
 
 class ScheduleMetricsResponse(BaseModel):
@@ -467,13 +468,41 @@ async def get_schedule_runs(
         from ...core.supabase_client import SupabaseManager
         db = SupabaseManager.get_client()
         
-        result = db.table('schedule_runs').select('*').eq(
+        result = db.table('schedule_runs').select(
+            '*',
+            'workflow_executions(id, amc_execution_id)'
+        ).eq(
             'schedule_id', schedule['id']
         ).order('scheduled_at', desc=True).range(offset, offset + limit - 1).execute()
         
         runs = result.data or []
         
-        return [ScheduleRunResponse(**run) for run in runs]
+        # Process runs to extract workflow_execution_id
+        processed_runs = []
+        for run in runs:
+            # Get the first workflow execution ID if it exists
+            workflow_execution_id = None
+            try:
+                executions = run.get('workflow_executions', [])
+                if executions and isinstance(executions, list) and len(executions) > 0:
+                    first_execution = executions[0]
+                    if isinstance(first_execution, dict):
+                        workflow_execution_id = first_execution.get('id')
+            except (KeyError, TypeError, IndexError) as e:
+                logger.debug(f"Could not extract workflow_execution_id: {e}")
+            
+            # Remove the nested workflow_executions from the response
+            run_data = {k: v for k, v in run.items() if k != 'workflow_executions'}
+            run_data['workflow_execution_id'] = workflow_execution_id
+            
+            try:
+                processed_runs.append(ScheduleRunResponse(**run_data))
+            except Exception as e:
+                logger.error(f"Error processing run {run.get('id', 'unknown')}: {e}")
+                # Skip this run if it can't be processed
+                continue
+        
+        return processed_runs
         
     except HTTPException:
         raise

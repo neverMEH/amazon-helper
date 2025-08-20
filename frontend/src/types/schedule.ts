@@ -39,6 +39,12 @@ export interface Schedule {
     workflow_id: string;
     name: string;
     sql_query: string;
+    instance_id?: string;  // Direct foreign key to amc_instances
+    amc_instances?: {
+      id: string;
+      instance_id: string;
+      name: string;
+    };
   };
 }
 
@@ -58,6 +64,7 @@ export interface ScheduleRun {
   error_summary?: string;
   created_at: string;
   updated_at?: string;
+  workflow_execution_id?: string;  // Added for direct execution reference
   workflow_executions?: WorkflowExecution[];
 }
 
