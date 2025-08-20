@@ -480,14 +480,18 @@ async def get_schedule_runs(
         # Process runs to extract workflow_execution_id
         processed_runs = []
         for run in runs:
-            # Get the first workflow execution ID if it exists
+            # Get the first workflow execution's AMC execution ID if it exists
             workflow_execution_id = None
             try:
                 executions = run.get('workflow_executions', [])
                 if executions and isinstance(executions, list) and len(executions) > 0:
                     first_execution = executions[0]
                     if isinstance(first_execution, dict):
-                        workflow_execution_id = first_execution.get('id')
+                        # Use amc_execution_id for AMC API calls, not the internal id
+                        workflow_execution_id = first_execution.get('amc_execution_id')
+                        if not workflow_execution_id:
+                            # Fallback to internal id if amc_execution_id is not available
+                            workflow_execution_id = first_execution.get('id')
             except (KeyError, TypeError, IndexError) as e:
                 logger.debug(f"Could not extract workflow_execution_id: {e}")
             
