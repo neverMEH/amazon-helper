@@ -420,6 +420,7 @@ class ScheduleExecutorService:
             # Create execution record
             execution_data = {
                 'id': str(uuid.uuid4()),
+                'execution_id': f"exec_{uuid.uuid4().hex[:8]}",  # Required field
                 'workflow_id': workflow_id,
                 'instance_id': instance['instance_id'],
                 'amc_execution_id': amc_execution.get('executionId'),
