@@ -7,6 +7,8 @@ export interface Schedule {
   schedule_id: string;
   workflow_id: string;
   user_id: string;
+  name?: string;  // User-friendly name for the schedule
+  description?: string;  // Optional description or notes
   schedule_type: 'daily' | 'interval' | 'weekly' | 'monthly' | 'custom';
   interval_days?: number;
   interval_config?: {
@@ -44,8 +46,10 @@ export interface Schedule {
       id: string;
       instance_id: string;
       instance_name: string;
+      brands?: string[];  // Brand associations from instance_brands table
     };
   };
+  brands?: string[];  // Extracted/flattened brand list for easier display
 }
 
 export interface ScheduleRun {
@@ -111,6 +115,8 @@ export interface ScheduleMetrics {
 
 export interface ScheduleCreatePreset {
   preset_type: string;
+  name?: string;  // Custom name for the schedule
+  description?: string;  // Optional description
   interval_days?: number;
   timezone: string;
   execute_time: string;
@@ -124,6 +130,8 @@ export interface ScheduleCreatePreset {
 
 export interface ScheduleCreateCustom {
   cron_expression: string;
+  name?: string;  // Custom name for the schedule
+  description?: string;  // Optional description
   timezone: string;
   parameters?: Record<string, any>;
   notification_config?: {
@@ -134,6 +142,8 @@ export interface ScheduleCreateCustom {
 }
 
 export interface ScheduleUpdate {
+  name?: string;  // Update schedule name
+  description?: string;  // Update description
   cron_expression?: string;
   timezone?: string;
   default_parameters?: Record<string, any>;
@@ -156,6 +166,8 @@ export interface SchedulePreset {
 }
 
 export interface ScheduleConfig {
+  name?: string;  // Custom name for the schedule
+  description?: string;  // Optional description
   type: 'daily' | 'interval' | 'weekly' | 'monthly' | 'custom';
   intervalDays?: number;
   timezone: string;

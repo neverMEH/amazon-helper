@@ -32,6 +32,8 @@ const ScheduleWizard: React.FC<ScheduleWizardProps> = ({
   const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = useState(1);
   const [scheduleConfig, setScheduleConfig] = useState<ScheduleConfig>({
+    name: workflowName ? `${workflowName} Schedule` : '',
+    description: '',
     type: 'daily',
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     executeTime: '09:00',
@@ -101,6 +103,8 @@ const ScheduleWizard: React.FC<ScheduleWizardProps> = ({
     // Convert config to API format
     const scheduleData: ScheduleCreatePreset = {
       preset_type: scheduleConfig.type,
+      name: scheduleConfig.name,
+      description: scheduleConfig.description,
       interval_days: scheduleConfig.intervalDays,
       timezone: scheduleConfig.timezone,
       execute_time: scheduleConfig.executeTime,

@@ -22,6 +22,8 @@ schedule_service = EnhancedScheduleService()
 class ScheduleCreatePreset(BaseModel):
     """Model for creating a schedule from preset"""
     preset_type: str = Field(..., description="Preset type: daily, interval, weekly, monthly, custom")
+    name: Optional[str] = Field(None, description="Custom name for the schedule")
+    description: Optional[str] = Field(None, description="Description or notes about the schedule")
     interval_days: Optional[int] = Field(None, description="Days for interval type (1, 3, 7, 14, 30, 60, 90)")
     timezone: str = Field("UTC", description="Timezone for schedule")
     execute_time: str = Field("02:00", description="Time of day to execute (HH:MM)")
@@ -32,6 +34,8 @@ class ScheduleCreatePreset(BaseModel):
 class ScheduleCreateCustom(BaseModel):
     """Model for creating a schedule with custom CRON"""
     cron_expression: str = Field(..., description="CRON expression")
+    name: Optional[str] = Field(None, description="Custom name for the schedule")
+    description: Optional[str] = Field(None, description="Description or notes about the schedule")
     timezone: str = Field("UTC", description="Timezone for schedule")
     parameters: Optional[Dict[str, Any]] = Field(None, description="Default execution parameters")
     notification_config: Optional[Dict[str, Any]] = Field(None, description="Notification settings")
@@ -39,6 +43,8 @@ class ScheduleCreateCustom(BaseModel):
 
 class ScheduleUpdate(BaseModel):
     """Model for updating a schedule"""
+    name: Optional[str] = None
+    description: Optional[str] = None
     cron_expression: Optional[str] = None
     timezone: Optional[str] = None
     default_parameters: Optional[Dict[str, Any]] = None
@@ -54,6 +60,8 @@ class ScheduleResponse(BaseModel):
     id: Optional[str] = None
     schedule_id: str
     workflow_id: str
+    name: Optional[str] = None
+    description: Optional[str] = None
     schedule_type: Optional[str] = None
     interval_days: Optional[int] = None
     cron_expression: str
@@ -66,6 +74,7 @@ class ScheduleResponse(BaseModel):
     created_at: Optional[Any] = None
     updated_at: Optional[Any] = None
     workflow: Optional[Dict[str, Any]] = None
+    brands: Optional[List[str]] = None  # Extracted from workflow.amc_instances.brands
     
     class Config:
         # Allow any field types for flexibility with Supabase responses
@@ -127,6 +136,8 @@ async def create_schedule_preset(
             workflow_id=workflow_id,
             preset_type=schedule_data.preset_type,
             user_id=current_user['id'],
+            name=schedule_data.name,
+            description=schedule_data.description,
             interval_days=schedule_data.interval_days,
             timezone=schedule_data.timezone,
             execute_time=schedule_data.execute_time,
@@ -168,6 +179,8 @@ async def create_schedule_custom(
             workflow_id=workflow_id,
             cron_expression=schedule_data.cron_expression,
             user_id=current_user['id'],
+            name=schedule_data.name,
+            description=schedule_data.description,
             timezone=schedule_data.timezone,
             parameters=schedule_data.parameters,
             notification_config=schedule_data.notification_config

@@ -73,10 +73,43 @@ const ScheduleTypeStep: React.FC<ScheduleTypeStepProps> = ({ config, onChange, o
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium mb-2">Choose Schedule Type</h3>
+        <h3 className="text-lg font-medium mb-2">Schedule Details</h3>
         <p className="text-gray-600 text-sm">
-          Select how often you want this workflow to run
+          Name your schedule and select how often you want this workflow to run
         </p>
+      </div>
+
+      {/* Name and Description Fields */}
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Schedule Name
+          </label>
+          <input
+            type="text"
+            value={config.name || ''}
+            onChange={(e) => onChange({ ...config, name: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Enter a name for this schedule"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Description (Optional)
+          </label>
+          <textarea
+            value={config.description || ''}
+            onChange={(e) => onChange({ ...config, description: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            rows={2}
+            placeholder="Add any notes or description about this schedule..."
+          />
+        </div>
+      </div>
+
+      <div>
+        <h4 className="text-sm font-medium text-gray-700 mb-2">Schedule Frequency</h4>
       </div>
 
       <div className="grid grid-cols-2 gap-4">

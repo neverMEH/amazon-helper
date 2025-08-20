@@ -35,6 +35,8 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
   const [activeTab, setActiveTab] = useState<'details' | 'history' | 'settings'>('details');
   const [showHistory, setShowHistory] = useState(false);
   const [editData, setEditData] = useState({
+    name: schedule.name || schedule.workflows?.name || '',
+    description: schedule.description || '',
     cron_expression: schedule.cron_expression,
     timezone: schedule.timezone,
     default_parameters: schedule.default_parameters || {},
@@ -163,7 +165,9 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
         {/* Header */}
         <div className="px-6 py-4 border-b flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <h2 className="text-xl font-semibold">Schedule Details</h2>
+            <h2 className="text-xl font-semibold">
+              {schedule.name || schedule.workflows?.name || 'Schedule Details'}
+            </h2>
             <div className="flex items-center space-x-2">
               {schedule.is_active ? (
                 <span className="flex items-center text-green-600 text-sm">
@@ -229,6 +233,70 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
         <div className="flex-1 overflow-y-auto p-6">
           {activeTab === 'details' && (
             <div className="space-y-6">
+              {/* Schedule Name and Description */}
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Schedule Name
+                  </label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editData.name}
+                      onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      placeholder="Enter a name for this schedule"
+                    />
+                  ) : (
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <div className="font-medium">
+                        {schedule.name || schedule.workflows?.name + ' Schedule' || 'Unnamed Schedule'}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description / Notes
+                  </label>
+                  {isEditing ? (
+                    <textarea
+                      value={editData.description}
+                      onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      rows={3}
+                      placeholder="Add any notes or description about this schedule..."
+                    />
+                  ) : (
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <div className="text-gray-600">
+                        {schedule.description || 'No description provided'}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Brand Associations */}
+              <div>
+                <h3 className="text-lg font-medium mb-3">Associated Brands</h3>
+                <div className="flex flex-wrap gap-2">
+                  {schedule.workflows?.amc_instances?.brands && schedule.workflows.amc_instances.brands.length > 0 ? (
+                    schedule.workflows.amc_instances.brands.map((brand) => (
+                      <span
+                        key={brand}
+                        className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"
+                      >
+                        {brand}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-gray-500 text-sm">No brands associated</span>
+                  )}
+                </div>
+              </div>
+
               {/* Workflow Info */}
               <div>
                 <h3 className="text-lg font-medium mb-3">Workflow</h3>
@@ -237,6 +305,11 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
                   <div className="text-sm text-gray-500 mt-1">
                     ID: {schedule.workflows?.workflow_id || schedule.workflow_id}
                   </div>
+                  {schedule.workflows?.amc_instances && (
+                    <div className="text-sm text-gray-500 mt-1">
+                      Instance: {schedule.workflows.amc_instances.instance_name || schedule.workflows.amc_instances.instance_id}
+                    </div>
+                  )}
                 </div>
               </div>
 

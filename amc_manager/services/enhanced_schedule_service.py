@@ -41,6 +41,8 @@ class EnhancedScheduleService(DatabaseService):
         workflow_id: str,
         preset_type: str,
         user_id: str,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
         interval_days: Optional[int] = None,
         timezone: str = 'UTC',
         execute_time: str = '02:00',
@@ -90,6 +92,8 @@ class EnhancedScheduleService(DatabaseService):
                 'schedule_id': f"sched_{uuid.uuid4().hex[:12]}",
                 'workflow_id': workflow_uuid,  # Use the UUID, not the workflow_id string
                 'user_id': user_id,
+                'name': name,  # Add name field
+                'description': description,  # Add description field
                 'schedule_type': preset_type,
                 'interval_days': interval_days,
                 'cron_expression': cron_expression,
@@ -118,6 +122,8 @@ class EnhancedScheduleService(DatabaseService):
         workflow_id: str,
         cron_expression: str,
         user_id: str,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
         timezone: str = 'UTC',
         parameters: Optional[Dict[str, Any]] = None,
         notification_config: Optional[Dict[str, Any]] = None
@@ -156,6 +162,8 @@ class EnhancedScheduleService(DatabaseService):
                 'schedule_id': f"sched_{uuid.uuid4().hex[:12]}",
                 'workflow_id': workflow_uuid,  # Use the UUID, not the workflow_id string
                 'user_id': user_id,
+                'name': name,  # Add name field
+                'description': description,  # Add description field
                 'schedule_type': 'custom',
                 'cron_expression': cron_expression,
                 'timezone': timezone,

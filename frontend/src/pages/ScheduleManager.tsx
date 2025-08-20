@@ -143,9 +143,33 @@ const ScheduleManager: React.FC = () => {
             </div>
           </div>
 
-          <h3 className="font-medium text-gray-900 mb-2">
-            {schedule.workflows?.name || 'Unnamed Workflow'}
+          <h3 className="font-medium text-gray-900 mb-1">
+            {schedule.name || schedule.workflows?.name || 'Unnamed Schedule'}
           </h3>
+          
+          {schedule.description && (
+            <p className="text-xs text-gray-500 mb-2 line-clamp-2">
+              {schedule.description}
+            </p>
+          )}
+          
+          {schedule.workflows?.amc_instances?.brands && schedule.workflows.amc_instances.brands.length > 0 && (
+            <div className="flex flex-wrap gap-1 mb-2">
+              {schedule.workflows.amc_instances.brands.slice(0, 2).map((brand) => (
+                <span
+                  key={brand}
+                  className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700"
+                >
+                  {brand}
+                </span>
+              ))}
+              {schedule.workflows.amc_instances.brands.length > 2 && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                  +{schedule.workflows.amc_instances.brands.length - 2}
+                </span>
+              )}
+            </div>
+          )}
 
           <div className="space-y-2 text-sm text-gray-600">
             <div className="flex items-center">
@@ -215,8 +239,34 @@ const ScheduleManager: React.FC = () => {
                   <span className="ml-2 text-sm text-gray-900">{getStatusText(schedule)}</span>
                 </div>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {schedule.workflows?.name || 'Unnamed'}
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div>
+                  <div className="text-sm font-medium text-gray-900">
+                    {schedule.name || schedule.workflows?.name || 'Unnamed Schedule'}
+                  </div>
+                  {schedule.description && (
+                    <div className="text-xs text-gray-500 truncate max-w-xs">
+                      {schedule.description}
+                    </div>
+                  )}
+                  {schedule.workflows?.amc_instances?.brands && schedule.workflows.amc_instances.brands.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {schedule.workflows.amc_instances.brands.slice(0, 3).map((brand) => (
+                        <span
+                          key={brand}
+                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700"
+                        >
+                          {brand}
+                        </span>
+                      ))}
+                      {schedule.workflows.amc_instances.brands.length > 3 && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                          +{schedule.workflows.amc_instances.brands.length - 3} more
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                 {scheduleService.parseCronExpression(schedule.cron_expression)}
