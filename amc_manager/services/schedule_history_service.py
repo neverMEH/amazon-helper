@@ -38,8 +38,7 @@ class ScheduleHistoryService(DatabaseService):
         """
         try:
             query = self.client.table('schedule_runs').select(
-                '*',
-                'workflow_executions(*)'
+                '*'
             ).eq('schedule_id', schedule_id)
             
             if status:
