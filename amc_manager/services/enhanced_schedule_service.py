@@ -421,7 +421,7 @@ class EnhancedScheduleService(DatabaseService):
             result = self.client.table('workflow_schedules').select(
                 '*',
                 'workflows(*)'
-            ).eq('is_active', True).lte('next_run_at', buffer_time).execute()
+            ).eq('is_active', True).lte('next_run_at', buffer_time.isoformat()).execute()
             
             schedules = result.data or []
             
@@ -469,8 +469,15 @@ class EnhancedScheduleService(DatabaseService):
             
             updates = {
                 'last_run_at': last_run_at.isoformat() if isinstance(last_run_at, datetime) else last_run_at,
-                'next_run_at': next_run_at.isoformat() if next_run_at else None
+                'next_run_at': next_run_at.isoformat() if next_run_at else None,
+                'execution_count': schedule.get('execution_count', 0) + 1
             }
+            
+            # Update success/failure counts
+            if success:
+                updates['success_count'] = schedule.get('success_count', 0) + 1
+            else:
+                updates['failure_count'] = schedule.get('failure_count', 0) + 1
             
             # Handle failure threshold if configured
             if not success and schedule.get('auto_pause_on_failure'):

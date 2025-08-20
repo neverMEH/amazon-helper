@@ -64,17 +64,17 @@ class ScheduleExecutorService:
                 
                 for schedule in due_schedules:
                     # Skip if already executing
-                    if schedule['schedule_id'] in self._execution_tasks:
-                        logger.debug(f"Schedule {schedule['schedule_id']} is already executing")
+                    if schedule['id'] in self._execution_tasks:
+                        logger.debug(f"Schedule {schedule['id']} is already executing")
                         continue
                     
                     # Create execution task
                     task = asyncio.create_task(self.execute_schedule(schedule))
-                    self._execution_tasks[schedule['schedule_id']] = task
+                    self._execution_tasks[schedule['id']] = task
                     
                     # Clean up completed tasks
                     task.add_done_callback(
-                        lambda t, sid=schedule['schedule_id']: self._execution_tasks.pop(sid, None)
+                        lambda t, sid=schedule['id']: self._execution_tasks.pop(sid, None)
                     )
         
         except Exception as e:
@@ -87,7 +87,7 @@ class ScheduleExecutorService:
         Args:
             schedule: Schedule record with workflow details
         """
-        schedule_id = schedule['schedule_id']
+        schedule_id = schedule['id']  # Use 'id' not 'schedule_id'
         workflow = schedule.get('workflows', {})
         
         logger.info(f"Executing schedule {schedule_id} for workflow {workflow.get('workflow_id')}")
@@ -114,7 +114,7 @@ class ScheduleExecutorService:
                     raise ValueError("No instance_id found for workflow")
                 
                 # Get instance details
-                instance_result = await self.db.table('amc_instances').select('*').eq(
+                instance_result = self.db.table('amc_instances').select('*').eq(
                     'id', instance_id
                 ).single().execute()
                 
@@ -178,7 +178,7 @@ class ScheduleExecutorService:
         """
         try:
             # Get the last run number
-            last_run = await self.db.table('schedule_runs').select('run_number').eq(
+            last_run = self.db.table('schedule_runs').select('run_number').eq(
                 'schedule_id', schedule['id']
             ).order('run_number', desc=True).limit(1).execute()
             
@@ -191,13 +191,13 @@ class ScheduleExecutorService:
                 'id': str(uuid.uuid4()),
                 'schedule_id': schedule['id'],
                 'run_number': run_number,
-                'scheduled_at': schedule.get('next_run_at', datetime.utcnow()),
-                'started_at': datetime.utcnow(),
+                'scheduled_at': schedule.get('next_run_at', datetime.utcnow().isoformat()),
+                'started_at': datetime.utcnow().isoformat(),
                 'status': 'running',
-                'created_at': datetime.utcnow()
+                'created_at': datetime.utcnow().isoformat()
             }
             
-            result = await self.db.table('schedule_runs').insert(run_data).execute()
+            result = self.db.table('schedule_runs').insert(run_data).execute()
             
             if result.data:
                 return run_data['id']
@@ -228,7 +228,7 @@ class ScheduleExecutorService:
         try:
             updates = {
                 'status': status,
-                'completed_at': datetime.utcnow() if status in ['completed', 'failed'] else None
+                'completed_at': datetime.utcnow().isoformat() if status in ['completed', 'failed'] else None
             }
             
             if execution_id:
@@ -239,7 +239,7 @@ class ScheduleExecutorService:
             if error_message:
                 updates['error_summary'] = error_message
             
-            await self.db.table('schedule_runs').update(updates).eq('id', run_id).execute()
+            self.db.table('schedule_runs').update(updates).eq('id', run_id).execute()
             
         except Exception as e:
             logger.error(f"Error updating schedule run {run_id}: {e}")
@@ -253,7 +253,7 @@ class ScheduleExecutorService:
         """
         try:
             # Get user's current token
-            user_result = await self.db.table('users').select('auth_tokens').eq(
+            user_result = self.db.table('users').select('auth_tokens').eq(
                 'id', user_id
             ).single().execute()
             
@@ -331,7 +331,7 @@ class ScheduleExecutorService:
         params['endDate'] = end_date.strftime('%Y-%m-%dT23:59:59')
         
         # Add schedule metadata
-        params['_schedule_id'] = schedule.get('schedule_id')
+        params['_schedule_id'] = schedule.get('id')  # Use 'id' not 'schedule_id'
         params['_scheduled_execution'] = True
         
         return params
@@ -361,7 +361,7 @@ class ScheduleExecutorService:
         """
         try:
             # Get workflow details
-            workflow_result = await self.db.table('workflows').select('*').eq(
+            workflow_result = self.db.table('workflows').select('*').eq(
                 'id', workflow_id
             ).single().execute()
             
@@ -386,7 +386,7 @@ class ScheduleExecutorService:
                 workflow_amc_id = amc_workflow.get('workflowId')
                 
                 # Update workflow with AMC ID
-                await self.db.table('workflows').update({
+                self.db.table('workflows').update({
                     'amc_workflow_id': workflow_amc_id,
                     'is_synced_to_amc': True
                 }).eq('id', workflow_id).execute()
@@ -399,7 +399,7 @@ class ScheduleExecutorService:
                 user_id=user_id,
                 entity_id=instance.get('entity_id'),
                 workflow_id=workflow_amc_id,
-                parameters=parameters
+                parameter_values=parameters
             )
             
             # Create execution record
@@ -413,14 +413,20 @@ class ScheduleExecutorService:
                 'query_text': workflow['sql_query'],
                 'parameters': json.dumps(parameters),
                 'schedule_run_id': schedule_run_id,
-                'started_at': datetime.utcnow(),
-                'created_at': datetime.utcnow()
+                'started_at': datetime.utcnow().isoformat(),
+                'created_at': datetime.utcnow().isoformat()
             }
             
-            result = await self.db.table('workflow_executions').insert(execution_data).execute()
+            result = self.db.table('workflow_executions').insert(execution_data).execute()
             
             if result.data:
                 logger.info(f"Created execution {execution_data['id']} for scheduled workflow")
+                
+                # Update schedule run with workflow execution ID
+                self.db.table('schedule_runs').update({
+                    'workflow_execution_id': execution_data['id']
+                }).eq('id', schedule_run_id).execute()
+                
                 return result.data[0]
             else:
                 raise Exception("Failed to create execution record")
@@ -442,7 +448,7 @@ class ScheduleExecutorService:
             
             if notification_config.get('on_failure'):
                 # TODO: Implement email/webhook notification
-                logger.info(f"Would send failure notification for schedule {schedule['schedule_id']}: {error_message}")
+                logger.info(f"Would send failure notification for schedule {schedule['id']}: {error_message}")
                 
         except Exception as e:
             logger.error(f"Error sending failure notification: {e}")
