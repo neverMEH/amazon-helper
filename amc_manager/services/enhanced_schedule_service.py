@@ -439,7 +439,7 @@ class EnhancedScheduleService(DatabaseService):
             
             result = self.client.table('workflow_schedules').select(
                 '*',
-                'workflows(*)'
+                'workflows(id, workflow_id, name, instance_id, amc_workflow_id, user_id)'
             ).eq('is_active', True).lte('next_run_at', buffer_time.isoformat()).execute()
             
             schedules = result.data or []

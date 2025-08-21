@@ -93,7 +93,25 @@ class ScheduleExecutorService:
         
         # Use semaphore to limit concurrent executions
         async with self._execution_semaphore:
+            run_id = None
             try:
+                # Check for recent executions to prevent duplicates
+                recent_runs = self.db.table('schedule_runs').select('*').eq(
+                    'schedule_id', schedule_id
+                ).gte('created_at', (datetime.utcnow() - timedelta(minutes=5)).isoformat()
+                ).execute()
+                
+                if recent_runs.data:
+                    logger.info(f"Schedule {schedule_id} has a recent run within 5 minutes, skipping")
+                    return
+                
+                # Always update next_run first to prevent duplicate executions
+                self.schedule_service.update_after_run(
+                    schedule_id,
+                    datetime.utcnow(),
+                    success=False  # Assume failure, will update to success if it completes
+                )
+                
                 # Create schedule run record
                 run_id = await self.create_schedule_run(schedule)
                 
@@ -132,7 +150,7 @@ class ScheduleExecutorService:
                     schedule_run_id=run_id
                 )
                 
-                # Update schedule record
+                # Update schedule record with success
                 self.schedule_service.update_after_run(
                     schedule_id,
                     datetime.utcnow(),
@@ -147,15 +165,10 @@ class ScheduleExecutorService:
             except Exception as e:
                 logger.error(f"Error executing schedule {schedule_id}: {e}", exc_info=True)
                 
-                # Update schedule with failure
-                self.schedule_service.update_after_run(
-                    schedule_id,
-                    datetime.utcnow(),
-                    success=False
-                )
+                # Note: next_run was already updated at the beginning to prevent duplicate executions
                 
                 # Update run record if it exists
-                if 'run_id' in locals():
+                if run_id:
                     await self.update_schedule_run(
                         run_id,
                         'failed',
@@ -277,13 +290,15 @@ class ScheduleExecutorService:
                     logger.info(f"Refreshing token for user {user_id} before scheduled execution")
                     
                     # Refresh the token
-                    new_tokens = await self.token_service.refresh_token(
-                        auth_tokens.get('refresh_token'),
-                        user_id
+                    new_tokens = await self.token_service.refresh_access_token(
+                        auth_tokens.get('refresh_token')
                     )
                     
                     if not new_tokens:
                         raise ValueError("Failed to refresh token")
+                    
+                    # Store the refreshed tokens
+                    await self.token_service.store_tokens(user_id, new_tokens)
                         
         except Exception as e:
             logger.error(f"Error ensuring fresh token for user {user_id}: {e}")
