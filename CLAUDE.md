@@ -155,6 +155,15 @@ schedule_runs              -- Schedule execution history
 amc_data_sources          -- AMC schema documentation
 amc_schema_fields         -- Field metadata
 query_templates           -- Pre-built query library
+
+-- Build Guides Tables (Added 2025-08-21)
+build_guides               -- Main guide metadata and configuration
+build_guide_sections       -- Guide content sections with markdown
+build_guide_queries        -- SQL queries associated with guides
+build_guide_examples       -- Example results and interpretations
+build_guide_metrics        -- Metric/dimension definitions
+user_guide_progress        -- User progress tracking
+user_guide_favorites       -- User's favorite guides
 ```
 
 ## Background Services
@@ -213,6 +222,10 @@ npm run build                               # Production build
 python scripts/import_amc_schemas.py        # Import AMC schemas
 python scripts/apply_performance_indexes.py # Apply indexes
 python scripts/validate_schedules.py        # Validate schedules
+
+# Build Guides
+python scripts/build_guides_migration_ready.sql  # Apply Build Guides schema
+python scripts/seed_creative_asin_guide.py       # Seed example guide
 ```
 
 ### Common Fixes
@@ -282,6 +295,140 @@ GET    /api/data-sources/{id}
 1. **Schedule Executor Token Refresh**: Changed from `refresh_token()` to `refresh_access_token()`
 2. **Schedule Deduplication**: Added 5-minute window to prevent rapid re-executions
 3. **Next Run Updates**: Updates immediately to prevent infinite loops
+
+## 📚 Build Guides Feature (Added 2025-08-21)
+
+### Overview
+Build Guides provide step-by-step tactical guidance for AMC query use cases. Each guide includes:
+- Structured content sections with markdown support
+- Pre-built SQL queries with parameter templates
+- Example results with interpretation guidance
+- Progress tracking and favorites system
+- Metrics/dimensions definitions
+
+### Implementation Details
+
+#### Database Schema
+```sql
+-- 7 tables for complete Build Guides functionality
+build_guides               -- Main guide metadata (guide_id, name, category, difficulty, etc.)
+build_guide_sections       -- Markdown content sections (supports tables, code blocks, lists)
+build_guide_queries        -- SQL queries with parameters (linked to query_templates)
+build_guide_examples       -- Sample data and interpretation (JSON rows + markdown)
+build_guide_metrics        -- Metric/dimension definitions for the guide
+user_guide_progress        -- Tracks completion status per user
+user_guide_favorites       -- User's favorited guides
+```
+
+#### Key Frontend Components
+- **BuildGuides.tsx**: Main listing page with filtering and search
+- **BuildGuideDetail.tsx**: Individual guide view with TOC and progress tracking
+- **buildGuideService.ts**: API service layer for all guide operations
+
+#### Markdown Rendering Configuration
+```typescript
+// Uses react-markdown with remark-gfm for enhanced formatting
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+
+// Custom components for tables, code blocks, etc.
+const markdownComponents = {
+  table: // Responsive with overflow, striped rows
+  code: // Dark background for blocks, light for inline
+  // ... other components
+};
+
+// Render with: 
+<ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+  {content}
+</ReactMarkdown>
+```
+
+#### Sample Data Table Rendering
+```typescript
+// Converts JSON sample_data.rows to HTML tables
+const renderSampleDataTable = (sampleData: any) => {
+  // Auto-formats column headers (snake_case to Title Case)
+  // Number formatting with toLocaleString()
+  // Consistent styling with markdown tables
+};
+```
+
+#### API Endpoints
+```http
+GET    /api/build-guides/              # List all guides (public for published)
+GET    /api/build-guides/{guide_id}    # Get specific guide (uses guide_id string, not UUID)
+POST   /api/build-guides/{guide_id}/start      # Start/resume guide
+PUT    /api/build-guides/{guide_id}/progress   # Update progress
+POST   /api/build-guides/{guide_id}/favorite   # Toggle favorite
+```
+
+#### Authentication Pattern
+```python
+# Optional authentication for published guides
+@router.get("/{guide_id}")
+async def get_guide(
+    guide_id: str,
+    request: Request,
+    current_user: Optional[dict] = Depends(get_current_user_optional)
+):
+    # Published guides viewable without auth
+    # Unpublished guides require authentication
+```
+
+#### Table of Contents Navigation
+- Smooth scrolling with offset for sticky header
+- Active section tracking on scroll
+- Bidirectional navigation (click to scroll, scroll updates highlight)
+
+#### Progress Tracking
+- Automatic start when opening guide
+- Section completion tracking
+- Query execution tracking
+- Progress percentage calculation
+- Status: not_started, in_progress, completed
+
+### Seeding Guide Data
+```python
+# Use scripts/seed_creative_asin_guide.py as template
+# Structure:
+1. Create guide with metadata
+2. Add sections with markdown content
+3. Add queries (exploratory and main_analysis types)
+4. Add example results with sample_data JSON
+5. Define metrics and dimensions
+```
+
+### Critical Implementation Notes
+
+1. **Guide ID Pattern**: Use descriptive string IDs like `guide_creative_asin_impact` not UUIDs
+2. **Markdown Tables**: Require remark-gfm plugin and custom table components
+3. **Sample Data**: Store as JSON with `rows` array, render with custom function
+4. **Full Width Layout**: Removed `max-w-7xl` constraints for better screen utilization
+5. **Section IDs**: Must be unique strings for TOC navigation to work
+6. **Query Examples**: Include both `sample_data` (JSON) and `interpretation_markdown`
+
+### Common Issues & Solutions
+
+#### Tables Not Rendering
+- Ensure `remark-gfm` is installed: `npm install remark-gfm`
+- Add `remarkPlugins={[remarkGfm]}` to ReactMarkdown
+- Provide custom table components in `components` prop
+
+#### TOC Not Scrolling
+- Sections need `id={section.section_id}` attribute
+- Use `scrollToSection` function with proper offset
+- Account for sticky header height in calculations
+
+#### 404 on Guide API
+- FastAPI routes need trailing slash: `/api/build-guides/`
+- Use `guide_id` string, not internal UUID
+- Check if guide is published or user is authenticated
+
+#### Sample Data Not Showing
+- Check `sample_data.rows` exists in database
+- Use `renderSampleDataTable` helper function
+- Ensure proper JSON structure with array of objects
 
 ## Testing
 
