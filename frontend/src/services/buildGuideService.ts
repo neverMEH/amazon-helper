@@ -22,7 +22,7 @@ class BuildGuideService {
     if (category) params.append('category', category);
     if (showUnpublished) params.append('show_unpublished', 'true');
     
-    const response = await api.get(`/build-guides?${params}`);
+    const response = await api.get(`/build-guides/?${params}`);
     return response.data;
   }
 
