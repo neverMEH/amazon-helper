@@ -1,12 +1,12 @@
 """Build Guides API Routes"""
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, HTTPException, Query, Body, Request
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
 
 from ...core.logger_simple import get_logger
 from ...services.build_guide_service import BuildGuideService
-from ..supabase.auth import get_current_user
+from ..supabase.auth import get_current_user, get_current_user_optional
 
 logger = get_logger(__name__)
 
@@ -80,21 +80,27 @@ async def get_user_progress(current_user: dict = Depends(get_current_user)):
 @router.get("/{guide_id}")
 async def get_guide(
     guide_id: str,
-    current_user: dict = Depends(get_current_user)
+    request: Request,
+    current_user: Optional[dict] = Depends(get_current_user_optional)
 ):
     """Get a specific guide with all its content"""
     try:
+        # Get user_id if authenticated
+        user_id = current_user['id'] if current_user else None
+        
         guide = await build_guide_service.get_guide(
             guide_id=guide_id,
-            user_id=current_user['id']
+            user_id=user_id
         )
         
         if not guide:
             raise HTTPException(status_code=404, detail="Guide not found")
         
         # Check if guide is published or user is admin
-        if not guide.get('is_published', False) and not current_user.get('is_admin', False):
-            raise HTTPException(status_code=403, detail="Guide is not published")
+        # Allow viewing published guides without authentication
+        if not guide.get('is_published', False):
+            if not current_user or not current_user.get('is_admin', False):
+                raise HTTPException(status_code=403, detail="Guide is not published")
         
         return guide
         

@@ -78,7 +78,7 @@ class BuildGuideService(DatabaseService):
             response = self.client.table('build_guides').select(
                 '''
                 *,
-                build_guide_sections(*, ...),
+                build_guide_sections(*),
                 build_guide_queries(*, build_guide_examples(*)),
                 build_guide_metrics(*),
                 user_guide_progress!left(*),

@@ -1,80 +1,133 @@
-2025-08-21 19:44:08 - amc_manager.services.token_service - INFO - Using existing FERNET_KEY from environment
-2025-08-21 19:44:08 - amc_manager.services.token_service - INFO - Fernet encryption initialized successfully
-2025-08-21 19:44:08 - amc_manager.services.amc_execution_service - INFO - AMC Execution Service configured to use REAL AMC API
-2025-08-21 19:44:09 - __main__ - INFO - All API routers loaded successfully with rate limiting
-2025-08-21 19:44:09 - __main__ - INFO - Frontend static files mounted
-2025-08-21 19:44:09 - main_supabase - INFO - All API routers loaded successfully with rate limiting
-2025-08-21 19:44:09 - main_supabase - INFO - Frontend static files mounted
-INFO:     Started server process [2007738]
+2025-08-21 19:53:06 - amc_manager.services.token_service - INFO - Using existing FERNET_KEY from environment
+2025-08-21 19:53:06 - amc_manager.services.token_service - INFO - Fernet encryption initialized successfully
+2025-08-21 19:53:06 - amc_manager.services.amc_execution_service - INFO - AMC Execution Service configured to use REAL AMC API
+2025-08-21 19:53:06 - __main__ - INFO - All API routers loaded successfully with rate limiting
+2025-08-21 19:53:06 - __main__ - INFO - Frontend static files mounted
+2025-08-21 19:53:06 - main_supabase - INFO - All API routers loaded successfully with rate limiting
+2025-08-21 19:53:06 - main_supabase - INFO - Frontend static files mounted
+INFO:     Started server process [2010542]
 INFO:     Waiting for application startup.
-2025-08-21 19:44:09 - main_supabase - INFO - Starting Recom AMP application with Supabase...
-2025-08-21 19:44:09 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-21 19:44:09 - main_supabase - INFO - ✓ Supabase connection successful
-2025-08-21 19:44:09 - amc_manager.services.token_refresh_service - INFO - Token refresh service started
-2025-08-21 19:44:09 - main_supabase - INFO - ✓ Token refresh service started
-2025-08-21 19:44:09 - main_supabase - INFO - ✓ Execution status poller started
-2025-08-21 19:44:09 - amc_manager.services.token_service - INFO - Using existing FERNET_KEY from environment
-2025-08-21 19:44:09 - amc_manager.services.token_service - INFO - Fernet encryption initialized successfully
-2025-08-21 19:44:09 - main_supabase - INFO - ✓ Schedule executor service started
-2025-08-21 19:44:09 - amc_manager.services.token_refresh_service - INFO - Added user fe841586-7807-48b1-8808-02877834fce0 to token refresh tracking
-2025-08-21 19:44:09 - main_supabase - INFO - ✓ Added 1 users with tokens to refresh tracking (out of 15 total)
-2025-08-21 19:44:09 - amc_manager.services.token_refresh_service - INFO - Starting token refresh service (interval: 600s)
-2025-08-21 19:44:09 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
-2025-08-21 19:44:09 - amc_manager.services.schedule_executor_service - INFO - Starting Schedule Executor Service
-2025-08-21 19:44:09 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-21 19:44:10 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-21 19:44:10 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-21 19:44:10 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
+2025-08-21 19:53:06 - main_supabase - INFO - Starting Recom AMP application with Supabase...
+2025-08-21 19:53:06 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-08-21 19:53:07 - main_supabase - INFO - ✓ Supabase connection successful
+2025-08-21 19:53:07 - amc_manager.services.token_refresh_service - INFO - Token refresh service started
+2025-08-21 19:53:07 - main_supabase - INFO - ✓ Token refresh service started
+2025-08-21 19:53:07 - main_supabase - INFO - ✓ Execution status poller started
+2025-08-21 19:53:07 - amc_manager.services.token_service - INFO - Using existing FERNET_KEY from environment
+2025-08-21 19:53:07 - amc_manager.services.token_service - INFO - Fernet encryption initialized successfully
+2025-08-21 19:53:07 - main_supabase - INFO - ✓ Schedule executor service started
+2025-08-21 19:53:07 - amc_manager.services.token_refresh_service - INFO - Added user fe841586-7807-48b1-8808-02877834fce0 to token refresh tracking
+2025-08-21 19:53:07 - main_supabase - INFO - ✓ Added 1 users with tokens to refresh tracking (out of 15 total)
+2025-08-21 19:53:07 - amc_manager.services.token_refresh_service - INFO - Starting token refresh service (interval: 600s)
+2025-08-21 19:53:07 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
+2025-08-21 19:53:07 - amc_manager.services.schedule_executor_service - INFO - Starting Schedule Executor Service
+2025-08-21 19:53:07 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-08-21 19:53:07 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-08-21 19:53:07 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-08-21 19:53:07 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
 INFO:     Application startup complete.
-2025-08-21 19:44:10 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-21 19:44:10 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-21 19:44:10 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-21 19:44:10 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 97bbda3a-6507-4822-979f-d3735485bf44 for workflow wf_cc86e4b2
-2025-08-21 19:44:10 - amc_manager.services.schedule_executor_service - INFO - Schedule 97bbda3a-6507-4822-979f-d3735485bf44 has a recent run within 5 minutes, skipping
-2025-08-21 19:44:10 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 1 successful, 0 failed
+2025-08-21 19:53:07 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-08-21 19:53:07 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-08-21 19:53:07 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-08-21 19:53:07 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 97bbda3a-6507-4822-979f-d3735485bf44 for workflow wf_cc86e4b2
+2025-08-21 19:53:07 - amc_manager.services.schedule_executor_service - INFO - Schedule 97bbda3a-6507-4822-979f-d3735485bf44 has a recent run within 5 minutes, skipping
+2025-08-21 19:53:07 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 1 successful, 0 failed
 INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-2025-08-21 19:45:10 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
-2025-08-21 19:45:10 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 97bbda3a-6507-4822-979f-d3735485bf44 for workflow wf_cc86e4b2
-2025-08-21 19:45:10 - amc_manager.services.schedule_executor_service - INFO - Schedule 97bbda3a-6507-4822-979f-d3735485bf44 has a recent run within 5 minutes, skipping
-2025-08-21 19:46:10 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
-2025-08-21 19:46:10 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 97bbda3a-6507-4822-979f-d3735485bf44 for workflow wf_cc86e4b2
-2025-08-21 19:46:10 - amc_manager.services.schedule_executor_service - INFO - Schedule 97bbda3a-6507-4822-979f-d3735485bf44 has a recent run within 5 minutes, skipping
-2025-08-21 19:46:11 - amc_manager.services.amc_execution_service - INFO - AMC execution ID: 118dfcb4-5698-48b8-9058-e89853ec5f5b, Internal execution ID: exec_ad5efd7a
-2025-08-21 19:46:11 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
-2025-08-21 19:46:11 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABop3T1zmOcXVTx
-2025-08-21 19:46:11 - amc_manager.services.token_service - ERROR - Error decrypting access token for user fe841586-7807-48b1-8808-02877834fce0: Failed to decrypt token: 
-2025-08-21 19:46:11 - amc_manager.services.token_service - ERROR - Token decryption failed - likely due to encryption key mismatch
-2025-08-21 19:46:11 - amc_manager.services.amc_execution_service - ERROR - No valid token for user fe841586-7807-48b1-8808-02877834fce0
-2025-08-21 19:46:27 - amc_manager.services.amc_execution_service - INFO - AMC execution ID: 118dfcb4-5698-48b8-9058-e89853ec5f5b, Internal execution ID: exec_ad5efd7a
-2025-08-21 19:46:27 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
-2025-08-21 19:46:27 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABop3T1zmOcXVTx
-2025-08-21 19:46:27 - amc_manager.services.token_service - ERROR - Error decrypting access token for user fe841586-7807-48b1-8808-02877834fce0: Failed to decrypt token: 
-2025-08-21 19:46:27 - amc_manager.services.token_service - ERROR - Token decryption failed - likely due to encryption key mismatch
-2025-08-21 19:46:27 - amc_manager.services.amc_execution_service - ERROR - No valid token for user fe841586-7807-48b1-8808-02877834fce0
-2025-08-21 19:46:43 - amc_manager.services.amc_execution_service - INFO - AMC execution ID: 118dfcb4-5698-48b8-9058-e89853ec5f5b, Internal execution ID: exec_ad5efd7a
-2025-08-21 19:46:43 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
-2025-08-21 19:46:43 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABop3T1zmOcXVTx
-2025-08-21 19:46:43 - amc_manager.services.token_service - ERROR - Error decrypting access token for user fe841586-7807-48b1-8808-02877834fce0: Failed to decrypt token: 
-2025-08-21 19:46:43 - amc_manager.services.token_service - ERROR - Token decryption failed - likely due to encryption key mismatch
-2025-08-21 19:46:43 - amc_manager.services.amc_execution_service - ERROR - No valid token for user fe841586-7807-48b1-8808-02877834fce0
-2025-08-21 19:46:59 - amc_manager.services.amc_execution_service - INFO - AMC execution ID: 118dfcb4-5698-48b8-9058-e89853ec5f5b, Internal execution ID: exec_ad5efd7a
-2025-08-21 19:46:59 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
-2025-08-21 19:46:59 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABop3T1zmOcXVTx
-2025-08-21 19:46:59 - amc_manager.services.token_service - ERROR - Error decrypting access token for user fe841586-7807-48b1-8808-02877834fce0: Failed to decrypt token: 
-2025-08-21 19:46:59 - amc_manager.services.token_service - ERROR - Token decryption failed - likely due to encryption key mismatch
-2025-08-21 19:46:59 - amc_manager.services.amc_execution_service - ERROR - No valid token for user fe841586-7807-48b1-8808-02877834fce0
-2025-08-21 19:47:10 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
-2025-08-21 19:47:10 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 97bbda3a-6507-4822-979f-d3735485bf44 for workflow wf_cc86e4b2
-2025-08-21 19:47:10 - amc_manager.services.schedule_executor_service - INFO - Schedule 97bbda3a-6507-4822-979f-d3735485bf44 has a recent run within 5 minutes, skipping
-2025-08-21 19:48:10 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
-2025-08-21 19:48:10 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 97bbda3a-6507-4822-979f-d3735485bf44 for workflow wf_cc86e4b2
-2025-08-21 19:48:10 - amc_manager.services.schedule_executor_service - INFO - Schedule 97bbda3a-6507-4822-979f-d3735485bf44 has a recent run within 5 minutes, skipping
-INFO:     127.0.0.1:58572 - "GET /api/build-guides HTTP/1.1" 404 Not Found
-2025-08-21 19:49:10 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
-2025-08-21 19:49:10 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 97bbda3a-6507-4822-979f-d3735485bf44 for workflow wf_cc86e4b2
-2025-08-21 19:49:10 - amc_manager.services.schedule_executor_service - INFO - Schedule 97bbda3a-6507-4822-979f-d3735485bf44 has a recent run within 5 minutes, skipping
-INFO:     127.0.0.1:56116 - "GET /api/debug/routes HTTP/1.1" 200 OK
-INFO:     127.0.0.1:42182 - "GET /api/build-guides/ HTTP/1.1" 403 Forbidden
-2025-08-21 19:50:10 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
-2025-08-21 19:50:10 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 97bbda3a-6507-4822-979f-d3735485bf44 for workflow wf_cc86e4b2
-2025-08-21 19:50:11 - amc_manager.services.schedule_executor_service - INFO - Schedule 97bbda3a-6507-4822-979f-d3735485bf44 has a recent run within 5 minutes, skipping
+INFO:     127.0.0.1:51302 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51312 - "GET /api/build-guides/ HTTP/1.1" 403 Forbidden
+2025-08-21 19:54:07 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
+2025-08-21 19:54:07 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 97bbda3a-6507-4822-979f-d3735485bf44 for workflow wf_cc86e4b2
+2025-08-21 19:54:07 - amc_manager.services.schedule_executor_service - INFO - Schedule 97bbda3a-6507-4822-979f-d3735485bf44 has a recent run within 5 minutes, skipping
+2025-08-21 19:55:07 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
+2025-08-21 19:55:07 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 97bbda3a-6507-4822-979f-d3735485bf44 for workflow wf_cc86e4b2
+2025-08-21 19:55:08 - amc_manager.services.schedule_executor_service - INFO - Schedule 97bbda3a-6507-4822-979f-d3735485bf44 has a recent run within 5 minutes, skipping
+2025-08-21 19:56:08 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
+2025-08-21 19:56:08 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 97bbda3a-6507-4822-979f-d3735485bf44 for workflow wf_cc86e4b2
+2025-08-21 19:56:08 - amc_manager.services.schedule_executor_service - INFO - Schedule 97bbda3a-6507-4822-979f-d3735485bf44 has a recent run within 5 minutes, skipping
+2025-08-21 19:56:09 - amc_manager.services.amc_execution_service - INFO - AMC execution ID: 2c914649-9f5e-4fd5-8dd5-8d78f6f6dde1, Internal execution ID: exec_b28b8ace
+2025-08-21 19:56:09 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-08-21 19:56:09 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABop3T1zmOcXVTx
+2025-08-21 19:56:09 - amc_manager.services.token_service - ERROR - Error decrypting access token for user fe841586-7807-48b1-8808-02877834fce0: Failed to decrypt token: 
+2025-08-21 19:56:09 - amc_manager.services.token_service - ERROR - Token decryption failed - likely due to encryption key mismatch
+2025-08-21 19:56:09 - amc_manager.services.amc_execution_service - ERROR - No valid token for user fe841586-7807-48b1-8808-02877834fce0
+2025-08-21 19:56:25 - amc_manager.services.amc_execution_service - INFO - AMC execution ID: 2c914649-9f5e-4fd5-8dd5-8d78f6f6dde1, Internal execution ID: exec_b28b8ace
+2025-08-21 19:56:25 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-08-21 19:56:25 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABop3T1zmOcXVTx
+2025-08-21 19:56:25 - amc_manager.services.token_service - ERROR - Error decrypting access token for user fe841586-7807-48b1-8808-02877834fce0: Failed to decrypt token: 
+2025-08-21 19:56:25 - amc_manager.services.token_service - ERROR - Token decryption failed - likely due to encryption key mismatch
+2025-08-21 19:56:25 - amc_manager.services.amc_execution_service - ERROR - No valid token for user fe841586-7807-48b1-8808-02877834fce0
+2025-08-21 19:56:41 - amc_manager.services.amc_execution_service - INFO - AMC execution ID: 2c914649-9f5e-4fd5-8dd5-8d78f6f6dde1, Internal execution ID: exec_b28b8ace
+2025-08-21 19:56:41 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-08-21 19:56:41 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABop3T1zmOcXVTx
+2025-08-21 19:56:41 - amc_manager.services.token_service - ERROR - Error decrypting access token for user fe841586-7807-48b1-8808-02877834fce0: Failed to decrypt token: 
+2025-08-21 19:56:41 - amc_manager.services.token_service - ERROR - Token decryption failed - likely due to encryption key mismatch
+2025-08-21 19:56:41 - amc_manager.services.amc_execution_service - ERROR - No valid token for user fe841586-7807-48b1-8808-02877834fce0
+2025-08-21 19:56:57 - amc_manager.services.amc_execution_service - INFO - AMC execution ID: 2c914649-9f5e-4fd5-8dd5-8d78f6f6dde1, Internal execution ID: exec_b28b8ace
+2025-08-21 19:56:57 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-08-21 19:56:57 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABop3T1zmOcXVTx
+2025-08-21 19:56:57 - amc_manager.services.token_service - ERROR - Error decrypting access token for user fe841586-7807-48b1-8808-02877834fce0: Failed to decrypt token: 
+2025-08-21 19:56:57 - amc_manager.services.token_service - ERROR - Token decryption failed - likely due to encryption key mismatch
+2025-08-21 19:56:57 - amc_manager.services.amc_execution_service - ERROR - No valid token for user fe841586-7807-48b1-8808-02877834fce0
+2025-08-21 19:57:08 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
+2025-08-21 19:57:08 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 97bbda3a-6507-4822-979f-d3735485bf44 for workflow wf_cc86e4b2
+2025-08-21 19:57:08 - amc_manager.services.schedule_executor_service - INFO - Schedule 97bbda3a-6507-4822-979f-d3735485bf44 has a recent run within 5 minutes, skipping
+2025-08-21 19:57:13 - amc_manager.services.amc_execution_service - INFO - AMC execution ID: 2c914649-9f5e-4fd5-8dd5-8d78f6f6dde1, Internal execution ID: exec_b28b8ace
+2025-08-21 19:57:13 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-08-21 19:57:13 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABop3T1zmOcXVTx
+2025-08-21 19:57:13 - amc_manager.services.token_service - ERROR - Error decrypting access token for user fe841586-7807-48b1-8808-02877834fce0: Failed to decrypt token: 
+2025-08-21 19:57:13 - amc_manager.services.token_service - ERROR - Token decryption failed - likely due to encryption key mismatch
+2025-08-21 19:57:13 - amc_manager.services.amc_execution_service - ERROR - No valid token for user fe841586-7807-48b1-8808-02877834fce0
+2025-08-21 19:58:08 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
+2025-08-21 19:58:08 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 97bbda3a-6507-4822-979f-d3735485bf44 for workflow wf_cc86e4b2
+2025-08-21 19:58:08 - amc_manager.services.schedule_executor_service - INFO - Schedule 97bbda3a-6507-4822-979f-d3735485bf44 has a recent run within 5 minutes, skipping
+2025-08-21 19:59:08 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
+2025-08-21 19:59:08 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 97bbda3a-6507-4822-979f-d3735485bf44 for workflow wf_cc86e4b2
+2025-08-21 19:59:08 - amc_manager.services.schedule_executor_service - INFO - Schedule 97bbda3a-6507-4822-979f-d3735485bf44 has a recent run within 5 minutes, skipping
+2025-08-21 20:00:08 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
+2025-08-21 20:00:08 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 97bbda3a-6507-4822-979f-d3735485bf44 for workflow wf_cc86e4b2
+2025-08-21 20:00:08 - amc_manager.services.schedule_executor_service - INFO - Schedule 97bbda3a-6507-4822-979f-d3735485bf44 has a recent run within 5 minutes, skipping
+INFO:     127.0.0.1:58202 - "GET /api/build-guides/guide_creative_asin_impact HTTP/1.1" 403 Forbidden
+2025-08-21 20:01:08 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
+2025-08-21 20:01:08 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 97bbda3a-6507-4822-979f-d3735485bf44 for workflow wf_cc86e4b2
+2025-08-21 20:01:08 - amc_manager.services.schedule_executor_service - INFO - Schedule 97bbda3a-6507-4822-979f-d3735485bf44 has a recent run within 5 minutes, skipping
+2025-08-21 20:01:17 - amc_manager.services.amc_execution_service - INFO - AMC execution ID: 76b78dbb-cd13-4a66-b856-473018459e23, Internal execution ID: exec_726163c4
+2025-08-21 20:01:17 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-08-21 20:01:17 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABop3T1zmOcXVTx
+2025-08-21 20:01:17 - amc_manager.services.token_service - ERROR - Error decrypting access token for user fe841586-7807-48b1-8808-02877834fce0: Failed to decrypt token: 
+2025-08-21 20:01:17 - amc_manager.services.token_service - ERROR - Token decryption failed - likely due to encryption key mismatch
+2025-08-21 20:01:17 - amc_manager.services.amc_execution_service - ERROR - No valid token for user fe841586-7807-48b1-8808-02877834fce0
+2025-08-21 20:01:33 - amc_manager.services.amc_execution_service - INFO - AMC execution ID: 76b78dbb-cd13-4a66-b856-473018459e23, Internal execution ID: exec_726163c4
+2025-08-21 20:01:33 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-08-21 20:01:33 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABop3T1zmOcXVTx
+2025-08-21 20:01:33 - amc_manager.services.token_service - ERROR - Error decrypting access token for user fe841586-7807-48b1-8808-02877834fce0: Failed to decrypt token: 
+2025-08-21 20:01:33 - amc_manager.services.token_service - ERROR - Token decryption failed - likely due to encryption key mismatch
+2025-08-21 20:01:33 - amc_manager.services.amc_execution_service - ERROR - No valid token for user fe841586-7807-48b1-8808-02877834fce0
+2025-08-21 20:01:49 - amc_manager.services.amc_execution_service - INFO - AMC execution ID: 76b78dbb-cd13-4a66-b856-473018459e23, Internal execution ID: exec_726163c4
+2025-08-21 20:01:49 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-08-21 20:01:49 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABop3T1zmOcXVTx
+2025-08-21 20:01:49 - amc_manager.services.token_service - ERROR - Error decrypting access token for user fe841586-7807-48b1-8808-02877834fce0: Failed to decrypt token: 
+2025-08-21 20:01:49 - amc_manager.services.token_service - ERROR - Token decryption failed - likely due to encryption key mismatch
+2025-08-21 20:01:49 - amc_manager.services.amc_execution_service - ERROR - No valid token for user fe841586-7807-48b1-8808-02877834fce0
+2025-08-21 20:02:05 - amc_manager.services.amc_execution_service - INFO - AMC execution ID: 76b78dbb-cd13-4a66-b856-473018459e23, Internal execution ID: exec_726163c4
+2025-08-21 20:02:06 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-08-21 20:02:06 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABop3T1zmOcXVTx
+2025-08-21 20:02:06 - amc_manager.services.token_service - ERROR - Error decrypting access token for user fe841586-7807-48b1-8808-02877834fce0: Failed to decrypt token: 
+2025-08-21 20:02:06 - amc_manager.services.token_service - ERROR - Token decryption failed - likely due to encryption key mismatch
+2025-08-21 20:02:06 - amc_manager.services.amc_execution_service - ERROR - No valid token for user fe841586-7807-48b1-8808-02877834fce0
+2025-08-21 20:02:08 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
+2025-08-21 20:02:08 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 97bbda3a-6507-4822-979f-d3735485bf44 for workflow wf_cc86e4b2
+2025-08-21 20:02:08 - amc_manager.services.schedule_executor_service - INFO - Schedule 97bbda3a-6507-4822-979f-d3735485bf44 has a recent run within 5 minutes, skipping
+2025-08-21 20:02:22 - amc_manager.services.amc_execution_service - INFO - AMC execution ID: 76b78dbb-cd13-4a66-b856-473018459e23, Internal execution ID: exec_726163c4
+2025-08-21 20:02:22 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-08-21 20:02:22 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABop3T1zmOcXVTx
+2025-08-21 20:02:22 - amc_manager.services.token_service - ERROR - Error decrypting access token for user fe841586-7807-48b1-8808-02877834fce0: Failed to decrypt token: 
+2025-08-21 20:02:22 - amc_manager.services.token_service - ERROR - Token decryption failed - likely due to encryption key mismatch
+2025-08-21 20:02:22 - amc_manager.services.amc_execution_service - ERROR - No valid token for user fe841586-7807-48b1-8808-02877834fce0
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-08-21 20:02:30 - main_supabase - INFO - Shutting down Recom AMP application...
+2025-08-21 20:02:30 - amc_manager.services.token_refresh_service - INFO - Token refresh loop cancelled
+2025-08-21 20:02:30 - amc_manager.services.token_refresh_service - INFO - Token refresh service stopped
+2025-08-21 20:02:30 - amc_manager.services.schedule_executor_service - INFO - Stopping Schedule Executor Service
+INFO:     Application shutdown complete.
+INFO:     Finished server process [2010542]

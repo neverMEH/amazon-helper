@@ -55,6 +55,34 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         raise HTTPException(status_code=401, detail="Invalid token")
 
 
+def get_current_user_optional(request: Request) -> Optional[Dict[str, Any]]:
+    """Get current user from JWT token if provided, otherwise return None"""
+    # Try to get Authorization header
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return None
+    
+    token = auth_header.replace("Bearer ", "")
+    
+    try:
+        payload = jwt.decode(token, settings.jwt_secret_key, algorithms=["HS256"])
+        user_id = payload.get("sub")
+        if not user_id:
+            return None
+        
+        # Use sync version
+        response = db_service.client.table('users').select('*').eq('id', user_id).execute()
+        user = response.data[0] if response.data else None
+        
+        return user
+    except (jwt.ExpiredSignatureError, jwt.DecodeError):
+        # Return None for invalid/expired tokens instead of raising
+        return None
+    except Exception:
+        # Return None for any other errors
+        return None
+
+
 @router.post("/login")
 async def login(request: Request, email: str, password: Optional[str] = None):
     """
