@@ -207,6 +207,11 @@ export default function BuildGuideDetail() {
     }
   });
 
+  // Scroll to top on mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [guideId]);
+
   // Initialize guide on mount
   useEffect(() => {
     if (guide && (!guide.user_progress || guide.user_progress.status === 'not_started')) {

@@ -3,7 +3,7 @@
  * Main listing page for all available build guides
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -47,6 +47,11 @@ export default function BuildGuides() {
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null);
   const [showFavorites, setShowFavorites] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'all' | 'not_started' | 'in_progress' | 'completed'>('all');
+
+  // Scroll to top on mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   // Fetch guides
   const { data: guides = [], isLoading } = useQuery({
