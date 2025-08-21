@@ -1,0 +1,108 @@
+# Simple Example Build Guide
+guide:
+  name: "Campaign Performance Overview"
+  category: "Performance Analysis"
+  short_description: "Get a high-level overview of your campaign performance metrics."
+  tags:
+    - "campaign analysis"
+    - "performance overview"
+    - "beginner friendly"
+  icon: "TrendingUp"
+  difficulty_level: "beginner"
+  estimated_time_minutes: 20
+  prerequisites:
+    - "Active campaigns in your AMC instance"
+    - "At least 7 days of campaign data"
+  is_published: true
+  display_order: 1
+
+sections:
+  - section_id: "overview"
+    title: "Overview"
+    display_order: 1
+    content_markdown: |
+      ## What This Guide Covers
+      
+      This guide provides a simple analysis of your campaign performance, including:
+      - Total impressions and clicks by campaign
+      - Click-through rates (CTR)
+      - Conversion metrics where available
+      
+      Perfect for getting a quick snapshot of how your campaigns are performing.
+
+queries:
+  - title: "Campaign Performance Summary"
+    description: "Overview of key metrics for all campaigns"
+    display_order: 1
+    query_type: "main_analysis"
+    sql_query: |
+      SELECT 
+          campaign_id,
+          campaign_name,
+          COUNT(*) as total_events,
+          COUNT(DISTINCT user_id) as unique_users,
+          SUM(CASE WHEN event_type = 'click' THEN 1 ELSE 0 END) as total_clicks,
+          ROUND(
+              SUM(CASE WHEN event_type = 'click' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 
+              2
+          ) as ctr_percentage
+      FROM sponsored_ads_traffic
+      WHERE event_dt >= DATE_ADD('day', -{{days_back}}, CURRENT_DATE)
+      GROUP BY campaign_id, campaign_name
+      HAVING total_clicks >= {{min_clicks}}
+      ORDER BY total_clicks DESC
+      LIMIT {{max_campaigns}}
+    parameters_schema:
+      days_back:
+        type: "integer"
+        default: 30
+        description: "Number of days to look back"
+      min_clicks:
+        type: "integer"
+        default: 10
+        description: "Minimum clicks to include campaign"
+      max_campaigns:
+        type: "integer"
+        default: 20
+        description: "Maximum number of campaigns to show"
+    default_parameters:
+      days_back: 30
+      min_clicks: 10
+      max_campaigns: 20
+
+metrics:
+  - metric_name: "campaign_id"
+    display_name: "Campaign ID"
+    definition: "Unique identifier for the campaign"
+    metric_type: "dimension"
+    display_order: 1
+    
+  - metric_name: "campaign_name"
+    display_name: "Campaign Name"
+    definition: "Descriptive name of the campaign"
+    metric_type: "dimension"
+    display_order: 2
+    
+  - metric_name: "total_events"
+    display_name: "Total Events"
+    definition: "Total number of traffic events (impressions + clicks)"
+    metric_type: "metric"
+    display_order: 3
+    
+  - metric_name: "unique_users"
+    display_name: "Unique Users"
+    definition: "Number of distinct users who interacted with the campaign"
+    metric_type: "metric"
+    display_order: 4
+    
+  - metric_name: "total_clicks"
+    display_name: "Total Clicks"
+    definition: "Total number of click events"
+    metric_type: "metric"
+    display_order: 5
+    
+  - metric_name: "ctr_percentage"
+    display_name: "CTR %"
+    definition: "Click-through rate as a percentage (clicks / total_events * 100)"
+    metric_type: "metric"
+    display_order: 6

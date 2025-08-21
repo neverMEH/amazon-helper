@@ -1,0 +1,265 @@
+# Build Guide Template
+# This template shows the expected structure for a build guide
+# Use this as a starting point for creating new guides
+
+# Guide metadata - all fields are required unless marked optional
+guide:
+  name: "Your Guide Name Here"  # Will be converted to guide_id automatically (e.g., "your_guide_name_here")
+  category: "Category Name"  # e.g., "ASIN Analysis", "Performance Deep Dive", "Attribution", etc.
+  short_description: "Brief summary of what this guide helps you accomplish."
+  tags:  # Array of relevant tags for filtering and search
+    - "tag1"
+    - "tag2"
+    - "tag3"
+  icon: "Package"  # Icon identifier for UI (Package, TrendingUp, BarChart3, etc.)
+  difficulty_level: "intermediate"  # "beginner", "intermediate", or "advanced"
+  estimated_time_minutes: 45  # Estimated time to complete the guide
+  prerequisites:  # Array of requirements or setup needed
+    - "Requirement 1"
+    - "Requirement 2"
+  is_published: true  # Whether guide should be visible to users
+  display_order: 1  # Order in guide lists (lower numbers appear first)
+
+# Guide sections - structured content with markdown
+sections:
+  - section_id: "introduction"  # Unique identifier within this guide
+    title: "1. Introduction"
+    display_order: 1
+    is_collapsible: true  # Whether section can be collapsed in UI
+    default_expanded: true  # Whether section starts expanded
+    content_markdown: |
+      ## 1.1 Purpose
+      
+      Explain what this guide accomplishes and why it's useful.
+      
+      ## 1.2 Requirements
+      
+      List any specific data requirements, account setup, or prerequisites.
+      
+      - Requirement 1
+      - Requirement 2
+      
+      **Note:** Important considerations or limitations.
+
+  - section_id: "data_query"
+    title: "2. Data Query Instructions"
+    display_order: 2
+    is_collapsible: true
+    default_expanded: true
+    content_markdown: |
+      ## 2.1 Data Returned
+      
+      Describe what data the queries in this guide return.
+      
+      ## 2.2 Tables Used
+      
+      List and describe the AMC tables used:
+      - **table_name**: Description of what this table contains
+      - **another_table**: Description of another table
+
+  - section_id: "interpretation"
+    title: "3. Data Interpretation Instructions"
+    display_order: 3
+    is_collapsible: true
+    default_expanded: true
+    content_markdown: |
+      ## 3.1 Example Query Results
+      
+      *This data is for instructional purposes only. Your results will differ.*
+      
+      ### Query: Your Main Query Name
+      
+      | column1 | column2 | column3 |
+      |---------|---------|---------|
+      | value1  | value2  | value3  |
+      | value4  | value5  | value6  |
+      
+      ## 3.2 Insights and Data Interpretation
+      
+      Explain how to interpret the results and what insights can be drawn.
+
+# Queries - SQL queries with parameters and metadata
+queries:
+  - title: "Exploratory Query Title"
+    description: "Brief description of what this query does and when to use it."
+    display_order: 1
+    query_type: "exploratory"  # "exploratory", "main_analysis", or "validation"
+    interpretation_notes: "How to interpret and use the results of this query."
+    sql_query: |
+      -- Comments explaining the query
+      WITH data_summary AS (
+          SELECT 
+              column1,
+              COUNT(*) as count_records,
+              MIN(date_column) as start_date,
+              MAX(date_column) as end_date
+          FROM table_name
+          WHERE 
+              date_column >= DATE_ADD('day', -{{lookback_days}}, CURRENT_DATE)
+              AND condition = '{{filter_value}}'
+          GROUP BY column1
+      )
+      SELECT 
+          *,
+          count_records / SUM(count_records) OVER () * 100 as percentage
+      FROM data_summary
+      ORDER BY count_records DESC
+      LIMIT {{result_limit}}
+    parameters_schema:
+      lookback_days:
+        type: "integer"
+        default: 30
+        description: "Number of days to look back for data"
+      filter_value:
+        type: "string"
+        default: "default_value"
+        description: "Filter criteria for the analysis"
+      result_limit:
+        type: "integer"
+        default: 100
+        description: "Maximum number of results to return"
+    default_parameters:
+      lookback_days: 30
+      filter_value: "default_value"
+      result_limit: 100
+
+  - title: "Main Analysis Query"
+    description: "The primary analysis query that provides the main insights."
+    display_order: 2
+    query_type: "main_analysis"
+    interpretation_notes: "Focus on metrics X and Y. Look for patterns in Z."
+    sql_query: |
+      -- Main analysis query
+      WITH base_data AS (
+          SELECT 
+              dimension1,
+              dimension2,
+              SUM(metric1) as total_metric1,
+              COUNT(DISTINCT identifier) as unique_count,
+              AVG(metric2) as avg_metric2
+          FROM main_table mt
+          INNER JOIN related_table rt ON mt.key = rt.key
+          WHERE 
+              mt.date_column >= DATE_ADD('day', -{{analysis_period}}, CURRENT_DATE)
+              AND rt.filter_column IN ({{include_values}})
+          GROUP BY dimension1, dimension2
+      )
+      SELECT 
+          dimension1,
+          dimension2,
+          total_metric1,
+          unique_count,
+          avg_metric2,
+          ROUND(total_metric1 / SUM(total_metric1) OVER () * 100, 2) as percentage_share
+      FROM base_data
+      WHERE unique_count >= {{min_threshold}}
+      ORDER BY total_metric1 DESC
+    parameters_schema:
+      analysis_period:
+        type: "integer"
+        default: 30
+        description: "Analysis period in days"
+      include_values:
+        type: "array"
+        default: ["value1", "value2"]
+        description: "Values to include in analysis"
+      min_threshold:
+        type: "integer"
+        default: 5
+        description: "Minimum threshold for inclusion in results"
+    default_parameters:
+      analysis_period: 30
+      include_values: ["value1", "value2"]
+      min_threshold: 5
+    # Example results for this query
+    examples:
+      - example_name: "Sample Analysis Results"
+        display_order: 1
+        sample_data:
+          rows:
+            - dimension1: "Category A"
+              dimension2: "Segment 1"
+              total_metric1: 15000
+              unique_count: 250
+              avg_metric2: 12.5
+              percentage_share: 45.2
+            - dimension1: "Category B"
+              dimension2: "Segment 1"
+              total_metric1: 8500
+              unique_count: 180
+              avg_metric2: 8.9
+              percentage_share: 25.6
+            - dimension1: "Category A"
+              dimension2: "Segment 2"
+              total_metric1: 6200
+              unique_count: 120
+              avg_metric2: 15.3
+              percentage_share: 18.7
+        interpretation_markdown: |
+          Based on these results:
+          
+          **High Performer:** Category A, Segment 1 shows strong performance with:
+          - 45.2% share of total metric1
+          - High unique count indicating broad appeal
+          - Balanced avg_metric2 performance
+          
+          **Growth Opportunity:** Category A, Segment 2 shows:
+          - Highest avg_metric2 (15.3) indicating quality engagement
+          - Lower volume but high efficiency
+          
+          **Recommendation:** Focus additional investment on Category A strategies while investigating what makes Segment 2 so efficient.
+        insights:
+          - "Category A accounts for 63.9% of total performance across segments"
+          - "Segment 2 shows 22% higher efficiency (avg_metric2) than Segment 1"
+          - "Consider expanding Category A tactics to other segments"
+          - "Investigate Category B performance gaps for optimization opportunities"
+
+# Metrics definitions - explain what each column/metric means
+metrics:
+  - metric_name: "dimension1"
+    display_name: "Primary Dimension"
+    definition: "Description of what this dimension represents in your analysis."
+    metric_type: "dimension"  # "dimension" or "metric"
+    display_order: 1
+
+  - metric_name: "dimension2"
+    display_name: "Secondary Dimension"
+    definition: "Description of the secondary grouping dimension."
+    metric_type: "dimension"
+    display_order: 2
+
+  - metric_name: "total_metric1"
+    display_name: "Total Performance Metric"
+    definition: "Sum of the primary performance indicator across the analysis period."
+    metric_type: "metric"
+    display_order: 3
+
+  - metric_name: "unique_count"
+    display_name: "Unique Count"
+    definition: "Number of distinct entities contributing to the metric."
+    metric_type: "metric"
+    display_order: 4
+
+  - metric_name: "avg_metric2"
+    display_name: "Average Efficiency"
+    definition: "Average efficiency metric calculated as metric2 per unit."
+    metric_type: "metric"
+    display_order: 5
+
+  - metric_name: "percentage_share"
+    display_name: "Percentage Share"
+    definition: "Percentage contribution to total performance (total_metric1 / sum(total_metric1) * 100)."
+    metric_type: "metric"
+    display_order: 6
+
+# Optional: Additional metadata
+metadata:
+  version: "1.0"
+  created_by: "Guide Author"
+  created_date: "2025-08-21"
+  last_updated: "2025-08-21"
+  notes: |
+    Additional notes about this guide:
+    - Data freshness considerations
+    - Known limitations
+    - Best practices for use
