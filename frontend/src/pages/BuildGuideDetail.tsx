@@ -53,7 +53,10 @@ const markdownComponents = {
       {children}
     </td>
   ),
-  code: ({ inline, children, ...props }: any) => {
+  code: ({ inline, children, className, ...props }: any) => {
+    // Check if this is a SQL code block
+    const isSqlBlock = className?.includes('language-sql');
+    
     if (inline) {
       return (
         <code className="px-1 py-0.5 text-sm bg-gray-100 text-red-600 rounded" {...props}>
@@ -61,6 +64,21 @@ const markdownComponents = {
         </code>
       );
     }
+    
+    // For SQL blocks in sections, add a note that actual queries are in the Queries section
+    if (isSqlBlock) {
+      return (
+        <div className="relative">
+          <div className="absolute top-2 right-2 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded z-10">
+            Example Only - Use Queries Section to Execute
+          </div>
+          <code className="block p-4 pt-10 bg-gray-900 text-gray-100 rounded-lg overflow-x-auto" {...props}>
+            {children}
+          </code>
+        </div>
+      );
+    }
+    
     return (
       <code className="block p-4 bg-gray-900 text-gray-100 rounded-lg overflow-x-auto" {...props}>
         {children}
@@ -481,19 +499,22 @@ export default function BuildGuideDetail() {
                 
                 {/* Queries Section */}
                 {guide.queries && guide.queries.length > 0 && (
-                  <button
-                    onClick={() => scrollToSection('queries')}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between ${
-                      activeSection === 'queries'
-                        ? 'bg-blue-50 text-blue-700'
-                        : 'hover:bg-gray-50 text-gray-600'
-                    }`}
-                  >
-                    <span className="flex items-center">
-                      <Play className="h-4 w-4 mr-2" />
-                      Queries ({guide.queries.length})
-                    </span>
-                  </button>
+                  <>
+                    <div className="border-t my-2"></div>
+                    <button
+                      onClick={() => scrollToSection('queries')}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between ${
+                        activeSection === 'queries'
+                          ? 'bg-blue-50 text-blue-700 font-semibold'
+                          : 'hover:bg-gray-50 text-gray-600 font-medium'
+                      }`}
+                    >
+                      <span className="flex items-center">
+                        <Play className={`h-4 w-4 mr-2 ${activeSection === 'queries' ? 'text-blue-600' : 'text-blue-500'}`} />
+                        Executable Queries ({guide.queries.length})
+                      </span>
+                    </button>
+                  </>
                 )}
               </nav>
             </div>
@@ -592,7 +613,19 @@ export default function BuildGuideDetail() {
               {/* Queries */}
               {guide.queries && guide.queries.length > 0 && (
                 <div id="queries" className="space-y-4">
-                  <h2 className="text-xl font-semibold text-gray-900">Queries</h2>
+                  <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0">
+                        <Play className="h-5 w-5 text-blue-600 mt-0.5" />
+                      </div>
+                      <div className="ml-3">
+                        <h2 className="text-xl font-semibold text-gray-900">Executable Queries</h2>
+                        <p className="text-sm text-gray-600 mt-1">
+                          These are the actual queries you can copy or open in the Query Builder. Click on each query to expand and see the SQL code with action buttons.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                   
                   {guide.queries.map(query => (
                     <div
