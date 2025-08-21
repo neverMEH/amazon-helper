@@ -10,14 +10,11 @@ import {
   Search,
   BookOpen,
   Clock,
-  Award,
-  Filter,
   TrendingUp,
   Package,
   Users,
   BarChart,
   Target,
-  ShoppingCart,
   Layers,
   Star,
   ChevronRight
@@ -267,9 +264,10 @@ export default function BuildGuides() {
             {Object.entries(groupedGuides).map(([category, categoryGuides]) => (
               <div key={category}>
                 <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                  {categoryIcons[category] && (
-                    <categoryIcons[category] className="h-5 w-5 mr-2 text-gray-600" />
-                  )}
+                  {(() => {
+                    const Icon = categoryIcons[category] || categoryIcons.Default;
+                    return Icon ? <Icon className="h-5 w-5 mr-2 text-gray-600" /> : null;
+                  })()}
                   {category}
                   <span className="ml-2 text-sm text-gray-500">({categoryGuides.length})</span>
                 </h2>

@@ -10,23 +10,19 @@ import {
   ArrowLeft,
   BookOpen,
   Clock,
-  Award,
   Play,
   CheckCircle,
   Circle,
   ChevronRight,
   ChevronDown,
   Star,
-  Copy,
-  ExternalLink,
-  Download,
-  MoreVertical
+  Copy
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import ReactMarkdown from 'react-markdown';
 import { buildGuideService } from '../services/buildGuideService';
 import SQLEditor from '../components/common/SQLEditor';
-import type { BuildGuide, BuildGuideSection, BuildGuideQuery } from '../types/buildGuide';
+import type { BuildGuideQuery } from '../types/buildGuide';
 
 export default function BuildGuideDetail() {
   const { guideId } = useParams<{ guideId: string }>();
@@ -37,7 +33,6 @@ export default function BuildGuideDetail() {
   const [activeSection, setActiveSection] = useState<string>('');
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [expandedQueries, setExpandedQueries] = useState<Set<string>>(new Set());
-  const [executingQuery, setExecutingQuery] = useState<string | null>(null);
 
   // Fetch guide data
   const { data: guide, isLoading, error } = useQuery({

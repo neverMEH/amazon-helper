@@ -1095,3 +1095,33 @@ INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
 2025-08-21 19:23:55 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
 2025-08-21 19:23:55 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 97bbda3a-6507-4822-979f-d3735485bf44 for workflow wf_cc86e4b2
 2025-08-21 19:23:56 - amc_manager.services.schedule_executor_service - INFO - Schedule 97bbda3a-6507-4822-979f-d3735485bf44 has a recent run within 5 minutes, skipping
+2025-08-21 19:24:56 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
+2025-08-21 19:24:56 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 97bbda3a-6507-4822-979f-d3735485bf44 for workflow wf_cc86e4b2
+2025-08-21 19:24:56 - amc_manager.services.schedule_executor_service - INFO - Schedule 97bbda3a-6507-4822-979f-d3735485bf44 has a recent run within 5 minutes, skipping
+2025-08-21 19:25:56 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
+2025-08-21 19:25:56 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 97bbda3a-6507-4822-979f-d3735485bf44 for workflow wf_cc86e4b2
+2025-08-21 19:25:56 - amc_manager.services.schedule_executor_service - INFO - Schedule 97bbda3a-6507-4822-979f-d3735485bf44 has a recent run within 5 minutes, skipping
+2025-08-21 19:26:56 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
+2025-08-21 19:26:56 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 97bbda3a-6507-4822-979f-d3735485bf44 for workflow wf_cc86e4b2
+2025-08-21 19:26:56 - amc_manager.services.schedule_executor_service - INFO - Schedule 97bbda3a-6507-4822-979f-d3735485bf44 has a recent run within 5 minutes, skipping
+2025-08-21 19:27:56 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
+2025-08-21 19:27:56 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 97bbda3a-6507-4822-979f-d3735485bf44 for workflow wf_cc86e4b2
+2025-08-21 19:27:56 - amc_manager.services.schedule_executor_service - INFO - Schedule 97bbda3a-6507-4822-979f-d3735485bf44 has a recent run within 5 minutes, skipping
+2025-08-21 19:28:56 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
+2025-08-21 19:28:56 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 97bbda3a-6507-4822-979f-d3735485bf44 for workflow wf_cc86e4b2
+2025-08-21 19:28:56 - amc_manager.services.schedule_executor_service - INFO - Schedule 97bbda3a-6507-4822-979f-d3735485bf44 has a recent run within 5 minutes, skipping
+2025-08-21 19:29:56 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
+2025-08-21 19:29:56 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 97bbda3a-6507-4822-979f-d3735485bf44 for workflow wf_cc86e4b2
+2025-08-21 19:29:56 - amc_manager.services.schedule_executor_service - INFO - Schedule 97bbda3a-6507-4822-979f-d3735485bf44 has a recent run within 5 minutes, skipping
+2025-08-21 19:30:56 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
+2025-08-21 19:30:56 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 97bbda3a-6507-4822-979f-d3735485bf44 for workflow wf_cc86e4b2
+2025-08-21 19:30:56 - amc_manager.services.schedule_executor_service - INFO - Schedule 97bbda3a-6507-4822-979f-d3735485bf44 has a recent run within 5 minutes, skipping
+2025-08-21 19:31:57 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
+2025-08-21 19:31:57 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 97bbda3a-6507-4822-979f-d3735485bf44 for workflow wf_cc86e4b2
+2025-08-21 19:31:57 - amc_manager.services.schedule_executor_service - INFO - Schedule 97bbda3a-6507-4822-979f-d3735485bf44 has a recent run within 5 minutes, skipping
+2025-08-21 19:32:57 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
+2025-08-21 19:32:57 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 97bbda3a-6507-4822-979f-d3735485bf44 for workflow wf_cc86e4b2
+2025-08-21 19:32:57 - amc_manager.services.schedule_executor_service - INFO - Schedule 97bbda3a-6507-4822-979f-d3735485bf44 has a recent run within 5 minutes, skipping
+2025-08-21 19:33:57 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
+2025-08-21 19:33:57 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 97bbda3a-6507-4822-979f-d3735485bf44 for workflow wf_cc86e4b2
+2025-08-21 19:33:57 - amc_manager.services.schedule_executor_service - INFO - Schedule 97bbda3a-6507-4822-979f-d3735485bf44 has a recent run within 5 minutes, skipping
