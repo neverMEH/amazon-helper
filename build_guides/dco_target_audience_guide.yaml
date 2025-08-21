@@ -1,0 +1,193 @@
+# Amazon Ad Server - DCO and Target Audience Signals Build Guide
+# This guide helps advertisers query and analyze Dynamic Creative Optimization and Target Audience signals
+
+name: "Amazon Ad Server - DCO and Target Audience Signals"
+version: "1.0.0"
+description: "Learn how to query Dynamic Creative Optimization (DCO) and Target Audience (TA) signals in Amazon Ad Server tables to optimize creative personalization and version performance."
+author: "Amazon AMC Team"
+created_date: "2025-08-21"
+last_updated: "2025-08-21"
+
+# Guide metadata
+metadata:
+  category: "Creative Optimization"
+  difficulty_level: "intermediate"
+  estimated_time_minutes: 30
+  guide_id: "guide_dco_target_audience_signals"
+  icon: "Layers"
+  tags:
+    - "ad server"
+    - "DCO"
+    - "dynamic creative"
+    - "target audience"
+    - "creative personalization"
+    - "version performance"
+    - "smart items"
+
+# Prerequisites for using this guide
+prerequisites:
+  - description: "DCO campaigns or Target Audiences configured in Amazon Ad Server"
+    required: true
+  - description: "Understanding of dynamic creative optimization concepts"
+    required: true
+  - description: "Basic knowledge of creative versioning"
+    required: false
+  - description: "Familiarity with audience targeting"
+    required: false
+
+# Environment setup requirements
+environment:
+  amc_instance_required: true
+  min_data_availability: "2023-05-01"
+  required_tables:
+    - name: "adserver_traffic"
+      description: "Contains impressions, clicks and interactions with DCO/TA dimensions"
+    - name: "adserver_traffic_by_user_segment"
+      description: "Contains audience segment-level information with DCO/TA dimensions"
+    - name: "adserver_conversions"
+      description: "Contains conversion events for performance analysis"
+
+# Main build steps
+steps:
+  - id: "explore_dco_metadata"
+    name: "Explore DCO Campaign Metadata"
+    description: "Extract metadata from DCO campaigns to understand available versions and target audiences"
+    type: "exploratory"
+    query_reference: "DCO Ad Metadata"
+    parameters:
+      lookback_days: 30
+    expected_output:
+      - "List of all DCO campaigns"
+      - "Version names and IDs"
+      - "Smart items configuration"
+      - "Target audience assignments"
+
+  - id: "analyze_version_performance"
+    name: "Analyze DCO Version Performance"
+    description: "Evaluate performance metrics for each creative version"
+    type: "analysis"
+    query_reference: "DCO Version Performance"
+    parameters:
+      lookback_days: 30
+      min_impressions: 1000
+      conversion_types: ["purchase", "add_to_cart", "detail_page_view"]
+    expected_output:
+      - "Daily performance breakdown by version"
+      - "CTR and conversion rates"
+      - "Revenue attribution"
+    dependencies: ["explore_dco_metadata"]
+
+  - id: "segment_analysis"
+    name: "Analyze Performance by Audience Segment"
+    description: "Understand how versions perform across different behavioral segments"
+    type: "analysis"
+    query_reference: "DCO Traffic by Audience Segment"
+    parameters:
+      lookback_days: 30
+      min_impressions: 100
+    expected_output:
+      - "Version performance by behavioral segment"
+      - "Segment-specific CTR rates"
+      - "Audience preferences insights"
+    dependencies: ["explore_dco_metadata"]
+
+  - id: "smart_item_filtering"
+    name: "Filter by Smart Item Values"
+    description: "Isolate performance of specific creative elements"
+    type: "exploratory"
+    query_reference: "Filter DCO by Smart Item Values"
+    parameters:
+      lookback_days: 30
+      smart_item_key: "headline"
+      smart_item_value: "Shop Now"
+      min_impressions: 100
+    expected_output:
+      - "Performance of specific creative elements"
+      - "CTR comparison across variations"
+    dependencies: ["explore_dco_metadata"]
+
+# Testing recommendations
+testing:
+  - name: "Data Availability Check"
+    description: "Verify DCO/TA signals are available after 2023-05-01"
+    query: |
+      SELECT MIN(event_dt) as earliest_dco_data
+      FROM adserver_traffic
+      WHERE is_dco_ad = TRUE
+    
+  - name: "Version Consistency Check"
+    description: "Ensure version_id is used for grouping to handle name changes"
+    query: |
+      SELECT version_id, COUNT(DISTINCT version_name) as name_variations
+      FROM adserver_traffic
+      WHERE is_dco_ad = TRUE
+      GROUP BY version_id
+      HAVING COUNT(DISTINCT version_name) > 1
+
+# Deployment considerations
+deployment:
+  schedule_recommendations:
+    - frequency: "daily"
+      description: "Run daily for active campaign optimization"
+    - frequency: "weekly"
+      description: "Weekly analysis for trend identification"
+  
+  alert_thresholds:
+    - metric: "ctr_pct"
+      threshold: 0.5
+      condition: "less_than"
+      description: "Alert when CTR drops below 0.5%"
+    - metric: "impressions"
+      threshold: 100
+      condition: "less_than"
+      description: "Alert when daily impressions too low for statistical significance"
+
+# Troubleshooting common issues
+troubleshooting:
+  - issue: "No DCO data returned"
+    causes:
+      - "No DCO campaigns configured"
+      - "Querying before 2023-05-01"
+      - "is_dco_ad filter not applied"
+    solutions:
+      - "Verify DCO campaigns exist in Amazon Ad Server"
+      - "Check data availability date"
+      - "Ensure WHERE is_dco_ad = TRUE is included"
+  
+  - issue: "Version names inconsistent"
+    causes:
+      - "Version names changed after campaign start"
+      - "Multiple versions with same name"
+    solutions:
+      - "Group by version_id instead of version_name"
+      - "Use version_id as primary identifier"
+  
+  - issue: "Smart items filtering not working"
+    causes:
+      - "Incorrect SIMILAR TO pattern"
+      - "Pipe-comma delimiter not escaped properly"
+    solutions:
+      - "Use proper escape sequences for pipe character"
+      - "Test pattern with sample smart_items_list values"
+
+# Resources and references
+resources:
+  - title: "Amazon Ad Server DCO Documentation"
+    url: "https://advertising.amazon.com/adserver/dco"
+    type: "documentation"
+  
+  - title: "Target Audience Best Practices"
+    url: "https://advertising.amazon.com/adserver/target-audiences"
+    type: "guide"
+  
+  - title: "AMC Table Reference"
+    url: "https://advertising.amazon.com/API/docs/amc/tables"
+    type: "reference"
+
+# Notes for users
+notes:
+  - "Version metadata is captured at serving time - historical changes not reflected"
+  - "Target Audiences are different from Amazon DSP behavioral audiences"
+  - "Use is_dco_ad=TRUE filter consistently to avoid null version_id issues"
+  - "Smart items list uses pipe-comma delimiter between key:value pairs"
+  - "Consider multi-touch attribution when users see multiple versions"
