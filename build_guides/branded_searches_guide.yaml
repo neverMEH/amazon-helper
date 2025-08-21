@@ -1,0 +1,259 @@
+# Build Guide: Ad-attributed Branded Searches Analysis
+# Generated: 2025-08-21
+# Category: Brand Measurement
+# Difficulty: Beginner
+
+name: Ad-attributed Branded Searches Analysis
+version: 1.0.0
+description: |
+  Analyze how DSP advertising campaigns influence branded search behavior on Amazon,
+  measuring the impact of ads on brand awareness and consideration.
+
+metadata:
+  guide_id: guide_branded_searches_analysis
+  category: Brand Measurement
+  difficulty: beginner
+  estimated_time: 25
+  tags:
+    - Brand awareness
+    - DSP campaigns
+    - Search behavior
+    - Attribution analysis
+    - Brand measurement
+  author: RecomAMP Build Guide System
+  created: 2025-08-21
+  last_updated: 2025-08-21
+
+prerequisites:
+  - name: DSP Campaign Access
+    description: DSP campaigns only - Branded search keywords are exclusive to DSP campaigns
+    required: true
+  - name: ASIN Tracking
+    description: Campaigns must have ASINs tracked for keyword generation
+    required: true
+  - name: Feature Enablement
+    description: Must be enabled via entity settings in advertiser's DSP user account
+    required: true
+    note: Contact your Amazon point of contact to learn more about enabling this feature
+
+environment:
+  amc_tables:
+    - amazon_attributed_events_by_conversion_time
+    - dsp_impressions
+  required_features:
+    - branded_search_tracking
+  data_requirements:
+    - DSP campaign data with ASIN tracking
+    - 14-day attribution window data
+
+sections:
+  - id: introduction
+    title: Introduction
+    description: |
+      Understanding branded searches as an ad-attributed metric that measures
+      how DSP campaigns affect customer behavior for branded search terms.
+    topics:
+      - Purpose and overview
+      - How branded search attribution works
+      - Requirements and availability
+
+  - id: understanding
+    title: Understanding Branded Searches
+    description: |
+      Deep dive into what ad-attributed branded searches represent and
+      how the attribution model works.
+    topics:
+      - Definition and significance
+      - Attribution model details
+      - Data sources and processing
+
+  - id: key_metrics
+    title: Key Metrics
+    description: |
+      Core metrics for measuring branded search performance and
+      industry benchmarks for comparison.
+    topics:
+      - Core metric definitions
+      - Benchmark guidance by category
+      - Performance ranges
+
+  - id: query_implementation
+    title: Query Implementation
+    description: |
+      SQL queries for extracting and analyzing branded search data
+      from AMC tables.
+    queries:
+      - Basic Branded Keywords Query
+      - Branded Search Rate and Cost Analysis
+      - Branded Search Trend Analysis
+
+  - id: data_interpretation
+    title: Data Interpretation
+    description: |
+      How to interpret query results and identify optimization
+      opportunities.
+    topics:
+      - Example results analysis
+      - Performance indicators
+      - Optimization opportunities
+
+  - id: best_practices
+    title: Best Practices
+    description: |
+      Recommendations for campaign setup, analysis, and optimization
+      to maximize branded search performance.
+    topics:
+      - Campaign setup guidelines
+      - Analysis recommendations
+      - Common pitfalls to avoid
+      - Optimization strategies
+
+  - id: advanced_use_cases
+    title: Advanced Use Cases
+    description: |
+      Strategic applications of branded search data for various
+      marketing objectives.
+    topics:
+      - Brand launch measurement
+      - Competitive analysis
+      - Creative testing
+      - Full-funnel attribution
+      - Seasonal strategy
+      - Cross-channel integration
+
+queries:
+  - name: Basic Branded Keywords Query
+    type: exploratory
+    description: Extract branded search keywords and volumes
+    parameters:
+      lookback_days: 30
+      result_limit: 100
+    outputs:
+      - campaign_id
+      - campaign
+      - keyword
+      - number_of_branded_searches
+
+  - name: Branded Search Rate and Cost Analysis
+    type: main_analysis
+    description: Calculate efficiency metrics for campaigns
+    parameters:
+      lookback_days: 30
+      min_impressions: 10000
+    outputs:
+      - campaign_id
+      - campaign
+      - impressions
+      - impression_cost
+      - number_of_branded_searches
+      - branded_search_rate
+      - cost_per_branded_search
+
+  - name: Branded Search Trend Analysis
+    type: trend_analysis
+    description: Analyze performance trends over time
+    parameters:
+      lookback_days: 90
+      time_granularity: week
+    outputs:
+      - period
+      - campaign
+      - total_impressions
+      - total_branded_searches
+      - avg_search_rate
+      - search_rate_volatility
+
+metrics:
+  - name: number_of_branded_searches
+    type: metric
+    description: Count of branded keyword searches attributed to campaigns
+    
+  - name: branded_search_rate
+    type: metric
+    formula: branded_searches / impressions
+    description: Efficiency of ads at driving brand searches
+    
+  - name: cost_per_branded_search
+    type: metric
+    formula: impression_cost / branded_searches
+    description: Investment required per brand search
+    
+  - name: keyword
+    type: dimension
+    description: Actual brand terms searched by users
+    
+  - name: campaign
+    type: dimension
+    description: DSP campaign name
+
+benchmarks:
+  branded_search_rate:
+    excellent: ">0.005"
+    good: "0.002-0.005"
+    average: "0.001-0.002"
+    poor: "<0.001"
+    
+  cost_per_branded_search:
+    excellent: "<$1.00"
+    good: "$1.00-$2.00"
+    average: "$2.00-$3.50"
+    poor: ">$3.50"
+
+key_insights:
+  - Branded searches indicate increased brand awareness and consideration
+  - 14-day attribution window captures both immediate and delayed impact
+  - Variety of keyword variations shows brand recall strength
+  - Cost efficiency improves with creative optimization
+  - Seasonal patterns affect branded search behavior
+
+troubleshooting:
+  - issue: No branded search data appearing
+    solution: Verify feature is enabled in DSP entity settings
+    
+  - issue: Low branded search rates
+    solution: Review creative for brand prominence and messaging clarity
+    
+  - issue: High cost per search
+    solution: Refine audience targeting and optimize frequency caps
+    
+  - issue: Limited keyword variations
+    solution: Include more diverse ASINs in campaigns
+
+resources:
+  - title: AMC DSP Documentation
+    type: documentation
+    url: Contact Amazon representative
+    
+  - title: Attribution Model Details
+    type: guide
+    description: 14-day last-touch attribution explanation
+    
+  - title: Brand Measurement Best Practices
+    type: whitepaper
+    description: Industry standards for brand lift measurement
+
+deployment:
+  validation:
+    - Ensure DSP campaigns are active
+    - Verify ASIN tracking is enabled
+    - Confirm branded search feature activation
+    - Check data availability (14-day lag)
+    
+  monitoring:
+    - Track weekly branded search trends
+    - Monitor cost efficiency metrics
+    - Compare against category benchmarks
+    - Review keyword variety and volume
+    
+  optimization:
+    - Test creative variations for brand prominence
+    - Adjust frequency caps based on saturation
+    - Refine audience targeting for efficiency
+    - Scale successful campaigns
+
+notes: |
+  This guide provides comprehensive analysis of ad-attributed branded searches
+  for DSP campaigns. Remember that branded search data requires feature enablement
+  and is not available retroactively. Cost values are in millicents and must be
+  converted (divide by 100,000) for dollar amounts. The 14-day attribution window
+  is standard and cannot be modified.
