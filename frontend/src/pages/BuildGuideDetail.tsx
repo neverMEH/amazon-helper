@@ -20,9 +20,129 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { buildGuideService } from '../services/buildGuideService';
 import SQLEditor from '../components/common/SQLEditor';
 import type { BuildGuideQuery } from '../types/buildGuide';
+
+// Custom components for ReactMarkdown
+const markdownComponents = {
+  table: ({ children }: any) => (
+    <div className="overflow-x-auto my-4">
+      <table className="min-w-full divide-y divide-gray-200">
+        {children}
+      </table>
+    </div>
+  ),
+  thead: ({ children }: any) => (
+    <thead className="bg-gray-50">{children}</thead>
+  ),
+  tbody: ({ children }: any) => (
+    <tbody className="bg-white divide-y divide-gray-200">{children}</tbody>
+  ),
+  tr: ({ children }: any) => (
+    <tr className="hover:bg-gray-50">{children}</tr>
+  ),
+  th: ({ children }: any) => (
+    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+      {children}
+    </th>
+  ),
+  td: ({ children }: any) => (
+    <td className="px-4 py-2 text-sm text-gray-900 whitespace-nowrap">
+      {children}
+    </td>
+  ),
+  code: ({ inline, children, ...props }: any) => {
+    if (inline) {
+      return (
+        <code className="px-1 py-0.5 text-sm bg-gray-100 text-red-600 rounded" {...props}>
+          {children}
+        </code>
+      );
+    }
+    return (
+      <code className="block p-4 bg-gray-900 text-gray-100 rounded-lg overflow-x-auto" {...props}>
+        {children}
+      </code>
+    );
+  },
+  pre: ({ children }: any) => (
+    <pre className="my-4 overflow-x-auto">{children}</pre>
+  ),
+  blockquote: ({ children }: any) => (
+    <blockquote className="border-l-4 border-blue-500 pl-4 my-4 italic text-gray-700">
+      {children}
+    </blockquote>
+  ),
+  ul: ({ children }: any) => (
+    <ul className="list-disc list-inside my-2 space-y-1">{children}</ul>
+  ),
+  ol: ({ children }: any) => (
+    <ol className="list-decimal list-inside my-2 space-y-1">{children}</ol>
+  ),
+  li: ({ children }: any) => (
+    <li className="text-gray-700">{children}</li>
+  ),
+  h1: ({ children }: any) => (
+    <h1 className="text-2xl font-bold mt-6 mb-4 text-gray-900">{children}</h1>
+  ),
+  h2: ({ children }: any) => (
+    <h2 className="text-xl font-semibold mt-4 mb-3 text-gray-900">{children}</h2>
+  ),
+  h3: ({ children }: any) => (
+    <h3 className="text-lg font-semibold mt-3 mb-2 text-gray-900">{children}</h3>
+  ),
+  h4: ({ children }: any) => (
+    <h4 className="text-base font-medium mt-2 mb-1 text-gray-900">{children}</h4>
+  ),
+  p: ({ children }: any) => (
+    <p className="my-2 text-gray-700 leading-relaxed">{children}</p>
+  ),
+  strong: ({ children }: any) => (
+    <strong className="font-semibold text-gray-900">{children}</strong>
+  ),
+};
+
+// Helper function to render sample data as table
+const renderSampleDataTable = (sampleData: any) => {
+  if (!sampleData?.rows || sampleData.rows.length === 0) return null;
+  
+  const columns = Object.keys(sampleData.rows[0]);
+  
+  return (
+    <div className="overflow-x-auto my-4">
+      <table className="min-w-full divide-y divide-gray-200 border border-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            {columns.map(col => (
+              <th 
+                key={col} 
+                className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r last:border-r-0"
+              >
+                {col.replace(/_/g, ' ')}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {sampleData.rows.map((row: any, idx: number) => (
+            <tr key={idx} className="hover:bg-gray-50">
+              {columns.map(col => (
+                <td 
+                  key={col} 
+                  className="px-4 py-2 text-sm text-gray-900 whitespace-nowrap border-r last:border-r-0"
+                >
+                  {typeof row[col] === 'number' ? row[col].toLocaleString() : row[col]}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
 
 export default function BuildGuideDetail() {
   const { guideId } = useParams<{ guideId: string }>();
@@ -452,7 +572,12 @@ export default function BuildGuideDetail() {
                   {expandedSections.has(section.section_id) && (
                     <div className="px-6 py-4">
                       <div className="prose prose-sm max-w-none">
-                        <ReactMarkdown>{section.content_markdown}</ReactMarkdown>
+                        <ReactMarkdown 
+                          remarkPlugins={[remarkGfm]}
+                          components={markdownComponents}
+                        >
+                          {section.content_markdown}
+                        </ReactMarkdown>
                       </div>
                     </div>
                   )}
@@ -531,9 +656,18 @@ export default function BuildGuideDetail() {
                               {query.examples.map(example => (
                                 <div key={example.id} className="bg-gray-50 rounded-lg p-4">
                                   <h5 className="font-medium text-gray-900 mb-2">{example.example_name}</h5>
+                                  
+                                  {/* Render sample data table if available */}
+                                  {example.sample_data && renderSampleDataTable(example.sample_data)}
+                                  
                                   {example.interpretation_markdown && (
-                                    <div className="prose prose-sm max-w-none">
-                                      <ReactMarkdown>{example.interpretation_markdown}</ReactMarkdown>
+                                    <div className="prose prose-sm max-w-none mt-4">
+                                      <ReactMarkdown 
+                                        remarkPlugins={[remarkGfm]}
+                                        components={markdownComponents}
+                                      >
+                                        {example.interpretation_markdown}
+                                      </ReactMarkdown>
                                     </div>
                                   )}
                                   {example.insights.length > 0 && (
