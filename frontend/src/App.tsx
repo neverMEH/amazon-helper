@@ -26,6 +26,10 @@ import DataSourceDetail from './pages/DataSourceDetail';
 // Schedule imports
 import ScheduleManager from './pages/ScheduleManager';
 
+// Build Guides imports
+import BuildGuides from './pages/BuildGuides';
+import BuildGuideDetail from './pages/BuildGuideDetail';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -75,6 +79,10 @@ function App() {
               {/* Data Sources routes */}
               <Route path="/data-sources" element={<DataSources />} />
               <Route path="/data-sources/:schemaId" element={<DataSourceDetail />} />
+              
+              {/* Build Guides routes */}
+              <Route path="/build-guides" element={<BuildGuides />} />
+              <Route path="/build-guides/:guideId" element={<BuildGuideDetail />} />
               
               {/* Profile route */}
               <Route path="/profile" element={<Profile />} />
