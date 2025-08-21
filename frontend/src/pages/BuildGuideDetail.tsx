@@ -34,6 +34,18 @@ export default function BuildGuideDetail() {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [expandedQueries, setExpandedQueries] = useState<Set<string>>(new Set());
 
+  // Function to scroll to section
+  const scrollToSection = (sectionId: string) => {
+    setActiveSection(sectionId);
+    const element = document.getElementById(sectionId);
+    if (element) {
+      // Account for sticky header
+      const yOffset = -100;
+      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+  };
+
   // Fetch guide data
   const { data: guide, isLoading, error } = useQuery({
     queryKey: ['build-guide', guideId],
@@ -91,6 +103,42 @@ export default function BuildGuideDetail() {
       setExpandedSections(allSections);
     }
   }, [guide, activeSection]);
+
+  // Track scroll position to update active section
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!guide?.sections) return;
+      
+      const scrollPosition = window.scrollY + 150; // Account for header
+      
+      // Check queries section
+      const queriesElement = document.getElementById('queries');
+      if (queriesElement && scrollPosition >= queriesElement.offsetTop) {
+        setActiveSection('queries');
+        return;
+      }
+      
+      // Check content sections
+      for (let i = guide.sections.length - 1; i >= 0; i--) {
+        const section = guide.sections[i];
+        const element = document.getElementById(section.section_id);
+        if (element && scrollPosition >= element.offsetTop) {
+          setActiveSection(section.section_id);
+          return;
+        }
+      }
+      
+      // Default to first section if at top
+      if (guide.sections.length > 0) {
+        setActiveSection(guide.sections[0].section_id);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    handleScroll(); // Call once to set initial state
+    
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [guide]);
 
   const toggleSection = (sectionId: string) => {
     setExpandedSections(prev => {
@@ -288,7 +336,7 @@ export default function BuildGuideDetail() {
                 {guide.sections?.map(section => (
                   <button
                     key={section.section_id}
-                    onClick={() => setActiveSection(section.section_id)}
+                    onClick={() => scrollToSection(section.section_id)}
                     className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between ${
                       activeSection === section.section_id
                         ? 'bg-blue-50 text-blue-700'
@@ -309,7 +357,7 @@ export default function BuildGuideDetail() {
                 {/* Queries Section */}
                 {guide.queries && guide.queries.length > 0 && (
                   <button
-                    onClick={() => setActiveSection('queries')}
+                    onClick={() => scrollToSection('queries')}
                     className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between ${
                       activeSection === 'queries'
                         ? 'bg-blue-50 text-blue-700'
