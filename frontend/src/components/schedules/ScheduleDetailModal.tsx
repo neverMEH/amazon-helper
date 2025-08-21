@@ -620,6 +620,8 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
                     setIsEditing(false);
                     // Reset edit data
                     setEditData({
+                      name: schedule.name || schedule.workflows?.name || '',
+                      description: schedule.description || '',
                       cron_expression: schedule.cron_expression,
                       timezone: schedule.timezone,
                       default_parameters: schedule.default_parameters || {},
