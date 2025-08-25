@@ -105,15 +105,27 @@ class ScheduleExecutorService:
                     logger.info(f"Schedule {schedule_id} has a recent run within 5 minutes, skipping")
                     return
                 
-                # Always update next_run first to prevent duplicate executions
-                self.schedule_service.update_after_run(
-                    schedule_id,
-                    datetime.utcnow(),
-                    success=False  # Assume failure, will update to success if it completes
-                )
+                # Check if this is a test run (scheduled for very near future, not matching cron pattern)
+                is_test_run = False
+                if schedule.get('next_run_at'):
+                    next_run_time = datetime.fromisoformat(schedule['next_run_at'].replace('Z', '+00:00'))
+                    time_diff = (next_run_time - datetime.utcnow()).total_seconds()
+                    # If scheduled within 2 minutes from now, likely a test run
+                    if 0 < time_diff < 120:
+                        is_test_run = True
+                        logger.info(f"Detected test run for schedule {schedule_id}")
                 
-                # Create schedule run record
-                run_id = await self.create_schedule_run(schedule)
+                # Only update next_run for regular runs, not test runs
+                if not is_test_run:
+                    # Always update next_run first to prevent duplicate executions
+                    self.schedule_service.update_after_run(
+                        schedule_id,
+                        datetime.utcnow(),
+                        success=False  # Assume failure, will update to success if it completes
+                    )
+                
+                # Create schedule run record (with test run flag)
+                run_id = await self.create_schedule_run(schedule, is_test_run=is_test_run)
                 
                 # Ensure fresh token
                 user_id = schedule.get('user_id') or workflow.get('user_id')
@@ -150,12 +162,29 @@ class ScheduleExecutorService:
                     schedule_run_id=run_id
                 )
                 
-                # Update schedule record with success
-                self.schedule_service.update_after_run(
-                    schedule_id,
-                    datetime.utcnow(),
-                    success=True
-                )
+                # Update schedule record with success (only for regular runs)
+                if not is_test_run:
+                    self.schedule_service.update_after_run(
+                        schedule_id,
+                        datetime.utcnow(),
+                        success=True
+                    )
+                else:
+                    # For test runs, restore the original next_run_at based on cron expression
+                    from croniter import croniter
+                    from zoneinfo import ZoneInfo
+                    
+                    cron = croniter(schedule.get('cron_expression', '0 2 * * *'))
+                    tz = ZoneInfo(schedule.get('timezone', 'America/New_York'))
+                    now = datetime.now(tz)
+                    cron.set_current(now)
+                    next_run = cron.get_next(datetime)
+                    
+                    self.db.table('workflow_schedules').update({
+                        'next_run_at': next_run.isoformat()
+                    }).eq('id', schedule_id).execute()
+                    
+                    logger.info(f"Test run completed, restored next_run_at to {next_run.isoformat()}")
                 
                 # Update run record
                 await self.update_schedule_run(run_id, 'completed', execution['id'])
@@ -178,12 +207,13 @@ class ScheduleExecutorService:
                 # Handle notification if configured
                 await self.send_failure_notification(schedule, str(e))
     
-    async def create_schedule_run(self, schedule: Dict[str, Any]) -> str:
+    async def create_schedule_run(self, schedule: Dict[str, Any], is_test_run: bool = False) -> str:
         """
         Create a schedule run record
         
         Args:
             schedule: Schedule record
+            is_test_run: Whether this is a test run
             
         Returns:
             Run ID
@@ -207,6 +237,7 @@ class ScheduleExecutorService:
                 'started_at': datetime.utcnow().isoformat(),
                 'status': 'running',
                 'created_at': datetime.utcnow().isoformat()
+                # 'is_test_run': is_test_run  # Uncomment when column is added
             }
             
             result = self.db.table('schedule_runs').insert(run_data).execute()
