@@ -57,10 +57,17 @@ const ScheduleHistory: React.FC<ScheduleHistoryProps> = ({ schedule: initialSche
   const schedule = scheduleData || initialSchedule;
 
   // Fetch schedule runs
-  const { data: runs, isLoading: runsLoading } = useQuery({
+  const { data: runsResponse, isLoading: runsLoading } = useQuery({
     queryKey: ['schedule-runs', schedule.schedule_id],
-    queryFn: () => scheduleService.getScheduleRuns(schedule.schedule_id, { limit: 30 }),
+    queryFn: () => scheduleService.getScheduleRuns(schedule.schedule_id, { limit: 100 }),
   });
+
+  // Extract runs array from response (handles both old and new formats)
+  const runs = useMemo(() => {
+    if (!runsResponse) return [];
+    if (Array.isArray(runsResponse)) return runsResponse;
+    return runsResponse.runs || [];
+  }, [runsResponse]);
 
   // Fetch schedule metrics
   const { data: metrics, isLoading: metricsLoading } = useQuery({
@@ -71,7 +78,7 @@ const ScheduleHistory: React.FC<ScheduleHistoryProps> = ({ schedule: initialSche
 
   // Filter and sort runs
   const filteredAndSortedRuns = useMemo(() => {
-    if (!runs || !Array.isArray(runs)) return [];
+    if (!runs || runs.length === 0) return [];
     
     let filtered = [...runs];
     
@@ -644,14 +651,14 @@ const ScheduleHistory: React.FC<ScheduleHistoryProps> = ({ schedule: initialSche
             <div className="text-center py-12">
               <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {runs && runs.length > 0 ? 'No matching runs' : 'No execution history'}
+                {runs.length > 0 ? 'No matching runs' : 'No execution history'}
               </h3>
               <p className="text-gray-600">
-                {runs && runs.length > 0 
+                {runs.length > 0 
                   ? 'Try adjusting your filters to see more results' 
                   : "This schedule hasn't run yet"}
               </p>
-              {activeFilterCount > 0 && runs && runs.length > 0 && (
+              {activeFilterCount > 0 && runs.length > 0 && (
                 <button
                   onClick={clearAllFilters}
                   className="mt-4 px-4 py-2 text-sm text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"

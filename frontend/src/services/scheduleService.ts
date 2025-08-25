@@ -124,8 +124,12 @@ class ScheduleService {
       limit?: number;
       offset?: number;
     }
-  ): Promise<ScheduleRun[]> {
+  ): Promise<{ runs: ScheduleRun[]; total_count: number; limit: number; offset: number } | ScheduleRun[]> {
     const response = await api.get(`/schedules/${scheduleId}/runs`, { params });
+    // Handle both old format (array) and new format (object with runs and total_count)
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
     return response.data;
   }
 

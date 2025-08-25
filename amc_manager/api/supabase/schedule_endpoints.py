@@ -494,7 +494,7 @@ async def test_run_schedule(
         raise HTTPException(status_code=500, detail="Failed to run test schedule")
 
 
-@router.get("/schedules/{schedule_id}/runs", response_model=List[ScheduleRunResponse])
+@router.get("/schedules/{schedule_id}/runs")
 async def get_schedule_runs(
     schedule_id: str,
     limit: int = Query(30, ge=1, le=100),
@@ -515,6 +515,13 @@ async def get_schedule_runs(
         from ...core.supabase_client import SupabaseManager
         db = SupabaseManager.get_client()
         
+        # Get total count of all runs for this schedule
+        count_result = db.table('schedule_runs').select('id', count='exact').eq(
+            'schedule_id', schedule['id']
+        ).execute()
+        total_count = count_result.count if hasattr(count_result, 'count') else 0
+        
+        # Get paginated runs with details
         result = db.table('schedule_runs').select(
             '*',
             'workflow_executions(id, amc_execution_id)'
@@ -553,7 +560,12 @@ async def get_schedule_runs(
                 # Skip this run if it can't be processed
                 continue
         
-        return processed_runs
+        return {
+            'runs': processed_runs,
+            'total_count': total_count,
+            'limit': limit,
+            'offset': offset
+        }
         
     except HTTPException:
         raise

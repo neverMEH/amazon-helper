@@ -95,23 +95,30 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
   });
 
   // Fetch schedule runs
-  const { data: runsData, isLoading: runsLoading } = useQuery({
+  const { data: runsResponse, isLoading: runsLoading } = useQuery({
     queryKey: ['schedule-runs', schedule.schedule_id],
     queryFn: () => scheduleService.getScheduleRuns(schedule.schedule_id, { limit: 100 }),
     enabled: activeTab === 'history',
   });
 
-  // Sort runs by most recent first (using started_at if available, otherwise scheduled_at)
-  const runs = useMemo(() => {
-    if (!runsData || !Array.isArray(runsData)) return [];
+  // Extract runs and total count from response
+  const { runs, totalCount } = useMemo(() => {
+    if (!runsResponse) return { runs: [], totalCount: 0 };
     
-    return [...runsData].sort((a, b) => {
-      // Use started_at if available, otherwise scheduled_at
-      const dateA = a.started_at ? new Date(a.started_at).getTime() : new Date(a.scheduled_at).getTime();
-      const dateB = b.started_at ? new Date(b.started_at).getTime() : new Date(b.scheduled_at).getTime();
-      return dateB - dateA; // Sort descending (most recent first)
-    });
-  }, [runsData]);
+    // Handle both old format (array) and new format (object with runs and total_count)
+    if (Array.isArray(runsResponse)) {
+      // Old format - sort manually
+      const sortedRuns = [...runsResponse].sort((a, b) => {
+        const dateA = a.started_at ? new Date(a.started_at).getTime() : new Date(a.scheduled_at).getTime();
+        const dateB = b.started_at ? new Date(b.started_at).getTime() : new Date(b.scheduled_at).getTime();
+        return dateB - dateA;
+      });
+      return { runs: sortedRuns, totalCount: sortedRuns.length };
+    } else {
+      // New format - already sorted by backend
+      return { runs: runsResponse.runs || [], totalCount: runsResponse.total_count || 0 };
+    }
+  }, [runsResponse]);
 
   // Fetch schedule metrics
   const { data: metrics } = useQuery({
@@ -516,7 +523,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-gray-600">Total Runs</p>
-                        <p className="text-2xl font-bold text-gray-900">{runs?.length || metrics.total_runs || 0}</p>
+                        <p className="text-2xl font-bold text-gray-900">{totalCount || metrics?.total_runs || 0}</p>
                       </div>
                       <Activity className="w-8 h-8 text-gray-400" />
                     </div>
@@ -528,7 +535,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
                         <p className="text-sm text-gray-600">Success Rate</p>
                         <p className="text-2xl font-bold text-green-600">
                           {runs && runs.length > 0 
-                            ? `${Math.round((runs.filter(r => r.status === 'completed').length / runs.length) * 100)}%`
+                            ? `${Math.round((runs.filter((r: ScheduleRun) => r.status === 'completed').length / runs.length) * 100)}%`
                             : `${metrics?.success_rate || 0}%`}
                         </p>
                       </div>
