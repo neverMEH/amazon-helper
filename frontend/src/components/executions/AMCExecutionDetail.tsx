@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, Code, Database, Calendar, User, Hash, ChevronDown, ChevronRight, RefreshCw, Play, Loader, Table, BarChart3, Maximize2, Edit2 } from 'lucide-react';
+import { X, Code, Database, Calendar, User, Hash, ChevronDown, ChevronRight, RefreshCw, Play, Loader, Table, BarChart3, Maximize2, Edit2, Clock, FileText, Settings } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { format, parseISO } from 'date-fns';
 import { amcExecutionService } from '../../services/amcExecutionService';
 import EnhancedResultsTable from './EnhancedResultsTable';
 import DataVisualization from './DataVisualization';
@@ -253,9 +254,27 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                           className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
                         >
                           <div className="flex items-center">
-                            <Database className="h-5 w-5 text-gray-400 mr-2" />
+                            <Settings className="h-5 w-5 text-gray-400 mr-2" />
                             <span className="text-sm font-medium text-gray-900">Execution Parameters</span>
-                            <span className="ml-2 text-xs text-gray-500">({Object.keys(execution.executionParameters).length})</span>
+                            {(() => {
+                              const params = execution.executionParameters;
+                              const hasDateRange = params.startDate && params.endDate;
+                              if (hasDateRange) {
+                                try {
+                                  const start = format(parseISO(params.startDate), 'MMM d, yyyy');
+                                  const end = format(parseISO(params.endDate), 'MMM d, yyyy');
+                                  return (
+                                    <span className="ml-2 text-xs text-gray-500">
+                                      <Calendar className="inline h-3 w-3 mr-1" />
+                                      {start} - {end}
+                                    </span>
+                                  );
+                                } catch {
+                                  return <span className="ml-2 text-xs text-gray-500">({Object.keys(params).length} parameters)</span>;
+                                }
+                              }
+                              return <span className="ml-2 text-xs text-gray-500">({Object.keys(params).length} parameters)</span>;
+                            })()}
                           </div>
                           {showParameters ? (
                             <ChevronDown className="h-5 w-5 text-gray-400" />
@@ -265,13 +284,108 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                         </button>
                         {showParameters && (
                           <div className="px-4 pb-4">
-                            <div className="bg-gray-50 rounded-md p-3">
-                              {Object.entries(execution.executionParameters).map(([key, value]) => (
-                                <div key={key} className="flex justify-between py-1 text-sm">
-                                  <span className="font-medium text-gray-600">{key}:</span>
-                                  <span className="text-gray-900">{JSON.stringify(value)}</span>
+                            <div className="space-y-3">
+                              {/* Date Range Section */}
+                              {execution.executionParameters.startDate && execution.executionParameters.endDate && (
+                                <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                                  <div className="flex items-center mb-2">
+                                    <Calendar className="h-4 w-4 text-blue-600 mr-2" />
+                                    <span className="text-sm font-semibold text-blue-900">Lookback Window</span>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <div className="text-xs text-blue-700 font-medium mb-1">Start Date</div>
+                                      <div className="text-sm text-blue-900">
+                                        {(() => {
+                                          try {
+                                            return format(parseISO(execution.executionParameters.startDate), 'PPP');
+                                          } catch {
+                                            return execution.executionParameters.startDate;
+                                          }
+                                        })()}
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <div className="text-xs text-blue-700 font-medium mb-1">End Date</div>
+                                      <div className="text-sm text-blue-900">
+                                        {(() => {
+                                          try {
+                                            return format(parseISO(execution.executionParameters.endDate), 'PPP');
+                                          } catch {
+                                            return execution.executionParameters.endDate;
+                                          }
+                                        })()}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  {(() => {
+                                    try {
+                                      const start = parseISO(execution.executionParameters.startDate);
+                                      const end = parseISO(execution.executionParameters.endDate);
+                                      const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                                      return (
+                                        <div className="mt-2 text-xs text-blue-700">
+                                          <Clock className="inline h-3 w-3 mr-1" />
+                                          {days} day{days !== 1 ? 's' : ''} of data
+                                        </div>
+                                      );
+                                    } catch {
+                                      return null;
+                                    }
+                                  })()}
                                 </div>
-                              ))}
+                              )}
+
+                              {/* Other Parameters */}
+                              {(() => {
+                                const otherParams = Object.entries(execution.executionParameters)
+                                  .filter(([key]) => !['startDate', 'endDate', '_schedule_id', '_scheduled_execution', '_schedule_run_id', '_triggered_by'].includes(key));
+                                
+                                if (otherParams.length > 0) {
+                                  return (
+                                    <div className="bg-gray-50 rounded-lg p-3">
+                                      <div className="text-xs font-semibold text-gray-700 mb-2">Additional Parameters</div>
+                                      <div className="space-y-2">
+                                        {otherParams.map(([key, value]) => (
+                                          <div key={key} className="flex justify-between items-start">
+                                            <span className="text-sm font-medium text-gray-600">
+                                              {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:
+                                            </span>
+                                            <span className="text-sm text-gray-900 font-mono ml-2">
+                                              {typeof value === 'string' ? value : JSON.stringify(value)}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })()}
+
+                              {/* Schedule Information if present */}
+                              {execution.executionParameters._schedule_id && (
+                                <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
+                                  <div className="flex items-center mb-2">
+                                    <Clock className="h-4 w-4 text-purple-600 mr-2" />
+                                    <span className="text-sm font-semibold text-purple-900">Scheduled Execution</span>
+                                  </div>
+                                  <div className="space-y-1 text-sm">
+                                    {execution.executionParameters._triggered_by && (
+                                      <div className="flex justify-between">
+                                        <span className="text-purple-700">Triggered By:</span>
+                                        <span className="text-purple-900 font-medium">{execution.executionParameters._triggered_by}</span>
+                                      </div>
+                                    )}
+                                    {execution.executionParameters._schedule_run_id && (
+                                      <div className="flex justify-between">
+                                        <span className="text-purple-700">Run ID:</span>
+                                        <span className="text-purple-900 font-mono text-xs">{execution.executionParameters._schedule_run_id.slice(0, 8)}...</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
                         )}
