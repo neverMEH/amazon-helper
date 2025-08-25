@@ -56,10 +56,15 @@ const ScheduleHistory: React.FC<ScheduleHistoryProps> = ({ schedule: initialSche
   // Use the fetched schedule data or fall back to initial
   const schedule = scheduleData || initialSchedule;
 
-  // Fetch schedule runs
+  // State to track if we should be polling
+  const [shouldPoll, setShouldPoll] = useState(false);
+
+  // Fetch schedule runs with polling to show running status
   const { data: runsResponse, isLoading: runsLoading } = useQuery({
     queryKey: ['schedule-runs', schedule.schedule_id],
     queryFn: () => scheduleService.getScheduleRuns(schedule.schedule_id, { limit: 100 }),
+    refetchInterval: shouldPoll ? 5000 : false, // Poll every 5 seconds only when there are running executions
+    refetchIntervalInBackground: false, // Only poll when window is focused
   });
 
   // Extract runs array from response (handles both old and new formats)
@@ -68,6 +73,12 @@ const ScheduleHistory: React.FC<ScheduleHistoryProps> = ({ schedule: initialSche
     if (Array.isArray(runsResponse)) return runsResponse;
     return runsResponse.runs || [];
   }, [runsResponse]);
+
+  // Check if there are any running executions and update polling state
+  React.useEffect(() => {
+    const hasRunning = runs.some(run => run.status === 'running');
+    setShouldPoll(hasRunning);
+  }, [runs]);
 
   // Fetch schedule metrics
   const { data: metrics, isLoading: metricsLoading } = useQuery({
