@@ -472,7 +472,7 @@ async def test_run_schedule(
             'scheduled_at': scheduled_at.isoformat(),
             'status': 'pending',
             # 'is_test_run': True,  # Temporarily commented out until column is added
-            'parameters': test_parameters
+            # 'parameters': test_parameters  # Temporarily commented out until column is added
         }
         
         result = db.table('schedule_runs').insert(run_data).execute()
