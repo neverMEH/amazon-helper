@@ -461,14 +461,18 @@ async def test_run_schedule(
             run_number = last_run.data[0]['run_number'] + 1
         
         # Create the test run entry
+        # Include test run flag in parameters until column is added to database
+        test_parameters = parameters or schedule.get('default_parameters', {})
+        test_parameters['__is_test_run'] = True
+        
         run_data = {
             'id': str(uuid.uuid4()),
             'schedule_id': schedule['id'],
             'run_number': run_number,
             'scheduled_at': scheduled_at.isoformat(),
             'status': 'pending',
-            'is_test_run': True,
-            'parameters': parameters or schedule.get('default_parameters', {})
+            # 'is_test_run': True,  # Temporarily commented out until column is added
+            'parameters': test_parameters
         }
         
         result = db.table('schedule_runs').insert(run_data).execute()
