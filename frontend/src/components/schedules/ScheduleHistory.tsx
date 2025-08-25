@@ -28,10 +28,10 @@ interface ScheduleHistoryProps {
   onClose: () => void;
 }
 
-type ViewMode = 'timeline' | 'table' | 'metrics';
+type ViewMode = 'timeline' | 'table';
 type StatusFilter = 'all' | 'completed' | 'failed' | 'running' | 'pending';
 type DateRangeFilter = 'all' | '7days' | '30days' | '90days';
-type SortBy = 'lastRun' | 'scheduled' | 'runNumber' | 'duration' | 'cost' | 'status';
+type SortBy = 'lastRun' | 'scheduled' | 'runNumber' | 'duration' | 'status';
 type SortOrder = 'asc' | 'desc';
 
 const ScheduleHistory: React.FC<ScheduleHistoryProps> = ({ schedule: initialSchedule, onClose }) => {
@@ -80,12 +80,6 @@ const ScheduleHistory: React.FC<ScheduleHistoryProps> = ({ schedule: initialSche
     setShouldPoll(hasRunning);
   }, [runs]);
 
-  // Fetch schedule metrics
-  const { data: metrics, isLoading: metricsLoading } = useQuery({
-    queryKey: ['schedule-metrics', schedule.schedule_id],
-    queryFn: () => scheduleService.getScheduleMetrics(schedule.schedule_id, 30),
-    enabled: viewMode === 'metrics',
-  });
 
   // Filter and sort runs
   const filteredAndSortedRuns = useMemo(() => {
@@ -392,109 +386,6 @@ const ScheduleHistory: React.FC<ScheduleHistoryProps> = ({ schedule: initialSche
     </div>
   );
 
-  const renderMetrics = () => {
-    if (metricsLoading) {
-      return (
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      );
-    }
-
-    if (!metrics) return null;
-
-    return (
-      <div className="space-y-6">
-        {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Runs</p>
-                <p className="text-2xl font-bold text-gray-900">{metrics.total_runs}</p>
-              </div>
-              <Activity className="w-8 h-8 text-gray-400" />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Success Rate</p>
-                <p className="text-2xl font-bold text-green-600">{metrics.success_rate}%</p>
-              </div>
-              <TrendingUp className="w-8 h-8 text-green-400" />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Avg Runtime</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {metrics.avg_runtime_seconds
-                    ? `${Math.round(metrics.avg_runtime_seconds / 60)}m`
-                    : '-'}
-                </p>
-              </div>
-              <Clock className="w-8 h-8 text-gray-400" />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Cost</p>
-                <p className="text-2xl font-bold text-gray-900">${metrics.total_cost.toFixed(2)}</p>
-              </div>
-              <BarChart3 className="w-8 h-8 text-gray-400" />
-            </div>
-          </div>
-        </div>
-
-        {/* Detailed Stats */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <h4 className="font-medium text-gray-900 mb-4">Execution Statistics</h4>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-sm text-gray-600">Successful Runs</span>
-              <span className="text-sm font-medium text-green-600">{metrics.successful_runs}</span>
-            </div>
-            <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-sm text-gray-600">Failed Runs</span>
-              <span className="text-sm font-medium text-red-600">{metrics.failed_runs}</span>
-            </div>
-            <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-sm text-gray-600">Pending Runs</span>
-              <span className="text-sm font-medium text-gray-600">{metrics.pending_runs}</span>
-            </div>
-            <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-sm text-gray-600">Total Rows Processed</span>
-              <span className="text-sm font-medium text-gray-900">
-                {metrics.total_rows_processed.toLocaleString()}
-              </span>
-            </div>
-            {metrics.next_run && (
-              <div className="flex justify-between items-center py-2 border-b">
-                <span className="text-sm text-gray-600">Next Run</span>
-                <span className="text-sm font-medium text-blue-600">
-                  {format(parseISO(metrics.next_run), 'MMM d, h:mm a')}
-                </span>
-              </div>
-            )}
-            {metrics.last_run && (
-              <div className="flex justify-between items-center py-2">
-                <span className="text-sm text-gray-600">Last Run</span>
-                <span className="text-sm font-medium text-gray-900">
-                  {format(parseISO(metrics.last_run), 'MMM d, h:mm a')}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -559,7 +450,6 @@ const ScheduleHistory: React.FC<ScheduleHistoryProps> = ({ schedule: initialSche
                   <option value="scheduled">Scheduled Date</option>
                   <option value="runNumber">Run Number</option>
                   <option value="duration">Duration</option>
-                  <option value="cost">Cost</option>
                   <option value="status">Status</option>
                 </select>
                 <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -631,22 +521,11 @@ const ScheduleHistory: React.FC<ScheduleHistoryProps> = ({ schedule: initialSche
             <Table className="w-4 h-4 inline mr-2" />
             Table
           </button>
-          <button
-            onClick={() => setViewMode('metrics')}
-            className={`px-3 py-1 rounded-lg text-sm font-medium ${
-              viewMode === 'metrics'
-                ? 'bg-blue-100 text-blue-700'
-                : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            <BarChart3 className="w-4 h-4 inline mr-2" />
-            Metrics
-          </button>
         </div>
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
-          {runsLoading && viewMode !== 'metrics' ? (
+          {runsLoading ? (
             <div className="flex justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             </div>
@@ -654,11 +533,10 @@ const ScheduleHistory: React.FC<ScheduleHistoryProps> = ({ schedule: initialSche
             <>
               {viewMode === 'timeline' && renderTimeline()}
               {viewMode === 'table' && renderTable()}
-              {viewMode === 'metrics' && renderMetrics()}
             </>
           )}
 
-          {!runsLoading && filteredAndSortedRuns.length === 0 && viewMode !== 'metrics' && (
+          {!runsLoading && filteredAndSortedRuns.length === 0 && (
             <div className="text-center py-12">
               <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
