@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import {
   X,
   Save,
@@ -15,7 +15,7 @@ import {
   TrendingUp,
   BarChart3
 } from 'lucide-react';
-import { format, parseISO, subDays, isAfter } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
@@ -102,7 +102,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
   });
 
   // Fetch schedule metrics
-  const { data: metrics, isLoading: metricsLoading } = useQuery({
+  const { data: metrics } = useQuery({
     queryKey: ['schedule-metrics', schedule.schedule_id],
     queryFn: () => scheduleService.getScheduleMetrics(schedule.schedule_id, 30),
     enabled: activeTab === 'history',
@@ -195,20 +195,6 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'text-green-700 bg-green-50';
-      case 'failed':
-        return 'text-red-700 bg-red-50';
-      case 'running':
-        return 'text-blue-700 bg-blue-50';
-      case 'pending':
-        return 'text-gray-700 bg-gray-50';
-      default:
-        return 'text-yellow-700 bg-yellow-50';
-    }
-  };
 
   const calculateDuration = (run: ScheduleRun) => {
     if (!run.started_at || !run.completed_at) return null;
