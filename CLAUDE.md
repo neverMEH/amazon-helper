@@ -485,3 +485,26 @@ python scripts/find_running_executions.py
 # Monitor server logs
 tail -f server.log
 ```
+
+### Recent Fixes and Enhancements
+
+#### 2025-08-25 (Auto-Generated Update)
+
+**New Features:**
+- feat: Add three advanced AMC analytics build guides
+  - New files: scripts/delete_audience_segment_guide.py, scripts/seed_audience_segment_conversions_guide.py, scripts/seed_campaign_funnel_guide.py
+- feat: Add comprehensive AMC build guides for audience building and analytics
+  - New files: scripts/delete_and_recreate_cart_guide.py, scripts/delete_audience_clicked_not_purchased_guide.py, scripts/delete_sponsored_ads_keywords_guide.py
+- feat: Add Audience with multiple detail page views build guide
+  - New files: scripts/seed_multiple_dpv_audience_guide.py
+- feat: Add comprehensive List and Registry Audience build guide
+  - New files: scripts/seed_list_registry_audience_guide.py
+- feat: Add Ad-Attributed Vehicle Purchases from Experian Auto build guide
+  - New files: scripts/seed_experian_vehicle_guide.py
+
+**Bug Fixes:**
+- fix: Ensure Build Guide pages start at top instead of middle
+- fix: Make published Build Guides viewable without authentication
+- fix: Resolve TypeScript compilation errors in Build Guides components
+- fix: Prevent duplicate schedule executions and fix token refresh
+- fix: Use amc_execution_id instead of internal id for AMC API calls
