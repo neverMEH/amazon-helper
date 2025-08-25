@@ -7,9 +7,7 @@ import {
   XCircle,
   AlertCircle,
   Calendar,
-  TrendingUp,
   Activity,
-  BarChart3,
   Table,
   ExternalLink,
   Search,
@@ -156,9 +154,6 @@ const ScheduleHistory: React.FC<ScheduleHistoryProps> = ({ schedule: initialSche
           comparison = durationB - durationA;
           break;
         }
-        case 'cost':
-          comparison = b.total_cost - a.total_cost;
-          break;
         case 'status': {
           const statusOrder = { completed: 0, running: 1, pending: 2, failed: 3, cancelled: 4 };
           comparison = (statusOrder[a.status] || 5) - (statusOrder[b.status] || 5);
