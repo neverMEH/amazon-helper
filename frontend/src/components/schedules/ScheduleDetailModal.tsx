@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   X,
   Save,
@@ -95,11 +95,23 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
   });
 
   // Fetch schedule runs
-  const { data: runs, isLoading: runsLoading } = useQuery({
+  const { data: runsData, isLoading: runsLoading } = useQuery({
     queryKey: ['schedule-runs', schedule.schedule_id],
-    queryFn: () => scheduleService.getScheduleRuns(schedule.schedule_id, { limit: 30 }),
+    queryFn: () => scheduleService.getScheduleRuns(schedule.schedule_id, { limit: 100 }),
     enabled: activeTab === 'history',
   });
+
+  // Sort runs by most recent first (using started_at if available, otherwise scheduled_at)
+  const runs = useMemo(() => {
+    if (!runsData || !Array.isArray(runsData)) return [];
+    
+    return [...runsData].sort((a, b) => {
+      // Use started_at if available, otherwise scheduled_at
+      const dateA = a.started_at ? new Date(a.started_at).getTime() : new Date(a.scheduled_at).getTime();
+      const dateB = b.started_at ? new Date(b.started_at).getTime() : new Date(b.scheduled_at).getTime();
+      return dateB - dateA; // Sort descending (most recent first)
+    });
+  }, [runsData]);
 
   // Fetch schedule metrics
   const { data: metrics } = useQuery({
@@ -496,7 +508,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-gray-600">Total Runs</p>
-                        <p className="text-2xl font-bold text-gray-900">{metrics.total_runs}</p>
+                        <p className="text-2xl font-bold text-gray-900">{runs?.length || metrics.total_runs || 0}</p>
                       </div>
                       <Activity className="w-8 h-8 text-gray-400" />
                     </div>
@@ -506,7 +518,11 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-gray-600">Success Rate</p>
-                        <p className="text-2xl font-bold text-green-600">{metrics.success_rate}%</p>
+                        <p className="text-2xl font-bold text-green-600">
+                          {runs && runs.length > 0 
+                            ? `${Math.round((runs.filter(r => r.status === 'completed').length / runs.length) * 100)}%`
+                            : `${metrics?.success_rate || 0}%`}
+                        </p>
                       </div>
                       <TrendingUp className="w-8 h-8 text-green-400" />
                     </div>
@@ -557,7 +573,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
                             Status
                           </th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Scheduled
+                            Last Run
                           </th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Duration
@@ -586,7 +602,9 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
                               </div>
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                              {format(parseISO(run.scheduled_at), 'MMM d, h:mm a')}
+                              {run.started_at 
+                                ? format(parseISO(run.started_at), 'MMM d, h:mm a')
+                                : format(parseISO(run.scheduled_at), 'MMM d, h:mm a')}
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
                               {calculateDuration(run) || '-'}
@@ -639,7 +657,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <div className="text-sm font-medium text-red-900">
-                                Run #{run.run_number} - {format(parseISO(run.scheduled_at), 'MMM d, h:mm a')}
+                                Run #{run.run_number} - {format(parseISO(run.started_at || run.scheduled_at), 'MMM d, h:mm a')}
                               </div>
                               <div className="text-sm text-red-700 mt-1">
                                 {run.error_summary}
