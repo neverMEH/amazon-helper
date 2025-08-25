@@ -20,7 +20,6 @@ import { format, parseISO } from 'date-fns';
 import { scheduleService } from '../services/scheduleService';
 import type { Schedule } from '../types/schedule';
 import ScheduleWizard from '../components/schedules/ScheduleWizard';
-import ScheduleHistory from '../components/schedules/ScheduleHistory';
 import ScheduleDetailModal from '../components/schedules/ScheduleDetailModal';
 
 type ViewMode = 'grid' | 'list' | 'calendar';
@@ -30,7 +29,6 @@ const ScheduleManager: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [showCreateWizard, setShowCreateWizard] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
-  const [showHistory, setShowHistory] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [filterActive, setFilterActive] = useState<boolean | null>(null);
 
@@ -436,16 +434,6 @@ const ScheduleManager: React.FC = () => {
         />
       )}
 
-      {/* Schedule History Modal */}
-      {selectedSchedule && showHistory && (
-        <ScheduleHistory
-          schedule={selectedSchedule}
-          onClose={() => {
-            setShowHistory(false);
-            setSelectedSchedule(null);
-          }}
-        />
-      )}
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   X,
   Save,
@@ -7,15 +7,21 @@ import {
   Play,
   Trash2,
   CheckCircle,
-  XCircle
+  XCircle,
+  Clock,
+  Activity,
+  ExternalLink,
+  AlertCircle,
+  TrendingUp,
+  BarChart3
 } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, subDays, isAfter } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { scheduleService } from '../../services/scheduleService';
-import type { Schedule } from '../../types/schedule';
-import ScheduleHistory from './ScheduleHistory';
+import type { Schedule, ScheduleRun } from '../../types/schedule';
+import AMCExecutionDetail from '../executions/AMCExecutionDetail';
 
 interface ScheduleDetailModalProps {
   schedule: Schedule;
@@ -33,7 +39,8 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState<'details' | 'history' | 'settings'>('details');
-  const [showHistory, setShowHistory] = useState(false);
+  const [selectedRun, setSelectedRun] = useState<ScheduleRun | null>(null);
+  const [showExecutionDetail, setShowExecutionDetail] = useState(false);
   const [editData, setEditData] = useState({
     name: schedule.name || schedule.workflows?.name || '',
     description: schedule.description || '',
@@ -85,6 +92,20 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
     onError: (error: any) => {
       toast.error(error.response?.data?.detail || 'Failed to delete schedule');
     }
+  });
+
+  // Fetch schedule runs
+  const { data: runs, isLoading: runsLoading } = useQuery({
+    queryKey: ['schedule-runs', schedule.schedule_id],
+    queryFn: () => scheduleService.getScheduleRuns(schedule.schedule_id, { limit: 30 }),
+    enabled: activeTab === 'history',
+  });
+
+  // Fetch schedule metrics
+  const { data: metrics, isLoading: metricsLoading } = useQuery({
+    queryKey: ['schedule-metrics', schedule.schedule_id],
+    queryFn: () => scheduleService.getScheduleMetrics(schedule.schedule_id, 30),
+    enabled: activeTab === 'history',
   });
 
   // Test run mutation
@@ -157,6 +178,53 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
       }
     }
     return params || {};
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case 'failed':
+        return <XCircle className="w-4 h-4 text-red-500" />;
+      case 'running':
+        return <Activity className="w-4 h-4 text-blue-500 animate-pulse" />;
+      case 'pending':
+        return <Clock className="w-4 h-4 text-gray-400" />;
+      default:
+        return <AlertCircle className="w-4 h-4 text-yellow-500" />;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'text-green-700 bg-green-50';
+      case 'failed':
+        return 'text-red-700 bg-red-50';
+      case 'running':
+        return 'text-blue-700 bg-blue-50';
+      case 'pending':
+        return 'text-gray-700 bg-gray-50';
+      default:
+        return 'text-yellow-700 bg-yellow-50';
+    }
+  };
+
+  const calculateDuration = (run: ScheduleRun) => {
+    if (!run.started_at || !run.completed_at) return null;
+    const start = parseISO(run.started_at);
+    const end = parseISO(run.completed_at);
+    const seconds = Math.floor((end.getTime() - start.getTime()) / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+
+    if (hours > 0) {
+      return `${hours}h ${minutes % 60}m`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds % 60}s`;
+    } else {
+      return `${seconds}s`;
+    }
   };
 
   return (
@@ -434,19 +502,180 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
           )}
 
           {activeTab === 'history' && (
-            <div className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h3 className="text-lg font-medium mb-2">Execution History</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  View detailed execution history and metrics for this schedule.
-                </p>
-                <button
-                  onClick={() => setShowHistory(true)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  View Full History
-                </button>
+            <div className="space-y-6">
+              {/* Metrics Summary */}
+              {metrics && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div className="bg-white rounded-lg border border-gray-200 p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Total Runs</p>
+                        <p className="text-2xl font-bold text-gray-900">{metrics.total_runs}</p>
+                      </div>
+                      <Activity className="w-8 h-8 text-gray-400" />
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-lg border border-gray-200 p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Success Rate</p>
+                        <p className="text-2xl font-bold text-green-600">{metrics.success_rate}%</p>
+                      </div>
+                      <TrendingUp className="w-8 h-8 text-green-400" />
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-lg border border-gray-200 p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Avg Runtime</p>
+                        <p className="text-2xl font-bold text-gray-900">
+                          {metrics.avg_runtime_seconds
+                            ? `${Math.round(metrics.avg_runtime_seconds / 60)}m`
+                            : '-'}
+                        </p>
+                      </div>
+                      <Clock className="w-8 h-8 text-gray-400" />
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-lg border border-gray-200 p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Total Cost</p>
+                        <p className="text-2xl font-bold text-gray-900">${metrics.total_cost.toFixed(2)}</p>
+                      </div>
+                      <BarChart3 className="w-8 h-8 text-gray-400" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Execution History Table */}
+              <div>
+                <h3 className="text-lg font-medium mb-3">Recent Executions</h3>
+                {runsLoading ? (
+                  <div className="flex justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  </div>
+                ) : runs && runs.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Run #
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Scheduled
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Duration
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Rows
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Cost
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {runs.map((run: ScheduleRun) => (
+                          <tr key={run.id} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                              #{run.run_number}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="flex items-center">
+                                {getStatusIcon(run.status)}
+                                <span className="ml-2 text-sm text-gray-900">{run.status}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                              {format(parseISO(run.scheduled_at), 'MMM d, h:mm a')}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                              {calculateDuration(run) || '-'}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                              {run.total_rows > 0 ? run.total_rows.toLocaleString() : '-'}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                              {run.total_cost > 0 ? `$${run.total_cost.toFixed(2)}` : '-'}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              {run.workflow_execution_id && (
+                                <button
+                                  onClick={() => {
+                                    setSelectedRun(run);
+                                    setShowExecutionDetail(true);
+                                  }}
+                                  className="text-blue-600 hover:text-blue-800 flex items-center"
+                                  title="View execution details"
+                                >
+                                  <ExternalLink className="w-4 h-4" />
+                                  <span className="ml-1 text-sm">View</span>
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 bg-gray-50 rounded-lg">
+                    <Clock className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-600">No execution history yet</p>
+                    <p className="text-sm text-gray-500 mt-1">This schedule hasn't run yet</p>
+                  </div>
+                )}
               </div>
+
+              {/* Error Summary if there are recent failures */}
+              {runs && runs.filter((r: ScheduleRun) => r.status === 'failed' && r.error_summary).length > 0 && (
+                <div>
+                  <h3 className="text-lg font-medium mb-3">Recent Errors</h3>
+                  <div className="space-y-2">
+                    {runs
+                      .filter((r: ScheduleRun) => r.status === 'failed' && r.error_summary)
+                      .slice(0, 3)
+                      .map((run: ScheduleRun) => (
+                        <div key={run.id} className="bg-red-50 border border-red-200 rounded-lg p-3">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="text-sm font-medium text-red-900">
+                                Run #{run.run_number} - {format(parseISO(run.scheduled_at), 'MMM d, h:mm a')}
+                              </div>
+                              <div className="text-sm text-red-700 mt-1">
+                                {run.error_summary}
+                              </div>
+                            </div>
+                            {run.workflow_execution_id && (
+                              <button
+                                onClick={() => {
+                                  setSelectedRun(run);
+                                  setShowExecutionDetail(true);
+                                }}
+                                className="ml-3 text-red-600 hover:text-red-800"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -662,13 +891,46 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
         </div>
       </div>
 
-      {/* Schedule History Modal - separate overlay */}
-      {showHistory && (
-        <ScheduleHistory
-          schedule={schedule}
-          onClose={() => setShowHistory(false)}
-        />
-      )}
+      {/* Execution Detail Modal */}
+      {showExecutionDetail && selectedRun?.workflow_execution_id && (() => {
+        // Get instance_id from the workflow's amc_instances relation
+        const instanceId = schedule.workflows?.amc_instances?.instance_id;
+        
+        if (instanceId) {
+          return (
+            <AMCExecutionDetail
+              instanceId={instanceId}
+              executionId={selectedRun.workflow_execution_id}
+              isOpen={showExecutionDetail}
+              onClose={() => {
+                setShowExecutionDetail(false);
+                setSelectedRun(null);
+              }}
+            />
+          );
+        } else {
+          // Fallback if instance ID is not available
+          return (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60">
+              <div className="bg-white rounded-lg p-6 max-w-md">
+                <h3 className="text-lg font-semibold mb-2">Unable to Load Execution Details</h3>
+                <p className="text-gray-600 mb-4">
+                  The AMC instance information is not available. Please try refreshing the page.
+                </p>
+                <button
+                  onClick={() => {
+                    setShowExecutionDetail(false);
+                    setSelectedRun(null);
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          );
+        }
+      })()}
     </div>
   );
 };
