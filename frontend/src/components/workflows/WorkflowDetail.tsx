@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Save, Play, Copy, Clock, AlertCircle, CheckCircle, Edit2, Code, Settings, History, Zap, X } from 'lucide-react';
+import { ArrowLeft, Save, Play, Copy, Clock, AlertCircle, CheckCircle, Edit2, Code, Settings, History, Zap, X, Calendar } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import api from '../../services/api';
@@ -9,6 +9,7 @@ import JSONEditor from '../common/JSONEditor';
 import ExecutionHistory from './ExecutionHistory';
 import ExecutionModal from './ExecutionModal';
 import AMCSyncStatus from './AMCSyncStatus';
+import ScheduleWizard from '../schedules/ScheduleWizard';
 
 interface Workflow {
   id: string;
@@ -45,6 +46,7 @@ export default function WorkflowDetail() {
   const [showQuickEditModal, setShowQuickEditModal] = useState(false);
   const [quickEditSQL, setQuickEditSQL] = useState('');
   const [isTestingQuickEdit, setIsTestingQuickEdit] = useState(false);
+  const [showScheduleWizard, setShowScheduleWizard] = useState(false);
 
   const { data: workflow, isLoading, error } = useQuery<Workflow>({
     queryKey: ['workflow', workflowId],
@@ -222,6 +224,13 @@ export default function WorkflowDetail() {
             <div className="flex items-center space-x-2">
               {!isEditing ? (
                 <>
+                  <button
+                    onClick={() => setShowScheduleWizard(true)}
+                    className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Schedule
+                  </button>
                   <button
                     onClick={() => {
                       setQuickEditSQL(workflow.sqlQuery);
@@ -533,6 +542,25 @@ export default function WorkflowDetail() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Schedule Wizard Modal */}
+      {showScheduleWizard && workflow && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <ScheduleWizard
+              workflowId={workflow.id}
+              workflowName={workflow.name}
+              onComplete={() => {
+                setShowScheduleWizard(false);
+                toast.success('Schedule created successfully!');
+                // Optionally refresh the workflow to show updated schedule status
+                queryClient.invalidateQueries({ queryKey: ['workflow', workflowId] });
+              }}
+              onCancel={() => setShowScheduleWizard(false)}
+            />
           </div>
         </div>
       )}
