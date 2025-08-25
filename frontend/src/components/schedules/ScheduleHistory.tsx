@@ -12,11 +12,9 @@ import {
   BarChart3,
   Table,
   ExternalLink,
-  Filter,
   Search,
   ChevronDown,
   XCircle as ClearIcon,
-  ArrowUpDown,
   ArrowUp,
   ArrowDown
 } from 'lucide-react';
