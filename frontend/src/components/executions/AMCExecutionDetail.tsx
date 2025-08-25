@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, Code, Database, Calendar, User, Hash, ChevronDown, ChevronRight, RefreshCw, Play, Loader, Table, BarChart3, Maximize2, Edit2, Clock, FileText, Settings } from 'lucide-react';
+import { X, Code, Calendar, User, Hash, ChevronDown, ChevronRight, RefreshCw, Play, Loader, Table, BarChart3, Maximize2, Edit2, Clock, Settings } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
