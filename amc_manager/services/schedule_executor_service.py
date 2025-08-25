@@ -4,7 +4,7 @@ import asyncio
 import json
 import uuid
 from typing import Dict, Any, List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from ..core.logger_simple import get_logger
 from ..core.supabase_client import SupabaseManager
@@ -109,7 +109,8 @@ class ScheduleExecutorService:
                 is_test_run = False
                 if schedule.get('next_run_at'):
                     next_run_time = datetime.fromisoformat(schedule['next_run_at'].replace('Z', '+00:00'))
-                    time_diff = (next_run_time - datetime.utcnow()).total_seconds()
+                    # Use timezone-aware UTC now to match next_run_time
+                    time_diff = (next_run_time - datetime.now(timezone.utc)).total_seconds()
                     # If scheduled within 2 minutes from now, likely a test run
                     if 0 < time_diff < 120:
                         is_test_run = True
