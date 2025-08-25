@@ -104,10 +104,15 @@ class ScheduleService {
   }
 
   /**
-   * Execute a test run of a schedule
+   * Execute a test run of a schedule (scheduled for 1 minute from now)
    */
-  async testRun(scheduleId: string, parameters?: Record<string, any>): Promise<void> {
-    await api.post(`/schedules/${scheduleId}/test-run`, parameters);
+  async testRun(scheduleId: string, parameters?: Record<string, any>): Promise<{
+    message: string;
+    scheduled_at: string;
+    run_id: string;
+  }> {
+    const response = await api.post(`/schedules/${scheduleId}/test-run`, parameters);
+    return response.data;
   }
 
   /**

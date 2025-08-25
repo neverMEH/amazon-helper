@@ -431,7 +431,7 @@ async def test_run_schedule(
     parameters: Optional[Dict[str, Any]] = Body(None, description="Override parameters for test run"),
     current_user: dict = Depends(get_current_user)
 ):
-    """Execute a schedule immediately for testing"""
+    """Schedule a test run to execute in 1 minute"""
     try:
         # Check ownership
         schedule = schedule_service.get_schedule(schedule_id)
@@ -441,17 +441,51 @@ async def test_run_schedule(
         if schedule.get('user_id') != current_user['id']:
             raise HTTPException(status_code=403, detail="Access denied")
         
-        # Get executor and run schedule
-        executor = get_schedule_executor()
+        # Create a schedule run entry for 1 minute from now
+        from ...core.supabase_client import SupabaseManager
+        from datetime import timedelta
+        import uuid
         
-        # Override parameters if provided
-        if parameters:
-            schedule['default_parameters'] = parameters
+        db = SupabaseManager.get_client()
         
-        # Execute the schedule
-        await executor.execute_schedule(schedule)
+        # Calculate scheduled time (1 minute from now)
+        scheduled_at = datetime.utcnow() + timedelta(minutes=1)
         
-        return {"message": "Test run initiated successfully"}
+        # Get the last run number
+        last_run = db.table('schedule_runs').select('run_number').eq(
+            'schedule_id', schedule['id']
+        ).order('run_number', desc=True).limit(1).execute()
+        
+        run_number = 1
+        if last_run.data and len(last_run.data) > 0:
+            run_number = last_run.data[0]['run_number'] + 1
+        
+        # Create the test run entry
+        run_data = {
+            'id': str(uuid.uuid4()),
+            'schedule_id': schedule['id'],
+            'run_number': run_number,
+            'scheduled_at': scheduled_at.isoformat(),
+            'status': 'pending',
+            'is_test_run': True,
+            'parameters': parameters or schedule.get('default_parameters', {})
+        }
+        
+        result = db.table('schedule_runs').insert(run_data).execute()
+        
+        if not result.data:
+            raise HTTPException(status_code=500, detail="Failed to create test run")
+        
+        # Update the schedule's next_run_at to trigger the executor
+        db.table('workflow_schedules').update({
+            'next_run_at': scheduled_at.isoformat()
+        }).eq('schedule_id', schedule_id).execute()
+        
+        return {
+            "message": "Test run scheduled successfully",
+            "scheduled_at": scheduled_at.isoformat(),
+            "run_id": run_data['id']
+        }
         
     except HTTPException:
         raise

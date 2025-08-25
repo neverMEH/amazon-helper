@@ -72,11 +72,19 @@ const ScheduleManager: React.FC = () => {
   // Test run mutation
   const testRunMutation = useMutation({
     mutationFn: (scheduleId: string) => scheduleService.testRun(scheduleId),
-    onSuccess: () => {
-      toast.success('Test run initiated successfully');
+    onSuccess: (data) => {
+      const scheduledTime = new Date(data.scheduled_at);
+      toast.success(
+        `Test run scheduled for ${format(scheduledTime, 'h:mm:ss a')} (in about 1 minute)`,
+        { duration: 5000 }
+      );
+      // Refresh schedules after 65 seconds to show updated next_run_at
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['schedules'] });
+      }, 65000);
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to initiate test run');
+      toast.error(error.response?.data?.detail || 'Failed to schedule test run');
     },
   });
 

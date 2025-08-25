@@ -125,13 +125,21 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
     mutationFn: async () => {
       return await scheduleService.testRun(schedule.schedule_id, editData.default_parameters);
     },
-    onSuccess: () => {
-      toast.success('Test run initiated successfully');
+    onSuccess: (data) => {
+      const scheduledTime = new Date(data.scheduled_at);
+      toast.success(
+        `Test run scheduled for ${format(scheduledTime, 'h:mm:ss a')} (in about 1 minute)`,
+        { duration: 5000 }
+      );
       queryClient.invalidateQueries({ queryKey: ['schedules'] });
       queryClient.invalidateQueries({ queryKey: ['schedule-runs', schedule.schedule_id] });
+      // Refresh runs after 65 seconds to show the new test run
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['schedule-runs', schedule.schedule_id] });
+      }, 65000);
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to initiate test run');
+      toast.error(error.response?.data?.detail || 'Failed to schedule test run');
     }
   });
 
