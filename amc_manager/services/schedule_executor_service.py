@@ -351,25 +351,32 @@ class ScheduleExecutorService:
         # Account for AMC's 14-day data lag
         end_date = datetime.utcnow() - timedelta(days=14)
         
-        # Calculate lookback based on schedule type and interval
-        interval_days = schedule.get('interval_days')
-        schedule_type = schedule.get('schedule_type', 'daily')
+        # Use lookback_days if specified, otherwise calculate based on schedule type
+        lookback_days = schedule.get('lookback_days')
         
-        if interval_days:
-            # Use specified interval
-            start_date = end_date - timedelta(days=interval_days)
-        elif schedule_type == 'daily':
-            # Daily schedule - look back 1 day
-            start_date = end_date - timedelta(days=1)
-        elif schedule_type == 'weekly':
-            # Weekly schedule - look back 7 days
-            start_date = end_date - timedelta(days=7)
-        elif schedule_type == 'monthly':
-            # Monthly schedule - look back 30 days
-            start_date = end_date - timedelta(days=30)
+        if lookback_days:
+            # Use the configured lookback period
+            start_date = end_date - timedelta(days=lookback_days)
         else:
-            # Default to 7 days
-            start_date = end_date - timedelta(days=7)
+            # Fall back to old logic if lookback_days not set
+            interval_days = schedule.get('interval_days')
+            schedule_type = schedule.get('schedule_type', 'daily')
+            
+            if interval_days:
+                # Use specified interval
+                start_date = end_date - timedelta(days=interval_days)
+            elif schedule_type == 'daily':
+                # Daily schedule - look back 1 day
+                start_date = end_date - timedelta(days=1)
+            elif schedule_type == 'weekly':
+                # Weekly schedule - look back 7 days
+                start_date = end_date - timedelta(days=7)
+            elif schedule_type == 'monthly':
+                # Monthly schedule - look back 30 days
+                start_date = end_date - timedelta(days=30)
+            else:
+                # Default to 7 days
+                start_date = end_date - timedelta(days=7)
         
         # Format dates for AMC (no Z suffix)
         params['startDate'] = start_date.strftime('%Y-%m-%dT00:00:00')

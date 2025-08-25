@@ -25,6 +25,7 @@ class ScheduleCreatePreset(BaseModel):
     name: Optional[str] = Field(None, description="Custom name for the schedule")
     description: Optional[str] = Field(None, description="Description or notes about the schedule")
     interval_days: Optional[int] = Field(None, description="Days for interval type (1, 3, 7, 14, 30, 60, 90)")
+    lookback_days: Optional[int] = Field(None, description="Number of days to look back for data (default based on interval)")
     timezone: str = Field("UTC", description="Timezone for schedule")
     execute_time: str = Field("02:00", description="Time of day to execute (HH:MM)")
     parameters: Optional[Dict[str, Any]] = Field(None, description="Default execution parameters")
@@ -139,6 +140,7 @@ async def create_schedule_preset(
             name=schedule_data.name,
             description=schedule_data.description,
             interval_days=schedule_data.interval_days,
+            lookback_days=schedule_data.lookback_days,
             timezone=schedule_data.timezone,
             execute_time=schedule_data.execute_time,
             parameters=schedule_data.parameters,

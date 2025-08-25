@@ -106,6 +106,7 @@ const ScheduleWizard: React.FC<ScheduleWizardProps> = ({
       name: scheduleConfig.name,
       description: scheduleConfig.description,
       interval_days: scheduleConfig.intervalDays,
+      lookback_days: scheduleConfig.lookbackDays,
       timezone: scheduleConfig.timezone,
       execute_time: scheduleConfig.executeTime,
       parameters: scheduleConfig.parameters,

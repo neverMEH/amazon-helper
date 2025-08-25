@@ -44,6 +44,7 @@ class EnhancedScheduleService(DatabaseService):
         name: Optional[str] = None,
         description: Optional[str] = None,
         interval_days: Optional[int] = None,
+        lookback_days: Optional[int] = None,
         timezone: str = 'UTC',
         execute_time: str = '02:00',
         parameters: Optional[Dict[str, Any]] = None,
@@ -87,6 +88,17 @@ class EnhancedScheduleService(DatabaseService):
             
             workflow_uuid = workflow_result.data[0]['id']
             
+            # Determine lookback days (use provided value or default based on interval)
+            if lookback_days is None:
+                if interval_days:
+                    lookback_days = interval_days
+                elif preset_type == 'weekly':
+                    lookback_days = 7
+                elif preset_type == 'monthly':
+                    lookback_days = 30
+                else:
+                    lookback_days = 1  # Daily default
+            
             # Create schedule record
             schedule_data = {
                 'schedule_id': f"sched_{uuid.uuid4().hex[:12]}",
@@ -96,6 +108,7 @@ class EnhancedScheduleService(DatabaseService):
                 'description': description,  # Add description field
                 'schedule_type': preset_type,
                 'interval_days': interval_days,
+                'lookback_days': lookback_days,  # Add lookback_days field
                 'cron_expression': cron_expression,
                 'timezone': timezone,
                 'default_parameters': json.dumps(parameters or {}),

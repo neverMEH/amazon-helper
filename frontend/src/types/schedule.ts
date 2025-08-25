@@ -11,6 +11,7 @@ export interface Schedule {
   description?: string;  // Optional description or notes
   schedule_type: 'daily' | 'interval' | 'weekly' | 'monthly' | 'custom';
   interval_days?: number;
+  lookback_days?: number;  // Number of days to look back for data
   interval_config?: {
     type: string;
     value?: number;
@@ -118,6 +119,7 @@ export interface ScheduleCreatePreset {
   name?: string;  // Custom name for the schedule
   description?: string;  // Optional description
   interval_days?: number;
+  lookback_days?: number;  // Custom lookback window
   timezone: string;
   execute_time: string;
   parameters?: Record<string, any>;
@@ -170,6 +172,7 @@ export interface ScheduleConfig {
   description?: string;  // Optional description
   type: 'daily' | 'interval' | 'weekly' | 'monthly' | 'custom';
   intervalDays?: number;
+  lookbackDays?: number;  // Custom lookback window
   timezone: string;
   executeTime: string;
   dayOfWeek?: number; // 0-6 (Sunday-Saturday)

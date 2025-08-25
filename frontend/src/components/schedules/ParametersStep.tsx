@@ -21,7 +21,7 @@ const ParametersStep: React.FC<ParametersStepProps> = ({ config, onChange, onNex
   };
 
 
-  const getLookbackDays = () => {
+  const getDefaultLookbackDays = () => {
     if (config.type === 'interval' && config.intervalDays) {
       return config.intervalDays;
     }
@@ -32,6 +32,16 @@ const ParametersStep: React.FC<ParametersStepProps> = ({ config, onChange, onNex
       return 30;
     }
     return 1; // Daily
+  };
+
+  const handleLookbackChange = (value: string) => {
+    const numValue = parseInt(value, 10);
+    if (!isNaN(numValue) && numValue > 0) {
+      onChange({
+        ...config,
+        lookbackDays: numValue,
+      });
+    }
   };
 
   return (
@@ -54,14 +64,24 @@ const ParametersStep: React.FC<ParametersStepProps> = ({ config, onChange, onNex
             <div className="flex items-center space-x-2">
               <input
                 type="number"
-                value={getLookbackDays()}
-                readOnly
-                className="px-3 py-2 border border-gray-300 rounded-lg bg-white w-24"
+                value={config.lookbackDays || getDefaultLookbackDays()}
+                onChange={(e) => handleLookbackChange(e.target.value)}
+                min="1"
+                max="365"
+                className="px-3 py-2 border border-gray-300 rounded-lg bg-white w-24 focus:ring-blue-500 focus:border-blue-500"
               />
               <span className="text-sm text-gray-600">days</span>
+              <button
+                type="button"
+                onClick={() => onChange({ ...config, lookbackDays: undefined })}
+                className="text-sm text-blue-600 hover:text-blue-700"
+              >
+                Reset to default ({getDefaultLookbackDays()})
+              </button>
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              Automatically calculated based on your schedule frequency
+              Adjust how many days of data to include in each scheduled execution. 
+              Default is based on your schedule frequency.
             </p>
           </div>
 
