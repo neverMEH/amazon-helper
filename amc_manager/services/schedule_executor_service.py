@@ -28,6 +28,7 @@ class ScheduleExecutorService:
         self._max_concurrent_executions = 10
         self._execution_semaphore = asyncio.Semaphore(self._max_concurrent_executions)
         self._max_api_retries = 3  # Maximum retries for API errors
+        self._needs_next_run_reset = set()  # Track schedules that need next_run reset
     
     async def start(self):
         """Start the schedule executor background task"""
@@ -80,6 +81,14 @@ class ScheduleExecutorService:
                         )
                     else:
                         logger.debug(f"Schedule {schedule['id']} was claimed by another process or recently executed")
+        
+            # Reset next_run_at for stuck schedules (test runs that weren't properly reset)
+            for schedule_id in self._needs_next_run_reset:
+                try:
+                    await self._reset_stuck_schedule(schedule_id)
+                except Exception as e:
+                    logger.error(f"Error resetting stuck schedule {schedule_id}: {e}")
+            self._needs_next_run_reset.clear()
         
         except Exception as e:
             logger.error(f"Error checking schedules: {e}", exc_info=True)
@@ -139,6 +148,10 @@ class ScheduleExecutorService:
             
             if recent_runs.data and len(recent_runs.data) > 0:
                 logger.info(f"Schedule {schedule_id} has {len(recent_runs.data)} recent runs, skipping")
+                # IMPORTANT: If this was a test run that's now overdue, reset next_run_at
+                if next_run_at and time_until_due < -300:  # More than 5 minutes overdue
+                    logger.info(f"Schedule {schedule_id} appears stuck after test run, will reset next_run_at after skipping")
+                    self._needs_next_run_reset.add(schedule_id)
                 return False
             
             # ATOMIC UPDATE: Set last_run_at NOW to claim this execution
@@ -302,6 +315,24 @@ class ScheduleExecutorService:
             
         except Exception as e:
             logger.error(f"Error updating next_run for schedule {schedule_id}: {e}")
+    
+    async def _reset_stuck_schedule(self, schedule_id: str):
+        """Reset a schedule that's stuck after a test run"""
+        try:
+            # Get the schedule details
+            schedule = self.db.table('workflow_schedules').select(
+                'id', 'cron_expression', 'timezone'
+            ).eq('id', schedule_id).single().execute()
+            
+            if not schedule.data:
+                logger.error(f"Schedule {schedule_id} not found for reset")
+                return
+            
+            await self._update_next_run(schedule_id, schedule.data)
+            logger.info(f"Reset stuck schedule {schedule_id} to proper next run time")
+            
+        except Exception as e:
+            logger.error(f"Error resetting stuck schedule {schedule_id}: {e}")
     
     async def _restore_test_run_schedule(self, schedule_id: str, schedule: Dict[str, Any]):
         """Restore original next_run_at for test runs"""
