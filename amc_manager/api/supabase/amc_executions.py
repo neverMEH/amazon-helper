@@ -650,11 +650,32 @@ async def get_amc_execution_details(
                         logger.info(f"Mapped internal ID {execution_id} to AMC ID {amc_execution_id}")
                     else:
                         # Execution exists but has no AMC ID (likely failed before AMC submission)
-                        logger.warning(f"Execution {execution_id} has no AMC execution ID")
-                        raise HTTPException(
-                            status_code=404,
-                            detail=f"Execution {execution_id} was not submitted to AMC (likely failed during preparation)"
-                        )
+                        # Return the failure details instead of trying to fetch from AMC
+                        logger.warning(f"Execution {execution_id} has no AMC execution ID - returning local status")
+                        
+                        # Get the full execution record with error details
+                        full_exec = client.table('workflow_executions')\
+                            .select('*')\
+                            .eq('execution_id', execution_id)\
+                            .single()\
+                            .execute()
+                        
+                        if full_exec.data:
+                            return {
+                                "execution_id": execution_id,
+                                "status": full_exec.data.get('status', 'failed'),
+                                "error_message": full_exec.data.get('error_message', 'Execution failed before submission to AMC'),
+                                "created_at": full_exec.data.get('created_at'),
+                                "updated_at": full_exec.data.get('updated_at'),
+                                "amc_execution_id": None,
+                                "amcStatus": "NOT_SUBMITTED",
+                                "message": "This execution failed before being submitted to AMC. Please check the error message for details."
+                            }
+                        else:
+                            raise HTTPException(
+                                status_code=404,
+                                detail=f"Execution {execution_id} was not submitted to AMC (likely failed during preparation)"
+                            )
                 else:
                     raise HTTPException(
                         status_code=404,
