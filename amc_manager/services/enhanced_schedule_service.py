@@ -217,13 +217,13 @@ class EnhancedScheduleService(DatabaseService):
                 # Query by schedule_id column
                 result = self.client.table('workflow_schedules').select(
                     '*',
-                    'workflows(*, amc_instances(id, instance_id, instance_name))'
+                    'workflows(*, amc_instances(id, instance_id, instance_name, brands))'
                 ).eq('schedule_id', schedule_id).single().execute()
             else:
                 # Query by id column (UUID)
                 result = self.client.table('workflow_schedules').select(
                     '*',
-                    'workflows(*, amc_instances(id, instance_id, instance_name))'
+                    'workflows(*, amc_instances(id, instance_id, instance_name, brands))'
                 ).eq('id', schedule_id).single().execute()
             
             if result.data:
@@ -264,7 +264,7 @@ class EnhancedScheduleService(DatabaseService):
         try:
             query = self.client.table('workflow_schedules').select(
                 '*',
-                'workflows(id, workflow_id, name, instance_id, amc_instances(id, instance_id, instance_name))'
+                'workflows(id, workflow_id, name, instance_id, amc_instances(id, instance_id, instance_name, brands))'
             )
             
             if workflow_id:

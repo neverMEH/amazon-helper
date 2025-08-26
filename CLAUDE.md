@@ -337,6 +337,12 @@ GET    /api/data-sources/{id}
 ## Recent Critical Fixes
 
 
+### 2025-08-26 - 21:42:23
+**fix**: feat: Add instance brand names to schedule displays
+**Context**: Backend/Project changes
+**Stats**:  3 files changed, 29 insertions(+), 3 deletions(-)
+
+
 ### 2025-08-26 - 21:29:43
 **fix**: Fix schedule test runs and lookback period defaults
 **Context**: Backend/Project changes

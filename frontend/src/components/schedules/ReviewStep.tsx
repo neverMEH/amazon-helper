@@ -6,6 +6,10 @@ import { scheduleService } from '../../services/scheduleService';
 interface ReviewStepProps {
   config: ScheduleConfig;
   workflowName: string;
+  instanceInfo?: {
+    instanceName?: string;
+    brands?: string[];
+  };
   onComplete: () => void;
   onBack: () => void;
   isLoading: boolean;
@@ -14,6 +18,7 @@ interface ReviewStepProps {
 const ReviewStep: React.FC<ReviewStepProps> = ({
   config,
   workflowName,
+  instanceInfo,
   onComplete,
   onBack,
   isLoading,
@@ -67,6 +72,21 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
       <div className="bg-gray-50 rounded-lg p-4">
         <h4 className="text-sm font-medium text-gray-700 mb-2">Workflow</h4>
         <p className="text-gray-900 font-medium">{workflowName}</p>
+        {instanceInfo?.instanceName && (
+          <p className="text-sm text-gray-600 mt-1">Instance: {instanceInfo.instanceName}</p>
+        )}
+        {instanceInfo?.brands && instanceInfo.brands.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {instanceInfo.brands.map((brand) => (
+              <span
+                key={brand}
+                className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700"
+              >
+                {brand}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Schedule Summary */}

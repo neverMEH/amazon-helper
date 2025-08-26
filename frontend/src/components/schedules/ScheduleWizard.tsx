@@ -12,6 +12,10 @@ import ReviewStep from './ReviewStep';
 interface ScheduleWizardProps {
   workflowId: string;
   workflowName: string;
+  instanceInfo?: {
+    instanceName?: string;
+    brands?: string[];
+  };
   onComplete: () => void;
   onCancel: () => void;
 }
@@ -26,6 +30,7 @@ const steps = [
 const ScheduleWizard: React.FC<ScheduleWizardProps> = ({
   workflowId,
   workflowName,
+  instanceInfo,
   onComplete,
   onCancel,
 }) => {
@@ -156,6 +161,7 @@ const ScheduleWizard: React.FC<ScheduleWizardProps> = ({
           <ReviewStep
             config={scheduleConfig}
             workflowName={workflowName}
+            instanceInfo={instanceInfo}
             onComplete={handleComplete}
             onBack={handleBack}
             isLoading={createScheduleMutation.isPending}
