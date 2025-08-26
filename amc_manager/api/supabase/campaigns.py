@@ -18,13 +18,18 @@ def list_campaigns(
     page_size: int = Query(50, ge=1, le=100, description="Items per page"),
     search: Optional[str] = Query(None, description="Search in campaign name"),
     brand: Optional[str] = Query(None, description="Filter by brand"),
-    state: Optional[str] = Query(None, description="Filter by campaign state"),
+    state: Optional[str] = Query("ENABLED", description="Filter by campaign state (defaults to ENABLED)"),
     type: Optional[str] = Query(None, description="Filter by campaign type"),
     sort_by: str = Query("name", description="Sort by field: name, brand, state, campaign_id"),
     sort_order: str = Query("asc", description="Sort order: asc or desc"),
+    show_all_states: bool = Query(False, description="Show all campaign states, not just ENABLED"),
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
-    """List campaigns with filtering, sorting and pagination"""
+    """List campaigns with filtering, sorting and pagination
+    
+    By default shows only ENABLED campaigns to improve performance.
+    Set show_all_states=true or state='' to see all campaigns.
+    """
     try:
         client = SupabaseManager.get_client(use_service_role=True)
         
@@ -36,8 +41,15 @@ def list_campaigns(
             query = query.ilike('name', f'%{search}%')
         if brand:
             query = query.eq('brand', brand)
-        if state:
+        
+        # State filter - default to ENABLED unless explicitly showing all
+        if show_all_states or state == '':
+            # Don't filter by state - show all
+            pass
+        elif state:
+            # Apply the state filter (defaults to ENABLED)
             query = query.eq('state', state)
+            
         if type:
             query = query.eq('type', type)
         

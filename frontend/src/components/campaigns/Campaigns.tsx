@@ -59,7 +59,7 @@ export default function Campaigns() {
   const [pageSize, setPageSize] = useState(50);
   const [search, setSearch] = useState('');
   const [brandFilter, setBrandFilter] = useState('');
-  const [stateFilter, setStateFilter] = useState('');
+  const [stateFilter, setStateFilter] = useState('ENABLED'); // Default to ENABLED
   const [typeFilter, setTypeFilter] = useState('');
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -73,7 +73,12 @@ export default function Campaigns() {
       params.append('page_size', pageSize.toString());
       if (search) params.append('search', search);
       if (brandFilter) params.append('brand', brandFilter);
-      if (stateFilter) params.append('state', stateFilter);
+      // Handle state filter - empty string means show all
+      if (stateFilter === '') {
+        params.append('show_all_states', 'true');
+      } else if (stateFilter) {
+        params.append('state', stateFilter);
+      }
       if (typeFilter) params.append('type', typeFilter);
       params.append('sort_by', sortBy);
       params.append('sort_order', sortOrder);
@@ -129,6 +134,11 @@ export default function Campaigns() {
         <h1 className="text-2xl font-bold text-gray-900">Campaigns</h1>
         <p className="mt-1 text-sm text-gray-600">
           Manage and analyze your Amazon advertising campaigns
+          {stateFilter === 'ENABLED' && (
+            <span className="ml-2 text-green-600 font-medium">
+              (Showing active campaigns only)
+            </span>
+          )}
         </p>
         
         {/* Stats */}
@@ -211,8 +221,8 @@ export default function Campaigns() {
               onChange={(e) => setStateFilter(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
             >
+              <option value="ENABLED">Enabled (Active)</option>
               <option value="">All States</option>
-              <option value="ENABLED">Enabled</option>
               <option value="PAUSED">Paused</option>
               <option value="ARCHIVED">Archived</option>
             </select>
