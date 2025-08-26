@@ -359,7 +359,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
                 </div>
               </div>
 
-              {/* Brand Associations - temporarily disabled until brands field is added to database
+              {/* Brand Associations */}
               <div>
                 <h3 className="text-lg font-medium mb-3">Associated Brands</h3>
                 <div className="flex flex-wrap gap-2">
@@ -376,7 +376,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
                     <span className="text-gray-500 text-sm">No brands associated</span>
                   )}
                 </div>
-              </div> */}
+              </div>
 
               {/* Workflow Info */}
               <div>

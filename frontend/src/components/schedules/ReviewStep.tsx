@@ -75,7 +75,6 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
         {instanceInfo?.instanceName && (
           <p className="text-sm text-gray-600 mt-1">Instance: {instanceInfo.instanceName}</p>
         )}
-        {/* Brands display temporarily disabled - brands field not yet in database
         {instanceInfo?.brands && instanceInfo.brands.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
             {instanceInfo.brands.map((brand) => (
@@ -87,7 +86,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
               </span>
             ))}
           </div>
-        )} */}
+        )}
       </div>
 
       {/* Schedule Summary */}

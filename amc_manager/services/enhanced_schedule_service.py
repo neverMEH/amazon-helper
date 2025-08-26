@@ -233,6 +233,18 @@ class EnhancedScheduleService(DatabaseService):
                     schedule['default_parameters'] = json.loads(schedule['default_parameters'])
                 if isinstance(schedule.get('notification_config'), str):
                     schedule['notification_config'] = json.loads(schedule['notification_config'])
+                
+                # Fetch brands for the instance if it exists
+                if schedule.get('workflows') and schedule['workflows'].get('amc_instances'):
+                    instance = schedule['workflows']['amc_instances']
+                    instance_id = instance.get('id')
+                    if instance_id:
+                        brands_result = self.client.table('instance_brands').select('brand_tag').eq('instance_id', instance_id).execute()
+                        if brands_result.data:
+                            instance['brands'] = [b['brand_tag'] for b in brands_result.data]
+                        else:
+                            instance['brands'] = []
+                
                 return schedule
             return None
             
@@ -292,12 +304,23 @@ class EnhancedScheduleService(DatabaseService):
             
             schedules = result.data or []
             
-            # Parse JSON fields
+            # Parse JSON fields and fetch brands
             for schedule in schedules:
                 if isinstance(schedule.get('default_parameters'), str):
                     schedule['default_parameters'] = json.loads(schedule['default_parameters'])
                 if isinstance(schedule.get('notification_config'), str):
                     schedule['notification_config'] = json.loads(schedule['notification_config'])
+                
+                # Fetch brands for the instance if it exists
+                if schedule.get('workflows') and schedule['workflows'].get('amc_instances'):
+                    instance = schedule['workflows']['amc_instances']
+                    instance_id = instance.get('id')
+                    if instance_id:
+                        brands_result = self.client.table('instance_brands').select('brand_tag').eq('instance_id', instance_id).execute()
+                        if brands_result.data:
+                            instance['brands'] = [b['brand_tag'] for b in brands_result.data]
+                        else:
+                            instance['brands'] = []
             
             return schedules
             

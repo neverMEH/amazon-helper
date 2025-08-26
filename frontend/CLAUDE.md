@@ -448,6 +448,12 @@ Tests are in `tests/e2e/` directory:
 ## Recent Critical Fixes
 
 
+### 2025-08-26 - 22:10:20
+**fix**: feat: Fetch and display brands from instance_brands table
+**Context**: Frontend changes
+**Stats**:  4 files changed, 29 insertions(+), 9 deletions(-)
+
+
 ### 2025-08-26 - 21:47:26
 **fix**: fix: Remove brands field references - column doesn't exist yet
 **Context**: Frontend changes
