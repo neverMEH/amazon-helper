@@ -157,12 +157,20 @@ class ScheduleExecutorService:
             # ATOMIC UPDATE: Set last_run_at NOW to claim this execution
             # This prevents other processes from executing it
             claim_time = datetime.utcnow()
-            update_result = self.db.table('workflow_schedules').update({
+            
+            # Build update query
+            update_query = self.db.table('workflow_schedules').update({
                 'last_run_at': claim_time.isoformat()
-            }).eq('id', schedule_id).eq(
-                # Only update if last_run_at hasn't changed (optimistic locking)
-                'last_run_at', last_run_at
-            ).execute()
+            }).eq('id', schedule_id)
+            
+            # Only add last_run_at condition if it's not None (optimistic locking)
+            if last_run_at is not None:
+                update_query = update_query.eq('last_run_at', last_run_at)
+            else:
+                # For schedules that have never run, use is_null check
+                update_query = update_query.is_('last_run_at', 'null')
+            
+            update_result = update_query.execute()
             
             # If update affected a row, we successfully claimed it
             if update_result.data and len(update_result.data) > 0:
