@@ -99,7 +99,9 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
             Data Lookback Period
           </span>
           <span className="text-sm text-gray-900">
-            {config.type === 'interval' && config.intervalDays
+            {config.lookbackDays 
+              ? `${config.lookbackDays} days`
+              : config.type === 'interval' && config.intervalDays
               ? `${config.intervalDays} days`
               : config.type === 'weekly'
               ? '7 days'
