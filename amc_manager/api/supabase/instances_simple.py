@@ -123,21 +123,67 @@ def get_instance_campaigns(
         if not any(inst['instance_id'] == instance_id for inst in user_instances):
             raise HTTPException(status_code=403, detail="Access denied to instance")
         
-        # Get campaigns filtered by instance brands
-        campaigns = db_service.get_instance_campaigns_filtered_sync(instance_id, current_user['id'])
+        # Get instance details to get the internal ID
+        instance = db_service.get_instance_details_sync(instance_id)
+        if not instance:
+            raise HTTPException(status_code=404, detail="Instance not found")
         
-        # Additional filtering by specific brand if requested
+        # Get Supabase client
+        from ...core.supabase_client import SupabaseManager
+        client = SupabaseManager.get_client(use_service_role=True)
+        
+        # Get brands associated with this instance from instance_brands table
+        brand_result = client.table('instance_brands').select('brand_tag').eq('instance_id', instance['id']).execute()
+        instance_brands = [b['brand_tag'] for b in brand_result.data if b.get('brand_tag')]
+        
+        # If no brands are configured for this instance, return empty
+        if not instance_brands and not brand_tag:
+            logger.info(f"No brands configured for instance {instance_id}")
+            return []
+        
+        # Build query for campaigns
+        query = client.table('campaigns').select('*')
+        
+        # Apply brand_tag filter if provided, otherwise use instance brands
         if brand_tag:
-            campaigns = [c for c in campaigns if c.get('brand_tag') == brand_tag]
+            # Specific brand requested - use case-insensitive match
+            query = query.ilike('brand', brand_tag)
+        elif len(instance_brands) == 1:
+            # Single brand - use case-insensitive filter
+            query = query.ilike('brand', instance_brands[0])
+        else:
+            # Multiple brands - we'll filter in Python after fetch
+            # (Supabase doesn't support OR conditions well)
+            pass
+        
+        # Default to ENABLED campaigns
+        query = query.eq('state', 'ENABLED')
+        
+        # Execute query
+        result = query.execute()
+        campaigns = result.data
+        
+        # If we have multiple brands and no specific filter, filter in Python
+        if len(instance_brands) > 1 and not brand_tag:
+            filtered_campaigns = []
+            # Convert instance brands to lowercase for case-insensitive comparison
+            instance_brands_lower = [b.lower() for b in instance_brands]
+            for campaign in campaigns:
+                campaign_brand = (campaign.get('brand') or '').lower()
+                if campaign_brand in instance_brands_lower:
+                    filtered_campaigns.append(campaign)
+            campaigns = filtered_campaigns
+        
+        # Format response to match frontend expectations
         return [{
-            "campaignId": str(c['campaign_id']),
-            "name": c['campaign_name'],
-            "type": c['campaign_type'],
-            "brandTag": c.get('brand_tag'),
-            "asins": c.get('asins', []),
-            "marketplaceId": c['marketplace_id'],
-            "createdAt": c.get('created_at', '')
-        } for c in campaigns]
+            "campaignId": str(campaign.get('campaign_id', '')),
+            "name": campaign.get('name', ''),
+            "type": campaign.get('type', 'sp').upper() if campaign.get('type') else 'SP',
+            "brandTag": campaign.get('brand', ''),
+            "asins": campaign.get('asins', []) if campaign.get('asins') else [],
+            "marketplaceId": campaign.get('marketplace_id', 'A1AM78C64UM0Y8'),
+            "createdAt": campaign.get('created_at', '')
+        } for campaign in campaigns]
     except HTTPException:
         raise
     except Exception as e:
