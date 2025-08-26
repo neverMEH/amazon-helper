@@ -320,9 +320,13 @@ export default function Campaigns() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
-                        {campaign.type.toUpperCase()}
-                      </span>
+                      {campaign.type ? (
+                        <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
+                          {campaign.type.toUpperCase()}
+                        </span>
+                      ) : (
+                        '-'
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {campaign.targetingType || '-'}
