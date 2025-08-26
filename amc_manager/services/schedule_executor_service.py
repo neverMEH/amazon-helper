@@ -1,4 +1,4 @@
-"""Schedule Executor Service for running scheduled workflows"""
+"""Schedule Executor Service for running scheduled workflows - FIXED VERSION"""
 
 import asyncio
 import json
@@ -27,6 +27,7 @@ class ScheduleExecutorService:
         self._execution_tasks = {}  # Track running executions
         self._max_concurrent_executions = 10
         self._execution_semaphore = asyncio.Semaphore(self._max_concurrent_executions)
+        self._max_api_retries = 3  # Maximum retries for API errors
     
     async def start(self):
         """Start the schedule executor background task"""
@@ -55,11 +56,11 @@ class ScheduleExecutorService:
     async def check_and_execute_schedules(self):
         """Check for due schedules and execute them"""
         try:
-            # Get all due schedules
-            due_schedules = self.schedule_service.get_due_schedules(buffer_minutes=2)
+            # Get all due schedules with a tighter buffer (30 seconds instead of 2 minutes)
+            due_schedules = self.schedule_service.get_due_schedules(buffer_minutes=0.5)
             
             if due_schedules:
-                logger.info(f"Found {len(due_schedules)} due schedules")
+                logger.info(f"Found {len(due_schedules)} potentially due schedules")
                 
                 for schedule in due_schedules:
                     # Skip if already executing
@@ -67,26 +68,109 @@ class ScheduleExecutorService:
                         logger.debug(f"Schedule {schedule['id']} is already executing")
                         continue
                     
-                    # Create execution task
-                    task = asyncio.create_task(self.execute_schedule(schedule))
-                    self._execution_tasks[schedule['id']] = task
-                    
-                    # Clean up completed tasks
-                    task.add_done_callback(
-                        lambda t, sid=schedule['id']: self._execution_tasks.pop(sid, None)
-                    )
+                    # CRITICAL FIX: Atomic check-and-update to prevent race conditions
+                    if await self._atomic_claim_schedule(schedule['id']):
+                        # Create execution task only if we successfully claimed it
+                        task = asyncio.create_task(self.execute_schedule(schedule))
+                        self._execution_tasks[schedule['id']] = task
+                        
+                        # Clean up completed tasks
+                        task.add_done_callback(
+                            lambda t, sid=schedule['id']: self._execution_tasks.pop(sid, None)
+                        )
+                    else:
+                        logger.debug(f"Schedule {schedule['id']} was claimed by another process or recently executed")
         
         except Exception as e:
             logger.error(f"Error checking schedules: {e}", exc_info=True)
     
+    async def _atomic_claim_schedule(self, schedule_id: str) -> bool:
+        """
+        Atomically claim a schedule for execution to prevent duplicate runs
+        
+        This performs an atomic check-and-update operation to ensure only one
+        process can claim a schedule for execution.
+        
+        Args:
+            schedule_id: Schedule ID to claim
+            
+        Returns:
+            True if successfully claimed, False if already claimed
+        """
+        try:
+            # Get current schedule state
+            current_schedule = self.db.table('workflow_schedules').select(
+                'id', 'next_run_at', 'last_run_at'
+            ).eq('id', schedule_id).single().execute()
+            
+            if not current_schedule.data:
+                logger.error(f"Schedule {schedule_id} not found")
+                return False
+            
+            schedule_data = current_schedule.data
+            next_run_at = schedule_data.get('next_run_at')
+            last_run_at = schedule_data.get('last_run_at')
+            
+            # Check if it's actually due (within 30 seconds of now)
+            if next_run_at:
+                next_run_time = datetime.fromisoformat(next_run_at.replace('Z', '+00:00'))
+                now = datetime.now(timezone.utc)
+                time_until_due = (next_run_time - now).total_seconds()
+                
+                # Skip if not actually due yet (more than 30 seconds away)
+                if time_until_due > 30:
+                    logger.debug(f"Schedule {schedule_id} not due yet ({time_until_due:.0f} seconds away)")
+                    return False
+            
+            # Check for recent runs (prevent duplicate within 5 minutes)
+            if last_run_at:
+                last_run_time = datetime.fromisoformat(last_run_at.replace('Z', '+00:00'))
+                time_since_last = (datetime.now(timezone.utc) - last_run_time).total_seconds()
+                
+                if time_since_last < 300:  # 5 minutes
+                    logger.info(f"Schedule {schedule_id} ran {time_since_last:.0f} seconds ago, skipping")
+                    return False
+            
+            # Check schedule_runs table for very recent executions (double-check)
+            recent_runs = self.db.table('schedule_runs').select('created_at').eq(
+                'schedule_id', schedule_id
+            ).gte('created_at', (datetime.utcnow() - timedelta(minutes=5)).isoformat()
+            ).execute()
+            
+            if recent_runs.data and len(recent_runs.data) > 0:
+                logger.info(f"Schedule {schedule_id} has {len(recent_runs.data)} recent runs, skipping")
+                return False
+            
+            # ATOMIC UPDATE: Set last_run_at NOW to claim this execution
+            # This prevents other processes from executing it
+            claim_time = datetime.utcnow()
+            update_result = self.db.table('workflow_schedules').update({
+                'last_run_at': claim_time.isoformat()
+            }).eq('id', schedule_id).eq(
+                # Only update if last_run_at hasn't changed (optimistic locking)
+                'last_run_at', last_run_at
+            ).execute()
+            
+            # If update affected a row, we successfully claimed it
+            if update_result.data and len(update_result.data) > 0:
+                logger.info(f"Successfully claimed schedule {schedule_id} for execution")
+                return True
+            else:
+                logger.debug(f"Failed to claim schedule {schedule_id} - already claimed by another process")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Error claiming schedule {schedule_id}: {e}")
+            return False
+    
     async def execute_schedule(self, schedule: Dict[str, Any]):
         """
-        Execute a single scheduled workflow
+        Execute a single scheduled workflow with retry logic for API errors
         
         Args:
             schedule: Schedule record with workflow details
         """
-        schedule_id = schedule['id']  # Use 'id' not 'schedule_id'
+        schedule_id = schedule['id']
         workflow = schedule.get('workflows', {})
         
         logger.info(f"Executing schedule {schedule_id} for workflow {workflow.get('workflow_id')}")
@@ -94,119 +178,151 @@ class ScheduleExecutorService:
         # Use semaphore to limit concurrent executions
         async with self._execution_semaphore:
             run_id = None
-            try:
-                # Check for recent executions to prevent duplicates
-                recent_runs = self.db.table('schedule_runs').select('*').eq(
-                    'schedule_id', schedule_id
-                ).gte('created_at', (datetime.utcnow() - timedelta(minutes=5)).isoformat()
-                ).execute()
+            execution_attempts = 0
+            max_attempts = self._max_api_retries
+            
+            while execution_attempts < max_attempts:
+                execution_attempts += 1
                 
-                if recent_runs.data:
-                    logger.info(f"Schedule {schedule_id} has a recent run within 5 minutes, skipping")
-                    return
-                
-                # Check if this is a test run (scheduled for very near future, not matching cron pattern)
-                is_test_run = False
-                if schedule.get('next_run_at'):
-                    next_run_time = datetime.fromisoformat(schedule['next_run_at'].replace('Z', '+00:00'))
-                    # Use timezone-aware UTC now to match next_run_time
-                    time_diff = (next_run_time - datetime.now(timezone.utc)).total_seconds()
-                    # If scheduled within 2 minutes from now, likely a test run
-                    if 0 < time_diff < 120:
-                        is_test_run = True
-                        logger.info(f"Detected test run for schedule {schedule_id}")
-                
-                # Only update next_run for regular runs, not test runs
-                if not is_test_run:
-                    # Always update next_run first to prevent duplicate executions
-                    self.schedule_service.update_after_run(
-                        schedule_id,
-                        datetime.utcnow(),
-                        success=False  # Assume failure, will update to success if it completes
-                    )
-                
-                # Create schedule run record (with test run flag)
-                run_id = await self.create_schedule_run(schedule, is_test_run=is_test_run)
-                
-                # Ensure fresh token
-                user_id = schedule.get('user_id') or workflow.get('user_id')
-                if not user_id:
-                    raise ValueError("No user_id found for schedule")
-                
-                await self.ensure_fresh_token(user_id)
-                
-                # Calculate dynamic parameters
-                params = await self.calculate_parameters(schedule)
-                
-                # Get instance information
-                instance_id = workflow.get('instance_id')
-                if not instance_id:
-                    raise ValueError("No instance_id found for workflow")
-                
-                # Get instance details
-                instance_result = self.db.table('amc_instances').select('*').eq(
-                    'id', instance_id
-                ).single().execute()
-                
-                if not instance_result.data:
-                    raise ValueError(f"Instance {instance_id} not found")
-                
-                instance = instance_result.data
-                
-                # Execute workflow
-                execution = await self.execute_workflow(
-                    workflow_id=workflow['id'],
-                    workflow_amc_id=workflow.get('amc_workflow_id'),
-                    instance=instance,
-                    user_id=user_id,
-                    parameters=params,
-                    schedule_run_id=run_id
-                )
-                
-                # Update schedule record with success (only for regular runs)
-                if not is_test_run:
-                    self.schedule_service.update_after_run(
-                        schedule_id,
-                        datetime.utcnow(),
-                        success=True
-                    )
-                else:
-                    # For test runs, restore the original next_run_at based on cron expression
-                    from croniter import croniter
-                    from zoneinfo import ZoneInfo
+                try:
+                    # Check if this is a test run
+                    is_test_run = await self._is_test_run(schedule)
                     
-                    cron = croniter(schedule.get('cron_expression', '0 2 * * *'))
-                    tz = ZoneInfo(schedule.get('timezone', 'America/New_York'))
-                    now = datetime.now(tz)
-                    cron.set_current(now)
-                    next_run = cron.get_next(datetime)
+                    # Create schedule run record (only on first attempt)
+                    if execution_attempts == 1:
+                        run_id = await self.create_schedule_run(schedule, is_test_run=is_test_run)
                     
-                    self.db.table('workflow_schedules').update({
-                        'next_run_at': next_run.isoformat()
-                    }).eq('id', schedule_id).execute()
+                    # Ensure fresh token
+                    user_id = schedule.get('user_id') or workflow.get('user_id')
+                    if not user_id:
+                        raise ValueError("No user_id found for schedule")
                     
-                    logger.info(f"Test run completed, restored next_run_at to {next_run.isoformat()}")
-                
-                # Update run record
-                await self.update_schedule_run(run_id, 'completed', execution['id'])
-                
-                logger.info(f"Successfully executed schedule {schedule_id}")
-                
-            except Exception as e:
-                logger.error(f"Error executing schedule {schedule_id}: {e}", exc_info=True)
-                
-                # Note: next_run was already updated at the beginning to prevent duplicate executions
-                
-                # Update run record if it exists
-                if run_id:
-                    await self.update_schedule_run(
-                        run_id,
-                        'failed',
-                        error_message=str(e)
+                    await self.ensure_fresh_token(user_id)
+                    
+                    # Calculate dynamic parameters
+                    params = await self.calculate_parameters(schedule)
+                    
+                    # Get instance information
+                    instance_id = workflow.get('instance_id')
+                    if not instance_id:
+                        raise ValueError("No instance_id found for workflow")
+                    
+                    # Get instance details
+                    instance_result = self.db.table('amc_instances').select('*').eq(
+                        'id', instance_id
+                    ).single().execute()
+                    
+                    if not instance_result.data:
+                        raise ValueError(f"Instance {instance_id} not found")
+                    
+                    instance = instance_result.data
+                    
+                    # Execute workflow
+                    execution = await self.execute_workflow(
+                        workflow_id=workflow['id'],
+                        workflow_amc_id=workflow.get('amc_workflow_id'),
+                        instance=instance,
+                        user_id=user_id,
+                        parameters=params,
+                        schedule_run_id=run_id,
+                        attempt_number=execution_attempts
                     )
-                
-                # Handle notification if configured
-                await self.send_failure_notification(schedule, str(e))
+                    
+                    # Success! Update next_run_at for regular runs
+                    if not is_test_run:
+                        await self._update_next_run(schedule_id, schedule)
+                    else:
+                        await self._restore_test_run_schedule(schedule_id, schedule)
+                    
+                    # Update run record
+                    await self.update_schedule_run(run_id, 'completed', execution['id'])
+                    
+                    logger.info(f"Successfully executed schedule {schedule_id} on attempt {execution_attempts}")
+                    break  # Success, exit retry loop
+                    
+                except Exception as e:
+                    error_msg = str(e)
+                    logger.error(f"Error executing schedule {schedule_id} (attempt {execution_attempts}/{max_attempts}): {error_msg}")
+                    
+                    # Check if this is an API error that warrants a retry
+                    is_api_error = any(keyword in error_msg.lower() for keyword in [
+                        'api', 'timeout', 'connection', 'network', '500', '502', '503', '504',
+                        'rate limit', 'throttle', 'temporary', 'unavailable'
+                    ])
+                    
+                    if is_api_error and execution_attempts < max_attempts:
+                        # Wait before retry (exponential backoff)
+                        wait_time = min(60, 10 * (2 ** (execution_attempts - 1)))  # 10s, 20s, 40s, max 60s
+                        logger.info(f"API error detected, retrying in {wait_time} seconds...")
+                        await asyncio.sleep(wait_time)
+                        continue
+                    else:
+                        # Final failure or non-retryable error
+                        if run_id:
+                            await self.update_schedule_run(
+                                run_id,
+                                'failed',
+                                error_message=f"{error_msg} (after {execution_attempts} attempts)"
+                            )
+                        
+                        # Update next_run_at even on failure to prevent infinite retries
+                        if not await self._is_test_run(schedule):
+                            await self._update_next_run(schedule_id, schedule)
+                        
+                        # Send failure notification
+                        await self.send_failure_notification(schedule, error_msg)
+                        break  # Exit retry loop
+    
+    async def _is_test_run(self, schedule: Dict[str, Any]) -> bool:
+        """Check if this is a test run"""
+        if schedule.get('next_run_at'):
+            next_run_time = datetime.fromisoformat(schedule['next_run_at'].replace('Z', '+00:00'))
+            time_diff = (next_run_time - datetime.now(timezone.utc)).total_seconds()
+            # If scheduled within 2 minutes from now, likely a test run
+            return 0 < time_diff < 120
+        return False
+    
+    async def _update_next_run(self, schedule_id: str, schedule: Dict[str, Any]):
+        """Calculate and update the next run time based on cron expression"""
+        try:
+            from croniter import croniter
+            from zoneinfo import ZoneInfo
+            
+            cron = croniter(schedule.get('cron_expression', '0 2 * * *'))
+            tz = ZoneInfo(schedule.get('timezone', 'America/New_York'))
+            now = datetime.now(tz)
+            cron.set_current(now)
+            next_run = cron.get_next(datetime)
+            
+            self.db.table('workflow_schedules').update({
+                'next_run_at': next_run.isoformat()
+            }).eq('id', schedule_id).execute()
+            
+            logger.info(f"Updated next_run_at for schedule {schedule_id} to {next_run.isoformat()}")
+            
+        except Exception as e:
+            logger.error(f"Error updating next_run for schedule {schedule_id}: {e}")
+    
+    async def _restore_test_run_schedule(self, schedule_id: str, schedule: Dict[str, Any]):
+        """Restore original next_run_at for test runs"""
+        try:
+            from croniter import croniter
+            from zoneinfo import ZoneInfo
+            
+            cron = croniter(schedule.get('cron_expression', '0 2 * * *'))
+            tz = ZoneInfo(schedule.get('timezone', 'America/New_York'))
+            now = datetime.now(tz)
+            cron.set_current(now)
+            next_run = cron.get_next(datetime)
+            
+            self.db.table('workflow_schedules').update({
+                'next_run_at': next_run.isoformat()
+            }).eq('id', schedule_id).execute()
+            
+            logger.info(f"Test run completed, restored next_run_at to {next_run.isoformat()}")
+            
+        except Exception as e:
+            logger.error(f"Error restoring test run schedule {schedule_id}: {e}")
     
     async def create_schedule_run(self, schedule: Dict[str, Any], is_test_run: bool = False) -> str:
         """
@@ -384,7 +500,7 @@ class ScheduleExecutorService:
         params['endDate'] = end_date.strftime('%Y-%m-%dT23:59:59')
         
         # Add schedule metadata
-        params['_schedule_id'] = schedule.get('id')  # Use 'id' not 'schedule_id'
+        params['_schedule_id'] = schedule.get('id')
         params['_scheduled_execution'] = True
         
         return params
@@ -396,7 +512,8 @@ class ScheduleExecutorService:
         instance: Dict[str, Any],
         user_id: str,
         parameters: Dict[str, Any],
-        schedule_run_id: str
+        schedule_run_id: str,
+        attempt_number: int = 1
     ) -> Dict[str, Any]:
         """
         Execute a workflow via AMC API using the existing amc_execution_service
@@ -408,6 +525,7 @@ class ScheduleExecutorService:
             user_id: User ID
             parameters: Execution parameters
             schedule_run_id: Schedule run ID
+            attempt_number: Current attempt number for retries
             
         Returns:
             Execution record
@@ -420,10 +538,10 @@ class ScheduleExecutorService:
             execution_params = parameters.copy()
             execution_params['_schedule_run_id'] = schedule_run_id
             execution_params['_triggered_by'] = 'schedule'
+            execution_params['_attempt_number'] = attempt_number
             
             # Use the amc_execution_service to execute the workflow
-            # This handles all the complexity of workflow creation, token refresh, etc.
-            logger.info(f"Executing workflow {workflow_id} via amc_execution_service for schedule")
+            logger.info(f"Executing workflow {workflow_id} via amc_execution_service (attempt {attempt_number})")
             
             result = await amc_execution_service.execute_workflow(
                 workflow_id=workflow_id,
