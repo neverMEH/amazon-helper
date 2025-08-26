@@ -2,8 +2,9 @@
 
 from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import Dict, Any, List, Optional
+from math import ceil
 
-from ...services.db_service import db_service
+from ...core.supabase_client import SupabaseManager
 from ...core.logger_simple import get_logger
 from .auth import get_current_user
 
@@ -13,33 +14,80 @@ router = APIRouter()
 
 @router.get("")
 def list_campaigns(
-    brand_tag: Optional[str] = Query(None, description="Filter by brand tag"),
-    campaign_type: Optional[str] = Query(None, description="Filter by campaign type"),
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(50, ge=1, le=100, description="Items per page"),
+    search: Optional[str] = Query(None, description="Search in campaign name"),
+    brand: Optional[str] = Query(None, description="Filter by brand"),
+    state: Optional[str] = Query(None, description="Filter by campaign state"),
+    type: Optional[str] = Query(None, description="Filter by campaign type"),
+    sort_by: str = Query("name", description="Sort by field: name, brand, state, campaign_id"),
+    sort_order: str = Query("asc", description="Sort order: asc or desc"),
     current_user: Dict[str, Any] = Depends(get_current_user)
-) -> List[Dict[str, Any]]:
-    """List campaigns for the current user"""
+) -> Dict[str, Any]:
+    """List campaigns with filtering, sorting and pagination"""
     try:
-        campaigns = db_service.get_user_campaigns_sync(current_user['id'], brand_tag)
+        client = SupabaseManager.get_client(use_service_role=True)
         
-        # Filter by campaign type if provided
-        if campaign_type:
-            campaigns = [c for c in campaigns if c.get('campaign_type') == campaign_type]
+        # Build query
+        query = client.table('campaigns').select('*', count='exact')
         
-        return [{
+        # Apply filters
+        if search:
+            query = query.ilike('name', f'%{search}%')
+        if brand:
+            query = query.eq('brand', brand)
+        if state:
+            query = query.eq('state', state)
+        if type:
+            query = query.eq('type', type)
+        
+        # Apply sorting
+        order_column = {
+            'name': 'name',
+            'brand': 'brand', 
+            'state': 'state',
+            'campaign_id': 'campaign_id'
+        }.get(sort_by, 'name')
+        
+        query = query.order(order_column, desc=(sort_order == 'desc'))
+        
+        # Apply pagination
+        offset = (page - 1) * page_size
+        query = query.range(offset, offset + page_size - 1)
+        
+        # Execute query
+        result = query.execute()
+        
+        # Get total count for pagination
+        total_count = result.count if hasattr(result, 'count') else len(result.data)
+        total_pages = ceil(total_count / page_size) if total_count else 0
+        
+        # Format response
+        campaigns = [{
             "id": str(c.get('id', '')),
             "campaignId": str(c['campaign_id']),
-            "name": c['campaign_name'],
-            "originalName": c.get('original_name', c['campaign_name']),
-            "campaignType": c['campaign_type'],
-            "brandTag": c.get('brand_tag'),
-            "marketplaceId": c['marketplace_id'],
-            "profileId": c['profile_id'],
-            "asins": c.get('asins', []),
-            "firstSeenAt": c.get('first_seen_at'),
-            "lastSeenAt": c.get('last_seen_at'),
+            "name": c['name'],
+            "brand": c.get('brand', 'Unknown'),
+            "state": c.get('state', 'UNKNOWN'),
+            "type": c.get('type', 'sp'),
+            "targetingType": c.get('targeting_type', ''),
+            "biddingStrategy": c.get('bidding_strategy', ''),
+            "portfolioId": c.get('portfolio_id', ''),
             "createdAt": c.get('created_at', ''),
-            "tags": c.get('tags', [])
-        } for c in campaigns]
+            "updatedAt": c.get('updated_at', '')
+        } for c in result.data]
+        
+        return {
+            "campaigns": campaigns,
+            "pagination": {
+                "page": page,
+                "pageSize": page_size,
+                "totalCount": total_count,
+                "totalPages": total_pages,
+                "hasNext": page < total_pages,
+                "hasPrev": page > 1
+            }
+        }
     except Exception as e:
         logger.error(f"Error listing campaigns: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch campaigns")
@@ -68,18 +116,30 @@ def sync_campaigns(
 @router.get("/brands")
 def list_brands(
     current_user: Dict[str, Any] = Depends(get_current_user)
-) -> List[Dict[str, str]]:
-    """List unique brand tags from campaigns"""
+) -> List[Dict[str, Any]]:
+    """List unique brands from campaigns table"""
     try:
-        campaigns = db_service.get_user_campaigns_sync(current_user['id'])
+        client = SupabaseManager.get_client(use_service_role=True)
         
-        # Extract unique brand tags
-        brand_tags = set()
-        for campaign in campaigns:
-            if campaign.get('brand_tag'):
-                brand_tags.add(campaign['brand_tag'])
+        # Get all unique brands
+        result = client.table('campaigns').select('brand').execute()
         
-        return [{"brand_tag": tag} for tag in sorted(brand_tags)]
+        # Extract unique brands
+        brands = set()
+        for campaign in result.data:
+            if campaign.get('brand'):
+                brands.add(campaign['brand'])
+        
+        # Count campaigns per brand
+        brand_counts = {}
+        for brand in brands:
+            count_result = client.table('campaigns').select('*', count='exact').eq('brand', brand).execute()
+            brand_counts[brand] = count_result.count if hasattr(count_result, 'count') else 0
+        
+        return [
+            {"brand": brand, "campaign_count": brand_counts[brand]} 
+            for brand in sorted(brands)
+        ]
     except Exception as e:
         logger.error(f"Error listing brands: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch brands")
@@ -89,30 +149,39 @@ def list_brands(
 def get_campaign_stats(
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
-    """Get campaign statistics"""
+    """Get campaign statistics from campaigns table"""
     try:
-        campaigns = db_service.get_user_campaigns_sync(current_user['id'])
+        client = SupabaseManager.get_client(use_service_role=True)
+        
+        # Get all campaigns for stats
+        result = client.table('campaigns').select('*').execute()
+        campaigns = result.data
         
         # Calculate stats
         stats = {
             "total_campaigns": len(campaigns),
+            "by_state": {},
             "by_type": {},
             "by_brand": {},
-            "by_marketplace": {}
+            "by_targeting": {}
         }
         
         for campaign in campaigns:
+            # By state
+            state = campaign.get('state', 'UNKNOWN')
+            stats['by_state'][state] = stats['by_state'].get(state, 0) + 1
+            
             # By type
-            camp_type = campaign.get('campaign_type', 'unknown')
+            camp_type = campaign.get('type', 'unknown')
             stats['by_type'][camp_type] = stats['by_type'].get(camp_type, 0) + 1
             
             # By brand
-            brand = campaign.get('brand_tag', 'untagged')
+            brand = campaign.get('brand', 'untagged')
             stats['by_brand'][brand] = stats['by_brand'].get(brand, 0) + 1
             
-            # By marketplace
-            marketplace = campaign.get('marketplace_id', 'unknown')
-            stats['by_marketplace'][marketplace] = stats['by_marketplace'].get(marketplace, 0) + 1
+            # By targeting type
+            targeting = campaign.get('targeting_type', 'unknown')
+            stats['by_targeting'][targeting] = stats['by_targeting'].get(targeting, 0) + 1
         
         return stats
     except Exception as e:
