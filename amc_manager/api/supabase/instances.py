@@ -4,7 +4,6 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import Dict, Any, List, Optional
 
 from ...services.db_service import db_service
-from ...services.instance_brand_mapping import get_brands_for_instance
 from ...core.supabase_client import SupabaseManager
 from ...core.logger_simple import get_logger
 from .auth import get_current_user
@@ -101,48 +100,49 @@ async def get_instance_campaigns(
         if not any(inst['instance_id'] == instance_id for inst in user_instances):
             raise HTTPException(status_code=403, detail="Access denied")
         
-        # Get brand keywords from instance name
-        instance_name = instance.get('instance_name', '')
-        brand_keywords = get_brands_for_instance(instance_name)
+        client = SupabaseManager.get_client(use_service_role=True)
+        
+        # Get brands associated with this instance from instance_brands table
+        brand_result = client.table('instance_brands').select('brand_tag').eq('instance_id', instance['id']).execute()
+        instance_brands = [b['brand_tag'] for b in brand_result.data if b.get('brand_tag')]
+        
+        # If no brands are configured for this instance, return empty
+        if not instance_brands and not brand_tag:
+            logger.info(f"No brands configured for instance {instance_id}")
+            return []
         
         # Query campaigns from campaigns table
-        client = SupabaseManager.get_client(use_service_role=True)
-        query = client.table('campaigns').select('*')
+        query = client.table('campaigns').select('*', count='exact')
         
-        # Filter by brand if we have keywords
-        if brand_keywords and len(brand_keywords) > 0:
-            # Use OR condition for multiple brand matches
-            brand_filters = []
-            for brand in brand_keywords:
-                brand_filters.append(f"brand.ilike.%{brand}%")
-            
-            if len(brand_filters) == 1:
-                query = query.ilike('brand', f'%{brand_keywords[0]}%')
-            else:
-                # For multiple brands, we need to fetch all and filter in Python
-                # since Supabase doesn't support complex OR conditions easily
-                pass
-        
-        # Apply brand_tag filter if provided
+        # Apply brand_tag filter if provided, otherwise use instance brands
         if brand_tag:
-            query = query.eq('brand', brand_tag)
+            query = query.ilike('brand', brand_tag)  # Case-insensitive match
+        elif len(instance_brands) == 1:
+            # Single brand - use case-insensitive filter
+            query = query.ilike('brand', instance_brands[0])
+        else:
+            # Multiple brands - we'll filter in Python after fetch
+            # Supabase doesn't support OR conditions well
+            pass
+        
+        # Default to ENABLED campaigns
+        query = query.eq('state', 'ENABLED')
         
         # Apply pagination
         offset = (page - 1) * page_size
         query = query.range(offset, offset + page_size - 1)
         
-        # Default to ENABLED campaigns
-        query = query.eq('state', 'ENABLED')
-        
         result = query.execute()
         campaigns = result.data
         
-        # If we have multiple brand keywords, filter in Python
-        if brand_keywords and len(brand_keywords) > 1 and not brand_tag:
+        # If we have multiple brands and no specific filter, filter in Python
+        if len(instance_brands) > 1 and not brand_tag:
             filtered_campaigns = []
+            # Convert instance brands to lowercase for case-insensitive comparison
+            instance_brands_lower = [b.lower() for b in instance_brands]
             for campaign in campaigns:
                 campaign_brand = (campaign.get('brand') or '').lower()
-                if any(keyword.lower() in campaign_brand for keyword in brand_keywords):
+                if campaign_brand in instance_brands_lower:
                     filtered_campaigns.append(campaign)
             campaigns = filtered_campaigns
         
