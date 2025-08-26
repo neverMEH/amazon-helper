@@ -1,13 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactElement } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { 
-  Tag, 
   Search, 
-  Filter, 
   ChevronLeft, 
   ChevronRight,
   ArrowUpDown,
-  Activity,
   Archive,
   PauseCircle,
   PlayCircle
@@ -45,7 +42,7 @@ interface BrandInfo {
   campaign_count: number;
 }
 
-const stateIcons: Record<string, JSX.Element> = {
+const stateIcons: Record<string, ReactElement> = {
   ENABLED: <PlayCircle className="h-4 w-4 text-green-500" />,
   PAUSED: <PauseCircle className="h-4 w-4 text-yellow-500" />,
   ARCHIVED: <Archive className="h-4 w-4 text-gray-400" />,
@@ -68,7 +65,7 @@ export default function Campaigns() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   // Fetch campaigns with filters
-  const { data, isLoading, refetch } = useQuery<CampaignsResponse>({
+  const { data, isLoading } = useQuery<CampaignsResponse>({
     queryKey: ['campaigns', page, pageSize, search, brandFilter, stateFilter, typeFilter, sortBy, sortOrder],
     queryFn: async () => {
       const params = new URLSearchParams();

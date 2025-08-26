@@ -1,169 +1,159 @@
 #!/usr/bin/env python3
-"""Import campaigns from Amazon API into Supabase"""
 
-import os
 import sys
-import asyncio
-import argparse
-from datetime import datetime
+import os
+import csv
+import logging
+from decimal import Decimal
 
 # Add parent directory to path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from amc_manager.services.campaign_service import campaign_service
-from amc_manager.services.db_service import db_service
-from amc_manager.services.token_service import token_service
-from amc_manager.core.logger_simple import get_logger
+from amc_manager.core.supabase_client import SupabaseManager
 
-logger = get_logger(__name__)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
-
-async def import_campaigns_for_email(email: str, profile_ids: list = None):
-    """Import campaigns for a user by email"""
-    print(f"\nImporting campaigns for user: {email}")
-    print("=" * 50)
+def check_and_create_table():
+    """Check if campaigns table exists and create if needed."""
+    client = SupabaseManager.get_client(use_service_role=True)
     
-    # Get user
-    user = await db_service.get_user_by_email(email)
-    if not user:
-        print(f"✗ User not found: {email}")
-        return
-    
-    print(f"✓ Found user: {user['name']} (ID: {user['id']})")
-    
-    # Validate token
-    access_token = await token_service.get_valid_token(user['id'])
-    if not access_token:
-        print("✗ No valid token available for user")
-        print("\nPlease run token validation first:")
-        print("  python scripts/validate_tokens.py --store")
-        return
-    
-    print("✓ Valid access token found")
-    
-    # Get user profiles
-    profiles = await token_service.get_user_profiles(access_token)
-    if not profiles:
-        print("✗ No advertising profiles found")
-        return
-    
-    print(f"\n✓ Found {len(profiles)} advertising profiles:")
-    
-    # Filter profiles if specific ones requested
-    if profile_ids:
-        profiles = [p for p in profiles if str(p['profileId']) in profile_ids]
-        print(f"  Filtered to {len(profiles)} profiles")
-    
-    # Import campaigns for each profile
-    total_counts = {
-        'dsp': 0,
-        'sponsored_products': 0,
-        'sponsored_display': 0,
-        'sponsored_brands': 0,
-        'total': 0
-    }
-    
-    for i, profile in enumerate(profiles, 1):
-        profile_id = profile['profileId']
-        profile_name = profile.get('accountInfo', {}).get('name', 'Unknown')
-        country = profile.get('countryCode', 'US')
+    # First check if table exists by trying to query it
+    try:
+        result = client.table('campaigns').select('*').limit(1).execute()
+        logger.info("campaigns table exists")
         
-        print(f"\n[{i}/{len(profiles)}] Profile: {profile_id} - {profile_name} ({country})")
+        # Get count of existing records
+        count_result = client.table('campaigns').select('*', count='exact').execute()
+        existing_count = count_result.count if hasattr(count_result, 'count') else 0
+        logger.info(f"Existing records in campaigns table: {existing_count}")
         
-        # Skip if not US marketplace (for now)
-        if country != 'US':
-            print("  ⚠️  Skipping non-US marketplace")
-            continue
+        # Ask user if they want to clear existing data
+        if existing_count > 0:
+            response = input(f"Found {existing_count} existing records. Do you want to delete them first? (y/n): ")
+            if response.lower() == 'y':
+                client.table('campaigns').delete().neq('campaign_id', '0').execute()
+                logger.info("Cleared existing campaign data")
+        return True
+    except Exception as e:
+        logger.info(f"Table doesn't exist or error accessing it: {e}")
         
-        # Import campaigns
-        print("  Importing campaigns...")
-        counts = await campaign_service.import_campaigns_for_user(
-            user['id'], 
-            str(profile_id)
-        )
+    # Create table if it doesn't exist
+    try:
+        # Use SQL to create the table
+        create_table_sql = """
+        CREATE TABLE IF NOT EXISTS campaigns (
+            id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+            campaign_id TEXT NOT NULL,
+            portfolio_id TEXT,
+            type TEXT,
+            targeting_type TEXT,
+            bidding_strategy TEXT,
+            state TEXT,
+            name TEXT,
+            brand TEXT,
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            updated_at TIMESTAMPTZ DEFAULT NOW()
+        );
         
-        # Update totals
-        for key, value in counts.items():
-            total_counts[key] += value
+        -- Create indexes for commonly queried fields
+        CREATE INDEX IF NOT EXISTS idx_campaigns_campaign_id ON campaigns(campaign_id);
+        CREATE INDEX IF NOT EXISTS idx_campaigns_portfolio_id ON campaigns(portfolio_id);
+        CREATE INDEX IF NOT EXISTS idx_campaigns_brand ON campaigns(brand);
+        CREATE INDEX IF NOT EXISTS idx_campaigns_state ON campaigns(state);
+        CREATE INDEX IF NOT EXISTS idx_campaigns_type ON campaigns(type);
+        """
         
-        print(f"  ✓ Imported: DSP={counts['dsp']}, SP={counts['sponsored_products']}, "
-              f"SD={counts['sponsored_display']}, SB={counts['sponsored_brands']}")
-    
-    # Summary
-    print("\n" + "=" * 50)
-    print("Import Summary:")
-    print(f"  DSP Campaigns: {total_counts['dsp']}")
-    print(f"  Sponsored Products: {total_counts['sponsored_products']}")
-    print(f"  Sponsored Display: {total_counts['sponsored_display']}")
-    print(f"  Sponsored Brands: {total_counts['sponsored_brands']}")
-    print(f"  Total Campaigns: {total_counts['total']}")
-    print("=" * 50)
-    
-    return total_counts
-
-
-async def list_campaigns(email: str):
-    """List all campaigns for a user"""
-    print(f"\nListing campaigns for user: {email}")
-    print("=" * 50)
-    
-    # Get user
-    user = await db_service.get_user_by_email(email)
-    if not user:
-        print(f"✗ User not found: {email}")
-        return
-    
-    # Get campaigns
-    campaigns = await db_service.get_user_campaigns(user['id'])
-    if not campaigns:
-        print("No campaigns found")
-        return
-    
-    print(f"\nFound {len(campaigns)} campaigns:")
-    
-    # Group by type
-    by_type = {}
-    for campaign in campaigns:
-        campaign_type = campaign['campaign_type']
-        if campaign_type not in by_type:
-            by_type[campaign_type] = []
-        by_type[campaign_type].append(campaign)
-    
-    # Display by type
-    for campaign_type, type_campaigns in sorted(by_type.items()):
-        print(f"\n{campaign_type} Campaigns ({len(type_campaigns)}):")
-        for campaign in type_campaigns[:5]:  # Show first 5 of each type
-            brand_tag = campaign.get('brand_tag', '')
-            brand_str = f" [{brand_tag}]" if brand_tag else ""
-            print(f"  - {campaign['campaign_id']}: {campaign['campaign_name']}{brand_str}")
+        # Note: Supabase client doesn't support direct SQL execution for DDL
+        # We'll need to use the apply_migration approach
+        logger.error("Cannot create table directly via client. Please create the campaigns table manually or use migrations.")
+        return False
         
-        if len(type_campaigns) > 5:
-            print(f"  ... and {len(type_campaigns) - 5} more")
+    except Exception as e:
+        logger.error(f"Error creating table: {e}")
+        return False
 
-
-async def main():
-    """Main function"""
-    parser = argparse.ArgumentParser(description="Import campaigns from Amazon API")
-    parser.add_argument('--email', default='nick@nevermeh.com', help='User email')
-    parser.add_argument('--profiles', nargs='+', help='Specific profile IDs to import')
-    parser.add_argument('--list', action='store_true', help='List existing campaigns')
+def import_campaigns():
+    """Import campaigns from TSV file into Supabase."""
+    client = SupabaseManager.get_client(use_service_role=True)
     
-    args = parser.parse_args()
+    # Check/create table first
+    if not check_and_create_table():
+        # Try to proceed anyway - table might exist
+        pass
     
-    print("Amazon Campaign Importer")
-    print("=" * 50)
-    print(f"Start time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    file_path = '/root/amazon-helper/Campaigns.txt'
     
-    if args.list:
-        # List existing campaigns
-        await list_campaigns(args.email)
-    else:
-        # Import campaigns
-        await import_campaigns_for_email(args.email, args.profiles)
+    logger.info(f"Starting import from {file_path}")
     
-    print(f"\n✅ Campaign import completed!")
-    print(f"End time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            # Use csv.DictReader with tab delimiter
+            reader = csv.DictReader(file, delimiter='\t')
+            
+            campaigns = []
+            batch_size = 500  # Insert in batches
+            total_imported = 0
+            
+            for row_num, row in enumerate(reader, start=2):  # Start at 2 because line 1 is header
+                try:
+                    # Clean and prepare the data
+                    campaign = {
+                        'campaign_id': row['CAMPAIGN_ID'].strip() if row['CAMPAIGN_ID'] else None,
+                        'portfolio_id': row['PORTFOLIO_ID'].strip() if row['PORTFOLIO_ID'] else None,
+                        'type': row['TYPE'].strip() if row['TYPE'] else None,
+                        'targeting_type': row['TARGETING_TYPE'].strip() if row['TARGETING_TYPE'] else None,
+                        'bidding_strategy': row['BIDDING_STRATEGY'].strip() if row['BIDDING_STRATEGY'] else None,
+                        'state': row['STATE'].strip() if row['STATE'] else None,
+                        'name': row['NAME'].strip() if row['NAME'] else None,
+                        'brand': row['BRAND'].strip() if row['BRAND'] else None
+                    }
+                    
+                    # Skip rows with no campaign_id
+                    if not campaign['campaign_id']:
+                        logger.warning(f"Skipping row {row_num}: No campaign_id")
+                        continue
+                    
+                    campaigns.append(campaign)
+                    
+                    # Insert in batches
+                    if len(campaigns) >= batch_size:
+                        result = client.table('campaigns').insert(campaigns).execute()
+                        total_imported += len(campaigns)
+                        logger.info(f"Imported batch of {len(campaigns)} campaigns (total: {total_imported})")
+                        campaigns = []
+                        
+                except Exception as e:
+                    logger.error(f"Error processing row {row_num}: {e}")
+                    logger.error(f"Row data: {row}")
+                    continue
+            
+            # Insert remaining campaigns
+            if campaigns:
+                result = client.table('campaigns').insert(campaigns).execute()
+                total_imported += len(campaigns)
+                logger.info(f"Imported final batch of {len(campaigns)} campaigns")
+            
+            logger.info(f"✅ Import completed! Total campaigns imported: {total_imported}")
+            
+            # Verify import
+            count_result = client.table('campaigns').select('*', count='exact').execute()
+            db_count = count_result.count if hasattr(count_result, 'count') else 0
+            logger.info(f"Total campaigns in database: {db_count}")
+            
+            # Get some sample data to verify
+            sample = client.table('campaigns').select('*').limit(5).execute()
+            logger.info(f"Sample of imported data:")
+            for item in sample.data[:3]:
+                logger.info(f"  - {item['name']} ({item['campaign_id']}) - Brand: {item['brand']}, State: {item['state']}")
+            
+    except Exception as e:
+        logger.error(f"Error during import: {e}")
+        raise
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        import_campaigns()
+    except Exception as e:
+        logger.error(f"Import failed: {e}")
+        sys.exit(1)
