@@ -237,7 +237,7 @@ class AMCExecutionService:
             client = SupabaseManager.get_client(use_service_role=True)
             
             response = client.table('amc_instances')\
-                .select('*')\
+                .select('*, amc_accounts(*)')\
                 .eq('instance_id', instance_id)\
                 .execute()
             
@@ -252,7 +252,7 @@ class AMCExecutionService:
             client = SupabaseManager.get_client(use_service_role=True)
             
             response = client.table('workflows')\
-                .select('*, amc_instances(*)')\
+                .select('*, amc_instances(*, amc_accounts(*))')\
                 .eq('id', workflow_id)\
                 .execute()
             

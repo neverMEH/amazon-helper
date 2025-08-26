@@ -5,15 +5,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 ## ⚡ Critical Gotchas
 
 1. **AMC ID Duality**: Always use `instance_id` for AMC API calls, not the internal `id` UUID
-2. **Date Format**: AMC requires dates without timezone: `2025-07-15T00:00:00` (no 'Z')
-3. **Token Refresh**: Use `amc_api_client_with_retry` for automatic token handling
-4. **Async/Await**: Always await async methods, but Supabase client is synchronous (no await)
-5. **Type Imports**: Use `import type` for TypeScript type-only imports
-6. **Monaco Editor**: Must use pixel heights, not percentages
-7. **FastAPI Routes**: Collections need trailing slash for POST/PUT
-8. **Environment**: Use `python` not `python3` in scripts (alias if needed)
-9. **Schedule Deduplication**: Schedules check for recent runs within 5 minutes to prevent duplicates
-10. **Token Method**: Use `refresh_access_token()` not `refresh_token()` in TokenService
+2. **Entity ID Required**: AMC API calls require `entity_id` from `amc_accounts.account_id` (joined via `amc_instances.account_id` FK)
+3. **Date Format**: AMC requires dates without timezone: `2025-07-15T00:00:00` (no 'Z')
+4. **Token Refresh**: Use `amc_api_client_with_retry` for automatic token handling
+5. **Async/Await**: Always await async methods, but Supabase client is synchronous (no await)
+6. **Type Imports**: Use `import type` for TypeScript type-only imports
+7. **Monaco Editor**: Must use pixel heights, not percentages
+8. **FastAPI Routes**: Collections need trailing slash for POST/PUT
+9. **Environment**: Use `python` not `python3` in scripts (alias if needed)
+10. **Schedule Deduplication**: Schedules check for recent runs within 5 minutes to prevent duplicates
+11. **Token Method**: Use `refresh_access_token()` not `refresh_token()` in TokenService
 
 ## 🚀 Quick Start
 
@@ -68,6 +69,12 @@ amazon-helper/
 - `id` (UUID): Internal database primary key - NEVER use for AMC API calls
 - `instance_id` (string): AMC's actual instance identifier - ALWAYS use for AMC API calls
 - `instance_name` (string): Display name - Note: column is `instance_name` NOT `name`
+- `account_id` (UUID FK): References `amc_accounts.id` - MUST join to get `entity_id`
+
+### AMC Accounts
+- `id` (UUID): Internal database primary key
+- `account_id` (string): The actual entity ID for AMC API calls (e.g., "ENTITYEJZCBSCBH4HZ")
+- **CRITICAL**: Always join `amc_accounts` when fetching instances to get the `entity_id`
 
 ### Workflow Executions  
 - `id` (UUID): Internal database primary key
@@ -99,6 +106,14 @@ class MyService(DatabaseService):
     async def my_method(self):
         # Database operations auto-retry on disconnect
         pass
+
+# CRITICAL: Always join amc_accounts when fetching instances
+instance = db.table('amc_instances')\
+    .select('*, amc_accounts(*)')\  # ← REQUIRED for entity_id
+    .eq('instance_id', instance_id)\
+    .execute()
+
+entity_id = instance['amc_accounts']['account_id']  # This is the AMC entity ID
 
 # Token Management - Always use retry client for AMC operations
 from amc_manager.services.amc_api_client_with_retry import amc_api_client_with_retry
@@ -290,8 +305,13 @@ GET    /api/data-sources/
 GET    /api/data-sources/{id}
 ```
 
-## Recent Critical Fixes (2025-08-21)
+## Recent Critical Fixes
 
+### 2025-08-26
+1. **Entity ID Resolution**: Fixed schedule executions failing with "Unknown error" by properly joining `amc_accounts` table to retrieve `entity_id`
+2. **AMC API Requirements**: All AMC API calls require both `instance_id` and `entity_id` (from `amc_accounts.account_id`)
+
+### 2025-08-21
 1. **Schedule Executor Token Refresh**: Changed from `refresh_token()` to `refresh_access_token()`
 2. **Schedule Deduplication**: Added 5-minute window to prevent rapid re-executions
 3. **Next Run Updates**: Updates immediately to prevent infinite loops
