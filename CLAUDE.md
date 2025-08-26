@@ -191,6 +191,34 @@ user_guide_favorites       -- User's favorite guides
 
 ### "Failed to decrypt token"
 User must re-authenticate - FERNET_KEY may have changed
+```bash
+# Solution: User needs to log out and log back in with Amazon
+```
+
+### Schedule Executions Failing with "Unknown error"
+Missing entity_id from amc_accounts table
+```python
+# Fix: Ensure amc_instances joins amc_accounts
+.select('*, amc_accounts(*)')  # Required for entity_id
+```
+
+### "invalid input syntax for type timestamp with time zone: 'None'"
+Schedule has never run before (last_run_at is null)
+```python
+# Fix: Use proper null handling
+if last_run_at is not None:
+    query = query.eq('last_run_at', last_run_at)
+else:
+    query = query.is_('last_run_at', 'null')
+```
+
+### 500 Error on /api/amc-executions/{instance_id}/{execution_id}
+Execution failed before AMC submission (no amc_execution_id)
+```python
+# Fix: Return local error details instead of trying AMC API
+if not amc_execution_id:
+    return local_execution_details  # Don't call AMC API
+```
 
 ### Empty AMC Query Results
 - Check date format (no 'Z' suffix)
@@ -198,12 +226,13 @@ User must re-authenticate - FERNET_KEY may have changed
 
 ### 403 Forbidden on AMC API
 - Use `instance_id` not internal UUID
-- Ensure entity_id in headers
+- Ensure entity_id in headers from `amc_accounts.account_id`
 
 ### Schedule Not Executing
 - Check schedule is active
-- Verify user has valid tokens
+- Verify user has valid tokens (check for decryption errors)
 - Check timezone calculations
+- Verify entity_id is present in amc_accounts table
 
 ### TypeScript Build Errors
 ```bash
@@ -309,7 +338,18 @@ GET    /api/data-sources/{id}
 
 ### 2025-08-26
 1. **Entity ID Resolution**: Fixed schedule executions failing with "Unknown error" by properly joining `amc_accounts` table to retrieve `entity_id`
-2. **AMC API Requirements**: All AMC API calls require both `instance_id` and `entity_id` (from `amc_accounts.account_id`)
+   - Updated `amc_execution_service._get_instance()` to include `.select('*, amc_accounts(*)')`
+   - Updated `amc_execution_service._get_workflow_with_instance()` to include nested join
+   - Entity ID comes from `amc_accounts.account_id` field (e.g., "ENTITYEJZCBSCBH4HZ")
+
+2. **Null last_run_at Handling**: Fixed "invalid input syntax for type timestamp" error in schedule claiming
+   - Added proper null handling in `_atomic_claim_schedule()` method
+   - Uses `.is_('last_run_at', 'null')` for schedules that have never run
+
+3. **Failed Execution Endpoint**: Fixed 500 error for executions that failed before AMC submission
+   - Returns local error details when execution has no `amc_execution_id`
+   - Provides clear message that execution was not submitted to AMC
+   - Common cause: Token decryption failure requiring re-authentication
 
 ### 2025-08-21
 1. **Schedule Executor Token Refresh**: Changed from `refresh_token()` to `refresh_access_token()`
