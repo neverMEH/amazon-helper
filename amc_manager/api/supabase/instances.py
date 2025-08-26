@@ -1,9 +1,11 @@
 """AMC Instances API endpoints using Supabase"""
 
-from fastapi import APIRouter, HTTPException, Depends
-from typing import Dict, Any, List
+from fastapi import APIRouter, HTTPException, Depends, Query
+from typing import Dict, Any, List, Optional
 
 from ...services.db_service import db_service
+from ...services.instance_brand_mapping import get_brands_for_instance
+from ...core.supabase_client import SupabaseManager
 from ...core.logger_simple import get_logger
 from .auth import get_current_user
 
@@ -77,6 +79,89 @@ async def get_instance(
     except Exception as e:
         logger.error(f"Error fetching instance {instance_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch instance")
+
+
+@router.get("/{instance_id}/campaigns")
+async def get_instance_campaigns(
+    instance_id: str,
+    brand_tag: Optional[str] = Query(None, description="Filter by brand tag"),
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(50, ge=1, le=100, description="Items per page"),
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> List[Dict[str, Any]]:
+    """Get campaigns associated with an AMC instance based on brand matching"""
+    try:
+        # Get instance details
+        instance = await db_service.get_instance_by_id(instance_id)
+        if not instance:
+            raise HTTPException(status_code=404, detail="Instance not found")
+        
+        # Verify user has access
+        user_instances = await db_service.get_user_instances(current_user['id'])
+        if not any(inst['instance_id'] == instance_id for inst in user_instances):
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        # Get brand keywords from instance name
+        instance_name = instance.get('instance_name', '')
+        brand_keywords = get_brands_for_instance(instance_name)
+        
+        # Query campaigns from campaigns table
+        client = SupabaseManager.get_client(use_service_role=True)
+        query = client.table('campaigns').select('*')
+        
+        # Filter by brand if we have keywords
+        if brand_keywords and len(brand_keywords) > 0:
+            # Use OR condition for multiple brand matches
+            brand_filters = []
+            for brand in brand_keywords:
+                brand_filters.append(f"brand.ilike.%{brand}%")
+            
+            if len(brand_filters) == 1:
+                query = query.ilike('brand', f'%{brand_keywords[0]}%')
+            else:
+                # For multiple brands, we need to fetch all and filter in Python
+                # since Supabase doesn't support complex OR conditions easily
+                pass
+        
+        # Apply brand_tag filter if provided
+        if brand_tag:
+            query = query.eq('brand', brand_tag)
+        
+        # Apply pagination
+        offset = (page - 1) * page_size
+        query = query.range(offset, offset + page_size - 1)
+        
+        # Default to ENABLED campaigns
+        query = query.eq('state', 'ENABLED')
+        
+        result = query.execute()
+        campaigns = result.data
+        
+        # If we have multiple brand keywords, filter in Python
+        if brand_keywords and len(brand_keywords) > 1 and not brand_tag:
+            filtered_campaigns = []
+            for campaign in campaigns:
+                campaign_brand = (campaign.get('brand') or '').lower()
+                if any(keyword.lower() in campaign_brand for keyword in brand_keywords):
+                    filtered_campaigns.append(campaign)
+            campaigns = filtered_campaigns
+        
+        # Format response to match frontend expectations
+        return [{
+            "campaignId": str(campaign.get('campaign_id', '')),
+            "name": campaign.get('name', ''),
+            "type": campaign.get('type', 'sp').upper(),
+            "brandTag": campaign.get('brand', ''),
+            "asins": campaign.get('asins', []) if campaign.get('asins') else [],
+            "marketplaceId": campaign.get('marketplace_id', 'A1AM78C64UM0Y8'),
+            "createdAt": campaign.get('created_at', '')
+        } for campaign in campaigns]
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching campaigns for instance {instance_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch campaigns")
 
 
 @router.get("/{instance_id}/metrics")
