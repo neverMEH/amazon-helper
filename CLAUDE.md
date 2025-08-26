@@ -336,6 +336,12 @@ GET    /api/data-sources/{id}
 
 ## Recent Critical Fixes
 
+
+### 2025-08-26 - 21:00:34
+**fix**: Add git helper scripts and documentation
+**Context**: Backend/Project changes
+**Stats**:  4 files changed, 612 insertions(+)
+
 ### 2025-08-26
 1. **Entity ID Resolution**: Fixed schedule executions failing with "Unknown error" by properly joining `amc_accounts` table to retrieve `entity_id`
    - Updated `amc_execution_service._get_instance()` to include `.select('*, amc_accounts(*)')`
