@@ -141,13 +141,17 @@ class ScheduleExecutorService:
                     return False
             
             # Check schedule_runs table for very recent executions (double-check)
-            recent_runs = self.db.table('schedule_runs').select('created_at').eq(
+            # Exclude pending test runs from deduplication check
+            recent_runs = self.db.table('schedule_runs').select('created_at', 'status').eq(
                 'schedule_id', schedule_id
             ).gte('created_at', (datetime.utcnow() - timedelta(minutes=5)).isoformat()
             ).execute()
             
-            if recent_runs.data and len(recent_runs.data) > 0:
-                logger.info(f"Schedule {schedule_id} has {len(recent_runs.data)} recent runs, skipping")
+            # Filter out pending test runs (status='pending' are typically test runs waiting to execute)
+            actual_runs = [r for r in (recent_runs.data or []) if r.get('status') != 'pending']
+            
+            if actual_runs and len(actual_runs) > 0:
+                logger.info(f"Schedule {schedule_id} has {len(actual_runs)} recent non-pending runs, skipping")
                 # IMPORTANT: If this was a test run that's now overdue, reset next_run_at
                 if next_run_at and time_until_due < -300:  # More than 5 minutes overdue
                     logger.info(f"Schedule {schedule_id} appears stuck after test run, will reset next_run_at after skipping")
@@ -211,7 +215,25 @@ class ScheduleExecutorService:
                     
                     # Create schedule run record (only on first attempt)
                     if execution_attempts == 1:
-                        run_id = await self.create_schedule_run(schedule, is_test_run=is_test_run)
+                        # Check if there's already a pending test run record
+                        if is_test_run:
+                            pending_run = self.db.table('schedule_runs').select('id').eq(
+                                'schedule_id', schedule['id']
+                            ).eq('status', 'pending').order('created_at', desc=True).limit(1).execute()
+                            
+                            if pending_run.data and len(pending_run.data) > 0:
+                                # Use existing pending run
+                                run_id = pending_run.data[0]['id']
+                                # Update it to running status
+                                self.db.table('schedule_runs').update({
+                                    'status': 'running',
+                                    'started_at': datetime.utcnow().isoformat()
+                                }).eq('id', run_id).execute()
+                                logger.info(f"Using existing test run record {run_id}")
+                            else:
+                                run_id = await self.create_schedule_run(schedule, is_test_run=is_test_run)
+                        else:
+                            run_id = await self.create_schedule_run(schedule, is_test_run=is_test_run)
                     
                     # Ensure fresh token
                     user_id = schedule.get('user_id') or workflow.get('user_id')

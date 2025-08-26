@@ -337,6 +337,12 @@ GET    /api/data-sources/{id}
 ## Recent Critical Fixes
 
 
+### 2025-08-26 - 21:29:43
+**fix**: Fix schedule test runs and lookback period defaults
+**Context**: Backend/Project changes
+**Stats**:  4 files changed, 51 insertions(+), 8 deletions(-)
+
+
 ### 2025-08-26 - 21:00:34
 **fix**: Add git helper scripts and documentation
 **Context**: Backend/Project changes

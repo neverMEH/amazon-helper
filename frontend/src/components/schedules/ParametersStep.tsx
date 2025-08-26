@@ -31,12 +31,24 @@ const ParametersStep: React.FC<ParametersStepProps> = ({ config, onChange, onNex
     if (config.type === 'monthly') {
       return 30;
     }
-    return 1; // Daily
+    if (config.type === 'daily') {
+      return 7; // Default to 7 days for daily schedules instead of 1
+    }
+    return 7; // Default fallback
   };
 
   const handleLookbackChange = (value: string) => {
+    // Allow empty string for typing
+    if (value === '') {
+      onChange({
+        ...config,
+        lookbackDays: undefined,
+      });
+      return;
+    }
+    
     const numValue = parseInt(value, 10);
-    if (!isNaN(numValue) && numValue > 0) {
+    if (!isNaN(numValue) && numValue >= 1 && numValue <= 365) {
       onChange({
         ...config,
         lookbackDays: numValue,
@@ -64,8 +76,14 @@ const ParametersStep: React.FC<ParametersStepProps> = ({ config, onChange, onNex
             <div className="flex items-center space-x-2">
               <input
                 type="number"
-                value={config.lookbackDays || getDefaultLookbackDays()}
+                value={config.lookbackDays !== undefined ? config.lookbackDays : getDefaultLookbackDays()}
                 onChange={(e) => handleLookbackChange(e.target.value)}
+                onKeyDown={(e) => {
+                  // Prevent 'e' and other non-numeric characters
+                  if (['e', 'E', '+', '-'].includes(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
                 min="1"
                 max="365"
                 className="px-3 py-2 border border-gray-300 rounded-lg bg-white w-24 focus:ring-blue-500 focus:border-blue-500"

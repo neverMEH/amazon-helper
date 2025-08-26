@@ -107,7 +107,9 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
               ? '7 days'
               : config.type === 'monthly'
               ? '30 days'
-              : '1 day'}
+              : config.type === 'daily'
+              ? '7 days'
+              : '7 days'}
           </span>
         </div>
 

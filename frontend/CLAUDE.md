@@ -445,3 +445,9 @@ Tests are in `tests/e2e/` directory:
 - Solution: Use explicit pixel height (400px) for Monaco Editor
 - Modal uses flex column with proper section management
 - Key learning: Monaco Editor requires pixel heights, not percentages
+## Recent Critical Fixes
+
+### 2025-08-26 - 21:29:43
+**fix**: Fix schedule test runs and lookback period defaults
+**Context**: Frontend changes
+**Stats**:  4 files changed, 51 insertions(+), 8 deletions(-)

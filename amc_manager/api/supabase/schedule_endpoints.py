@@ -483,6 +483,7 @@ async def test_run_schedule(
             raise HTTPException(status_code=500, detail="Failed to create test run")
         
         # Update the schedule's next_run_at to trigger the executor
+        # Don't update last_run_at - let the executor handle that when it claims the schedule
         db.table('workflow_schedules').update({
             'next_run_at': scheduled_at.isoformat()
         }).eq('schedule_id', schedule_id).execute()
