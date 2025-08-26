@@ -159,6 +159,7 @@ const ScheduleManager: React.FC = () => {
             </p>
           )}
           
+          {/* Brands display temporarily disabled - brands field not yet in database
           {schedule.workflows?.amc_instances?.brands && schedule.workflows.amc_instances.brands.length > 0 && (
             <div className="flex flex-wrap gap-1 mb-2">
               {schedule.workflows.amc_instances.brands.slice(0, 2).map((brand) => (
@@ -175,7 +176,7 @@ const ScheduleManager: React.FC = () => {
                 </span>
               )}
             </div>
-          )}
+          )} */}
 
           <div className="space-y-2 text-sm text-gray-600">
             <div className="flex items-center">
@@ -255,6 +256,7 @@ const ScheduleManager: React.FC = () => {
                       {schedule.description}
                     </div>
                   )}
+                  {/* Brands display temporarily disabled - brands field not yet in database
                   {schedule.workflows?.amc_instances?.brands && schedule.workflows.amc_instances.brands.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1">
                       {schedule.workflows.amc_instances.brands.slice(0, 3).map((brand) => (
@@ -271,7 +273,7 @@ const ScheduleManager: React.FC = () => {
                         </span>
                       )}
                     </div>
-                  )}
+                  )} */}
                 </div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">

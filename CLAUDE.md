@@ -337,6 +337,12 @@ GET    /api/data-sources/{id}
 ## Recent Critical Fixes
 
 
+### 2025-08-26 - 21:47:26
+**fix**: fix: Remove brands field references - column doesn't exist yet
+**Context**: Backend/Project changes
+**Stats**:  4 files changed, 11 insertions(+), 8 deletions(-)
+
+
 ### 2025-08-26 - 21:42:23
 **fix**: feat: Add instance brand names to schedule displays
 **Context**: Backend/Project changes
