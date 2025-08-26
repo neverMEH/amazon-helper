@@ -231,8 +231,8 @@ class ScheduleExecutorService:
                     instance = instance_result.data
                     
                     # Debug logging for scheduled execution
-                    logger.info(f"Schedule execution instance data: id={instance.get('id')}, instance_id={instance.get('instance_id')}, instance_name={instance.get('instance_name')}")
-                    logger.info(f"Schedule execution parameters: {params}")
+                    logger.info(f"Retrieved instance for schedule: UUID={instance.get('id')}, AMC_ID={instance.get('instance_id')}, Name={instance.get('instance_name')}")
+                    logger.info(f"Date parameters: startDate={params.get('startDate')}, endDate={params.get('endDate')}")
                     
                     # Execute workflow
                     execution = await self.execute_workflow(
@@ -577,13 +577,14 @@ class ScheduleExecutorService:
             
             # Use the amc_execution_service to execute the workflow
             logger.info(f"Executing workflow {workflow_id} via amc_execution_service (attempt {attempt_number})")
-            logger.info(f"Instance data passed to execution: instance_id={instance.get('instance_id')}, full instance={instance}")
             
             # Make sure we have the AMC instance ID
             amc_instance_id = instance.get('instance_id')
             if not amc_instance_id:
-                logger.error(f"No instance_id found in instance data: {instance}")
+                logger.error(f"No instance_id found in instance data. Instance UUID: {instance.get('id')}, Instance name: {instance.get('instance_name')}")
                 raise ValueError(f"AMC instance ID not found for instance {instance.get('id')}")
+            
+            logger.info(f"Using AMC instance_id: {amc_instance_id} for scheduled execution")
             
             result = await amc_execution_service.execute_workflow(
                 workflow_id=workflow_id,
