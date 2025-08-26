@@ -6970,3 +6970,54 @@ INFO:     127.0.0.1:52910 - "GET /api/debug/routes HTTP/1.1" 200 OK
 2025-08-26 09:35:50 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
 2025-08-26 09:35:50 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 925c6040-1e6c-4209-80ca-94e2223c99d4 for workflow wf_105b9b4d
 2025-08-26 09:35:50 - amc_manager.services.schedule_executor_service - INFO - Schedule 925c6040-1e6c-4209-80ca-94e2223c99d4 has a recent run within 5 minutes, skipping
+2025-08-26 09:36:50 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
+2025-08-26 09:36:50 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 925c6040-1e6c-4209-80ca-94e2223c99d4 for workflow wf_105b9b4d
+2025-08-26 09:36:50 - amc_manager.services.schedule_executor_service - INFO - Schedule 925c6040-1e6c-4209-80ca-94e2223c99d4 has a recent run within 5 minutes, skipping
+2025-08-26 09:37:50 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
+2025-08-26 09:37:50 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 925c6040-1e6c-4209-80ca-94e2223c99d4 for workflow wf_105b9b4d
+2025-08-26 09:37:50 - amc_manager.services.enhanced_schedule_service - ERROR - Error updating schedule 925c6040-1e6c-4209-80ca-94e2223c99d4: {'message': "Could not find the 'execution_count' column of 'workflow_schedules' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2025-08-26 09:37:51 - amc_manager.services.schedule_executor_service - INFO - Executing workflow 6df2f7c0-07d4-448b-a7f8-2ffe81aeebc2 via amc_execution_service for schedule
+2025-08-26 09:37:51 - amc_manager.services.amc_execution_service - INFO - Looking up instance by instance_id: amcibersblt
+2025-08-26 09:37:51 - amc_manager.services.amc_execution_service - INFO - Found instance: recommercesupergoopus (id: 132dfc74-b6af-4213-84ce-2b1b938da3e9)
+2025-08-26 09:37:51 - amc_manager.services.amc_execution_service - INFO - Checking user fe841586-7807-48b1-8808-02877834fce0 access to instance amcibersblt
+2025-08-26 09:37:51 - amc_manager.services.db_service - INFO - Found 2 accounts for user fe841586-7807-48b1-8808-02877834fce0
+2025-08-26 09:37:51 - amc_manager.services.db_service - INFO - Account IDs: ['8f98729a-49a3-4dbe-849c-f57bd43c6117', 'a58f153b-ff5f-48c3-88c5-7b3d31a3966b']
+2025-08-26 09:37:51 - amc_manager.services.db_service - INFO - Found 58 instances
+2025-08-26 09:37:51 - amc_manager.services.amc_execution_service - INFO - User has access to instance amcibersblt
+2025-08-26 09:37:51 - amc_manager.services.amc_execution_service - INFO - Execution parameters received: {'startDate': '2025-08-11T00:00:00', 'endDate': '2025-08-12T23:59:59', '_schedule_id': '925c6040-1e6c-4209-80ca-94e2223c99d4', '_scheduled_execution': True, '_schedule_run_id': 'dc53738c-b537-42aa-ae45-053393903d65', '_triggered_by': 'schedule'}
+2025-08-26 09:37:51 - amc_manager.services.amc_execution_service - INFO - Workflow default parameters: {}
+2025-08-26 09:37:51 - amc_manager.services.amc_execution_service - INFO - Prepared SQL query (first 500 chars): -- Performance by ad product type
+SELECT 
+    COALESCE(ad_product_type, 'Amazon DSP') as product_type,
+    SUM(total_purchases) as purchases,
+    SUM(total_product_sales) as sales
+FROM amazon_attributed_events_by_conversion_time
+WHERE conversion_event_category = 'purchase'
+GROUP BY ad_product_type;
+2025-08-26 09:37:51 - amc_manager.services.amc_execution_service - INFO - Workflow versioning not available yet: {'message': 'relation "public.workflow_versions" does not exist', 'code': '42P01', 'hint': None, 'details': None}
+2025-08-26 09:37:51 - amc_manager.services.token_refresh_service - INFO - Ensuring fresh token before workflow execution for user fe841586-7807-48b1-8808-02877834fce0
+2025-08-26 09:37:51 - amc_manager.services.token_refresh_service - INFO - Added user fe841586-7807-48b1-8808-02877834fce0 to token refresh tracking
+2025-08-26 09:37:51 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-08-26 09:37:51 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABorXh7Pp5uGXIz
+2025-08-26 09:37:51 - amc_manager.services.amc_execution_service - ERROR - Token decryption failed - likely due to key mismatch: Failed to decrypt token: 
+2025-08-26 09:37:52 - amc_manager.services.schedule_executor_service - ERROR - Error executing workflow 6df2f7c0-07d4-448b-a7f8-2ffe81aeebc2: Failed to execute workflow: Unknown error
+2025-08-26 09:37:52 - amc_manager.services.schedule_executor_service - ERROR - Error executing schedule 925c6040-1e6c-4209-80ca-94e2223c99d4: Failed to execute workflow: Unknown error
+Traceback (most recent call last):
+  File "/root/amazon-helper/amc_manager/services/schedule_executor_service.py", line 157, in execute_schedule
+    execution = await self.execute_workflow(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/amazon-helper/amc_manager/services/schedule_executor_service.py", line 439, in execute_workflow
+    raise Exception(f"Failed to execute workflow: {error_msg}")
+Exception: Failed to execute workflow: Unknown error
+2025-08-26 09:37:52 - amc_manager.services.schedule_executor_service - INFO - Would send failure notification for schedule 925c6040-1e6c-4209-80ca-94e2223c99d4: Failed to execute workflow: Unknown error
+2025-08-26 09:38:50 - amc_manager.services.schedule_executor_service - INFO - Found 1 due schedules
+2025-08-26 09:38:50 - amc_manager.services.schedule_executor_service - INFO - Executing schedule 925c6040-1e6c-4209-80ca-94e2223c99d4 for workflow wf_105b9b4d
+2025-08-26 09:38:50 - amc_manager.services.schedule_executor_service - INFO - Schedule 925c6040-1e6c-4209-80ca-94e2223c99d4 has a recent run within 5 minutes, skipping
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-08-26 09:39:24 - main_supabase - INFO - Shutting down Recom AMP application...
+2025-08-26 09:39:24 - amc_manager.services.token_refresh_service - INFO - Token refresh loop cancelled
+2025-08-26 09:39:24 - amc_manager.services.token_refresh_service - INFO - Token refresh service stopped
+2025-08-26 09:39:24 - amc_manager.services.schedule_executor_service - INFO - Stopping Schedule Executor Service
+INFO:     Application shutdown complete.
+INFO:     Finished server process [2401574]

@@ -121,19 +121,31 @@ def list_brands(
     try:
         client = SupabaseManager.get_client(use_service_role=True)
         
-        # Get all unique brands
-        result = client.table('campaigns').select('brand').execute()
+        # Get total count first
+        count_result = client.table('campaigns').select('*', count='exact').limit(1).execute()
+        total_count = count_result.count if hasattr(count_result, 'count') else 0
         
-        # Extract unique brands
+        # Extract all unique brands by fetching in batches
         brands = set()
-        for campaign in result.data:
-            if campaign.get('brand'):
-                brands.add(campaign['brand'])
+        batch_size = 1000
+        offset = 0
         
-        # Count campaigns per brand
+        while offset < total_count:
+            result = client.table('campaigns').select('brand').range(offset, offset + batch_size - 1).execute()
+            
+            if not result.data:
+                break
+                
+            for campaign in result.data:
+                if campaign.get('brand'):
+                    brands.add(campaign['brand'])
+            
+            offset += batch_size
+        
+        # Count campaigns per brand (these counts use Supabase's count feature which works correctly)
         brand_counts = {}
         for brand in brands:
-            count_result = client.table('campaigns').select('*', count='exact').eq('brand', brand).execute()
+            count_result = client.table('campaigns').select('*', count='exact').eq('brand', brand).limit(1).execute()
             brand_counts[brand] = count_result.count if hasattr(count_result, 'count') else 0
         
         return [
@@ -153,35 +165,48 @@ def get_campaign_stats(
     try:
         client = SupabaseManager.get_client(use_service_role=True)
         
-        # Get all campaigns for stats
-        result = client.table('campaigns').select('*').execute()
-        campaigns = result.data
+        # Get total count first
+        count_result = client.table('campaigns').select('*', count='exact').limit(1).execute()
+        total_count = count_result.count if hasattr(count_result, 'count') else 0
         
-        # Calculate stats
+        # Initialize stats
         stats = {
-            "total_campaigns": len(campaigns),
+            "total_campaigns": total_count,
             "by_state": {},
             "by_type": {},
             "by_brand": {},
             "by_targeting": {}
         }
         
-        for campaign in campaigns:
-            # By state
-            state = campaign.get('state', 'UNKNOWN')
-            stats['by_state'][state] = stats['by_state'].get(state, 0) + 1
+        # Fetch campaigns in batches to avoid the 1000 row limit
+        batch_size = 1000
+        offset = 0
+        
+        while offset < total_count:
+            result = client.table('campaigns').select('*').range(offset, offset + batch_size - 1).execute()
+            campaigns = result.data
             
-            # By type
-            camp_type = campaign.get('type', 'unknown')
-            stats['by_type'][camp_type] = stats['by_type'].get(camp_type, 0) + 1
+            if not campaigns:
+                break
+                
+            for campaign in campaigns:
+                # By state
+                state = campaign.get('state', 'UNKNOWN')
+                stats['by_state'][state] = stats['by_state'].get(state, 0) + 1
+                
+                # By type
+                camp_type = campaign.get('type', 'unknown')
+                stats['by_type'][camp_type] = stats['by_type'].get(camp_type, 0) + 1
+                
+                # By brand
+                brand = campaign.get('brand', 'untagged')
+                stats['by_brand'][brand] = stats['by_brand'].get(brand, 0) + 1
+                
+                # By targeting type
+                targeting = campaign.get('targeting_type', 'unknown')
+                stats['by_targeting'][targeting] = stats['by_targeting'].get(targeting, 0) + 1
             
-            # By brand
-            brand = campaign.get('brand', 'untagged')
-            stats['by_brand'][brand] = stats['by_brand'].get(brand, 0) + 1
-            
-            # By targeting type
-            targeting = campaign.get('targeting_type', 'unknown')
-            stats['by_targeting'][targeting] = stats['by_targeting'].get(targeting, 0) + 1
+            offset += batch_size
         
         return stats
     except Exception as e:
