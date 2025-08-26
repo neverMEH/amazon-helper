@@ -19,6 +19,10 @@ __pycache__/
 .Python
 *.so
 
+# Backup files
+*_backup_*.py
+schedule_executor_service_backup_*.py
+
 # Environment variables
 .env
 .env.*
