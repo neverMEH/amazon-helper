@@ -16,7 +16,8 @@ import {
   CalendarDays,
   RefreshCw,
   Loader,
-  Activity
+  Activity,
+  Timer
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { format, parseISO } from 'date-fns';
@@ -24,6 +25,7 @@ import { scheduleService } from '../services/scheduleService';
 import type { Schedule } from '../types/schedule';
 import ScheduleWizard from '../components/schedules/ScheduleWizard';
 import ScheduleDetailModal from '../components/schedules/ScheduleDetailModal';
+import ScheduleRunModal from '../components/schedules/ScheduleRunModal';
 
 type ViewMode = 'grid' | 'list' | 'calendar';
 
@@ -33,6 +35,7 @@ const ScheduleManager: React.FC = () => {
   const [showCreateWizard, setShowCreateWizard] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showScheduleRunModal, setShowScheduleRunModal] = useState(false);
   const [filterActive, setFilterActive] = useState<boolean | null>(null);
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
   const [hasRecentActivity, setHasRecentActivity] = useState(false);
@@ -138,6 +141,27 @@ const ScheduleManager: React.FC = () => {
     },
   });
 
+  // Schedule run mutation
+  const scheduleRunMutation = useMutation({
+    mutationFn: ({ scheduleId, scheduledTime }: { scheduleId: string; scheduledTime: Date }) => 
+      scheduleService.scheduleRunAtTime(scheduleId, scheduledTime),
+    onSuccess: (data) => {
+      const scheduledTime = new Date(data.scheduled_at);
+      toast.success(
+        `Run scheduled for ${format(scheduledTime, 'MMM d, h:mm a')}`,
+        { duration: 5000 }
+      );
+      // Set recent activity flag to enable auto-refresh
+      setHasRecentActivity(true);
+      // Refresh schedules to show the pending run
+      queryClient.invalidateQueries({ queryKey: ['schedules'] });
+      setShowScheduleRunModal(false);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to schedule run');
+    },
+  });
+
   const getStatusIcon = (schedule: Schedule) => {
     if (!schedule.is_active) {
       return <PowerOff className="w-4 h-4 text-gray-400" />;
@@ -184,6 +208,7 @@ const ScheduleManager: React.FC = () => {
                   });
                 }}
                 className="p-1 hover:bg-gray-100 rounded"
+                title={schedule.is_active ? 'Disable schedule' : 'Enable schedule'}
               >
                 <Power className="w-4 h-4 text-gray-600" />
               </button>
@@ -193,8 +218,20 @@ const ScheduleManager: React.FC = () => {
                   testRunMutation.mutate(schedule.schedule_id);
                 }}
                 className="p-1 hover:bg-gray-100 rounded"
+                title="Quick test (runs in 1 minute)"
               >
                 <Play className="w-4 h-4 text-gray-600" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedSchedule(schedule);
+                  setShowScheduleRunModal(true);
+                }}
+                className="p-1 hover:bg-gray-100 rounded"
+                title="Schedule run today"
+              >
+                <Timer className="w-4 h-4 text-gray-600" />
               </button>
             </div>
           </div>
@@ -345,14 +382,26 @@ const ScheduleManager: React.FC = () => {
                       enable: !schedule.is_active,
                     })}
                     className="text-gray-600 hover:text-gray-900"
+                    title={schedule.is_active ? 'Disable' : 'Enable'}
                   >
                     <Power className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => testRunMutation.mutate(schedule.schedule_id)}
                     className="text-gray-600 hover:text-gray-900"
+                    title="Quick test"
                   >
                     <Play className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedSchedule(schedule);
+                      setShowScheduleRunModal(true);
+                    }}
+                    className="text-gray-600 hover:text-gray-900"
+                    title="Schedule run"
+                  >
+                    <Timer className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => {
@@ -361,6 +410,7 @@ const ScheduleManager: React.FC = () => {
                       }
                     }}
                     className="text-red-600 hover:text-red-900"
+                    title="Delete"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -508,6 +558,23 @@ const ScheduleManager: React.FC = () => {
             setShowDetailModal(false);
             setSelectedSchedule(null);
             queryClient.invalidateQueries({ queryKey: ['schedules'] });
+          }}
+        />
+      )}
+
+      {/* Schedule Run Modal */}
+      {selectedSchedule && showScheduleRunModal && (
+        <ScheduleRunModal
+          schedule={selectedSchedule}
+          onSchedule={async (scheduledTime) => {
+            await scheduleRunMutation.mutateAsync({
+              scheduleId: selectedSchedule.schedule_id,
+              scheduledTime
+            });
+          }}
+          onClose={() => {
+            setShowScheduleRunModal(false);
+            setSelectedSchedule(null);
           }}
         />
       )}

@@ -448,6 +448,12 @@ Tests are in `tests/e2e/` directory:
 ## Recent Critical Fixes
 
 
+### 2025-08-27 - 10:04:06
+**fix**: feat: Add ability to schedule workflow runs at specific times today
+**Context**: Frontend changes
+**Stats**:  5 files changed, 470 insertions(+), 69 deletions(-)
+
+
 ### 2025-08-27 - 09:24:53
 **fix**: Fix schedule execution failures - Add entity_id join and improve error handling
 **Context**: Frontend changes

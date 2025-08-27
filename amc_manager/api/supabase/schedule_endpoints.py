@@ -501,6 +501,110 @@ async def test_run_schedule(
         raise HTTPException(status_code=500, detail="Failed to run test schedule")
 
 
+@router.post("/schedules/{schedule_id}/schedule-run")
+async def schedule_run_at_time(
+    schedule_id: str,
+    body: Dict[str, Any] = Body(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """Schedule a run at a specific time (must be at least 5 minutes from now and within 24 hours)"""
+    try:
+        # Extract scheduled_time and optional parameters from body
+        scheduled_time_str = body.get('scheduled_time')
+        parameters = body.get('parameters')
+        
+        if not scheduled_time_str:
+            raise HTTPException(status_code=400, detail="scheduled_time is required")
+        
+        # Parse the scheduled time
+        try:
+            scheduled_at = datetime.fromisoformat(scheduled_time_str.replace('Z', '+00:00'))
+            # Convert to UTC if timezone aware
+            if scheduled_at.tzinfo:
+                scheduled_at = scheduled_at.replace(tzinfo=None)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid datetime format")
+        
+        # Validate time constraints
+        now = datetime.utcnow()
+        min_time = now + timedelta(minutes=5)
+        max_time = now + timedelta(hours=24)
+        
+        if scheduled_at < min_time:
+            raise HTTPException(
+                status_code=400, 
+                detail="Scheduled time must be at least 5 minutes from now"
+            )
+        
+        if scheduled_at > max_time:
+            raise HTTPException(
+                status_code=400,
+                detail="Scheduled time must be within 24 hours from now"
+            )
+        
+        # Check ownership
+        schedule = schedule_service.get_schedule(schedule_id)
+        if not schedule:
+            raise HTTPException(status_code=404, detail="Schedule not found")
+        
+        if schedule.get('user_id') != current_user['id']:
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        # Create a schedule run entry
+        from ...core.supabase_client import SupabaseManager
+        import uuid
+        
+        db = SupabaseManager.get_client()
+        
+        # Get the last run number
+        last_run = db.table('schedule_runs').select('run_number').eq(
+            'schedule_id', schedule['id']
+        ).order('run_number', desc=True).limit(1).execute()
+        
+        run_number = 1
+        if last_run.data and len(last_run.data) > 0:
+            run_number = last_run.data[0]['run_number'] + 1
+        
+        # Create the scheduled run entry
+        # Include scheduled run flag in parameters
+        run_parameters = parameters or schedule.get('default_parameters', {})
+        run_parameters['__is_scheduled_run'] = True
+        
+        run_data = {
+            'id': str(uuid.uuid4()),
+            'schedule_id': schedule['id'],
+            'run_number': run_number,
+            'scheduled_at': scheduled_at.isoformat(),
+            'status': 'pending',
+            # 'is_scheduled_run': True,  # Future column for scheduled runs
+            # 'parameters': run_parameters  # Future column for run-specific parameters
+        }
+        
+        result = db.table('schedule_runs').insert(run_data).execute()
+        
+        if not result.data:
+            raise HTTPException(status_code=500, detail="Failed to create scheduled run")
+        
+        # Update the schedule's next_run_at if this is sooner than the existing next_run_at
+        current_next_run = schedule.get('next_run_at')
+        if not current_next_run or scheduled_at < datetime.fromisoformat(current_next_run.replace('Z', '+00:00')):
+            db.table('workflow_schedules').update({
+                'next_run_at': scheduled_at.isoformat()
+            }).eq('schedule_id', schedule_id).execute()
+        
+        return {
+            "message": "Run scheduled successfully",
+            "scheduled_at": scheduled_at.isoformat(),
+            "run_id": run_data['id']
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error scheduling run: {e}")
+        raise HTTPException(status_code=500, detail="Failed to schedule run")
+
+
 @router.get("/schedules/{schedule_id}/runs")
 async def get_schedule_runs(
     schedule_id: str,

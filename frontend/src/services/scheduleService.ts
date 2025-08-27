@@ -116,6 +116,25 @@ class ScheduleService {
   }
 
   /**
+   * Schedule a run at a specific time
+   */
+  async scheduleRunAtTime(
+    scheduleId: string, 
+    scheduledTime: Date, 
+    parameters?: Record<string, any>
+  ): Promise<{
+    message: string;
+    scheduled_at: string;
+    run_id: string;
+  }> {
+    const response = await api.post(`/schedules/${scheduleId}/schedule-run`, {
+      scheduled_time: scheduledTime.toISOString(),
+      parameters
+    });
+    return response.data;
+  }
+
+  /**
    * Get schedule run history
    */
   async getScheduleRuns(
