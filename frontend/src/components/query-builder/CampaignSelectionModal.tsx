@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Search, Megaphone, CheckSquare, Square, Filter } from 'lucide-react';
+import { X, Search, Megaphone, CheckSquare, Square } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import campaignService from '../../services/campaignService';
+import campaignService, { type Campaign } from '../../services/campaignService';
 import LoadingSpinner from '../LoadingSpinner';
 
 interface CampaignSelectionModalProps {
@@ -27,7 +27,7 @@ const CampaignSelectionModal: React.FC<CampaignSelectionModalProps> = ({
   const [selectedBrand, setSelectedBrand] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [selectedCampaigns, setSelectedCampaigns] = useState<Set<string>>(new Set());
-  const [page, setPage] = useState(1);
+  const [page] = useState(1);
   const pageSize = 100;
 
   // Initialize selected campaigns from current value
@@ -68,7 +68,7 @@ const CampaignSelectionModal: React.FC<CampaignSelectionModalProps> = ({
   const brands = useMemo(() => {
     if (!campaignsData?.campaigns) return [];
     const brandSet = new Set<string>();
-    campaignsData.campaigns.forEach(campaign => {
+    campaignsData.campaigns.forEach((campaign: Campaign) => {
       if (campaign.brand_name) {
         brandSet.add(campaign.brand_name);
       }
@@ -77,10 +77,10 @@ const CampaignSelectionModal: React.FC<CampaignSelectionModalProps> = ({
   }, [campaignsData]);
 
   // Filter campaigns based on search
-  const filteredCampaigns = useMemo(() => {
+  const filteredCampaigns = useMemo((): Campaign[] => {
     if (!campaignsData?.campaigns) return [];
     
-    return campaignsData.campaigns.filter(campaign => {
+    return campaignsData.campaigns.filter((campaign: Campaign) => {
       if (!searchQuery) return true;
       const query = searchQuery.toLowerCase();
       return (
@@ -108,18 +108,18 @@ const CampaignSelectionModal: React.FC<CampaignSelectionModalProps> = ({
   };
 
   const handleSelectAll = () => {
-    const allVisible = filteredCampaigns.map(c => c.campaign_id);
-    const allSelected = allVisible.every(id => selectedCampaigns.has(id));
+    const allVisible = filteredCampaigns.map((c: Campaign) => c.campaign_id);
+    const allSelected = allVisible.every((id: string) => selectedCampaigns.has(id));
     
     if (allSelected) {
       // Deselect all visible
       const newSelection = new Set(selectedCampaigns);
-      allVisible.forEach(id => newSelection.delete(id));
+      allVisible.forEach((id: string) => newSelection.delete(id));
       setSelectedCampaigns(newSelection);
     } else {
       // Select all visible
       const newSelection = new Set(selectedCampaigns);
-      allVisible.forEach(id => newSelection.add(id));
+      allVisible.forEach((id: string) => newSelection.add(id));
       setSelectedCampaigns(newSelection);
     }
   };
@@ -209,7 +209,7 @@ const CampaignSelectionModal: React.FC<CampaignSelectionModalProps> = ({
                 onClick={handleSelectAll}
                 className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
               >
-                {filteredCampaigns.every(c => selectedCampaigns.has(c.campaign_id)) 
+                {filteredCampaigns.every((c: Campaign) => selectedCampaigns.has(c.campaign_id)) 
                   ? 'Deselect All' 
                   : 'Select All Visible'
                 }
@@ -247,7 +247,7 @@ const CampaignSelectionModal: React.FC<CampaignSelectionModalProps> = ({
             </div>
           ) : (
             <div className="space-y-2">
-              {filteredCampaigns.map(campaign => (
+              {filteredCampaigns.map((campaign: Campaign) => (
                 <div
                   key={campaign.campaign_id}
                   className={`flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer ${

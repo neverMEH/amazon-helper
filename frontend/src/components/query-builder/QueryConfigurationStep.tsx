@@ -257,7 +257,7 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
                   ) : paramType === 'number' ? (
                     <input
                       type="number"
-                      value={value}
+                      value={value as number}
                       onChange={(e) => handleParameterChange(param, parseInt(e.target.value) || 0)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                     />
