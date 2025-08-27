@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   X,
   Clock,
@@ -14,7 +14,9 @@ import {
   ChevronDown,
   XCircle as ClearIcon,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  RefreshCw,
+  Loader
 } from 'lucide-react';
 import { format, parseISO, subDays, isAfter } from 'date-fns';
 import { scheduleService } from '../../services/scheduleService';
@@ -33,9 +35,11 @@ type SortBy = 'lastRun' | 'scheduled' | 'runNumber' | 'duration' | 'status';
 type SortOrder = 'asc' | 'desc';
 
 const ScheduleHistory: React.FC<ScheduleHistoryProps> = ({ schedule: initialSchedule, onClose }) => {
+  const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState<ViewMode>('timeline');
   const [selectedRun, setSelectedRun] = useState<ScheduleRun | null>(null);
   const [showExecutionDetail, setShowExecutionDetail] = useState(false);
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
   
   // Filter states
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -56,12 +60,14 @@ const ScheduleHistory: React.FC<ScheduleHistoryProps> = ({ schedule: initialSche
 
   // State to track if we should be polling
   const [shouldPoll, setShouldPoll] = useState(false);
+  const [hasRecentTestRun, setHasRecentTestRun] = useState(false);
 
   // Fetch schedule runs with polling to show running status
-  const { data: runsResponse, isLoading: runsLoading } = useQuery({
+  const { data: runsResponse, isLoading: runsLoading, refetch: refetchRuns } = useQuery({
     queryKey: ['schedule-runs', schedule.schedule_id],
     queryFn: () => scheduleService.getScheduleRuns(schedule.schedule_id, { limit: 100 }),
-    refetchInterval: shouldPoll ? 5000 : false, // Poll every 5 seconds only when there are running executions
+    // Poll more frequently if there are running executions or recent test runs
+    refetchInterval: shouldPoll ? 3000 : (hasRecentTestRun ? 5000 : false), // 3s for running, 5s for recent test runs
     refetchIntervalInBackground: false, // Only poll when window is focused
   });
 
@@ -74,9 +80,33 @@ const ScheduleHistory: React.FC<ScheduleHistoryProps> = ({ schedule: initialSche
 
   // Check if there are any running executions and update polling state
   React.useEffect(() => {
-    const hasRunning = runs.some(run => run.status === 'running');
+    const hasRunning = runs.some(run => run.status === 'running' || run.status === 'pending');
     setShouldPoll(hasRunning);
+    
+    // Check for recent test runs (within last 2 minutes)
+    const recentTestRun = runs.some(run => {
+      if (!run.created_at) return false;
+      const runTime = new Date(run.created_at).getTime();
+      const twoMinutesAgo = Date.now() - (2 * 60 * 1000);
+      return runTime > twoMinutesAgo;
+    });
+    setHasRecentTestRun(recentTestRun);
   }, [runs]);
+
+  // Manual refresh function
+  const handleManualRefresh = async () => {
+    setIsManualRefreshing(true);
+    try {
+      // Invalidate and refetch both schedule and runs data
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['schedule-detail', schedule.schedule_id] }),
+        queryClient.invalidateQueries({ queryKey: ['schedule-runs', schedule.schedule_id] })
+      ]);
+      await refetchRuns();
+    } finally {
+      setIsManualRefreshing(false);
+    }
+  };
 
 
   // Filter and sort runs
@@ -492,30 +522,54 @@ const ScheduleHistory: React.FC<ScheduleHistoryProps> = ({ schedule: initialSche
           </div>
         </div>
 
-        {/* View Mode Tabs */}
-        <div className="px-6 py-3 border-b flex space-x-4">
-          <button
-            onClick={() => setViewMode('timeline')}
-            className={`px-3 py-1 rounded-lg text-sm font-medium ${
-              viewMode === 'timeline'
-                ? 'bg-blue-100 text-blue-700'
-                : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            <Clock className="w-4 h-4 inline mr-2" />
-            Timeline
-          </button>
-          <button
-            onClick={() => setViewMode('table')}
-            className={`px-3 py-1 rounded-lg text-sm font-medium ${
-              viewMode === 'table'
-                ? 'bg-blue-100 text-blue-700'
-                : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            <Table className="w-4 h-4 inline mr-2" />
-            Table
-          </button>
+        {/* View Mode Tabs and Refresh Button */}
+        <div className="px-6 py-3 border-b flex justify-between items-center">
+          <div className="flex space-x-4">
+            <button
+              onClick={() => setViewMode('timeline')}
+              className={`px-3 py-1 rounded-lg text-sm font-medium ${
+                viewMode === 'timeline'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <Clock className="w-4 h-4 inline mr-2" />
+              Timeline
+            </button>
+            <button
+              onClick={() => setViewMode('table')}
+              className={`px-3 py-1 rounded-lg text-sm font-medium ${
+                viewMode === 'table'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <Table className="w-4 h-4 inline mr-2" />
+              Table
+            </button>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            {(shouldPoll || hasRecentTestRun) && (
+              <span className="flex items-center text-xs text-green-600">
+                <Activity className="w-3 h-3 mr-1 animate-pulse" />
+                Auto-refreshing
+              </span>
+            )}
+            <button
+              onClick={handleManualRefresh}
+              disabled={isManualRefreshing}
+              className="flex items-center gap-2 px-3 py-1 text-sm font-medium text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title="Refresh execution history"
+            >
+              {isManualRefreshing ? (
+                <Loader className="w-4 h-4 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
+              Refresh
+            </button>
+          </div>
         </div>
 
         {/* Content */}

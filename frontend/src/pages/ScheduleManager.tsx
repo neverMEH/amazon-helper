@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Plus, 
@@ -13,7 +13,10 @@ import {
   XCircle,
   Grid3x3,
   List,
-  CalendarDays
+  CalendarDays,
+  RefreshCw,
+  Loader,
+  Activity
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { format, parseISO } from 'date-fns';
@@ -31,12 +34,55 @@ const ScheduleManager: React.FC = () => {
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [filterActive, setFilterActive] = useState<boolean | null>(null);
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+  const [hasRecentActivity, setHasRecentActivity] = useState(false);
 
-  // Fetch schedules
-  const { data: schedules, isLoading } = useQuery({
+  // Fetch schedules with auto-refresh
+  const { data: schedules, isLoading, refetch } = useQuery({
     queryKey: ['schedules', filterActive],
     queryFn: () => scheduleService.listAllSchedules({ is_active: filterActive ?? undefined }),
+    // Auto-refresh every 10 seconds if there's recent activity
+    refetchInterval: hasRecentActivity ? 10000 : false,
+    refetchIntervalInBackground: false,
   });
+
+  // Check for recent activity (test runs or executions in last 5 minutes)
+  useEffect(() => {
+    if (!schedules) return;
+    
+    const hasRecent = schedules.some((schedule: Schedule) => {
+      // Check if there's a next_run_at in the near future (test run)
+      if (schedule.next_run_at) {
+        const nextRun = new Date(schedule.next_run_at).getTime();
+        const fiveMinutesFromNow = Date.now() + (5 * 60 * 1000);
+        if (nextRun <= fiveMinutesFromNow && nextRun > Date.now()) {
+          return true;
+        }
+      }
+      
+      // Check if last run was recent
+      if (schedule.last_run_at) {
+        const lastRun = new Date(schedule.last_run_at).getTime();
+        const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+        return lastRun > fiveMinutesAgo;
+      }
+      
+      return false;
+    });
+    
+    setHasRecentActivity(hasRecent);
+  }, [schedules]);
+
+  // Manual refresh function
+  const handleManualRefresh = async () => {
+    setIsManualRefreshing(true);
+    try {
+      await queryClient.invalidateQueries({ queryKey: ['schedules'] });
+      await refetch();
+    } finally {
+      setIsManualRefreshing(false);
+    }
+  };
 
   // Enable/disable mutation
   const toggleScheduleMutation = useMutation({
@@ -78,6 +124,10 @@ const ScheduleManager: React.FC = () => {
         `Test run scheduled for ${format(scheduledTime, 'h:mm:ss a')} (in about 1 minute)`,
         { duration: 5000 }
       );
+      // Set recent activity flag to enable auto-refresh
+      setHasRecentActivity(true);
+      // Also refresh immediately to show the pending test run
+      queryClient.invalidateQueries({ queryKey: ['schedules'] });
       // Refresh schedules after 65 seconds to show updated next_run_at
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ['schedules'] });
@@ -331,13 +381,33 @@ const ScheduleManager: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">Schedule Manager</h1>
           <p className="text-gray-600 mt-1">Manage your workflow schedules and execution history</p>
         </div>
-        <button
-          onClick={() => setShowCreateWizard(true)}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          New Schedule
-        </button>
+        <div className="flex items-center gap-3">
+          {hasRecentActivity && (
+            <span className="flex items-center text-xs text-green-600 bg-green-50 px-2 py-1 rounded-md">
+              <Activity className="w-3 h-3 mr-1 animate-pulse" />
+              Auto-refreshing
+            </span>
+          )}
+          <button
+            onClick={handleManualRefresh}
+            disabled={isManualRefreshing}
+            className="flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Refresh schedules"
+          >
+            {isManualRefreshing ? (
+              <Loader className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+          </button>
+          <button
+            onClick={() => setShowCreateWizard(true)}
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            New Schedule
+          </button>
+        </div>
       </div>
 
       {/* Filters and View Mode */}
