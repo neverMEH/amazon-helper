@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Info, AlertCircle, Package } from 'lucide-react';
 import InstanceSelector from './InstanceSelector';
 import ASINSelectionModal from './ASINSelectionModal';
+import CampaignSelectionModal from './CampaignSelectionModal';
 
 interface QueryConfigurationStepProps {
   state: any;
@@ -27,6 +28,8 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showASINModal, setShowASINModal] = useState(false);
   const [currentASINParam, setCurrentASINParam] = useState<string | null>(null);
+  const [showCampaignModal, setShowCampaignModal] = useState(false);
+  const [currentCampaignParam, setCurrentCampaignParam] = useState<string | null>(null);
 
   const handleInstanceChange = (instanceId: string) => {
     setState((prev: any) => ({ ...prev, instanceId }));
@@ -92,17 +95,47 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
 
   const handleASINModalConfirm = (asins: string[]) => {
     if (currentASINParam) {
-      // For ASIN parameters, store as array or comma-separated string
-      const value = asins.length > 1 ? asins : asins[0] || '';
-      handleParameterChange(currentASINParam, value);
+      // Format ASINs as quoted comma-separated string for AMC SQL
+      const formattedAsins = asins.map(asin => `'${asin}'`).join(',');
+      handleParameterChange(currentASINParam, formattedAsins);
     }
     setShowASINModal(false);
     setCurrentASINParam(null);
   };
 
+  const handleCampaignSelect = (paramName: string) => {
+    setCurrentCampaignParam(paramName);
+    setShowCampaignModal(true);
+  };
+
+  const handleCampaignModalConfirm = (campaigns: string[]) => {
+    if (currentCampaignParam) {
+      // Format campaign IDs as quoted comma-separated string for AMC SQL
+      const formattedCampaigns = campaigns.map(id => `'${id}'`).join(',');
+      handleParameterChange(currentCampaignParam, formattedCampaigns);
+    }
+    setShowCampaignModal(false);
+    setCurrentCampaignParam(null);
+  };
+
   const isASINParameter = (paramName: string): boolean => {
     const lowerParam = paramName.toLowerCase();
     return lowerParam.includes('asin') || lowerParam.includes('product_id') || lowerParam.includes('item_id');
+  };
+
+  const isCampaignParameter = (paramName: string): boolean => {
+    const lowerParam = paramName.toLowerCase();
+    return lowerParam.includes('campaign') || lowerParam.includes('camp_id') || lowerParam.includes('campaign_id');
+  };
+
+  const getParameterType = (paramName: string): 'asin' | 'campaign' | 'date' | 'number' | 'text' => {
+    if (isASINParameter(paramName)) return 'asin';
+    if (isCampaignParameter(paramName)) return 'campaign';
+    if (paramName.toLowerCase().includes('date')) return 'date';
+    // Check if current value is a number
+    const currentValue = state.parameters[paramName];
+    if (typeof currentValue === 'number') return 'number';
+    return 'text';
   };
 
   const selectedInstance = instances.find(i => i.instanceId === state.instanceId || i.id === state.instanceId);
@@ -167,61 +200,86 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
             Query Parameters
           </label>
           <div className="bg-gray-50 rounded-md p-4 space-y-3">
-            {Object.entries(state.parameters).map(([param, value]) => (
-              <div key={param}>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  {`{{${param}}}`}
-                </label>
-                {isASINParameter(param) ? (
-                  <div className="flex gap-2">
+            {Object.entries(state.parameters).map(([param, value]) => {
+              const paramType = getParameterType(param);
+              return (
+                <div key={param}>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    {`{{${param}}}`}
+                  </label>
+                  {paramType === 'asin' ? (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={Array.isArray(value) ? value.join(', ') : (value as string)}
+                        onChange={(e) => handleParameterChange(param, e.target.value)}
+                        placeholder="Enter ASINs or select from catalog"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleASINSelect(param)}
+                        className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-1"
+                        title="Select ASINs from catalog"
+                      >
+                        <Package className="w-4 h-4" />
+                        Select
+                      </button>
+                    </div>
+                  ) : paramType === 'campaign' ? (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={Array.isArray(value) ? value.join(', ') : (value as string)}
+                        onChange={(e) => handleParameterChange(param, e.target.value)}
+                        placeholder="Enter Campaign IDs or select from list"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleCampaignSelect(param)}
+                        className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-1"
+                        title="Select campaigns from instance"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        Select
+                      </button>
+                    </div>
+                  ) : paramType === 'date' ? (
+                    <input
+                      type="date"
+                      value={value as string}
+                      onChange={(e) => handleParameterChange(param, e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    />
+                  ) : paramType === 'number' ? (
+                    <input
+                      type="number"
+                      value={value}
+                      onChange={(e) => handleParameterChange(param, parseInt(e.target.value) || 0)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    />
+                  ) : Array.isArray(value) ? (
+                    <textarea
+                      value={value.join(', ')}
+                      onChange={(e) => handleParameterChange(param, e.target.value.split(',').map(v => v.trim()))}
+                      placeholder="Enter comma-separated values"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      rows={2}
+                    />
+                  ) : (
                     <input
                       type="text"
-                      value={Array.isArray(value) ? value.join(', ') : (value as string)}
+                      value={value as string}
                       onChange={(e) => handleParameterChange(param, e.target.value)}
-                      placeholder="Enter ASINs or select from catalog"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                     />
-                    <button
-                      type="button"
-                      onClick={() => handleASINSelect(param)}
-                      className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-1"
-                    >
-                      <Package className="w-4 h-4" />
-                      Select
-                    </button>
-                  </div>
-                ) : param.includes('date') ? (
-                  <input
-                    type="date"
-                    value={value as string}
-                    onChange={(e) => handleParameterChange(param, e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                  />
-                ) : typeof value === 'number' ? (
-                  <input
-                    type="number"
-                    value={value}
-                    onChange={(e) => handleParameterChange(param, parseInt(e.target.value) || 0)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                  />
-                ) : Array.isArray(value) ? (
-                  <textarea
-                    value={value.join(', ')}
-                    onChange={(e) => handleParameterChange(param, e.target.value.split(',').map(v => v.trim()))}
-                    placeholder="Enter comma-separated values"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                    rows={2}
-                  />
-                ) : (
-                  <input
-                    type="text"
-                    value={value as string}
-                    onChange={(e) => handleParameterChange(param, e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                  />
-                )}
-              </div>
-            ))}
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -310,6 +368,22 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
         currentValue={currentASINParam ? state.parameters[currentASINParam] : []}
         multiple={true}
         title={`Select ASINs for {{${currentASINParam || 'parameter'}}}`}
+        defaultBrand=""
+        brandLocked={false}
+      />
+
+      {/* Campaign Selection Modal */}
+      <CampaignSelectionModal
+        isOpen={showCampaignModal}
+        onClose={() => {
+          setShowCampaignModal(false);
+          setCurrentCampaignParam(null);
+        }}
+        onSelect={handleCampaignModalConfirm}
+        instanceId={state.instanceId}
+        currentValue={currentCampaignParam ? state.parameters[currentCampaignParam] : []}
+        multiple={true}
+        title={`Select Campaigns for {{${currentCampaignParam || 'parameter'}}}`}
       />
     </>
   );

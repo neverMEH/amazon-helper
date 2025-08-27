@@ -11,6 +11,8 @@ interface ASINSelectionModalProps {
   currentValue?: string[] | string;
   multiple?: boolean;
   title?: string;
+  defaultBrand?: string;
+  brandLocked?: boolean;
 }
 
 const ASINSelectionModal: React.FC<ASINSelectionModalProps> = ({
@@ -19,10 +21,12 @@ const ASINSelectionModal: React.FC<ASINSelectionModalProps> = ({
   onSelect,
   currentValue = [],
   multiple = true,
-  title = 'Select ASINs'
+  title = 'Select ASINs',
+  defaultBrand = '',
+  brandLocked = false
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedBrand, setSelectedBrand] = useState<string>('');
+  const [selectedBrand, setSelectedBrand] = useState<string>(defaultBrand);
   const [selectedAsins, setSelectedAsins] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
   const pageSize = 100;
@@ -35,7 +39,11 @@ const ASINSelectionModal: React.FC<ASINSelectionModalProps> = ({
         : currentValue.split(',').map(a => a.trim()).filter(Boolean);
       setSelectedAsins(new Set(asins));
     }
-  }, [currentValue, isOpen]);
+    // Set default brand when modal opens
+    if (isOpen && defaultBrand) {
+      setSelectedBrand(defaultBrand);
+    }
+  }, [currentValue, isOpen, defaultBrand]);
 
   // Fetch brands
   const { data: brandsData } = useQuery({
@@ -188,7 +196,11 @@ const ASINSelectionModal: React.FC<ASINSelectionModalProps> = ({
               <select
                 value={selectedBrand}
                 onChange={(e) => setSelectedBrand(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={brandLocked}
+                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  brandLocked ? 'bg-gray-100 cursor-not-allowed' : ''
+                }`}
+                title={brandLocked ? `Brand filter is locked to ${selectedBrand}` : 'Filter by brand'}
               >
                 <option value="">All Brands</option>
                 {brandsData?.brands.map(brand => (
