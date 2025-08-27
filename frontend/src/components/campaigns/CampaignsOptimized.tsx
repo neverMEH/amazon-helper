@@ -9,7 +9,6 @@ import {
   PauseCircle,
   PlayCircle,
   Filter,
-  Download,
   ChevronUp,
   ChevronDown
 } from 'lucide-react';
