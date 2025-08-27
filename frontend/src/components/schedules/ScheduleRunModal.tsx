@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Clock, Calendar, AlertCircle } from 'lucide-react';
-import { format, addHours, addMinutes, isAfter, startOfDay, endOfDay } from 'date-fns';
+import { format, addHours, addMinutes, isAfter, endOfDay } from 'date-fns';
 import type { Schedule } from '../../types/schedule';
 
 interface ScheduleRunModalProps {
