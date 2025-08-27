@@ -448,6 +448,12 @@ Tests are in `tests/e2e/` directory:
 ## Recent Critical Fixes
 
 
+### 2025-08-27 - 15:36:25
+**fix**: feat: Add campaign page optimizations with sorting, filters, and faster brand dropdown
+**Context**: Frontend changes
+**Stats**:  6 files changed, 1381 insertions(+), 4 deletions(-)
+
+
 ### 2025-08-27 - 10:04:06
 **fix**: feat: Add ability to schedule workflow runs at specific times today
 **Context**: Frontend changes

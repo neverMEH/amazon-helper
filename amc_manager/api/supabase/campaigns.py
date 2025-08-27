@@ -129,7 +129,40 @@ def sync_campaigns(
 def list_brands(
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> List[Dict[str, Any]]:
-    """List unique brands from campaigns table"""
+    """List unique brands from campaigns table using optimized database function
+    
+    This uses a PostgreSQL function for dramatically improved performance,
+    especially with large campaign datasets.
+    """
+    try:
+        client = SupabaseManager.get_client(use_service_role=True)
+        
+        # Use the optimized database function
+        result = client.rpc('get_campaign_brands_with_counts').execute()
+        
+        if not result.data:
+            return []
+        
+        # Format the response with additional counts
+        return [
+            {
+                "brand": brand['brand'],
+                "campaign_count": brand['campaign_count'],
+                "enabled_count": brand['enabled_count'],
+                "paused_count": brand['paused_count'],
+                "archived_count": brand['archived_count']
+            }
+            for brand in result.data
+        ]
+    except Exception as e:
+        logger.error(f"Error listing brands using optimized function: {e}")
+        # Fallback to old method if function doesn't exist
+        logger.info("Falling back to legacy brand fetching method")
+        return list_brands_legacy(current_user)
+
+
+def list_brands_legacy(current_user: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Legacy method for listing brands - kept as fallback"""
     try:
         client = SupabaseManager.get_client(use_service_role=True)
         
@@ -165,7 +198,7 @@ def list_brands(
             for brand in sorted(brands)
         ]
     except Exception as e:
-        logger.error(f"Error listing brands: {e}")
+        logger.error(f"Error in legacy brand listing: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch brands")
 
 
@@ -173,7 +206,43 @@ def list_brands(
 def get_campaign_stats(
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
-    """Get campaign statistics from campaigns table"""
+    """Get campaign statistics using optimized database function"""
+    try:
+        client = SupabaseManager.get_client(use_service_role=True)
+        
+        # Try to use the optimized database function first
+        try:
+            result = client.rpc('get_campaign_statistics').execute()
+            
+            if result.data and len(result.data) > 0:
+                stats_data = result.data[0]
+                return {
+                    "total_campaigns": stats_data['total_campaigns'],
+                    "by_state": {
+                        "ENABLED": stats_data['enabled_campaigns'],
+                        "PAUSED": stats_data['paused_campaigns'],
+                        "ARCHIVED": stats_data['archived_campaigns']
+                    },
+                    "by_type": {
+                        "sp": stats_data['sponsored_products'],
+                        "sb": stats_data['sponsored_brands'],
+                        "sd": stats_data['sponsored_display']
+                    },
+                    "unique_brands": stats_data['unique_brands']
+                }
+        except Exception as func_error:
+            logger.info(f"Optimized function not available: {func_error}, using legacy method")
+        
+        # Fallback to legacy method
+        return get_campaign_stats_legacy(current_user)
+        
+    except Exception as e:
+        logger.error(f"Error calculating campaign stats: {e}")
+        raise HTTPException(status_code=500, detail="Failed to calculate stats")
+
+
+def get_campaign_stats_legacy(current_user: Dict[str, Any]) -> Dict[str, Any]:
+    """Legacy method for getting campaign stats - kept as fallback"""
     try:
         client = SupabaseManager.get_client(use_service_role=True)
         
@@ -222,5 +291,5 @@ def get_campaign_stats(
         
         return stats
     except Exception as e:
-        logger.error(f"Error calculating campaign stats: {e}")
+        logger.error(f"Error in legacy stats calculation: {e}")
         raise HTTPException(status_code=500, detail="Failed to calculate stats")

@@ -1,3 +1,12 @@
+// This file now exports the optimized campaigns component
+// The original component has been replaced with an improved version
+// that includes better performance, caching, and user experience features
+
+export { default } from './CampaignsOptimized';
+export * from './CampaignsOptimized';
+
+/* Original component preserved below for reference - remove after testing */
+
 import { useState, useEffect, type ReactElement } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { 
