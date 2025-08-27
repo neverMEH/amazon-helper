@@ -240,7 +240,11 @@ class ScheduleExecutorService:
                     if not user_id:
                         raise ValueError("No user_id found for schedule")
                     
-                    await self.ensure_fresh_token(user_id)
+                    try:
+                        await self.ensure_fresh_token(user_id)
+                    except Exception as token_error:
+                        logger.error(f"Token refresh failed for user {user_id}: {token_error}")
+                        raise ValueError(f"Failed to refresh token: {str(token_error)}")
                     
                     # Calculate dynamic parameters
                     params = await self.calculate_parameters(schedule)
@@ -250,8 +254,8 @@ class ScheduleExecutorService:
                     if not instance_id:
                         raise ValueError("No instance_id found for workflow")
                     
-                    # Get instance details
-                    instance_result = self.db.table('amc_instances').select('*').eq(
+                    # Get instance details WITH amc_accounts join for entity_id
+                    instance_result = self.db.table('amc_instances').select('*, amc_accounts(*)').eq(
                         'id', instance_id
                     ).single().execute()
                     
@@ -260,8 +264,13 @@ class ScheduleExecutorService:
                     
                     instance = instance_result.data
                     
+                    # Verify we have the account info for entity_id
+                    if not instance.get('amc_accounts'):
+                        raise ValueError(f"No AMC account found for instance {instance_id}. Please configure the account.")
+                    
                     # Debug logging for scheduled execution
                     logger.info(f"Retrieved instance for schedule: UUID={instance.get('id')}, AMC_ID={instance.get('instance_id')}, Name={instance.get('instance_name')}")
+                    logger.info(f"Entity ID from account: {instance['amc_accounts']['account_id'] if instance.get('amc_accounts') else 'NOT FOUND'}")
                     logger.info(f"Date parameters: startDate={params.get('startDate')}, endDate={params.get('endDate')}")
                     
                     # Execute workflow

@@ -25,6 +25,7 @@ export interface AMCErrorDetails {
   errorMessage?: string;
   errorDetails?: string;
   queryValidation?: string;
+  message?: string;
 }
 
 export interface AMCExecutionDetail extends AMCExecution {
@@ -34,6 +35,8 @@ export interface AMCExecutionDetail extends AMCExecution {
   resultData?: any;
   downloadUrls?: string[];
   errorMessage?: string;
+  error_message?: string;  // Backend returns snake_case
+  message?: string;  // Additional message from backend
   errorDetails?: AMCErrorDetails;
   startedAt?: string;
   instanceInfo?: {

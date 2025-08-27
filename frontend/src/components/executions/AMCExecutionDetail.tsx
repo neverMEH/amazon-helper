@@ -410,7 +410,7 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                               <dd className="mt-1 text-sm">
                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                                   ${execution.status === 'SUCCEEDED' ? 'bg-green-100 text-green-800' :
-                                    execution.status === 'FAILED' ? 'bg-red-100 text-red-800' :
+                                    execution.status === 'FAILED' || execution.amcStatus === 'NOT_SUBMITTED' ? 'bg-red-100 text-red-800' :
                                     execution.status === 'RUNNING' ? 'bg-blue-100 text-blue-800' :
                                     'bg-yellow-100 text-yellow-800'}`}>
                                   {execution.amcStatus || execution.status}
@@ -493,16 +493,16 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
 
                         {/* Display detailed error information for failed executions */}
                         <ExecutionErrorDetails 
-                          errorMessage={execution.error || execution.errorMessage}
-                          errorDetails={execution.errorDetails}
-                          status={execution.status}
+                          errorMessage={execution.error || execution.errorMessage || execution.error_message}
+                          errorDetails={execution.errorDetails || (execution.message ? { message: execution.message } : undefined)}
+                          status={execution.status || (execution.amcStatus === 'NOT_SUBMITTED' ? 'FAILED' : execution.status)}
                           sqlQuery={execution.sqlQuery || execution.workflowInfo?.sqlQuery}
                           executionId={executionId}
                           instanceName={execution.instanceInfo?.instanceName}
                         />
 
                         {/* Edit & Retry button for failed executions */}
-                        {execution.status === 'FAILED' && 
+                        {(execution.status === 'FAILED' || execution.amcStatus === 'NOT_SUBMITTED') && 
                          (execution.workflowId || execution.workflowInfo?.id) && (
                           <div className="mt-4 flex justify-center">
                             <button
@@ -511,7 +511,7 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                                 navigate(`/query-builder/edit/${workflowId}`, {
                                   state: { 
                                     fromFailure: true,
-                                    errorMessage: execution.error || execution.errorMessage,
+                                    errorMessage: execution.error || execution.errorMessage || execution.error_message,
                                     executionParameters: execution.executionParameters,
                                     instanceId: instanceId
                                   }

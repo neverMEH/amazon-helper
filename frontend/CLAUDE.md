@@ -448,6 +448,12 @@ Tests are in `tests/e2e/` directory:
 ## Recent Critical Fixes
 
 
+### 2025-08-27 - 09:24:53
+**fix**: Fix schedule execution failures - Add entity_id join and improve error handling
+**Context**: Frontend changes
+**Stats**:  5 files changed, 93 insertions(+), 7069 deletions(-)
+
+
 ### 2025-08-26 - 22:10:20
 **fix**: feat: Fetch and display brands from instance_brands table
 **Context**: Frontend changes
