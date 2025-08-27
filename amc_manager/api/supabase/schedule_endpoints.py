@@ -1,7 +1,7 @@
 """REST API endpoints for schedule management"""
 
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timedelta
 from fastapi import APIRouter, HTTPException, Depends, Query, Body
 from pydantic import BaseModel, Field
 
@@ -522,18 +522,26 @@ async def get_schedule_runs(
         from ...core.supabase_client import SupabaseManager
         db = SupabaseManager.get_client()
         
-        # Get total count of all runs for this schedule
+        # Clean up old pending runs that never executed (older than 5 minutes)
+        five_minutes_ago = (datetime.utcnow() - timedelta(minutes=5)).isoformat()
+        db.table('schedule_runs').delete().eq(
+            'schedule_id', schedule['id']
+        ).eq('status', 'pending').lt('scheduled_at', five_minutes_ago).execute()
+        
+        # Get total count of all non-pending runs for this schedule
         count_result = db.table('schedule_runs').select('id', count='exact').eq(
             'schedule_id', schedule['id']
-        ).execute()
+        ).neq('status', 'pending').execute()
         total_count = count_result.count if hasattr(count_result, 'count') else 0
         
-        # Get paginated runs with details
+        # Get paginated runs with details, excluding old pending runs
         result = db.table('schedule_runs').select(
             '*',
             'workflow_executions(id, amc_execution_id)'
         ).eq(
             'schedule_id', schedule['id']
+        ).or_(
+            f"status.neq.pending,scheduled_at.gte.{five_minutes_ago}"
         ).order('scheduled_at', desc=True).range(offset, offset + limit - 1).execute()
         
         runs = result.data or []

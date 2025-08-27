@@ -216,23 +216,25 @@ class ScheduleExecutorService:
                     # Create schedule run record (only on first attempt)
                     if execution_attempts == 1:
                         # Check if there's already a pending test run record
-                        if is_test_run:
-                            pending_run = self.db.table('schedule_runs').select('id').eq(
-                                'schedule_id', schedule['id']
-                            ).eq('status', 'pending').order('created_at', desc=True).limit(1).execute()
-                            
-                            if pending_run.data and len(pending_run.data) > 0:
-                                # Use existing pending run
-                                run_id = pending_run.data[0]['id']
-                                # Update it to running status
-                                self.db.table('schedule_runs').update({
-                                    'status': 'running',
-                                    'started_at': datetime.utcnow().isoformat()
-                                }).eq('id', run_id).execute()
-                                logger.info(f"Using existing test run record {run_id}")
-                            else:
-                                run_id = await self.create_schedule_run(schedule, is_test_run=is_test_run)
+                        # Look for pending runs scheduled within the last 2 minutes
+                        two_minutes_ago = (datetime.utcnow() - timedelta(minutes=2)).isoformat()
+                        pending_run = self.db.table('schedule_runs').select('id', 'scheduled_at').eq(
+                            'schedule_id', schedule['id']
+                        ).eq('status', 'pending').gte(
+                            'scheduled_at', two_minutes_ago
+                        ).order('created_at', desc=True).limit(1).execute()
+                        
+                        if pending_run.data and len(pending_run.data) > 0:
+                            # Use existing pending run (likely from test_run endpoint)
+                            run_id = pending_run.data[0]['id']
+                            # Update it to running status
+                            self.db.table('schedule_runs').update({
+                                'status': 'running',
+                                'started_at': datetime.utcnow().isoformat()
+                            }).eq('id', run_id).execute()
+                            logger.info(f"Reusing existing pending test run record {run_id}")
                         else:
+                            # No pending run found, create a new one
                             run_id = await self.create_schedule_run(schedule, is_test_run=is_test_run)
                     
                     # Ensure fresh token

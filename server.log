@@ -59,3 +59,13 @@ INFO:     127.0.0.1:42554 - "POST /api/schedules/test-run HTTP/1.1" 405 Method N
 2025-08-27 09:29:29 - amc_manager.services.amc_execution_service - ERROR - No valid token for user fe841586-7807-48b1-8808-02877834fce0
 2025-08-27 09:33:37 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
 2025-08-27 09:33:37 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 1 successful, 0 failed
+2025-08-27 09:43:37 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
+2025-08-27 09:43:38 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 1 successful, 0 failed
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-08-27 09:49:05 - main_supabase - INFO - Shutting down Recom AMP application...
+2025-08-27 09:49:05 - amc_manager.services.token_refresh_service - INFO - Token refresh loop cancelled
+2025-08-27 09:49:05 - amc_manager.services.token_refresh_service - INFO - Token refresh service stopped
+2025-08-27 09:49:05 - amc_manager.services.schedule_executor_service - INFO - Stopping Schedule Executor Service
+INFO:     Application shutdown complete.
+INFO:     Finished server process [2602041]
