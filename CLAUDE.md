@@ -337,6 +337,12 @@ GET    /api/data-sources/{id}
 ## Recent Critical Fixes
 
 
+### 2025-08-27 - 18:34:54
+**fix**: feat: Add comprehensive ASIN management system with query builder integration
+**Context**: Backend/Project changes
+**Stats**:  30 files changed, 120389 insertions(+), 6 deletions(-)
+
+
 ### 2025-08-27 - 15:36:25
 **fix**: feat: Add campaign page optimizations with sorting, filters, and faster brand dropdown
 **Context**: Backend/Project changes

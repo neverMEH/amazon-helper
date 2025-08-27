@@ -176,6 +176,7 @@ from amc_manager.api.supabase.profile import router as profile_router
 from amc_manager.api.supabase.data_sources import router as data_sources_router
 from amc_manager.api.supabase.schedule_endpoints import router as schedules_router
 from amc_manager.api.routes.build_guides import router as build_guides_router
+from amc_manager.api.asin_router import router as asin_router
 
 # Add redirect for misconfigured callback URL (must be before router includes)
 @app.get("/api/auth/callback")
@@ -199,6 +200,7 @@ app.include_router(amc_executions_router, prefix="/api/amc-executions", tags=["A
 app.include_router(data_sources_router, prefix="/api/data-sources", tags=["Data Sources"])
 app.include_router(schedules_router, prefix="/api", tags=["Schedules"])
 app.include_router(build_guides_router, prefix="/api", tags=["Build Guides"])
+app.include_router(asin_router, prefix="/api", tags=["ASINs"])
 
 # Apply rate limiting to specific endpoints
 for route in app.routes:

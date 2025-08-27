@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, Info, AlertCircle } from 'lucide-react';
+import { ChevronDown, ChevronUp, Info, AlertCircle, Package } from 'lucide-react';
 import InstanceSelector from './InstanceSelector';
+import ASINSelectionModal from './ASINSelectionModal';
 
 interface QueryConfigurationStepProps {
   state: any;
@@ -24,6 +25,8 @@ const TIMEZONES = [
 
 export default function QueryConfigurationStep({ state, setState, instances }: QueryConfigurationStepProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showASINModal, setShowASINModal] = useState(false);
+  const [currentASINParam, setCurrentASINParam] = useState<string | null>(null);
 
   const handleInstanceChange = (instanceId: string) => {
     setState((prev: any) => ({ ...prev, instanceId }));
@@ -82,6 +85,26 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
     }));
   };
 
+  const handleASINSelect = (paramName: string) => {
+    setCurrentASINParam(paramName);
+    setShowASINModal(true);
+  };
+
+  const handleASINModalConfirm = (asins: string[]) => {
+    if (currentASINParam) {
+      // For ASIN parameters, store as array or comma-separated string
+      const value = asins.length > 1 ? asins : asins[0] || '';
+      handleParameterChange(currentASINParam, value);
+    }
+    setShowASINModal(false);
+    setCurrentASINParam(null);
+  };
+
+  const isASINParameter = (paramName: string): boolean => {
+    const lowerParam = paramName.toLowerCase();
+    return lowerParam.includes('asin') || lowerParam.includes('product_id') || lowerParam.includes('item_id');
+  };
+
   const selectedInstance = instances.find(i => i.instanceId === state.instanceId || i.id === state.instanceId);
 
   // Auto-generate export name when relevant fields change
@@ -99,8 +122,9 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
   }, [state.name, selectedInstance?.instanceName, state.parameters?.startDate, state.parameters?.endDate, state.parameters?.start_date, state.parameters?.end_date]);
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      {/* Instance Selection */}
+    <>
+      <div className="max-w-4xl mx-auto p-6">
+        {/* Instance Selection */}
       <div className="mb-6">
         <label className="block text-sm font-medium text-gray-700 mb-2">
           AMC Instance <span className="text-red-500">*</span>
@@ -148,7 +172,25 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
                 <label className="block text-xs font-medium text-gray-600 mb-1">
                   {`{{${param}}}`}
                 </label>
-                {param.includes('date') ? (
+                {isASINParameter(param) ? (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={Array.isArray(value) ? value.join(', ') : (value as string)}
+                      onChange={(e) => handleParameterChange(param, e.target.value)}
+                      placeholder="Enter ASINs or select from catalog"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleASINSelect(param)}
+                      className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-1"
+                    >
+                      <Package className="w-4 h-4" />
+                      Select
+                    </button>
+                  </div>
+                ) : param.includes('date') ? (
                   <input
                     type="date"
                     value={value as string}
@@ -255,6 +297,20 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
           <p className="text-sm text-yellow-800">Please select an AMC instance to continue</p>
         </div>
       )}
-    </div>
+      </div>
+      
+      {/* ASIN Selection Modal */}
+      <ASINSelectionModal
+        isOpen={showASINModal}
+        onClose={() => {
+          setShowASINModal(false);
+          setCurrentASINParam(null);
+        }}
+        onSelect={handleASINModalConfirm}
+        currentValue={currentASINParam ? state.parameters[currentASINParam] : []}
+        multiple={true}
+        title={`Select ASINs for {{${currentASINParam || 'parameter'}}}`}
+      />
+    </>
   );
 }

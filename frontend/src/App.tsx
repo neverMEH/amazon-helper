@@ -30,6 +30,9 @@ import ScheduleManager from './pages/ScheduleManager';
 import BuildGuides from './pages/BuildGuides';
 import BuildGuideDetail from './pages/BuildGuideDetail';
 
+// ASIN Management import
+import ASINManagement from './pages/ASINManagement';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -83,6 +86,9 @@ function App() {
               {/* Build Guides routes */}
               <Route path="/build-guides" element={<BuildGuides />} />
               <Route path="/build-guides/:guideId" element={<BuildGuideDetail />} />
+              
+              {/* ASIN Management route */}
+              <Route path="/asins" element={<ASINManagement />} />
               
               {/* Profile route */}
               <Route path="/profile" element={<Profile />} />

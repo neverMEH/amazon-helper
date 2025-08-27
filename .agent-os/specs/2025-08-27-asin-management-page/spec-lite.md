@@ -1,0 +1,3 @@
+# Spec Summary (Lite)
+
+Implement an ASIN management page for storing and referencing Amazon product identifiers (ASINs) with their brands and metadata, enabling users to quickly select and add ASINs to AMC query parameters instead of manual lookup. The page will feature a searchable table view with brand filtering, CSV import capability, and seamless integration with the query builder's parameter configuration, significantly improving workflow efficiency for product-focused AMC queries.
