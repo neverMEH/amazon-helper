@@ -587,7 +587,18 @@ async def schedule_run_at_time(
         
         # Update the schedule's next_run_at if this is sooner than the existing next_run_at
         current_next_run = schedule.get('next_run_at')
-        if not current_next_run or scheduled_at < datetime.fromisoformat(current_next_run.replace('Z', '+00:00')):
+        if current_next_run:
+            # Parse and ensure both datetimes are offset-naive for comparison
+            current_next_run_dt = datetime.fromisoformat(current_next_run.replace('Z', '+00:00'))
+            if current_next_run_dt.tzinfo:
+                current_next_run_dt = current_next_run_dt.replace(tzinfo=None)
+            
+            if scheduled_at < current_next_run_dt:
+                db.table('workflow_schedules').update({
+                    'next_run_at': scheduled_at.isoformat()
+                }).eq('schedule_id', schedule_id).execute()
+        else:
+            # No current next_run_at, so set it
             db.table('workflow_schedules').update({
                 'next_run_at': scheduled_at.isoformat()
             }).eq('schedule_id', schedule_id).execute()
