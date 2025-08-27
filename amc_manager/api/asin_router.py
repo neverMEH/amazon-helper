@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, 
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field
 from ..services.asin_service import asin_service
-from ..api.auth import get_current_user
+from ..api.supabase.auth import get_current_user
 from ..core.logger_simple import get_logger
 
 logger = get_logger(__name__)
