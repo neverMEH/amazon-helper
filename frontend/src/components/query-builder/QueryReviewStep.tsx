@@ -70,14 +70,12 @@ export default function QueryReviewStep({ state, instances, onNavigateToStep }: 
       const workflowResponse = await api.post('/workflows/', workflowPayload);
       const workflowId = workflowResponse.data.workflow_id || workflowResponse.data.id;
 
-      // Execute the workflow
+      // Execute the workflow - using the correct endpoint
       const executePayload = {
-        workflow_id: workflowId,
-        instance_id: state.instanceId,
         execution_parameters: state.parameters
       };
 
-      const response = await api.post('/workflows/execute', executePayload);
+      const response = await api.post(`/workflows/${workflowId}/execute`, executePayload);
       return response.data;
     },
     onSuccess: (data) => {

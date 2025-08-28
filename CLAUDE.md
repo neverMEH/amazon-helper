@@ -337,6 +337,12 @@ GET    /api/data-sources/{id}
 ## Recent Critical Fixes
 
 
+### 2025-08-28 - 18:37:55
+**fix**: Fix workflow execution endpoint and add parameter debugging
+**Context**: Backend/Project changes
+**Stats**:  3 files changed, 19 insertions(+), 5 deletions(-)
+
+
 ### 2025-08-28 - 15:15:37
 **fix**: Add debugging and test page for campaign selector issues
 **Context**: Backend/Project changes
@@ -397,7 +403,6 @@ GET    /api/data-sources/{id}
 **Stats**:  4 files changed, 29 insertions(+), 9 deletions(-)
 
 
-### 2025-08-26 - 21:47:26
 **fix**: fix: Remove brands field references - column doesn't exist yet
 **Context**: Backend/Project changes
 **Stats**:  4 files changed, 11 insertions(+), 8 deletions(-)

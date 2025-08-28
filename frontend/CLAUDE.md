@@ -448,6 +448,12 @@ Tests are in `tests/e2e/` directory:
 ## Recent Critical Fixes
 
 
+### 2025-08-28 - 18:37:55
+**fix**: Fix workflow execution endpoint and add parameter debugging
+**Context**: Frontend changes
+**Stats**:  3 files changed, 19 insertions(+), 5 deletions(-)
+
+
 ### 2025-08-28 - 15:15:37
 **fix**: Add debugging and test page for campaign selector issues
 **Context**: Frontend changes
@@ -508,7 +514,6 @@ Tests are in `tests/e2e/` directory:
 **Stats**:  5 files changed, 93 insertions(+), 7069 deletions(-)
 
 
-### 2025-08-26 - 22:10:20
 **fix**: feat: Fetch and display brands from instance_brands table
 **Context**: Frontend changes
 **Stats**:  4 files changed, 29 insertions(+), 9 deletions(-)

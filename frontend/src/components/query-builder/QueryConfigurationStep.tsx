@@ -79,6 +79,12 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
 
 
   const handleParameterChange = (param: string, value: any) => {
+    console.log('[QueryConfigurationStep] Updating parameter:', {
+      param,
+      oldValue: state.parameters[param],
+      newValue: value
+    });
+    
     setState((prev: any) => ({
       ...prev,
       parameters: {
@@ -109,9 +115,16 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
   };
 
   const handleCampaignModalConfirm = (campaigns: string[]) => {
+    console.log('[QueryConfigurationStep] Campaign selection confirmed:', {
+      param: currentCampaignParam,
+      campaigns,
+      campaignCount: campaigns.length
+    });
+    
     if (currentCampaignParam) {
-      // Format campaign IDs as quoted comma-separated string for AMC SQL
+      // Format campaign IDs/names as quoted comma-separated string for AMC SQL
       const formattedCampaigns = campaigns.map(id => `'${id}'`).join(',');
+      console.log('[QueryConfigurationStep] Formatted campaigns for parameter:', formattedCampaigns);
       handleParameterChange(currentCampaignParam, formattedCampaigns);
     }
     setShowCampaignModal(false);
