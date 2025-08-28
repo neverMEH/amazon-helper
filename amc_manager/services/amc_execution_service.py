@@ -272,13 +272,30 @@ class AMCExecutionService:
         Returns:
             SQL query with substituted values
         """
-        # Find all parameters in the template
-        param_pattern = r'\{\{(\w+)\}\}'
-        required_params = re.findall(param_pattern, sql_template)
+        # Find all parameters in the template using multiple formats
+        import re
+        required_params = set()
+        
+        # Pattern for {{parameter}} format
+        mustache_params = re.findall(r'\{\{(\w+)\}\}', sql_template)
+        required_params.update(mustache_params)
+        
+        # Pattern for :parameter format  
+        colon_params = re.findall(r':(\w+)\b', sql_template)
+        required_params.update(colon_params)
+        
+        # Pattern for $parameter format
+        dollar_params = re.findall(r'\$(\w+)\b', sql_template)
+        required_params.update(dollar_params)
+        
+        required_params = list(required_params)
         
         # Check for missing required parameters
         missing_params = [p for p in required_params if p not in parameters]
         if missing_params:
+            logger.error(f"Missing required parameters: {', '.join(missing_params)}")
+            logger.error(f"Available parameters: {list(parameters.keys())}")
+            logger.error(f"SQL template preview: {sql_template[:200]}...")
             raise ValueError(f"Missing required parameters: {', '.join(missing_params)}")
         
         # Substitute parameters with SQL injection prevention
@@ -314,8 +331,17 @@ class AMCExecutionService:
             else:
                 value_str = str(value)
             
-            query = query.replace(f"{{{{{param}}}}}", value_str)
+            # Replace multiple parameter formats
+            old_query = query
+            query = query.replace(f"{{{{{param}}}}}", value_str)  # {{param}} format
+            query = query.replace(f":{param}", value_str)  # :param format  
+            query = query.replace(f"${param}", value_str)  # $param format
+            
+            if old_query != query:
+                logger.debug(f"Replaced parameter {param} with value: {value_str[:50]}...")
         
+        # Log final query for debugging
+        logger.debug(f"Final SQL after parameter substitution: {query[:300]}...")
         return query
     
     async def _execute_real_amc_query(

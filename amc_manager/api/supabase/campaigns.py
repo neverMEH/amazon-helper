@@ -12,7 +12,7 @@ logger = get_logger(__name__)
 router = APIRouter()
 
 
-@router.get("")
+@router.get("/")
 def list_campaigns(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(50, ge=1, le=100, description="Items per page"),

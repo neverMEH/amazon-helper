@@ -137,10 +137,18 @@ class BuildGuideService(DatabaseService):
     async def start_guide(self, guide_id: str, user_id: str) -> Dict[str, Any]:
         """Start or resume a guide for a user"""
         try:
+            # First get the guide to find its UUID
+            guide_response = self.client.table('build_guides').select('id').eq('guide_id', guide_id).single().execute()
+            
+            if not guide_response.data:
+                raise ValueError(f"Guide not found: {guide_id}")
+            
+            guide_uuid = guide_response.data['id']
+            
             # Check if progress already exists
             existing = self.client.table('user_guide_progress').select('*').eq(
                 'user_id', user_id
-            ).eq('guide_id', guide_id).execute()
+            ).eq('guide_id', guide_uuid).execute()
             
             if existing.data:
                 # Update last accessed
@@ -153,15 +161,9 @@ class BuildGuideService(DatabaseService):
                 return response.data[0] if response.data else existing.data[0]
             else:
                 # Create new progress entry
-                # First get the guide to find its ID
-                guide_response = self.client.table('build_guides').select('id').eq('guide_id', guide_id).single().execute()
-                
-                if not guide_response.data:
-                    raise ValueError(f"Guide not found: {guide_id}")
-                
                 progress_data = {
                     'user_id': user_id,
-                    'guide_id': guide_response.data['id'],
+                    'guide_id': guide_uuid,
                     'status': 'in_progress',
                     'started_at': datetime.utcnow().isoformat(),
                     'last_accessed_at': datetime.utcnow().isoformat(),

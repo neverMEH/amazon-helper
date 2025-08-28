@@ -337,6 +337,12 @@ GET    /api/data-sources/{id}
 ## Recent Critical Fixes
 
 
+### 2025-08-28 - 12:33:17
+**fix**: Fix API errors: build guide UUID, campaigns endpoint, and parameter substitution
+**Context**: Backend/Project changes
+**Stats**:  4 files changed, 72 insertions(+), 61 deletions(-)
+
+
 ### 2025-08-28 - 12:25:29
 **fix**: Fix campaign selection to use brand tags from instance_brands table
 **Context**: Backend/Project changes
@@ -396,7 +402,6 @@ GET    /api/data-sources/{id}
 **Context**: Backend/Project changes
 **Stats**:  4 files changed, 612 insertions(+)
 
-### 2025-08-26
 1. **Entity ID Resolution**: Fixed schedule executions failing with "Unknown error" by properly joining `amc_accounts` table to retrieve `entity_id`
    - Updated `amc_execution_service._get_instance()` to include `.select('*, amc_accounts(*)')`
    - Updated `amc_execution_service._get_workflow_with_instance()` to include nested join
