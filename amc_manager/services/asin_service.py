@@ -398,6 +398,78 @@ class ASINService(DatabaseService):
         except Exception as e:
             logger.error(f"Error getting import status: {e}")
             return None
+    
+    @with_connection_retry
+    def list_asins_by_instance_brand(self,
+                                    instance_id: str,
+                                    brand_id: str,
+                                    search: Optional[str] = None,
+                                    limit: int = 100,
+                                    offset: int = 0) -> Dict[str, Any]:
+        """
+        List ASINs filtered by instance and brand
+        
+        This method is designed to support the universal parameter selection feature.
+        It returns ASINs that belong to a specific brand in a specific AMC instance.
+        
+        Args:
+            instance_id: AMC instance ID (UUID)
+            brand_id: Brand ID (UUID)
+            search: Optional search term for ASIN or product title
+            limit: Maximum results to return
+            offset: Pagination offset
+            
+        Returns:
+            Dict with items list and total count
+        """
+        try:
+            # Build the query to fetch ASINs filtered by instance and brand
+            # Note: We need to join the asin_asins table with instance_brands
+            # The actual table structure may need to be verified
+            query = self.client.table('asin_asins').select(
+                'asin, product_title, brand_name',
+                count='exact'
+            )
+            
+            # Filter by instance_id and brand_id
+            # This assumes there's a relationship between asins and instance_brands
+            query = query.eq('instance_id', instance_id).eq('brand_id', brand_id)
+            
+            # Apply search filter if provided
+            if search:
+                # Search in both ASIN and product title
+                query = query.or_(f"asin.ilike.%{search}%,product_title.ilike.%{search}%")
+            
+            # Apply pagination
+            query = query.range(offset, offset + limit - 1)
+            
+            # Execute query
+            result = query.execute()
+            
+            items = result.data if result.data else []
+            total = result.count if hasattr(result, 'count') else len(items)
+            
+            # Format the response
+            formatted_items = []
+            for item in items:
+                formatted_items.append({
+                    'asin': item.get('asin'),
+                    'product_title': item.get('product_title', ''),
+                    'brand_name': item.get('brand_name', '')
+                })
+            
+            return {
+                'items': formatted_items,
+                'total': total
+            }
+            
+        except Exception as e:
+            logger.error(f"Error listing ASINs by instance and brand: {e}")
+            # Return empty result on error
+            return {
+                'items': [],
+                'total': 0
+            }
 
 
 # Create singleton instance

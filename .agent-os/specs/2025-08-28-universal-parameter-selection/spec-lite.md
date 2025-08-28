@@ -1,0 +1,3 @@
+# Spec Summary (Lite)
+
+Implement intelligent parameter detection for workflow SQL queries that automatically identifies ASIN, date, and campaign parameters and provides contextual dropdown interfaces for value selection based on the selected instance brand. This eliminates manual parameter entry errors and ensures users select valid, brand-specific values through intuitive interfaces with features like ASIN/campaign filtering by brand and flexible date range selection with presets.

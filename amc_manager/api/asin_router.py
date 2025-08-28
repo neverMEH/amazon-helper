@@ -229,3 +229,40 @@ async def get_asin(
     except Exception as e:
         logger.error(f"Error getting ASIN: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve ASIN")
+
+
+@router.get("/by-instance-brand/list")
+async def list_asins_by_instance_brand(
+    instance_id: str = Query(..., description="AMC instance ID"),
+    brand_id: str = Query(..., description="Brand ID"),
+    search: Optional[str] = Query(None, description="Search term for ASIN or product title"),
+    limit: int = Query(100, ge=1, le=1000, description="Maximum results to return"),
+    offset: int = Query(0, ge=0, description="Pagination offset"),
+    current_user: dict = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Get ASINs filtered by instance and brand
+    
+    This endpoint is specifically designed for parameter selection in workflows.
+    Returns ASINs associated with a specific brand in a specific instance.
+    """
+    try:
+        # Call the asin_service with filters
+        result = asin_service.list_asins_by_instance_brand(
+            instance_id=instance_id,
+            brand_id=brand_id,
+            search=search,
+            limit=limit,
+            offset=offset
+        )
+        
+        return {
+            'asins': result.get('items', []),
+            'total': result.get('total', 0),
+            'limit': limit,
+            'offset': offset
+        }
+        
+    except Exception as e:
+        logger.error(f"Error listing ASINs by instance and brand: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve ASINs")

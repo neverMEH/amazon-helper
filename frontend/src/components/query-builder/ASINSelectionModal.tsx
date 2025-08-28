@@ -156,8 +156,6 @@ const ASINSelectionModal: React.FC<ASINSelectionModalProps> = ({
 
   if (!isOpen) return null;
 
-  console.log('ASINSelectionModal rendering, isOpen:', isOpen, 'selectedAsins:', Array.from(selectedAsins));
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[85vh] flex flex-col">

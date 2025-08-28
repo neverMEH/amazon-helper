@@ -8,6 +8,7 @@ from datetime import datetime, timezone, timedelta
 from ...services.db_service import db_service
 from ...services.token_service import token_service
 from ...services.batch_execution_service import BatchExecutionService
+from ...services.parameter_detection_service import ParameterDetectionService
 from ...core.logger_simple import get_logger
 from ...core.supabase_client import SupabaseManager
 from .auth import get_current_user
@@ -1541,3 +1542,97 @@ async def list_batch_executions(
     except Exception as e:
         logger.error(f"Error listing batch executions: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to list batch executions: {str(e)}")
+
+
+@router.get("/{workflow_id}/parameters")
+async def detect_workflow_parameters(
+    workflow_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Detect and classify parameters in a workflow's SQL query.
+    
+    Args:
+        workflow_id: The workflow UUID
+        current_user: Authenticated user
+        
+    Returns:
+        List of detected parameters with their types and positions
+    """
+    try:
+        # Get workflow to verify ownership
+        workflow = db_service.get_workflow_by_id_sync(workflow_id)
+        if not workflow:
+            raise HTTPException(status_code=404, detail="Workflow not found")
+        
+        if workflow['user_id'] != current_user['id']:
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        # Detect parameters in the SQL query
+        detection_service = ParameterDetectionService()
+        parameters = detection_service.detect_parameters(workflow['sql_query'])
+        
+        return {
+            'success': True,
+            'parameters': parameters,
+            'workflow_id': workflow_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error detecting parameters: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to detect parameters: {str(e)}")
+
+
+@router.post("/{workflow_id}/validate-parameters")
+async def validate_workflow_parameters(
+    workflow_id: str,
+    parameters: Dict[str, Any] = Body(...),
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Validate parameter values for a workflow execution.
+    
+    Args:
+        workflow_id: The workflow UUID
+        parameters: Dictionary of parameter values to validate
+        current_user: Authenticated user
+        
+    Returns:
+        Validation results with formatted parameters
+    """
+    try:
+        # Get workflow to verify ownership
+        workflow = db_service.get_workflow_by_id_sync(workflow_id)
+        if not workflow:
+            raise HTTPException(status_code=404, detail="Workflow not found")
+        
+        if workflow['user_id'] != current_user['id']:
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        # Validate parameters
+        detection_service = ParameterDetectionService()
+        validation_result = detection_service.validate_parameters(parameters)
+        
+        if not validation_result['valid']:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    'message': 'Parameter validation failed',
+                    'errors': validation_result['errors']
+                }
+            )
+        
+        return {
+            'success': True,
+            'valid': validation_result['valid'],
+            'formatted_parameters': validation_result['formatted_parameters'],
+            'workflow_id': workflow_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error validating parameters: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to validate parameters: {str(e)}")

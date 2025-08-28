@@ -89,7 +89,6 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
   };
 
   const handleASINSelect = (paramName: string) => {
-    console.log('ASIN Select clicked for parameter:', paramName);
     setCurrentASINParam(paramName);
     setShowASINModal(true);
   };
@@ -119,9 +118,48 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
     setCurrentCampaignParam(null);
   };
 
+  /**
+   * Determines if a parameter should trigger ASIN selection UI
+   * Trigger keywords include:
+   * - tracked_asins: ASINs being monitored/tracked
+   * - target_asins: ASINs being targeted in campaigns
+   * - promoted_asins: ASINs being promoted
+   * - competitor_asins: Competitor product ASINs
+   * - purchased_asins: ASINs that were purchased
+   * - viewed_asins: ASINs that were viewed
+   */
   const isASINParameter = (paramName: string): boolean => {
     const lowerParam = paramName.toLowerCase();
-    return lowerParam.includes('asin') || lowerParam.includes('product_id') || lowerParam.includes('item_id');
+    // Specific trigger keywords for ASIN selection
+    const asinTriggers = [
+      'tracked_asins',
+      'tracked_asin',
+      'target_asins',
+      'target_asin',
+      'promoted_asins',
+      'promoted_asin',
+      'competitor_asins',
+      'competitor_asin',
+      'purchased_asins',
+      'purchased_asin',
+      'viewed_asins',
+      'viewed_asin'
+    ];
+    
+    // Check for exact matches first
+    if (asinTriggers.includes(lowerParam)) {
+      return true;
+    }
+    
+    // Then check for partial matches with specific keywords
+    return lowerParam === 'asin' || 
+           lowerParam === 'asins' ||
+           lowerParam.includes('tracked_asin') ||
+           lowerParam.includes('target_asin') ||
+           lowerParam.includes('promoted_asin') ||
+           lowerParam.includes('competitor_asin') ||
+           lowerParam.includes('purchased_asin') ||
+           lowerParam.includes('viewed_asin');
   };
 
   const isCampaignParameter = (paramName: string): boolean => {
@@ -203,7 +241,6 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
           <div className="bg-gray-50 rounded-md p-4 space-y-3">
             {Object.entries(state.parameters).map(([param, value]) => {
               const paramType = getParameterType(param);
-              console.log(`Parameter: ${param}, Type: ${paramType}, Value:`, value);
               return (
                 <div key={param}>
                   <label className="block text-xs font-medium text-gray-600 mb-1">
