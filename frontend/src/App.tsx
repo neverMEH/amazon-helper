@@ -28,6 +28,9 @@ import ScheduleManager from './pages/ScheduleManager';
 
 // Build Guides imports
 import BuildGuides from './pages/BuildGuides';
+
+// Test imports
+import TestCampaignSelector from './components/test/TestCampaignSelector';
 import BuildGuideDetail from './pages/BuildGuideDetail';
 
 // ASIN Management import
@@ -62,6 +65,7 @@ function App() {
               <Route path="/instances" element={<Instances />} />
               <Route path="/instances/:instanceId" element={<InstanceDetail />} />
               <Route path="/campaigns" element={<Campaigns />} />
+              <Route path="/test-campaign-selector" element={<TestCampaignSelector />} />
               <Route path="/executions" element={<Executions />} />
               
               {/* Legacy routes - redirect to new ones */}

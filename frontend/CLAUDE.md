@@ -448,6 +448,12 @@ Tests are in `tests/e2e/` directory:
 ## Recent Critical Fixes
 
 
+### 2025-08-28 - 15:15:37
+**fix**: Add debugging and test page for campaign selector issues
+**Context**: Frontend changes
+**Stats**:  4 files changed, 102 insertions(+), 5 deletions(-)
+
+
 ### 2025-08-28 - 15:04:47
 **fix**: Fix campaign selector selection logic and add debugging
 **Context**: Frontend changes
@@ -508,7 +514,6 @@ Tests are in `tests/e2e/` directory:
 **Stats**:  4 files changed, 29 insertions(+), 9 deletions(-)
 
 
-### 2025-08-26 - 21:47:26
 **fix**: fix: Remove brands field references - column doesn't exist yet
 **Context**: Frontend changes
 **Stats**:  4 files changed, 11 insertions(+), 8 deletions(-)

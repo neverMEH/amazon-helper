@@ -18,7 +18,8 @@ interface CampaignSelectorProps {
 
 interface Campaign {
   campaign_id: string;
-  campaign_name: string;
+  campaign_name?: string;
+  name?: string;  // Alternative field name from API
   campaign_type: string;
   status: string;
 }
@@ -85,10 +86,20 @@ export const CampaignSelector: FC<CampaignSelectorProps> = ({
   });
 
   const campaigns = data?.campaigns || [];
+  
+  // Debug: Log what we're receiving
+  useEffect(() => {
+    console.log('[CampaignSelector] Data received from API:', data);
+    console.log('[CampaignSelector] Campaigns array:', campaigns);
+    console.log('[CampaignSelector] First campaign:', campaigns[0]);
+    console.log('[CampaignSelector] ValueType:', valueType);
+    console.log('[CampaignSelector] CampaignType filter:', campaignType);
+  }, [data, campaigns, valueType, campaignType]);
 
   // Handle campaign selection
   const handleToggleCampaign = useCallback((campaignId: string, campaignName: string) => {
-    const valueToUse = valueType === 'names' ? campaignName : campaignId;
+    const valueToUse = valueType === 'names' ? (campaignName || '') : campaignId;
+    console.log('[CampaignSelector] Toggle:', { campaignId, campaignName, valueType, valueToUse });
     
     if (multiple) {
       const newSelected = new Set(selectedCampaigns);
@@ -244,15 +255,15 @@ export const CampaignSelector: FC<CampaignSelectorProps> = ({
                     <input
                       type={multiple ? 'checkbox' : 'radio'}
                       checked={selectedCampaigns.has(
-                        valueType === 'names' ? campaign.campaign_name : campaign.campaign_id
+                        valueType === 'names' ? (campaign.campaign_name || campaign.name || '') : campaign.campaign_id
                       )}
-                      onChange={() => handleToggleCampaign(campaign.campaign_id, campaign.campaign_name)}
+                      onChange={() => handleToggleCampaign(campaign.campaign_id, campaign.campaign_name || campaign.name || '')}
                       className="mr-3 text-blue-600 focus:ring-blue-500"
                     />
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
                         <div className="text-sm font-medium text-gray-900">
-                          {campaign.campaign_name || 'Unnamed Campaign'}
+                          {campaign.campaign_name || campaign.name || `Campaign ID: ${campaign.campaign_id}`}
                         </div>
                         <span
                           className={`ml-2 px-2 py-1 text-xs rounded-full ${getTypeColor(

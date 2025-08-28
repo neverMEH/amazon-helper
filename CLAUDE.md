@@ -337,6 +337,12 @@ GET    /api/data-sources/{id}
 ## Recent Critical Fixes
 
 
+### 2025-08-28 - 15:15:37
+**fix**: Add debugging and test page for campaign selector issues
+**Context**: Backend/Project changes
+**Stats**:  4 files changed, 102 insertions(+), 5 deletions(-)
+
+
 ### 2025-08-28 - 15:04:47
 **fix**: Fix campaign selector selection logic and add debugging
 **Context**: Backend/Project changes
@@ -397,7 +403,6 @@ GET    /api/data-sources/{id}
 **Stats**:  4 files changed, 11 insertions(+), 8 deletions(-)
 
 
-### 2025-08-26 - 21:42:23
 **fix**: feat: Add instance brand names to schedule displays
 **Context**: Backend/Project changes
 **Stats**:  3 files changed, 29 insertions(+), 3 deletions(-)
