@@ -344,6 +344,27 @@ class AMCExecutionService:
         logger.debug(f"Final SQL after parameter substitution: {query[:300]}...")
         return query
     
+    def _is_campaign_or_asin_param(self, param_name: str) -> bool:
+        """
+        Check if a parameter name indicates it's a campaign or ASIN parameter
+        that should be handled via SQL injection instead of AMC parameters
+        """
+        param_lower = param_name.lower()
+        
+        # Campaign keywords
+        campaign_keywords = ['campaign', 'campaign_id', 'campaign_name', 'campaigns', 'campaign_ids', 'campaign_list']
+        if any(keyword in param_lower for keyword in campaign_keywords):
+            return True
+            
+        # ASIN keywords  
+        asin_keywords = ['asin', 'product_asin', 'parent_asin', 'child_asin', 'asins', 'asin_list',
+                        'tracked_asins', 'target_asins', 'promoted_asins', 'competitor_asins', 
+                        'purchased_asins', 'viewed_asins']
+        if any(keyword in param_lower for keyword in asin_keywords):
+            return True
+            
+        return False
+    
     async def _execute_real_amc_query(
         self,
         instance_id: str,
@@ -435,7 +456,7 @@ class AMCExecutionService:
             
             if execution_parameters:
                 for param_name, param_value in execution_parameters.items():
-                    # Check if this is a SQL injection parameter
+                    # Check if this is a SQL injection parameter (campaigns/ASINs)
                     if isinstance(param_value, dict) and param_value.get('_sqlInject'):
                         sql_injection_params[param_name] = param_value
                         logger.info(f"SQL injection parameter detected: {param_name} with {len(param_value.get('_values', []))} values")
@@ -447,7 +468,19 @@ class AMCExecutionService:
                             param_pattern = f"{{{{{param_name}}}}}"
                             processed_sql_query = processed_sql_query.replace(param_pattern, f"VALUES\n{values_clause}")
                             logger.info(f"Applied SQL injection for {param_name}: replaced {param_pattern} with VALUES clause")
+                    # Check if this is a legacy array parameter that should be converted to SQL injection
+                    elif isinstance(param_value, list) and self._is_campaign_or_asin_param(param_name):
+                        # Convert legacy array to SQL injection
+                        sql_injection_params[param_name] = param_value
+                        logger.info(f"Converting legacy array parameter {param_name} to SQL injection with {len(param_value)} values")
+                        
+                        # Apply SQL injection to query
+                        values_clause = '\n'.join([f"    ('{value}')" for value in param_value])
+                        param_pattern = f"{{{{{param_name}}}}}"
+                        processed_sql_query = processed_sql_query.replace(param_pattern, f"VALUES\n{values_clause}")
+                        logger.info(f"Applied SQL injection for legacy parameter {param_name}: replaced {param_pattern} with VALUES clause")
                     else:
+                        # Regular parameters (dates, etc.)
                         amc_parameters[param_name] = param_value
             
             logger.info(f"AMC parameters: {list(amc_parameters.keys())}")

@@ -107,9 +107,21 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
     });
     
     if (currentASINParam) {
-      // Store as array - AMC API expects arrays for parameter values, not formatted strings
-      console.log('[QueryConfigurationStep] Storing ASINs as array for AMC API:', asins);
-      handleParameterChange(currentASINParam, asins);
+      // Always inject ASINs directly into SQL query instead of using parameters
+      console.log('[QueryConfigurationStep] Injecting ASINs into SQL VALUES clause');
+      
+      // Generate VALUES clause for SQL injection
+      const valuesClause = asins.map(asin => `    ('${asin}')`).join(',\n');
+      const sqlComment = `-- Updated ${currentASINParam} with ${asins.length} ASINs\n`;
+      
+      // Store special marker for SQL injection
+      handleParameterChange(currentASINParam, {
+        _sqlInject: true,
+        _values: asins,
+        _valuesClause: valuesClause,
+        _comment: sqlComment,
+        _type: 'asin'
+      });
     }
     setShowASINModal(false);
     setCurrentASINParam(null);
@@ -128,27 +140,21 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
     });
     
     if (currentCampaignParam) {
-      // For large campaign lists, inject directly into SQL query instead of using parameters
-      if (campaigns.length > 10) {
-        console.log('[QueryConfigurationStep] Large campaign list detected, will inject into SQL VALUES clause');
-        
-        // Generate VALUES clause for SQL injection
-        const valuesClause = campaigns.map(campaign => `    ('${campaign}')`).join(',\n');
-        const sqlComment = `-- Updated ${currentCampaignParam} with ${campaigns.length} campaigns\n`;
-        
-        // Store special marker for SQL injection
-        handleParameterChange(currentCampaignParam, {
-          _sqlInject: true,
-          _values: campaigns,
-          _valuesClause: valuesClause,
-          _comment: sqlComment,
-          _type: 'campaign'
-        });
-      } else {
-        // For small lists, keep as array parameters
-        console.log('[QueryConfigurationStep] Small campaign list, storing as array parameter');
-        handleParameterChange(currentCampaignParam, campaigns);
-      }
+      // Always inject campaigns directly into SQL query instead of using parameters
+      console.log('[QueryConfigurationStep] Injecting campaigns into SQL VALUES clause');
+      
+      // Generate VALUES clause for SQL injection
+      const valuesClause = campaigns.map(campaign => `    ('${campaign}')`).join(',\n');
+      const sqlComment = `-- Updated ${currentCampaignParam} with ${campaigns.length} campaigns\n`;
+      
+      // Store special marker for SQL injection
+      handleParameterChange(currentCampaignParam, {
+        _sqlInject: true,
+        _values: campaigns,
+        _valuesClause: valuesClause,
+        _comment: sqlComment,
+        _type: 'campaign'
+      });
     }
     setShowCampaignModal(false);
     setCurrentCampaignParam(null);
@@ -286,10 +292,15 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        value={Array.isArray(value) ? value.join(', ') : (value as string)}
+                        value={
+                          value && typeof value === 'object' && '_sqlInject' in value && value._sqlInject 
+                            ? `${(value as any)._values.length} ASINs (SQL injection mode)`
+                            : Array.isArray(value) ? value.join(', ') : (value as string)
+                        }
                         onChange={(e) => handleParameterChange(param, e.target.value)}
                         placeholder="Enter ASINs or select from catalog"
                         className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+                        readOnly={Boolean(value && typeof value === 'object' && '_sqlInject' in value && (value as any)._sqlInject)}
                       />
                       <button
                         type="button"

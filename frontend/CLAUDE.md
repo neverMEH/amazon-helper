@@ -448,6 +448,12 @@ Tests are in `tests/e2e/` directory:
 ## Recent Critical Fixes
 
 
+### 2025-08-28 - 19:29:12
+**fix**: Remove parameter injection for campaigns/ASINs - always use SQL injection instead
+**Context**: Frontend changes
+**Stats**:  3 files changed, 74 insertions(+), 33 deletions(-)
+
+
 ### 2025-08-28 - 19:15:44
 **fix**: Implement SQL injection method for large parameter lists to avoid AMC length limits
 **Context**: Frontend changes
@@ -508,7 +514,6 @@ Tests are in `tests/e2e/` directory:
 **Stats**:  30 files changed, 120389 insertions(+), 6 deletions(-)
 
 
-### 2025-08-27 - 15:36:25
 **fix**: feat: Add campaign page optimizations with sorting, filters, and faster brand dropdown
 **Context**: Frontend changes
 **Stats**:  6 files changed, 1381 insertions(+), 4 deletions(-)

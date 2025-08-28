@@ -227,13 +227,10 @@ class ParameterDetectionService:
                     errors.append(f"Invalid date format for {param_name}")
             
             elif param_type == 'asin' or param_type == 'campaign':
-                # Handle arrays for multi-select - preserve arrays for AMC API
-                if isinstance(value, list):
-                    # Keep as array - AMC API expects arrays for parameter values
-                    formatted[param_name] = value
-                else:
-                    # Single value, keep as string without quotes for AMC API
-                    formatted[param_name] = str(value)
+                # Skip ASIN/Campaign parameters - they should be handled via SQL injection
+                # These will be processed separately in the execution service
+                logger.info(f"Skipping {param_type} parameter {param_name} - will be handled via SQL injection")
+                continue
             
             else:
                 # Default handling

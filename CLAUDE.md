@@ -337,6 +337,12 @@ GET    /api/data-sources/{id}
 ## Recent Critical Fixes
 
 
+### 2025-08-28 - 19:29:12
+**fix**: Remove parameter injection for campaigns/ASINs - always use SQL injection instead
+**Context**: Backend/Project changes
+**Stats**:  3 files changed, 74 insertions(+), 33 deletions(-)
+
+
 ### 2025-08-28 - 19:15:44
 **fix**: Implement SQL injection method for large parameter lists to avoid AMC length limits
 **Context**: Backend/Project changes
@@ -397,7 +403,6 @@ GET    /api/data-sources/{id}
 **Stats**:  6 files changed, 1381 insertions(+), 4 deletions(-)
 
 
-### 2025-08-27 - 10:04:06
 **fix**: feat: Add ability to schedule workflow runs at specific times today
 **Context**: Backend/Project changes
 **Stats**:  5 files changed, 470 insertions(+), 69 deletions(-)
