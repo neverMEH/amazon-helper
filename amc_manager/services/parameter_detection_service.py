@@ -69,14 +69,16 @@ class ParameterDetectionService:
                 if self._is_escaped(query, match.start()):
                     continue
                 
-                # Classify the parameter type
-                param_type = self._classify_parameter(param_name, query, match.start())
+                # Classify the parameter type and get additional metadata
+                param_info = self._classify_parameter(param_name, query, match.start())
                 
-                if param_type:
+                if param_info:
                     detected_params.append({
                         "name": param_name,
-                        "type": param_type,
+                        "type": param_info.get('type'),
                         "placeholder": placeholder,
+                        "campaign_type": param_info.get('campaign_type'),  # sp, sb, sd, dsp
+                        "value_type": param_info.get('value_type'),  # names, ids
                         "position": match.start()
                     })
                     seen_params.add(param_name)
@@ -86,7 +88,7 @@ class ParameterDetectionService:
         
         return detected_params
     
-    def _classify_parameter(self, param_name: str, query: str, position: int) -> str:
+    def _classify_parameter(self, param_name: str, query: str, position: int) -> dict:
         """
         Classify the type of a parameter based on its name and context
         
@@ -96,21 +98,27 @@ class ParameterDetectionService:
             position: Position of the parameter in the query
             
         Returns:
-            Parameter type ('asin', 'date', 'campaign') or None
+            Dict with parameter info or None
         """
         param_lower = param_name.lower()
         
         # Check for ASIN parameters
         if any(keyword in param_lower for keyword in self.ASIN_KEYWORDS):
-            return 'asin'
+            return {'type': 'asin'}
         
         # Check for date parameters
         if any(keyword in param_lower for keyword in self.DATE_KEYWORDS):
-            return 'date'
+            return {'type': 'date'}
         
-        # Check for campaign parameters
+        # Check for campaign parameters with specific types
         if any(keyword in param_lower for keyword in self.CAMPAIGN_KEYWORDS):
-            return 'campaign'
+            # Determine campaign type and value type from parameter name
+            campaign_info = self._parse_campaign_parameter(param_name)
+            return {
+                'type': 'campaign',
+                'campaign_type': campaign_info.get('campaign_type'),
+                'value_type': campaign_info.get('value_type', 'ids')
+            }
         
         # Try to infer from context around the parameter
         context = self._get_context(query, position)
@@ -118,18 +126,48 @@ class ParameterDetectionService:
         
         # Check context for ASIN indicators
         if any(keyword in context_lower for keyword in ['asin', 'product']):
-            return 'asin'
+            return {'type': 'asin'}
         
         # Check context for date indicators
         if any(keyword in context_lower for keyword in ['date', 'time', 'between', 'from', 'to']):
-            return 'date'
+            return {'type': 'date'}
         
         # Check context for campaign indicators
         if any(keyword in context_lower for keyword in ['campaign']):
-            return 'campaign'
+            return {'type': 'campaign'}
         
         # Default to None if we can't classify
         return None
+    
+    def _parse_campaign_parameter(self, param_name: str) -> dict:
+        """
+        Parse campaign parameter name to determine campaign type and value type
+        
+        Examples:
+        - 'sp_campaign_names' -> {'campaign_type': 'sp', 'value_type': 'names'}
+        - 'display_campaign_ids' -> {'campaign_type': 'dsp', 'value_type': 'ids'}
+        - 'sb_campaign_ids' -> {'campaign_type': 'sb', 'value_type': 'ids'}
+        """
+        param_lower = param_name.lower()
+        result = {'campaign_type': None, 'value_type': 'ids'}  # Default to ids
+        
+        # Determine campaign type
+        if 'sp_' in param_lower or 'sponsored_products' in param_lower:
+            result['campaign_type'] = 'sp'
+        elif 'sb_' in param_lower or 'sponsored_brands' in param_lower:
+            result['campaign_type'] = 'sb'
+        elif 'sd_' in param_lower or 'sponsored_display' in param_lower:
+            result['campaign_type'] = 'sd'
+        elif 'display_' in param_lower or 'dsp_' in param_lower:
+            result['campaign_type'] = 'dsp'
+        
+        # Determine value type
+        if 'name' in param_lower:
+            result['value_type'] = 'names'
+        elif 'id' in param_lower:
+            result['value_type'] = 'ids'
+        
+        return result
     
     def _get_context(self, query: str, position: int, context_size: int = 30) -> str:
         """

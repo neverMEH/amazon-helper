@@ -11,7 +11,8 @@ interface CampaignSelectorProps {
   onChange: (value: string[]) => void;
   placeholder?: string;
   multiple?: boolean;
-  campaignType?: string;
+  campaignType?: 'sp' | 'sb' | 'sd' | 'dsp';  // Specific campaign type filter
+  valueType?: 'names' | 'ids';  // Whether to return names or IDs
   className?: string;
 }
 
@@ -33,6 +34,7 @@ export const CampaignSelector: FC<CampaignSelectorProps> = ({
   placeholder = 'Select campaigns...',
   multiple = true,
   campaignType,
+  valueType = 'ids',
   className = ''
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -65,7 +67,14 @@ export const CampaignSelector: FC<CampaignSelectorProps> = ({
       }
       
       if (campaignType) {
-        params.append('campaign_type', campaignType);
+        // Map campaign type to API format
+        const typeMapping: Record<string, string> = {
+          'sp': 'sponsored_products',
+          'sb': 'sponsored_brands', 
+          'sd': 'sponsored_display',
+          'dsp': 'dsp'  // DSP campaigns (not implemented yet)
+        };
+        params.append('campaign_type', typeMapping[campaignType] || campaignType);
       }
 
       const response = await api.get(`/campaigns/by-instance-brand/list?${params.toString()}`);
@@ -78,28 +87,31 @@ export const CampaignSelector: FC<CampaignSelectorProps> = ({
   const campaigns = data?.campaigns || [];
 
   // Handle campaign selection
-  const handleToggleCampaign = useCallback((campaignId: string) => {
+  const handleToggleCampaign = useCallback((campaignId: string, campaignName: string) => {
     const newSelected = new Set(selectedCampaigns);
+    const valueToUse = valueType === 'names' ? campaignName : campaignId;
     
     if (multiple) {
-      if (newSelected.has(campaignId)) {
-        newSelected.delete(campaignId);
+      if (newSelected.has(valueToUse)) {
+        newSelected.delete(valueToUse);
       } else {
-        newSelected.add(campaignId);
+        newSelected.add(valueToUse);
       }
     } else {
       newSelected.clear();
-      newSelected.add(campaignId);
+      newSelected.add(valueToUse);
       setIsOpen(false);
     }
     
     setSelectedCampaigns(newSelected);
     onChange(Array.from(newSelected));
-  }, [selectedCampaigns, onChange, multiple]);
+  }, [selectedCampaigns, onChange, multiple, valueType]);
 
   // Handle select all
   const handleSelectAll = useCallback(() => {
-    const allCampaigns = campaigns.map((c: Campaign) => c.campaign_id);
+    const allCampaigns = campaigns.map((c: Campaign) => 
+      valueType === 'names' ? c.campaign_name : c.campaign_id
+    );
     setSelectedCampaigns(new Set(allCampaigns));
     onChange(allCampaigns);
   }, [campaigns, onChange]);
@@ -231,8 +243,10 @@ export const CampaignSelector: FC<CampaignSelectorProps> = ({
                   >
                     <input
                       type={multiple ? 'checkbox' : 'radio'}
-                      checked={selectedCampaigns.has(campaign.campaign_id)}
-                      onChange={() => handleToggleCampaign(campaign.campaign_id)}
+                      checked={selectedCampaigns.has(
+                        valueType === 'names' ? campaign.campaign_name : campaign.campaign_id
+                      )}
+                      onChange={() => handleToggleCampaign(campaign.campaign_id, campaign.campaign_name)}
                       className="mr-3 text-blue-600 focus:ring-blue-500"
                     />
                     <div className="flex-1">

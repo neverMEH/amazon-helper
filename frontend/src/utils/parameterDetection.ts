@@ -10,6 +10,8 @@ export interface DetectedParameter {
   type: ParameterType;
   placeholder: string;
   position: number;
+  campaign_type?: 'sp' | 'sb' | 'sd' | 'dsp';  // Campaign type for campaign parameters
+  value_type?: 'names' | 'ids';  // Whether to return names or IDs
 }
 
 export class ParameterDetector {

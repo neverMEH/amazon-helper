@@ -75,6 +75,8 @@ export const UniversalParameterSelector: FC<UniversalParameterSelectorProps> = (
             value={value}
             onChange={handleChange}
             placeholder={`Select campaigns for ${parameter.name}`}
+            campaignType={parameter.campaign_type}
+            valueType={parameter.value_type}
           />
         );
       

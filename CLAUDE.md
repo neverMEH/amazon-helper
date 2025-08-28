@@ -337,6 +337,12 @@ GET    /api/data-sources/{id}
 ## Recent Critical Fixes
 
 
+### 2025-08-28 - 12:39:45
+**fix**: Enhance parameter detection to support campaign type and value type filtering
+**Context**: Backend/Project changes
+**Stats**:  4 files changed, 80 insertions(+), 24 deletions(-)
+
+
 ### 2025-08-28 - 12:33:17
 **fix**: Fix API errors: build guide UUID, campaigns endpoint, and parameter substitution
 **Context**: Backend/Project changes
@@ -397,7 +403,6 @@ GET    /api/data-sources/{id}
 **Stats**:  4 files changed, 51 insertions(+), 8 deletions(-)
 
 
-### 2025-08-26 - 21:00:34
 **fix**: Add git helper scripts and documentation
 **Context**: Backend/Project changes
 **Stats**:  4 files changed, 612 insertions(+)

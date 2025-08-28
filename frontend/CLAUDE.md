@@ -448,6 +448,12 @@ Tests are in `tests/e2e/` directory:
 ## Recent Critical Fixes
 
 
+### 2025-08-28 - 12:39:45
+**fix**: Enhance parameter detection to support campaign type and value type filtering
+**Context**: Frontend changes
+**Stats**:  4 files changed, 80 insertions(+), 24 deletions(-)
+
+
 ### 2025-08-28 - 12:25:29
 **fix**: Fix campaign selection to use brand tags from instance_brands table
 **Context**: Frontend changes
@@ -507,7 +513,6 @@ Tests are in `tests/e2e/` directory:
 **Context**: Frontend changes
 **Stats**:  3 files changed, 29 insertions(+), 3 deletions(-)
 
-### 2025-08-26 - 21:29:43
 **fix**: Fix schedule test runs and lookback period defaults
 **Context**: Frontend changes
 **Stats**:  4 files changed, 51 insertions(+), 8 deletions(-)
