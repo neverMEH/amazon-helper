@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, Search, Megaphone, CheckSquare, Square } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import campaignService, { type Campaign } from '../../services/campaignService';
+import campaignService, { type Campaign, type CampaignListResponse, type CampaignSearchParams } from '../../services/campaignService';
 import LoadingSpinner from '../LoadingSpinner';
 
 interface CampaignSelectionModalProps {
@@ -41,7 +41,7 @@ const CampaignSelectionModal: React.FC<CampaignSelectionModalProps> = ({
   }, [currentValue, isOpen]);
 
   // Fetch campaigns for the instance
-  const { data: campaignsData, isLoading } = useQuery({
+  const { data: campaignsData, isLoading } = useQuery<CampaignListResponse>({
     queryKey: ['instance-campaigns', instanceId, selectedBrand, selectedStatus, searchQuery, page],
     queryFn: async () => {
       if (!instanceId) {
@@ -49,14 +49,15 @@ const CampaignSelectionModal: React.FC<CampaignSelectionModalProps> = ({
       }
       
       // Call the campaigns API with filters
-      const response = await campaignService.getCampaigns({
+      const params: CampaignSearchParams = {
         instance_id: instanceId,
         brand_name: selectedBrand || undefined,
         status: selectedStatus || undefined,
         search: searchQuery || undefined,
         page,
         page_size: pageSize
-      });
+      };
+      const response = await campaignService.getCampaigns(params);
       
       return response;
     },
