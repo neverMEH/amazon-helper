@@ -448,6 +448,12 @@ Tests are in `tests/e2e/` directory:
 ## Recent Critical Fixes
 
 
+### 2025-08-28 - 19:02:26
+**fix**: Fix AMC parameter length limit by sending arrays instead of formatted strings
+**Context**: Frontend changes
+**Stats**:  2 files changed, 17 insertions(+), 11 deletions(-)
+
+
 ### 2025-08-28 - 18:37:55
 **fix**: Fix workflow execution endpoint and add parameter debugging
 **Context**: Frontend changes
@@ -508,7 +514,6 @@ Tests are in `tests/e2e/` directory:
 **Stats**:  5 files changed, 470 insertions(+), 69 deletions(-)
 
 
-### 2025-08-27 - 09:24:53
 **fix**: Fix schedule execution failures - Add entity_id join and improve error handling
 **Context**: Frontend changes
 **Stats**:  5 files changed, 93 insertions(+), 7069 deletions(-)

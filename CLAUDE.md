@@ -337,6 +337,12 @@ GET    /api/data-sources/{id}
 ## Recent Critical Fixes
 
 
+### 2025-08-28 - 19:02:26
+**fix**: Fix AMC parameter length limit by sending arrays instead of formatted strings
+**Context**: Backend/Project changes
+**Stats**:  2 files changed, 17 insertions(+), 11 deletions(-)
+
+
 ### 2025-08-28 - 18:37:55
 **fix**: Fix workflow execution endpoint and add parameter debugging
 **Context**: Backend/Project changes
@@ -397,7 +403,6 @@ GET    /api/data-sources/{id}
 **Stats**:  5 files changed, 93 insertions(+), 7069 deletions(-)
 
 
-### 2025-08-26 - 22:10:20
 **fix**: feat: Fetch and display brands from instance_brands table
 **Context**: Backend/Project changes
 **Stats**:  4 files changed, 29 insertions(+), 9 deletions(-)

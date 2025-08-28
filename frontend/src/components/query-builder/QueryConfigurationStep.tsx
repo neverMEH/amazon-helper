@@ -100,10 +100,16 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
   };
 
   const handleASINModalConfirm = (asins: string[]) => {
+    console.log('[QueryConfigurationStep] ASIN selection confirmed:', {
+      param: currentASINParam,
+      asins,
+      asinCount: asins.length
+    });
+    
     if (currentASINParam) {
-      // Format ASINs as quoted comma-separated string for AMC SQL
-      const formattedAsins = asins.map(asin => `'${asin}'`).join(',');
-      handleParameterChange(currentASINParam, formattedAsins);
+      // Store as array - AMC API expects arrays for parameter values, not formatted strings
+      console.log('[QueryConfigurationStep] Storing ASINs as array for AMC API:', asins);
+      handleParameterChange(currentASINParam, asins);
     }
     setShowASINModal(false);
     setCurrentASINParam(null);
@@ -122,10 +128,9 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
     });
     
     if (currentCampaignParam) {
-      // Format campaign IDs/names as quoted comma-separated string for AMC SQL
-      const formattedCampaigns = campaigns.map(id => `'${id}'`).join(',');
-      console.log('[QueryConfigurationStep] Formatted campaigns for parameter:', formattedCampaigns);
-      handleParameterChange(currentCampaignParam, formattedCampaigns);
+      // Store as array - AMC API expects arrays for parameter values, not formatted strings
+      console.log('[QueryConfigurationStep] Storing campaigns as array for AMC API:', campaigns);
+      handleParameterChange(currentCampaignParam, campaigns);
     }
     setShowCampaignModal(false);
     setCurrentCampaignParam(null);
