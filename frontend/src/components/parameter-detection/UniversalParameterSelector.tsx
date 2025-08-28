@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { FC, ReactNode } from 'react';
-import type { DetectedParameter, ParameterType } from '../../utils/parameterDetection';
+import type { DetectedParameter } from '../../utils/parameterDetection';
 import { ASINSelector } from './ASINSelector';
 import { DateRangeSelector } from './DateRangeSelector';
 import { CampaignSelector } from './CampaignSelector';

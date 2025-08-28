@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, X, Target } from 'lucide-react';
-import { api } from '../../lib/api';
+import api from '../../services/api';
 import type { FC } from 'react';
 
 interface CampaignSelectorProps {

@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { ParameterDetector as Detector, DetectedParameter, debounce } from '../../utils/parameterDetection';
+import { useEffect, useState, useMemo } from 'react';
+import { ParameterDetector as Detector, debounce } from '../../utils/parameterDetection';
+import type { DetectedParameter } from '../../utils/parameterDetection';
 import type { FC } from 'react';
 
 interface ParameterDetectorProps {

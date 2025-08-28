@@ -146,7 +146,7 @@ export default function QueryConfigurationStepEnhanced({
       <div>
         <h3 className="text-lg font-semibold mb-4">Select Instance</h3>
         <InstanceSelector
-          instanceId={state.instanceId}
+          value={state.instanceId}
           onChange={handleInstanceChange}
           instances={instances}
         />

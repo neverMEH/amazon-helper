@@ -6,7 +6,6 @@ import type { DetectedParameter } from '../../utils/parameterDetection';
 import api from '../../services/api';
 
 interface WorkflowParameterEditorProps {
-  workflowId?: string;
   sqlQuery: string;
   instanceId: string;
   parameters: Record<string, any>;
@@ -19,7 +18,6 @@ interface WorkflowParameterEditorProps {
  * with contextual selectors for ASINs, dates, and campaigns
  */
 export default function WorkflowParameterEditor({
-  workflowId,
   sqlQuery,
   instanceId,
   parameters,
