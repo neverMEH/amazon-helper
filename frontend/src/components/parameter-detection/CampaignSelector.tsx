@@ -121,11 +121,11 @@ export const CampaignSelector: FC<CampaignSelectorProps> = ({
   // Handle select all
   const handleSelectAll = useCallback(() => {
     const allCampaigns = campaigns.map((c: Campaign) => 
-      valueType === 'names' ? c.campaign_name : c.campaign_id
-    );
+      valueType === 'names' ? (c.campaign_name || c.name || '') : c.campaign_id
+    ).filter(v => v); // Filter out empty values
     setSelectedCampaigns(new Set(allCampaigns));
     onChange(allCampaigns);
-  }, [campaigns, onChange]);
+  }, [campaigns, onChange, valueType]);
 
   // Handle clear selection
   const handleClearSelection = useCallback(() => {
@@ -140,13 +140,22 @@ export const CampaignSelector: FC<CampaignSelectorProps> = ({
     }
     
     if (selectedCampaigns.size === 1) {
-      const campaignId = Array.from(selectedCampaigns)[0];
-      const campaign = campaigns.find((c: Campaign) => c.campaign_id === campaignId);
-      return campaign ? `${campaign.campaign_name}` : campaignId;
+      const selectedValue = Array.from(selectedCampaigns)[0];
+      // If we're using names, find by name; if IDs, find by ID
+      const campaign = campaigns.find((c: Campaign) => 
+        valueType === 'names' 
+          ? (c.campaign_name || c.name) === selectedValue
+          : c.campaign_id === selectedValue
+      );
+      
+      if (campaign) {
+        return campaign.campaign_name || campaign.name || `Campaign ID: ${campaign.campaign_id}`;
+      }
+      return selectedValue;
     }
     
     return `${selectedCampaigns.size} campaigns selected`;
-  }, [selectedCampaigns, campaigns, placeholder]);
+  }, [selectedCampaigns, campaigns, placeholder, valueType]);
 
   // Get campaign type badge color
   const getTypeColor = (type: string): string => {
@@ -247,17 +256,19 @@ export const CampaignSelector: FC<CampaignSelectorProps> = ({
               </div>
             ) : (
               <div className="py-1">
-                {campaigns.map((campaign: Campaign) => (
+                {campaigns.map((campaign: Campaign) => {
+                  const campaignName = campaign.campaign_name || campaign.name || '';
+                  const valueToCheck = valueType === 'names' ? campaignName : campaign.campaign_id;
+                  
+                  return (
                   <label
                     key={campaign.campaign_id}
                     className="flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer"
                   >
                     <input
                       type={multiple ? 'checkbox' : 'radio'}
-                      checked={selectedCampaigns.has(
-                        valueType === 'names' ? (campaign.campaign_name || campaign.name || '') : campaign.campaign_id
-                      )}
-                      onChange={() => handleToggleCampaign(campaign.campaign_id, campaign.campaign_name || campaign.name || '')}
+                      checked={selectedCampaigns.has(valueToCheck)}
+                      onChange={() => handleToggleCampaign(campaign.campaign_id, campaignName)}
                       className="mr-3 text-blue-600 focus:ring-blue-500"
                     />
                     <div className="flex-1">
@@ -278,7 +289,8 @@ export const CampaignSelector: FC<CampaignSelectorProps> = ({
                       </div>
                     </div>
                   </label>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
