@@ -122,7 +122,7 @@ export const CampaignSelector: FC<CampaignSelectorProps> = ({
   const handleSelectAll = useCallback(() => {
     const allCampaigns = campaigns.map((c: Campaign) => 
       valueType === 'names' ? (c.campaign_name || c.name || '') : c.campaign_id
-    ).filter(v => v); // Filter out empty values
+    ).filter((v: string) => v); // Filter out empty values
     setSelectedCampaigns(new Set(allCampaigns));
     onChange(allCampaigns);
   }, [campaigns, onChange, valueType]);
