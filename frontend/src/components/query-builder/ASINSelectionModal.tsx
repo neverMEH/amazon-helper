@@ -34,9 +34,16 @@ const ASINSelectionModal: React.FC<ASINSelectionModalProps> = ({
   // Initialize selected ASINs from current value
   useEffect(() => {
     if (currentValue) {
-      const asins = Array.isArray(currentValue) 
-        ? currentValue 
-        : currentValue.split(',').map(a => a.trim()).filter(Boolean);
+      let asins: string[] = [];
+      if (Array.isArray(currentValue)) {
+        asins = currentValue;
+      } else if (typeof currentValue === 'string') {
+        // Handle both formats: "ASIN1,ASIN2" and "'ASIN1','ASIN2'"
+        asins = currentValue
+          .split(',')
+          .map(a => a.trim().replace(/'/g, '')) // Remove quotes
+          .filter(Boolean);
+      }
       setSelectedAsins(new Set(asins));
     }
     // Set default brand when modal opens
@@ -148,6 +155,8 @@ const ASINSelectionModal: React.FC<ASINSelectionModalProps> = ({
   };
 
   if (!isOpen) return null;
+
+  console.log('ASINSelectionModal rendering, isOpen:', isOpen, 'selectedAsins:', Array.from(selectedAsins));
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

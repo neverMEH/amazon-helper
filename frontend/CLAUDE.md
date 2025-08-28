@@ -448,6 +448,12 @@ Tests are in `tests/e2e/` directory:
 ## Recent Critical Fixes
 
 
+### 2025-08-28 - 09:13:59
+**fix**: Fix ASIN selection modal value parsing and add debug logging
+**Context**: Frontend changes
+**Stats**:  2 files changed, 14 insertions(+), 3 deletions(-)
+
+
 ### 2025-08-28 - 09:04:28
 **fix**: Fix TypeScript errors in campaign selection components
 **Context**: Frontend changes

@@ -89,6 +89,7 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
   };
 
   const handleASINSelect = (paramName: string) => {
+    console.log('ASIN Select clicked for parameter:', paramName);
     setCurrentASINParam(paramName);
     setShowASINModal(true);
   };
@@ -202,6 +203,7 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
           <div className="bg-gray-50 rounded-md p-4 space-y-3">
             {Object.entries(state.parameters).map(([param, value]) => {
               const paramType = getParameterType(param);
+              console.log(`Parameter: ${param}, Type: ${paramType}, Value:`, value);
               return (
                 <div key={param}>
                   <label className="block text-xs font-medium text-gray-600 mb-1">
