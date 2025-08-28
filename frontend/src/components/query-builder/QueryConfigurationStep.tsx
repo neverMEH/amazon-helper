@@ -423,6 +423,7 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
         currentValue={currentCampaignParam ? state.parameters[currentCampaignParam] : []}
         multiple={true}
         title={`Select Campaigns for {{${currentCampaignParam || 'parameter'}}}`}
+        valueType={currentCampaignParam?.toLowerCase().includes('name') ? 'names' : 'ids'}
       />
     </>
   );

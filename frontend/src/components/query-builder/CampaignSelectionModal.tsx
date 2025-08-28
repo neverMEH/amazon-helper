@@ -7,11 +7,12 @@ import LoadingSpinner from '../LoadingSpinner';
 interface CampaignSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (campaignIds: string[]) => void;
+  onSelect: (campaigns: string[]) => void;
   instanceId?: string;
   currentValue?: string[] | string;
   multiple?: boolean;
   title?: string;
+  valueType?: 'names' | 'ids';  // What to return - names or IDs
 }
 
 const CampaignSelectionModal: React.FC<CampaignSelectionModalProps> = ({
@@ -21,24 +22,15 @@ const CampaignSelectionModal: React.FC<CampaignSelectionModalProps> = ({
   instanceId,
   currentValue = [],
   multiple = true,
-  title = 'Select Campaigns'
+  title = 'Select Campaigns',
+  valueType = 'ids'  // Default to IDs for backward compatibility
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBrand, setSelectedBrand] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<string>('');
-  const [selectedCampaigns, setSelectedCampaigns] = useState<Set<string>>(new Set());
+  const [selectedCampaigns, setSelectedCampaigns] = useState<Map<string, string>>(new Map()); // Map of ID -> Name
   const [page] = useState(1);
   const pageSize = 100;
-
-  // Initialize selected campaigns from current value
-  useEffect(() => {
-    if (currentValue) {
-      const campaigns = Array.isArray(currentValue) 
-        ? currentValue 
-        : currentValue.split(',').map(c => c.trim().replace(/'/g, '')).filter(Boolean);
-      setSelectedCampaigns(new Set(campaigns));
-    }
-  }, [currentValue, isOpen]);
 
   // Fetch campaigns (show all, not filtered by instance)
   const { data: campaignsData, isLoading } = useQuery<CampaignListResponse>({
@@ -60,6 +52,28 @@ const CampaignSelectionModal: React.FC<CampaignSelectionModalProps> = ({
     enabled: isOpen,
     staleTime: 5 * 60 * 1000
   });
+
+  // Initialize selected campaigns from current value
+  useEffect(() => {
+    if (currentValue && campaignsData?.campaigns) {
+      const values = Array.isArray(currentValue) 
+        ? currentValue 
+        : currentValue.split(',').map(c => c.trim().replace(/'/g, '')).filter(Boolean);
+      
+      // Create a map of selected campaigns
+      const newSelection = new Map<string, string>();
+      values.forEach(value => {
+        // Try to find the campaign by ID or name
+        const campaign = campaignsData.campaigns.find((c: Campaign) => 
+          c.campaign_id === value || c.campaign_name === value
+        );
+        if (campaign) {
+          newSelection.set(campaign.campaign_id, campaign.campaign_name || '');
+        }
+      });
+      setSelectedCampaigns(newSelection);
+    }
+  }, [currentValue, isOpen, campaignsData]);
 
   // Get unique brands from campaigns
   const brands = useMemo(() => {
@@ -88,41 +102,63 @@ const CampaignSelectionModal: React.FC<CampaignSelectionModalProps> = ({
     });
   }, [campaignsData, searchQuery]);
 
-  const handleToggleCampaign = (campaignId: string) => {
-    const newSelection = new Set(selectedCampaigns);
+  const handleToggleCampaign = (campaign: Campaign) => {
+    const newSelection = new Map(selectedCampaigns);
+    const campaignId = campaign.campaign_id;
+    const campaignName = campaign.campaign_name || '';
+    
     if (newSelection.has(campaignId)) {
       newSelection.delete(campaignId);
     } else {
       if (multiple) {
-        newSelection.add(campaignId);
+        newSelection.set(campaignId, campaignName);
       } else {
         // Single selection mode
         newSelection.clear();
-        newSelection.add(campaignId);
+        newSelection.set(campaignId, campaignName);
       }
     }
     setSelectedCampaigns(newSelection);
   };
 
   const handleSelectAll = () => {
-    const allVisible = filteredCampaigns.map((c: Campaign) => c.campaign_id);
-    const allSelected = allVisible.every((id: string) => selectedCampaigns.has(id));
+    const allSelected = filteredCampaigns.every((c: Campaign) => selectedCampaigns.has(c.campaign_id));
     
     if (allSelected) {
       // Deselect all visible
-      const newSelection = new Set(selectedCampaigns);
-      allVisible.forEach((id: string) => newSelection.delete(id));
+      const newSelection = new Map(selectedCampaigns);
+      filteredCampaigns.forEach((c: Campaign) => newSelection.delete(c.campaign_id));
       setSelectedCampaigns(newSelection);
     } else {
       // Select all visible
-      const newSelection = new Set(selectedCampaigns);
-      allVisible.forEach((id: string) => newSelection.add(id));
+      const newSelection = new Map(selectedCampaigns);
+      filteredCampaigns.forEach((c: Campaign) => {
+        newSelection.set(c.campaign_id, c.campaign_name || '');
+      });
       setSelectedCampaigns(newSelection);
     }
   };
 
   const handleConfirm = () => {
-    onSelect(Array.from(selectedCampaigns));
+    // Return either names or IDs based on valueType
+    let values: string[];
+    if (valueType === 'names') {
+      // Return campaign names
+      values = Array.from(selectedCampaigns.values()).filter(name => name); // Filter out empty names
+      // If some campaigns don't have names, fall back to IDs for those
+      selectedCampaigns.forEach((name, id) => {
+        if (!name) {
+          const index = values.indexOf('');
+          if (index > -1) {
+            values[index] = id; // Use ID as fallback
+          }
+        }
+      });
+    } else {
+      // Return campaign IDs (default)
+      values = Array.from(selectedCampaigns.keys());
+    }
+    onSelect(values);
     onClose();
   };
 
@@ -250,7 +286,7 @@ const CampaignSelectionModal: React.FC<CampaignSelectionModalProps> = ({
                   className={`flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer ${
                     selectedCampaigns.has(campaign.campaign_id) ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
                   }`}
-                  onClick={() => handleToggleCampaign(campaign.campaign_id)}
+                  onClick={() => handleToggleCampaign(campaign)}
                 >
                   <div className="mr-3">
                     {selectedCampaigns.has(campaign.campaign_id) ? (
