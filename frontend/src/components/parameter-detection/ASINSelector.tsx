@@ -5,12 +5,13 @@ import api from '../../services/api';
 import type { FC } from 'react';
 
 interface ASINSelectorProps {
-  instanceId: string;
-  brandId: string;
+  instanceId?: string;  // Now optional
+  brandId?: string;  // Now optional
   value: string[] | string | null;
   onChange: (value: string[]) => void;
   placeholder?: string;
   multiple?: boolean;
+  showAll?: boolean;  // Show all ASINs without filtering
   className?: string;
 }
 
@@ -21,7 +22,7 @@ interface ASIN {
 }
 
 /**
- * Component for selecting ASINs filtered by instance and brand
+ * Component for selecting ASINs with optional filtering by instance and brand
  */
 export const ASINSelector: FC<ASINSelectorProps> = ({
   instanceId,
@@ -30,6 +31,7 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
   onChange,
   placeholder = 'Select ASINs...',
   multiple = true,
+  showAll = false,
   className = ''
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -48,23 +50,39 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
 
   // Fetch ASINs from the API
   const { data, isLoading, error } = useQuery({
-    queryKey: ['asins', instanceId, brandId, searchTerm],
+    queryKey: ['asins', instanceId, brandId, searchTerm, showAll],
     queryFn: async () => {
-      const params = new URLSearchParams({
-        instance_id: instanceId,
-        brand_id: brandId,
-        limit: '100',
-        offset: '0'
-      });
-      
-      if (searchTerm) {
-        params.append('search', searchTerm);
-      }
+      // If showAll is true or no filters, use the regular ASINs endpoint
+      if (showAll || (!instanceId && !brandId)) {
+        const params = new URLSearchParams({
+          page: '1',
+          page_size: '200',  // Get more ASINs when showing all
+        });
+        
+        if (searchTerm) {
+          params.append('search', searchTerm);
+        }
+        
+        const response = await api.get(`/asins/?${params.toString()}`);
+        return response.data;
+      } else {
+        // Use the filtered endpoint when instance/brand are provided
+        const params = new URLSearchParams({
+          instance_id: instanceId || '',
+          brand_id: brandId || '',
+          limit: '100',
+          offset: '0'
+        });
+        
+        if (searchTerm) {
+          params.append('search', searchTerm);
+        }
 
-      const response = await api.get(`/asins/by-instance-brand/list?${params.toString()}`);
-      return response.data;
+        const response = await api.get(`/asins/by-instance-brand/list?${params.toString()}`);
+        return response.data;
+      }
     },
-    enabled: !!instanceId && !!brandId && isOpen,
+    enabled: isOpen && (showAll || (!!instanceId && !!brandId)),
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
@@ -199,7 +217,7 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
               </div>
             ) : asins.length === 0 ? (
               <div className="p-4 text-center text-gray-500">
-                No ASINs found for this brand
+                No ASINs found{!showAll && brandId ? ' for this brand' : ''}
               </div>
             ) : (
               <div className="py-1">
@@ -220,6 +238,9 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
                       </div>
                       <div className="text-xs text-gray-500 truncate">
                         {asin.product_title}
+                        {showAll && asin.brand_name && (
+                          <span className="ml-2">• {asin.brand_name}</span>
+                        )}
                       </div>
                     </div>
                   </label>

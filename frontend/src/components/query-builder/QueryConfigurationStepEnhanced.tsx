@@ -217,25 +217,15 @@ export default function QueryConfigurationStepEnhanced({
             />
           )}
 
-          {/* Parameter Selectors - use brand tag as brandId */}
-          {state.instanceId && brandId ? (
-            <ParameterSelectorList
-              parameters={detectedParameters}
-              values={parameterValues}
-              instanceId={state.instanceId}
-              brandId={brandId}
-              onChange={handleParameterChange}
-            />
-          ) : (
-            state.instanceId && (
-              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-                <p className="text-sm text-yellow-800">
-                  <AlertCircle className="inline h-4 w-4 mr-1" />
-                  Select an instance with a brand to enable parameter selection
-                </p>
-              </div>
-            )
-          )}
+          {/* Parameter Selectors - show all available options */}
+          <ParameterSelectorList
+            parameters={detectedParameters}
+            values={parameterValues}
+            instanceId={state.instanceId}
+            brandId={brandId}
+            onChange={handleParameterChange}
+            showAll={true}
+          />
 
           {/* Manual parameter editing fallback */}
           {!isAutoDetectEnabled && Object.keys(state.parameters || {}).length > 0 && (

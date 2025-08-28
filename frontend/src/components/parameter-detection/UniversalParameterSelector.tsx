@@ -8,10 +8,11 @@ import { AlertCircle } from 'lucide-react';
 
 interface UniversalParameterSelectorProps {
   parameter: DetectedParameter;
-  instanceId: string;
-  brandId: string;
+  instanceId?: string;  // Now optional
+  brandId?: string;  // Now optional
   value: any;
   onChange: (value: any) => void;
+  showAll?: boolean;  // Show all items without filtering
   className?: string;
 }
 
@@ -24,6 +25,7 @@ export const UniversalParameterSelector: FC<UniversalParameterSelectorProps> = (
   brandId,
   value,
   onChange,
+  showAll = true,  // Default to showing all items
   className = ''
 }) => {
   const [error, setError] = useState<string | null>(null);
@@ -55,6 +57,7 @@ export const UniversalParameterSelector: FC<UniversalParameterSelectorProps> = (
             value={value}
             onChange={handleChange}
             placeholder={`Select ASINs for ${parameter.name}`}
+            showAll={showAll}
           />
         );
       
@@ -77,6 +80,7 @@ export const UniversalParameterSelector: FC<UniversalParameterSelectorProps> = (
             placeholder={`Select campaigns for ${parameter.name}`}
             campaignType={parameter.campaign_type}
             valueType={parameter.value_type}
+            showAll={showAll}
           />
         );
       
@@ -136,9 +140,10 @@ export const UniversalParameterSelector: FC<UniversalParameterSelectorProps> = (
 interface ParameterSelectorListProps {
   parameters: DetectedParameter[];
   values: Record<string, any>;
-  instanceId: string;
-  brandId: string;
+  instanceId?: string;  // Now optional
+  brandId?: string;  // Now optional
   onChange: (parameterName: string, value: any) => void;
+  showAll?: boolean;  // Show all items without filtering
   className?: string;
 }
 
@@ -151,6 +156,7 @@ export const ParameterSelectorList: FC<ParameterSelectorListProps> = ({
   instanceId,
   brandId,
   onChange,
+  showAll = true,  // Default to showing all items
   className = ''
 }) => {
   if (!parameters.length) {
@@ -171,6 +177,7 @@ export const ParameterSelectorList: FC<ParameterSelectorListProps> = ({
           brandId={brandId}
           value={values[param.name]}
           onChange={(value) => onChange(param.name, value)}
+          showAll={showAll}
         />
       ))}
     </div>

@@ -5,14 +5,15 @@ import api from '../../services/api';
 import type { FC } from 'react';
 
 interface CampaignSelectorProps {
-  instanceId: string;
-  brandId: string;
+  instanceId?: string;  // Now optional
+  brandId?: string;  // Now optional
   value: string[] | string | null;
   onChange: (value: string[]) => void;
   placeholder?: string;
   multiple?: boolean;
   campaignType?: 'sp' | 'sb' | 'sd' | 'dsp';  // Specific campaign type filter
   valueType?: 'names' | 'ids';  // Whether to return names or IDs
+  showAll?: boolean;  // Show all campaigns without filtering
   className?: string;
 }
 
@@ -20,12 +21,13 @@ interface Campaign {
   campaign_id: string;
   campaign_name?: string;
   name?: string;  // Alternative field name from API
+  brand?: string;  // Brand name for display
   campaign_type: string;
   status: string;
 }
 
 /**
- * Component for selecting campaigns filtered by instance and brand
+ * Component for selecting campaigns with optional filtering by instance and brand
  */
 export const CampaignSelector: FC<CampaignSelectorProps> = ({
   instanceId,
@@ -36,6 +38,7 @@ export const CampaignSelector: FC<CampaignSelectorProps> = ({
   multiple = true,
   campaignType,
   valueType = 'ids',
+  showAll = false,
   className = ''
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -54,34 +57,70 @@ export const CampaignSelector: FC<CampaignSelectorProps> = ({
 
   // Fetch campaigns from the API
   const { data, isLoading, error } = useQuery({
-    queryKey: ['campaigns', instanceId, brandId, searchTerm, campaignType],
+    queryKey: ['campaigns', instanceId, brandId, searchTerm, campaignType, showAll],
     queryFn: async () => {
-      const params = new URLSearchParams({
-        instance_id: instanceId,
-        brand_id: brandId,
-        limit: '100',
-        offset: '0'
-      });
-      
-      if (searchTerm) {
-        params.append('search', searchTerm);
-      }
-      
-      if (campaignType) {
-        // Map campaign type to API format
-        const typeMapping: Record<string, string> = {
-          'sp': 'sponsored_products',
-          'sb': 'sponsored_brands', 
-          'sd': 'sponsored_display',
-          'dsp': 'dsp'  // DSP campaigns (not implemented yet)
+      // If showAll is true or no filters, use the regular campaigns endpoint
+      if (showAll || (!instanceId && !brandId)) {
+        const params = new URLSearchParams({
+          page: '1',
+          page_size: '200',  // Get more campaigns when showing all
+          show_all_states: 'false',  // Still only show ENABLED campaigns
+        });
+        
+        if (searchTerm) {
+          params.append('search', searchTerm);
+        }
+        
+        if (campaignType) {
+          // Map to the 'type' field used by main campaigns endpoint
+          const typeMapping: Record<string, string> = {
+            'sp': 'sp',
+            'sb': 'sb', 
+            'sd': 'sd',
+            'dsp': 'dsp'
+          };
+          params.append('type', typeMapping[campaignType] || campaignType);
+        }
+        
+        const response = await api.get(`/campaigns/?${params.toString()}`);
+        // Transform response to match expected format
+        return {
+          campaigns: response.data.campaigns?.map((c: any) => ({
+            campaign_id: c.campaignId,
+            campaign_name: c.name,
+            campaign_type: c.type,
+            status: c.state,
+            brand: c.brand
+          })) || []
         };
-        params.append('campaign_type', typeMapping[campaignType] || campaignType);
-      }
+      } else {
+        // Use the filtered endpoint when instance/brand are provided
+        const params = new URLSearchParams({
+          instance_id: instanceId || '',
+          brand_id: brandId || '',
+          limit: '100',
+          offset: '0'
+        });
+        
+        if (searchTerm) {
+          params.append('search', searchTerm);
+        }
+        
+        if (campaignType) {
+          const typeMapping: Record<string, string> = {
+            'sp': 'sponsored_products',
+            'sb': 'sponsored_brands', 
+            'sd': 'sponsored_display',
+            'dsp': 'dsp'
+          };
+          params.append('campaign_type', typeMapping[campaignType] || campaignType);
+        }
 
-      const response = await api.get(`/campaigns/by-instance-brand/list?${params.toString()}`);
-      return response.data;
+        const response = await api.get(`/campaigns/by-instance-brand/list?${params.toString()}`);
+        return response.data;
+      }
     },
-    enabled: !!instanceId && !!brandId && isOpen,
+    enabled: isOpen && (showAll || (!!instanceId && !!brandId)),
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
@@ -252,7 +291,7 @@ export const CampaignSelector: FC<CampaignSelectorProps> = ({
               </div>
             ) : campaigns.length === 0 ? (
               <div className="p-4 text-center text-gray-500">
-                No campaigns found for this brand
+                No campaigns found{!showAll && brandId ? ' for this brand' : ''}
               </div>
             ) : (
               <div className="py-1">
@@ -286,6 +325,9 @@ export const CampaignSelector: FC<CampaignSelectorProps> = ({
                       </div>
                       <div className="text-xs text-gray-500">
                         ID: {campaign.campaign_id}
+                        {showAll && campaign.brand && (
+                          <span className="ml-2">• Brand: {campaign.brand}</span>
+                        )}
                       </div>
                     </div>
                   </label>

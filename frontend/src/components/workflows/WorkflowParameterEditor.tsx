@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Wand2, Settings, AlertCircle } from 'lucide-react';
+import { Wand2, Settings } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { ParameterDetector, ParameterSelectorList } from '../parameter-detection';
 import type { DetectedParameter } from '../../utils/parameterDetection';
@@ -134,7 +134,7 @@ export default function WorkflowParameterEditor({
       )}
 
       {/* Auto-detected Parameters with Smart Selectors */}
-      {isAutoDetectEnabled && instanceId && brandId && detectedParameters.length > 0 && (
+      {isAutoDetectEnabled && detectedParameters.length > 0 && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="flex items-start mb-3">
             <Wand2 className="h-5 w-5 text-blue-600 mt-0.5 mr-2" />
@@ -143,7 +143,7 @@ export default function WorkflowParameterEditor({
                 Auto-detected {detectedParameters.length} parameter{detectedParameters.length !== 1 ? 's' : ''}
               </p>
               <p className="text-xs text-blue-700 mt-1">
-                Select values using the smart selectors below
+                Select values from all available options
               </p>
             </div>
           </div>
@@ -154,28 +154,12 @@ export default function WorkflowParameterEditor({
             instanceId={instanceId}
             brandId={brandId}
             onChange={handleParameterChange}
+            showAll={true}
             className="mt-4"
           />
         </div>
       )}
 
-      {/* No instance or brand warning */}
-      {isAutoDetectEnabled && instanceId && !brandId && detectedParameters.length > 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <div className="flex items-start">
-            <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5 mr-2" />
-            <div>
-              <p className="text-sm font-medium text-yellow-800">
-                Brand information not available
-              </p>
-              <p className="text-sm text-yellow-700 mt-1">
-                Smart parameter selection requires an instance with brand information.
-                Please use manual editing or select a different instance.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Manual Parameter Editing */}
       {(!isAutoDetectEnabled || showManualEdit) && (

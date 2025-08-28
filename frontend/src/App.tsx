@@ -31,6 +31,7 @@ import BuildGuides from './pages/BuildGuides';
 
 // Test imports
 import TestCampaignSelector from './components/test/TestCampaignSelector';
+import TestAllCampaignSelector from './components/test/TestAllCampaignSelector';
 import BuildGuideDetail from './pages/BuildGuideDetail';
 
 // ASIN Management import
@@ -66,6 +67,7 @@ function App() {
               <Route path="/instances/:instanceId" element={<InstanceDetail />} />
               <Route path="/campaigns" element={<Campaigns />} />
               <Route path="/test-campaign-selector" element={<TestCampaignSelector />} />
+              <Route path="/test-all-campaigns" element={<TestAllCampaignSelector />} />
               <Route path="/executions" element={<Executions />} />
               
               {/* Legacy routes - redirect to new ones */}
