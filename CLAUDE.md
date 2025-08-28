@@ -337,6 +337,12 @@ GET    /api/data-sources/{id}
 ## Recent Critical Fixes
 
 
+### 2025-08-28 - 15:04:47
+**fix**: Fix campaign selector selection logic and add debugging
+**Context**: Backend/Project changes
+**Stats**:  2 files changed, 35 insertions(+), 7 deletions(-)
+
+
 ### 2025-08-28 - 12:39:45
 **fix**: Enhance parameter detection to support campaign type and value type filtering
 **Context**: Backend/Project changes
@@ -397,7 +403,6 @@ GET    /api/data-sources/{id}
 **Stats**:  3 files changed, 29 insertions(+), 3 deletions(-)
 
 
-### 2025-08-26 - 21:29:43
 **fix**: Fix schedule test runs and lookback period defaults
 **Context**: Backend/Project changes
 **Stats**:  4 files changed, 51 insertions(+), 8 deletions(-)

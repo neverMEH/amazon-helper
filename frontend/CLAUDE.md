@@ -448,6 +448,12 @@ Tests are in `tests/e2e/` directory:
 ## Recent Critical Fixes
 
 
+### 2025-08-28 - 15:04:47
+**fix**: Fix campaign selector selection logic and add debugging
+**Context**: Frontend changes
+**Stats**:  2 files changed, 35 insertions(+), 7 deletions(-)
+
+
 ### 2025-08-28 - 12:39:45
 **fix**: Enhance parameter detection to support campaign type and value type filtering
 **Context**: Frontend changes
@@ -508,7 +514,6 @@ Tests are in `tests/e2e/` directory:
 **Stats**:  4 files changed, 11 insertions(+), 8 deletions(-)
 
 
-### 2025-08-26 - 21:42:23
 **fix**: feat: Add instance brand names to schedule displays
 **Context**: Frontend changes
 **Stats**:  3 files changed, 29 insertions(+), 3 deletions(-)

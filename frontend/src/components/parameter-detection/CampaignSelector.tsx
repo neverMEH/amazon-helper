@@ -88,23 +88,23 @@ export const CampaignSelector: FC<CampaignSelectorProps> = ({
 
   // Handle campaign selection
   const handleToggleCampaign = useCallback((campaignId: string, campaignName: string) => {
-    const newSelected = new Set(selectedCampaigns);
     const valueToUse = valueType === 'names' ? campaignName : campaignId;
     
     if (multiple) {
+      const newSelected = new Set(selectedCampaigns);
       if (newSelected.has(valueToUse)) {
         newSelected.delete(valueToUse);
       } else {
         newSelected.add(valueToUse);
       }
+      setSelectedCampaigns(newSelected);
+      onChange(Array.from(newSelected));
     } else {
-      newSelected.clear();
-      newSelected.add(valueToUse);
+      const newSelected = new Set([valueToUse]);
+      setSelectedCampaigns(newSelected);
+      onChange(Array.from(newSelected));
       setIsOpen(false);
     }
-    
-    setSelectedCampaigns(newSelected);
-    onChange(Array.from(newSelected));
   }, [selectedCampaigns, onChange, multiple, valueType]);
 
   // Handle select all
@@ -252,7 +252,7 @@ export const CampaignSelector: FC<CampaignSelectorProps> = ({
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
                         <div className="text-sm font-medium text-gray-900">
-                          {campaign.campaign_name}
+                          {campaign.campaign_name || 'Unnamed Campaign'}
                         </div>
                         <span
                           className={`ml-2 px-2 py-1 text-xs rounded-full ${getTypeColor(
