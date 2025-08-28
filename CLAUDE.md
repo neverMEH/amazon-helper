@@ -337,6 +337,12 @@ GET    /api/data-sources/{id}
 ## Recent Critical Fixes
 
 
+### 2025-08-28 - 19:15:44
+**fix**: Implement SQL injection method for large parameter lists to avoid AMC length limits
+**Context**: Backend/Project changes
+**Stats**:  4 files changed, 75 insertions(+), 14 deletions(-)
+
+
 ### 2025-08-28 - 19:02:26
 **fix**: Fix AMC parameter length limit by sending arrays instead of formatted strings
 **Context**: Backend/Project changes
@@ -397,7 +403,6 @@ GET    /api/data-sources/{id}
 **Stats**:  5 files changed, 470 insertions(+), 69 deletions(-)
 
 
-### 2025-08-27 - 09:24:53
 **fix**: Fix schedule execution failures - Add entity_id join and improve error handling
 **Context**: Backend/Project changes
 **Stats**:  5 files changed, 93 insertions(+), 7069 deletions(-)

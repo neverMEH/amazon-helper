@@ -428,6 +428,33 @@ class AMCExecutionService:
             
             logger.info(f"Executing on instance {instance_id} with entity {entity_id}")
             
+            # Process SQL injection parameters - apply them to the SQL query
+            processed_sql_query = sql_query
+            amc_parameters = {}
+            sql_injection_params = {}
+            
+            if execution_parameters:
+                for param_name, param_value in execution_parameters.items():
+                    # Check if this is a SQL injection parameter
+                    if isinstance(param_value, dict) and param_value.get('_sqlInject'):
+                        sql_injection_params[param_name] = param_value
+                        logger.info(f"SQL injection parameter detected: {param_name} with {len(param_value.get('_values', []))} values")
+                        
+                        # Apply SQL injection to query
+                        values_clause = param_value.get('_valuesClause', '')
+                        if values_clause:
+                            # Replace parameter placeholder with VALUES clause
+                            param_pattern = f"{{{{{param_name}}}}}"
+                            processed_sql_query = processed_sql_query.replace(param_pattern, f"VALUES\n{values_clause}")
+                            logger.info(f"Applied SQL injection for {param_name}: replaced {param_pattern} with VALUES clause")
+                    else:
+                        amc_parameters[param_name] = param_value
+            
+            logger.info(f"AMC parameters: {list(amc_parameters.keys())}")
+            logger.info(f"SQL injection parameters: {list(sql_injection_params.keys())}")
+            if processed_sql_query != sql_query:
+                logger.info(f"SQL query modified by injection parameters")
+            
             # Create workflow execution via AMC API
             # Initialize API client with correct service
             api_client = AMCAPIClient()
@@ -448,8 +475,8 @@ class AMCExecutionService:
                             access_token=valid_token,
                             entity_id=entity_id,
                             marketplace_id=marketplace_id,
-                            parameter_values=execution_parameters,  # Pass parameters for saved workflow
-                            output_format=execution_parameters.get('output_format', 'CSV') if execution_parameters else 'CSV'
+                            parameter_values=amc_parameters,  # Only pass non-injection parameters to AMC
+                            output_format=amc_parameters.get('output_format', 'CSV')
                         )
                         
                         # Check if the response indicates the workflow doesn't exist
@@ -465,11 +492,11 @@ class AMCExecutionService:
                         if "does not exist" in error_str.lower() or "not found" in error_str.lower() or "workflow not found" in error_str.lower():
                             logger.warning(f"Workflow {amc_workflow_id} doesn't exist in AMC, will try to create it")
                             
-                            # Try to create the workflow in AMC
+                            # Try to create the workflow in AMC with processed query
                             create_response = api_client.create_workflow(
                                 instance_id=instance_id,
                                 workflow_id=amc_workflow_id,
-                                sql_query=sql_query,
+                                sql_query=processed_sql_query,
                                 access_token=valid_token,
                                 entity_id=entity_id,
                                 marketplace_id=marketplace_id,
@@ -499,14 +526,14 @@ class AMCExecutionService:
                                 )
                             else:
                                 logger.warning(f"Failed to create workflow in AMC: {create_response.get('error')}, falling back to ad-hoc")
-                                # Fall back to ad-hoc execution
+                                # Fall back to ad-hoc execution with processed query
                                 response = api_client.create_workflow_execution(
                                     instance_id=instance_id,
-                                    sql_query=sql_query,
+                                    sql_query=processed_sql_query,
                                     access_token=valid_token,
                                     entity_id=entity_id,
                                     marketplace_id=marketplace_id,
-                                    output_format=execution_parameters.get('output_format', 'CSV') if execution_parameters else 'CSV'
+                                    output_format=amc_parameters.get('output_format', 'CSV')
                                 )
                         else:
                             # Other error, re-raise
@@ -517,11 +544,11 @@ class AMCExecutionService:
                     logger.warning("No AMC workflow ID available, using ad-hoc execution")
                     response = api_client.create_workflow_execution(
                         instance_id=instance_id,
-                        sql_query=sql_query,
+                        sql_query=processed_sql_query,
                         access_token=valid_token,
                         entity_id=entity_id,
                         marketplace_id=marketplace_id,
-                        output_format=execution_parameters.get('output_format', 'CSV') if execution_parameters else 'CSV'
+                        output_format=amc_parameters.get('output_format', 'CSV')
                     )
                 
                 # Check if execution was created successfully

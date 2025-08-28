@@ -448,6 +448,12 @@ Tests are in `tests/e2e/` directory:
 ## Recent Critical Fixes
 
 
+### 2025-08-28 - 19:15:44
+**fix**: Implement SQL injection method for large parameter lists to avoid AMC length limits
+**Context**: Frontend changes
+**Stats**:  4 files changed, 75 insertions(+), 14 deletions(-)
+
+
 ### 2025-08-28 - 19:02:26
 **fix**: Fix AMC parameter length limit by sending arrays instead of formatted strings
 **Context**: Frontend changes
@@ -508,7 +514,6 @@ Tests are in `tests/e2e/` directory:
 **Stats**:  6 files changed, 1381 insertions(+), 4 deletions(-)
 
 
-### 2025-08-27 - 10:04:06
 **fix**: feat: Add ability to schedule workflow runs at specific times today
 **Context**: Frontend changes
 **Stats**:  5 files changed, 470 insertions(+), 69 deletions(-)

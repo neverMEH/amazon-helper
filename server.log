@@ -83,3 +83,8 @@ INFO:     127.0.0.1:56586 - "GET /api/campaigns/by-instance-brand/list?instance_
 2025-08-28 18:33:20 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
 2025-08-28 18:33:20 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
 2025-08-28 18:33:20 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-08-28 19:03:25 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-08-28 19:03:25 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-08-28 19:03:25 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+INFO:     159.223.224.104:56550 - "GET / HTTP/1.1" 200 OK
+INFO:     159.223.224.104:56560 - "GET /favicon.png HTTP/1.1" 200 OK

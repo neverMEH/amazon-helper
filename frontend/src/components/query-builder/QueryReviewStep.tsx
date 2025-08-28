@@ -170,7 +170,13 @@ export default function QueryReviewStep({ state, instances, onNavigateToStep }: 
     let previewSQL = state.sqlQuery;
     Object.entries(state.parameters).forEach(([param, value]) => {
       const regex = new RegExp(`\\{\\{${param}\\}\\}`, 'g');
-      if (Array.isArray(value)) {
+      
+      // Handle SQL injection parameters differently
+      if (value && typeof value === 'object' && '_sqlInject' in value && value._sqlInject) {
+        // For SQL injection mode, replace with VALUES clause
+        const valuesClause = (value as any)._values.map((v: string) => `    ('${v}')`).join(',\n');
+        previewSQL = previewSQL.replace(regex, `VALUES\n${valuesClause}`);
+      } else if (Array.isArray(value)) {
         previewSQL = previewSQL.replace(regex, `(${value.map(v => `'${v}'`).join(', ')})`);
       } else if (typeof value === 'string') {
         previewSQL = previewSQL.replace(regex, `'${value}'`);
