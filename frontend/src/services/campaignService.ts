@@ -33,6 +33,21 @@ const campaignService = {
   // Get campaigns for an instance
   getCampaigns: async (params: CampaignSearchParams): Promise<CampaignListResponse> => {
     const response = await api.get('/campaigns/', { params });
+    // Transform the response to ensure consistent field names
+    if (response.data && response.data.campaigns) {
+      response.data.campaigns = response.data.campaigns.map((c: any) => ({
+        campaign_id: c.campaignId || c.campaign_id,
+        campaign_name: c.name || c.campaign_name || c.campaignName || '',
+        brand_name: c.brand || c.brand_name || 'Unknown',
+        campaign_type: c.type || c.campaign_type || 'sp',
+        status: c.state || c.status || 'ENABLED',
+        budget: c.budget,
+        start_date: c.start_date || c.startDate,
+        end_date: c.end_date || c.endDate,
+        created_at: c.created_at || c.createdAt,
+        updated_at: c.updated_at || c.updatedAt
+      }));
+    }
     return response.data;
   },
 

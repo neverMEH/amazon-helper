@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, Search, Megaphone, CheckSquare, Square } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import campaignService, { type Campaign, type CampaignListResponse, type CampaignSearchParams } from '../../services/campaignService';
+import campaignService, { type Campaign, type CampaignListResponse } from '../../services/campaignService';
 import LoadingSpinner from '../LoadingSpinner';
 
 interface CampaignSelectionModalProps {
@@ -40,28 +40,24 @@ const CampaignSelectionModal: React.FC<CampaignSelectionModalProps> = ({
     }
   }, [currentValue, isOpen]);
 
-  // Fetch campaigns for the instance
+  // Fetch campaigns (show all, not filtered by instance)
   const { data: campaignsData, isLoading } = useQuery<CampaignListResponse>({
-    queryKey: ['instance-campaigns', instanceId, selectedBrand, selectedStatus, searchQuery, page],
+    queryKey: ['all-campaigns', selectedBrand, selectedStatus, searchQuery, page],
     queryFn: async () => {
-      if (!instanceId) {
-        return { campaigns: [], total: 0 };
-      }
-      
-      // Call the campaigns API with filters
-      const params: CampaignSearchParams = {
-        instance_id: instanceId,
-        brand_name: selectedBrand || undefined,
-        status: selectedStatus || undefined,
+      // Call the campaigns API with filters (no instance_id to get all campaigns)
+      const params: any = {
+        brand: selectedBrand || undefined,
+        state: selectedStatus || undefined,
         search: searchQuery || undefined,
         page,
-        page_size: pageSize
+        page_size: pageSize,
+        show_all_states: selectedStatus ? false : true  // Show all states if no specific status selected
       };
       const response = await campaignService.getCampaigns(params);
       
       return response;
     },
-    enabled: isOpen && !!instanceId,
+    enabled: isOpen,
     staleTime: 5 * 60 * 1000
   });
 

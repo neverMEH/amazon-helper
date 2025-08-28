@@ -86,11 +86,12 @@ export const CampaignSelector: FC<CampaignSelectorProps> = ({
         // Transform response to match expected format
         return {
           campaigns: response.data.campaigns?.map((c: any) => ({
-            campaign_id: c.campaignId,
-            campaign_name: c.name,
-            campaign_type: c.type,
-            status: c.state,
-            brand: c.brand
+            campaign_id: c.campaignId || c.campaign_id,
+            campaign_name: c.name || c.campaign_name || c.campaignName || '',
+            name: c.name || c.campaign_name || c.campaignName || '',  // Add name field as fallback
+            campaign_type: c.type || c.campaign_type || 'sp',
+            status: c.state || c.status || 'ENABLED',
+            brand: c.brand || 'Unknown'
           })) || []
         };
       } else {
@@ -128,12 +129,20 @@ export const CampaignSelector: FC<CampaignSelectorProps> = ({
   
   // Debug: Log what we're receiving
   useEffect(() => {
-    console.log('[CampaignSelector] Data received from API:', data);
-    console.log('[CampaignSelector] Campaigns array:', campaigns);
-    console.log('[CampaignSelector] First campaign:', campaigns[0]);
-    console.log('[CampaignSelector] ValueType:', valueType);
-    console.log('[CampaignSelector] CampaignType filter:', campaignType);
-  }, [data, campaigns, valueType, campaignType]);
+    if (campaigns.length > 0) {
+      console.log('[CampaignSelector] Data received from API:', data);
+      console.log('[CampaignSelector] Campaigns array:', campaigns);
+      console.log('[CampaignSelector] First campaign:', campaigns[0]);
+      console.log('[CampaignSelector] ValueType:', valueType);
+      console.log('[CampaignSelector] CampaignType filter:', campaignType);
+      console.log('[CampaignSelector] ShowAll:', showAll);
+      // Check if names are missing
+      const missingNames = campaigns.filter((c: Campaign) => !c.campaign_name && !c.name);
+      if (missingNames.length > 0) {
+        console.warn('[CampaignSelector] Campaigns missing names:', missingNames.length, 'out of', campaigns.length);
+      }
+    }
+  }, [data, campaigns, valueType, campaignType, showAll]);
 
   // Handle campaign selection
   const handleToggleCampaign = useCallback((campaignId: string, campaignName: string) => {
@@ -297,6 +306,7 @@ export const CampaignSelector: FC<CampaignSelectorProps> = ({
               <div className="py-1">
                 {campaigns.map((campaign: Campaign) => {
                   const campaignName = campaign.campaign_name || campaign.name || '';
+                  const displayName = campaignName || `Campaign ${campaign.campaign_id}`;
                   const valueToCheck = valueType === 'names' ? campaignName : campaign.campaign_id;
                   
                   return (
@@ -313,7 +323,7 @@ export const CampaignSelector: FC<CampaignSelectorProps> = ({
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
                         <div className="text-sm font-medium text-gray-900">
-                          {campaign.campaign_name || campaign.name || `Campaign ID: ${campaign.campaign_id}`}
+                          {displayName}
                         </div>
                         <span
                           className={`ml-2 px-2 py-1 text-xs rounded-full ${getTypeColor(
