@@ -39,11 +39,13 @@ export default function QueryConfigurationStepEnhanced({
     return instances?.find(inst => inst.id === state.instanceId);
   }, [instances, state.instanceId]);
 
-  // Get brand ID from selected instance (assuming instances have brand info)
+  // Get first brand from selected instance's brands array
   const brandId = useMemo(() => {
-    // This assumes the instance has brand information
-    // You may need to adjust based on your data structure
-    return selectedInstance?.brandId || selectedInstance?.brand_id || '';
+    // Get the first brand's tag if available
+    if (selectedInstance?.brands && selectedInstance.brands.length > 0) {
+      return selectedInstance.brands[0].brandTag || selectedInstance.brands[0].brand_tag || '';
+    }
+    return '';
   }, [selectedInstance]);
 
   const handleInstanceChange = (instanceId: string) => {
@@ -215,7 +217,7 @@ export default function QueryConfigurationStepEnhanced({
             />
           )}
 
-          {/* Parameter Selectors */}
+          {/* Parameter Selectors - use brand tag as brandId */}
           {state.instanceId && brandId ? (
             <ParameterSelectorList
               parameters={detectedParameters}

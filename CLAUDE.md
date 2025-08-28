@@ -337,6 +337,12 @@ GET    /api/data-sources/{id}
 ## Recent Critical Fixes
 
 
+### 2025-08-28 - 12:25:29
+**fix**: Fix campaign selection to use brand tags from instance_brands table
+**Context**: Backend/Project changes
+**Stats**:  5 files changed, 133 insertions(+), 80 deletions(-)
+
+
 ### 2025-08-27 - 18:34:54
 **fix**: feat: Add comprehensive ASIN management system with query builder integration
 **Context**: Backend/Project changes
@@ -405,7 +411,6 @@ GET    /api/data-sources/{id}
    - Provides clear message that execution was not submitted to AMC
    - Common cause: Token decryption failure requiring re-authentication
 
-### 2025-08-21
 1. **Schedule Executor Token Refresh**: Changed from `refresh_token()` to `refresh_access_token()`
 2. **Schedule Deduplication**: Added 5-minute window to prevent rapid re-executions
 3. **Next Run Updates**: Updates immediately to prevent infinite loops

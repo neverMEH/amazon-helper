@@ -448,6 +448,12 @@ Tests are in `tests/e2e/` directory:
 ## Recent Critical Fixes
 
 
+### 2025-08-28 - 12:25:29
+**fix**: Fix campaign selection to use brand tags from instance_brands table
+**Context**: Frontend changes
+**Stats**:  5 files changed, 133 insertions(+), 80 deletions(-)
+
+
 ### 2025-08-28 - 09:13:59
 **fix**: Fix ASIN selection modal value parsing and add debug logging
 **Context**: Frontend changes

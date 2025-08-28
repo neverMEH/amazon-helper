@@ -40,8 +40,8 @@ export default function WorkflowParameterEditor({
     staleTime: 5 * 60 * 1000
   });
 
-  // Get brand ID from instance
-  const brandId = instance?.brandId || instance?.brand_id || instance?.brands?.[0]?.id || '';
+  // Get brand tag from instance's brands array
+  const brandId = instance?.brands?.[0]?.brandTag || instance?.brands?.[0]?.brand_tag || '';
 
   // Handle detected parameters
   const handleParametersDetected = useCallback((params: DetectedParameter[]) => {

@@ -19,22 +19,35 @@ async def list_instances(
     """List all AMC instances accessible to the current user"""
     try:
         instances = await db_service.get_user_instances(current_user['id'])
+        client = SupabaseManager.get_client(use_service_role=True)
         
-        # Format response with camelCase for frontend
-        return [{
-            "id": inst['id'],
-            "instanceId": inst['instance_id'],
-            "instanceName": inst['instance_name'],
-            "type": inst.get('capabilities', {}).get('instance_type', 'STANDARD'),
-            "region": inst['region'],
-            "status": inst['status'],
-            "isActive": inst['status'] == 'active',
-            "accountId": inst['amc_accounts']['account_id'] if 'amc_accounts' in inst else None,
-            "accountName": inst['amc_accounts']['account_name'] if 'amc_accounts' in inst else None,
-            "endpointUrl": inst.get('endpoint_url'),
-            "dataUploadAccountId": inst.get('data_upload_account_id'),
-            "createdAt": inst.get('created_at', '')
-        } for inst in instances]
+        # Format response with camelCase for frontend and add brands
+        formatted_instances = []
+        for inst in instances:
+            # Get brands for this instance
+            brands_result = client.table('instance_brands').select('id, brand_tag').eq('instance_id', inst['id']).execute()
+            brands = [{
+                'id': b['id'],
+                'brandTag': b['brand_tag']
+            } for b in brands_result.data] if brands_result.data else []
+            
+            formatted_instances.append({
+                "id": inst['id'],
+                "instanceId": inst['instance_id'],
+                "instanceName": inst['instance_name'],
+                "type": inst.get('capabilities', {}).get('instance_type', 'STANDARD'),
+                "region": inst['region'],
+                "status": inst['status'],
+                "isActive": inst['status'] == 'active',
+                "accountId": inst['amc_accounts']['account_id'] if 'amc_accounts' in inst else None,
+                "accountName": inst['amc_accounts']['account_name'] if 'amc_accounts' in inst else None,
+                "endpointUrl": inst.get('endpoint_url'),
+                "dataUploadAccountId": inst.get('data_upload_account_id'),
+                "brands": brands,  # Add brands array
+                "createdAt": inst.get('created_at', '')
+            })
+        
+        return formatted_instances
     except Exception as e:
         logger.error(f"Error listing instances: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch instances")
@@ -57,21 +70,31 @@ async def get_instance(
         if not any(inst['instance_id'] == instance_id for inst in user_instances):
             raise HTTPException(status_code=403, detail="Access denied")
         
+        # Get brands for this instance
+        client = SupabaseManager.get_client(use_service_role=True)
+        brands_result = client.table('instance_brands').select('id, brand_tag').eq('instance_id', instance['id']).execute()
+        brands = [{
+            'id': b['id'],
+            'brandTag': b['brand_tag']
+        } for b in brands_result.data] if brands_result.data else []
+        
         return {
-            "instance_id": instance['instance_id'],
-            "instance_name": instance['instance_name'],
-            "instance_type": instance.get('capabilities', {}).get('instance_type', 'STANDARD'),
+            "id": instance['id'],  # Include internal UUID
+            "instanceId": instance['instance_id'],
+            "instanceName": instance['instance_name'],
+            "instanceType": instance.get('capabilities', {}).get('instance_type', 'STANDARD'),
             "region": instance['region'],
             "status": instance['status'],
             "account": {
                 "id": instance['amc_accounts']['account_id'],
                 "name": instance['amc_accounts']['account_name']
             } if 'amc_accounts' in instance else None,
-            "endpoint_url": instance.get('endpoint_url'),
-            "data_upload_account_id": instance.get('data_upload_account_id'),
+            "brands": brands,  # Add brands array
+            "endpointUrl": instance.get('endpoint_url'),
+            "dataUploadAccountId": instance.get('data_upload_account_id'),
             "capabilities": instance.get('capabilities', {}),
-            "created_at": instance.get('created_at'),
-            "updated_at": instance.get('updated_at')
+            "createdAt": instance.get('created_at'),
+            "updatedAt": instance.get('updated_at')
         }
     except HTTPException:
         raise

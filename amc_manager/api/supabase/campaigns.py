@@ -298,7 +298,7 @@ def get_campaign_stats_legacy(current_user: Dict[str, Any]) -> Dict[str, Any]:
 @router.get("/by-instance-brand/list")
 def list_campaigns_by_instance_brand(
     instance_id: str = Query(..., description="AMC instance ID"),
-    brand_id: str = Query(..., description="Brand ID"),
+    brand_id: str = Query(..., description="Brand tag/name to filter by"),
     search: Optional[str] = Query(None, description="Search term for campaign name"),
     campaign_type: Optional[str] = Query(None, description="Filter by campaign type"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum results to return"),
@@ -306,39 +306,49 @@ def list_campaigns_by_instance_brand(
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
-    Get campaigns filtered by instance and brand
+    Get campaigns filtered by brand
     
     This endpoint is specifically designed for parameter selection in workflows.
-    Returns campaigns associated with a specific brand in a specific instance.
+    Returns campaigns associated with a specific brand.
+    Note: Campaigns table doesn't have instance_id, filtering by brand name only.
     """
     try:
         client = SupabaseManager.get_client(use_service_role=True)
         
-        # Build query for campaigns filtered by instance and brand
-        # Note: The exact table structure and relationships need to be verified
+        # brand_id is now actually the brand tag/name from the frontend
+        brand_name = brand_id  # It's already the brand tag
+        
+        # Build query for campaigns filtered by brand
         query = client.table('campaigns').select(
-            'campaign_id, campaign_name, campaign_type, status',
+            'campaign_id, name, type, state, brand',
             count='exact'
         )
         
-        # Filter by instance_id and brand_id
-        # This assumes campaigns table has instance_id and brand_id columns
-        # or appropriate relationships
-        query = query.eq('instance_id', instance_id)
-        
-        # If campaigns are linked to brands through a brand column
-        query = query.eq('brand_id', brand_id)
+        # Filter by brand name with case-insensitive matching
+        query = query.ilike('brand', brand_name)
         
         # Apply search filter if provided
         if search:
-            query = query.ilike('campaign_name', f'%{search}%')
+            query = query.ilike('name', f'%{search}%')
         
         # Apply campaign type filter if provided
         if campaign_type:
-            query = query.eq('campaign_type', campaign_type)
+            # Map campaign_type to the 'type' field in the campaigns table
+            # The table uses 'sp', 'sb', 'sd' etc.
+            type_mapping = {
+                'sponsored_products': 'sp',
+                'sponsored_brands': 'sb', 
+                'sponsored_display': 'sd',
+                'sp': 'sp',
+                'sb': 'sb',
+                'sd': 'sd'
+            }
+            mapped_type = type_mapping.get(campaign_type.lower(), campaign_type)
+            query = query.eq('type', mapped_type)
         
-        # Filter for enabled campaigns only
-        query = query.eq('status', 'ENABLED')
+        # Filter for enabled campaigns only (using 'state' field)
+        # Only show ENABLED campaigns, not ARCHIVED or PAUSED
+        query = query.eq('state', 'ENABLED')
         
         # Apply pagination
         query = query.range(offset, offset + limit - 1)
@@ -354,9 +364,9 @@ def list_campaigns_by_instance_brand(
         for item in items:
             formatted_items.append({
                 'campaign_id': item.get('campaign_id'),
-                'campaign_name': item.get('campaign_name', item.get('name', '')),
-                'campaign_type': item.get('campaign_type', item.get('type', '')),
-                'status': item.get('status', item.get('state', 'UNKNOWN'))
+                'campaign_name': item.get('name', ''),
+                'campaign_type': item.get('type', ''),
+                'status': item.get('state', 'UNKNOWN')
             })
         
         return {
@@ -367,5 +377,5 @@ def list_campaigns_by_instance_brand(
         }
         
     except Exception as e:
-        logger.error(f"Error listing campaigns by instance and brand: {e}")
+        logger.error(f"Error listing campaigns by brand: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve campaigns")
