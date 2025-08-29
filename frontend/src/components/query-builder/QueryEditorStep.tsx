@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { ChevronRight, ChevronDown, Hash, Calendar, DollarSign, Copy, Plus, Server, FileText, Package } from 'lucide-react';
+import { ChevronRight, ChevronDown, Hash, Calendar, DollarSign, Copy, Plus, Server, FileText, Package, AlertCircle, Wand2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import SQLEditor from '../common/SQLEditor';
 import { dataSourceService } from '../../services/dataSourceService';
 import type { DataSource, SchemaField } from '../../types/dataSource';
 import { toast } from 'react-hot-toast';
+import { convertValuesToParameters, hasHardcodedValues } from '../../utils/sqlParameterConverter';
 
 interface QueryEditorStepProps {
   state: any;
@@ -19,6 +20,7 @@ export default function QueryEditorStep({ state, setState }: QueryEditorStepProp
   const [expandedDataSources, setExpandedDataSources] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [detectedParams, setDetectedParams] = useState<string[]>([]);
+  const [showConversionSuggestion, setShowConversionSuggestion] = useState(false);
 
   // Fetch data sources from API
   const { data: dataSources = [], isLoading: dataSourcesLoading } = useQuery({
@@ -48,6 +50,9 @@ export default function QueryEditorStep({ state, setState }: QueryEditorStepProp
     const params = Array.from(matches, (m: RegExpMatchArray) => m[1]);
     setDetectedParams([...new Set(params)]);
     
+    // Check for hardcoded VALUES that should be parameters
+    setShowConversionSuggestion(hasHardcodedValues(state.sqlQuery));
+    
     // Update parameters with defaults if new ones detected
     const newParams = { ...state.parameters };
     params.forEach(param => {
@@ -69,6 +74,16 @@ export default function QueryEditorStep({ state, setState }: QueryEditorStepProp
       setState((prev: any) => ({ ...prev, parameters: newParams }));
     }
   }, [state.sqlQuery]);
+
+  // Handle conversion of hardcoded VALUES to parameters
+  const handleConvertValues = () => {
+    const result = convertValuesToParameters(state.sqlQuery);
+    if (result.converted) {
+      setState((prev: any) => ({ ...prev, sqlQuery: result.sql }));
+      toast.success(`Converted ${result.detectedParameters.length} hardcoded VALUES to parameters`);
+      setShowConversionSuggestion(false);
+    }
+  };
 
   const toggleCategory = (category: string) => {
     setExpandedCategories(prev => {
@@ -306,6 +321,31 @@ export default function QueryEditorStep({ state, setState }: QueryEditorStepProp
         </div>
 
         <div className="flex-1 min-h-0 p-6">
+          {/* Conversion Suggestion Banner */}
+          {showConversionSuggestion && (
+            <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium text-amber-900">
+                    Hardcoded VALUES detected in your query
+                  </h4>
+                  <p className="text-sm text-amber-700 mt-1">
+                    Your query contains hardcoded VALUES that should be converted to parameters 
+                    for easier campaign/ASIN selection.
+                  </p>
+                  <button
+                    onClick={handleConvertValues}
+                    className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-amber-600 text-white text-sm font-medium rounded-md hover:bg-amber-700 transition-colors"
+                  >
+                    <Wand2 className="w-4 h-4" />
+                    Convert to Parameters
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <SQLEditor
             value={state.sqlQuery || `-- Enter your AMC SQL query here
 -- Example:
