@@ -159,7 +159,11 @@ export default function QueryReviewStep({ state, instances, onNavigateToStep }: 
     if (!state.name) {
       newWarnings.push('Query name is not set. Consider adding a descriptive name.');
     }
-    if (Object.keys(state.parameters).length > 5) {
+    // Only count actual parameters, not SQL injections
+    const actualParameterCount = Object.entries(state.parameters).filter(([_, value]) => 
+      !(value && typeof value === 'object' && '_sqlInject' in value && value._sqlInject)
+    ).length;
+    if (actualParameterCount > 5) {
       newWarnings.push('Query has many parameters. Ensure all values are correct.');
     }
     setWarnings(newWarnings);
@@ -431,25 +435,28 @@ export default function QueryReviewStep({ state, instances, onNavigateToStep }: 
               </p>
             </div>
             
-            {/* Parameters Summary */}
-            {Object.keys(state.parameters).length > 0 && (
-              <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 flex-shrink-0">
-                <h4 className="text-xs font-medium text-gray-700 mb-2">Parameter Values:</h4>
-                <div className="grid grid-cols-2 gap-2">
-                  {Object.entries(state.parameters).map(([param, value]) => (
-                    <div key={param} className="flex items-center text-xs">
-                      <span className="font-mono text-gray-600">{`{{${param}}}`}</span>
-                      <span className="mx-1">→</span>
-                      <span className="font-medium text-gray-900 truncate">
-                        {value && typeof value === 'object' && '_sqlInject' in value && value._sqlInject
-                          ? `${(value as any)._values.length} values (SQL injection mode)`
-                          : Array.isArray(value) ? value.join(', ') : String(value)}
-                      </span>
-                    </div>
-                  ))}
+            {/* Parameters Summary - Only show actual parameters, not SQL injections */}
+            {(() => {
+              const actualParameters = Object.entries(state.parameters).filter(([_, value]) => 
+                !(value && typeof value === 'object' && '_sqlInject' in value && value._sqlInject)
+              );
+              return actualParameters.length > 0 ? (
+                <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 flex-shrink-0">
+                  <h4 className="text-xs font-medium text-gray-700 mb-2">Parameter Values:</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    {actualParameters.map(([param, value]) => (
+                      <div key={param} className="flex items-center text-xs">
+                        <span className="font-mono text-gray-600">{`{{${param}}}`}</span>
+                        <span className="mx-1">→</span>
+                        <span className="font-medium text-gray-900 truncate">
+                          {Array.isArray(value) ? value.join(', ') : String(value)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              ) : null;
+            })()}
 
             <div className="flex-1 p-4 overflow-y-auto min-h-0">
               <pre className="text-xs font-mono text-gray-800 whitespace-pre-wrap">
