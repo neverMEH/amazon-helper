@@ -448,6 +448,12 @@ Tests are in `tests/e2e/` directory:
 ## Recent Critical Fixes
 
 
+### 2025-08-29 - 17:58:37
+**fix**: Fix SQL preview to show VALUES clauses for campaign/ASIN parameters
+**Context**: Frontend changes
+**Stats**:  2 files changed, 149 insertions(+), 2 deletions(-)
+
+
 ### 2025-08-28 - 19:29:12
 **fix**: Remove parameter injection for campaigns/ASINs - always use SQL injection instead
 **Context**: Frontend changes
@@ -508,7 +514,6 @@ Tests are in `tests/e2e/` directory:
 **Stats**:  2 files changed, 6 insertions(+), 5 deletions(-)
 
 
-### 2025-08-27 - 18:34:54
 **fix**: feat: Add comprehensive ASIN management system with query builder integration
 **Context**: Frontend changes
 **Stats**:  30 files changed, 120389 insertions(+), 6 deletions(-)

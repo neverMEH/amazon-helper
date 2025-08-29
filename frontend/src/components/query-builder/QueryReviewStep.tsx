@@ -175,7 +175,8 @@ export default function QueryReviewStep({ state, instances, onNavigateToStep }: 
       if (value && typeof value === 'object' && '_sqlInject' in value && value._sqlInject) {
         // For SQL injection mode, replace with VALUES clause
         const valuesClause = (value as any)._values.map((v: string) => `    ('${v}')`).join(',\n');
-        previewSQL = previewSQL.replace(regex, `VALUES\n${valuesClause}`);
+        const replacement = `VALUES\n${valuesClause}`;
+        previewSQL = previewSQL.replace(regex, replacement);
       } else if (Array.isArray(value)) {
         previewSQL = previewSQL.replace(regex, `(${value.map(v => `'${v}'`).join(', ')})`);
       } else if (typeof value === 'string') {
@@ -440,7 +441,9 @@ export default function QueryReviewStep({ state, instances, onNavigateToStep }: 
                       <span className="font-mono text-gray-600">{`{{${param}}}`}</span>
                       <span className="mx-1">→</span>
                       <span className="font-medium text-gray-900 truncate">
-                        {Array.isArray(value) ? value.join(', ') : String(value)}
+                        {value && typeof value === 'object' && '_sqlInject' in value && value._sqlInject
+                          ? `${(value as any)._values.length} values (SQL injection mode)`
+                          : Array.isArray(value) ? value.join(', ') : String(value)}
                       </span>
                     </div>
                   ))}

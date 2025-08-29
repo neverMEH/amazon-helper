@@ -337,6 +337,12 @@ GET    /api/data-sources/{id}
 ## Recent Critical Fixes
 
 
+### 2025-08-29 - 17:58:37
+**fix**: Fix SQL preview to show VALUES clauses for campaign/ASIN parameters
+**Context**: Backend/Project changes
+**Stats**:  2 files changed, 149 insertions(+), 2 deletions(-)
+
+
 ### 2025-08-28 - 19:29:12
 **fix**: Remove parameter injection for campaigns/ASINs - always use SQL injection instead
 **Context**: Backend/Project changes
@@ -397,7 +403,6 @@ GET    /api/data-sources/{id}
 **Stats**:  30 files changed, 120389 insertions(+), 6 deletions(-)
 
 
-### 2025-08-27 - 15:36:25
 **fix**: feat: Add campaign page optimizations with sorting, filters, and faster brand dropdown
 **Context**: Backend/Project changes
 **Stats**:  6 files changed, 1381 insertions(+), 4 deletions(-)
