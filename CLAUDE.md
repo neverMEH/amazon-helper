@@ -649,3 +649,24 @@ python scripts/find_running_executions.py
 # Monitor server logs
 tail -f server.log
 ```
+
+
+### Recent Fixes and Enhancements
+
+#### 2025-09-01 (Auto-Generated Update)
+
+**New Features:**
+- feat: Add automatic conversion of hardcoded VALUES to parameter placeholders
+  - New files: frontend/src/utils/sqlParameterConverter.ts, scripts/convert_values_to_parameters.py
+- fix: Implement SQL injection method for large parameter lists to avoid AMC length limits
+- fix: Fix workflow execution endpoint and add parameter debugging
+- feat: Update parameter selectors to show all campaigns and ASINs without filtering
+  - New files: frontend/src/components/test/TestAllCampaignSelector.tsx
+- fix: Add explicit type annotation to fix TypeScript build error
+
+**Bug Fixes:**
+- fix: Hide SQL injection parameters from Parameter Values section
+- fix: Fix SQL preview to show VALUES clauses for campaign/ASIN parameters
+- fix: Remove parameter injection for campaigns/ASINs - always use SQL injection instead
+- fix: Fix AMC parameter length limit by sending arrays instead of formatted strings
+- fix: Support returning campaign names instead of IDs for name parameters
