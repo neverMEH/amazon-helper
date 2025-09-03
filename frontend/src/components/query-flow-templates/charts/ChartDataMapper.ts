@@ -34,7 +34,7 @@ export class ChartDataMapper {
       return { labels: [], datasets: [] };
     }
 
-    const { chart_type, data_mapping } = chartConfig;
+    const { chart_type } = chartConfig;
 
     if (chart_type === 'table') {
       return this.mapToTableData(rawData, chartConfig);
@@ -114,7 +114,7 @@ export class ChartDataMapper {
       this.formatValue(row[mapping.x_field!], mapping.value_format)
     );
     const values = data.map(row => 
-      this.aggregateValue(row[mapping.y_field!], mapping.aggregation)
+      this.aggregateValue(row[mapping.y_field!], mapping.aggregation || undefined)
     );
 
     return {
@@ -136,14 +136,14 @@ export class ChartDataMapper {
       this.formatValue(row[mapping.x_field!], 'date')
     );
 
-    const datasets = [];
+    const datasets: any[] = [];
 
     if (mapping.y_fields && mapping.y_fields.length > 1) {
       // Multiple series
       mapping.y_fields.forEach((field, index) => {
         datasets.push({
           label: this.formatColumnHeader(field),
-          data: data.map(row => this.aggregateValue(row[field], mapping.aggregation)),
+          data: data.map(row => this.aggregateValue(row[field], mapping.aggregation || undefined)),
           borderColor: this.generateColors(1, mapping.color_scheme, index)[0],
           backgroundColor: chartType === 'area' 
             ? this.generateColors(1, mapping.color_scheme, index, 0.3)[0]
@@ -158,7 +158,7 @@ export class ChartDataMapper {
       if (field) {
         datasets.push({
           label: this.formatColumnHeader(field),
-          data: data.map(row => this.aggregateValue(row[field], mapping.aggregation)),
+          data: data.map(row => this.aggregateValue(row[field], mapping.aggregation || undefined)),
           borderColor: this.generateColors(1, mapping.color_scheme)[0],
           backgroundColor: chartType === 'area' 
             ? this.generateColors(1, mapping.color_scheme, 0, 0.3)[0]
@@ -177,14 +177,14 @@ export class ChartDataMapper {
       this.formatValue(row[mapping.x_field!], mapping.value_format)
     );
 
-    const datasets = [];
+    const datasets: any[] = [];
     const fields = mapping.y_fields || [mapping.y_field!];
 
     fields.forEach((field, index) => {
       if (field) {
         datasets.push({
           label: this.formatColumnHeader(field),
-          data: data.map(row => this.aggregateValue(row[field], mapping.aggregation)),
+          data: data.map(row => this.aggregateValue(row[field], mapping.aggregation || undefined)),
           backgroundColor: this.generateColors(fields.length, mapping.color_scheme, index)[0],
           borderWidth: 1
         });
@@ -215,14 +215,14 @@ export class ChartDataMapper {
       this.formatValue(row[mapping.x_field!], mapping.value_format)
     );
 
-    const datasets = [];
+    const datasets: any[] = [];
     const fields = mapping.y_fields || [mapping.y_field!];
 
     fields.forEach((field, index) => {
       if (field) {
         datasets.push({
           label: this.formatColumnHeader(field),
-          data: data.map(row => this.aggregateValue(row[field], mapping.aggregation)),
+          data: data.map(row => this.aggregateValue(row[field], mapping.aggregation || undefined)),
           backgroundColor: this.generateColors(fields.length, mapping.color_scheme, index)[0],
           borderColor: this.generateColors(fields.length, mapping.color_scheme, index)[0],
           type: index === 0 ? 'bar' : 'line', // First dataset as bar, rest as line

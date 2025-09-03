@@ -30,7 +30,7 @@ const ComboChart: React.FC<ComboChartProps> = ({ chartConfig, data, className = 
 
   return (
     <div className={className}>
-      <Chart type="bar" data={chartData} options={options} />
+      <Chart type="bar" data={chartData as any} options={options} />
     </div>
   );
 };

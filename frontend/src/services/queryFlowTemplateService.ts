@@ -9,7 +9,7 @@ import type {
   PreviewSQLResponse,
   ParameterFormValues
 } from '../types/queryFlowTemplate';
-import { api } from './api';
+import api from './api';
 
 export const queryFlowTemplateService = {
   // List templates with filtering

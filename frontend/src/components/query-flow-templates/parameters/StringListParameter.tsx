@@ -58,7 +58,7 @@ const StringListParameter: React.FC<BaseParameterInputProps> = ({
 
     // Check min/max length for individual items
     if (rules.min_length) {
-      const shortItems = selection.filter(item => item.length < rules.min_length);
+      const shortItems = selection.filter(item => item.length < rules.min_length!);
       if (shortItems.length > 0) {
         const error = `Items must be at least ${rules.min_length} characters: ${shortItems.join(', ')}`;
         setError(error);
@@ -68,7 +68,7 @@ const StringListParameter: React.FC<BaseParameterInputProps> = ({
     }
 
     if (rules.max_length) {
-      const longItems = selection.filter(item => item.length > rules.max_length);
+      const longItems = selection.filter(item => item.length > rules.max_length!);
       if (longItems.length > 0) {
         const error = `Items must not exceed ${rules.max_length} characters: ${longItems.join(', ')}`;
         setError(error);

@@ -186,14 +186,9 @@ const SQLPreview: React.FC<SQLPreviewProps> = ({
               <div className="bg-gray-900 rounded-lg overflow-hidden">
                 <SQLEditor
                   value={previewData.sql}
+                  onChange={() => {}} // No-op for read-only
                   height="300px"
                   readOnly={true}
-                  options={{
-                    minimap: { enabled: false },
-                    scrollBeyondLastLine: false,
-                    fontSize: 12,
-                    theme: 'vs-dark'
-                  }}
                 />
               </div>
 

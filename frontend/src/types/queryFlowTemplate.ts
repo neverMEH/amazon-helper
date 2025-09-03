@@ -108,6 +108,7 @@ export interface ChartDataMapping {
 
 // Chart configuration
 export interface ChartConfig {
+  description?: string;
   responsive?: boolean;
   maintainAspectRatio?: boolean;
   indexAxis?: 'x' | 'y';

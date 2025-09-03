@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, Filter, Star, TrendingUp, Clock, Users, Grid, List, ChevronDown } from 'lucide-react';
 import { queryFlowTemplateService } from '../services/queryFlowTemplateService';
@@ -60,13 +60,16 @@ const QueryFlowTemplates: React.FC = () => {
 
   // Sort templates client-side
   const sortedTemplates = templatesData?.templates?.sort((a, b) => {
-    let aValue = a[filters.sortBy];
-    let bValue = b[filters.sortBy];
+    let aValue: any;
+    let bValue: any;
     
     // Handle special cases
     if (filters.sortBy === 'avg_rating') {
       aValue = a.rating_info?.avg_rating || 0;
       bValue = b.rating_info?.avg_rating || 0;
+    } else {
+      aValue = a[filters.sortBy];
+      bValue = b[filters.sortBy];
     }
     
     // Handle string comparison

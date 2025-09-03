@@ -112,7 +112,7 @@ const LineChart: React.FC<LineChartProps> = ({
 
   return (
     <div className={className}>
-      <Line data={chartData} options={options} />
+      <Line data={chartData as any} options={options} />
     </div>
   );
 };

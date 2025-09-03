@@ -57,7 +57,7 @@ const AreaChart: React.FC<AreaChartProps> = ({ chartConfig, data, className = ''
 
   return (
     <div className={className}>
-      <Line data={chartData} options={options} />
+      <Line data={chartData as any} options={options} />
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import React from 'react';
-import type { BaseParameterInputProps, TemplateParameter } from '../../../types/queryFlowTemplate';
+import type { BaseParameterInputProps } from '../../../types/queryFlowTemplate';
 
 // Import specific parameter components
 import DateParameter from './DateParameter';

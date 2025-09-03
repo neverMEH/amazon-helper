@@ -81,7 +81,7 @@ const PieChart: React.FC<PieChartProps> = ({
 
   return (
     <div className={className}>
-      <Pie data={chartData} options={options} />
+      <Pie data={chartData as any} options={options} />
     </div>
   );
 };

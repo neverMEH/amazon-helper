@@ -65,3 +65,16 @@ INFO:     127.0.0.1:42824 - "GET /api/query-flow-templates/supergoop_branded_sea
 2025-09-03 18:39:49 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
 2025-09-03 18:39:49 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
 2025-09-03 18:39:49 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-09-03 19:09:53 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-09-03 19:09:53 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-09-03 19:09:53 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+INFO:     162.142.125.125:39102 - "GET / HTTP/1.1" 200 OK
+INFO:     162.142.125.125:39112 - "GET /favicon.png HTTP/1.1" 200 OK
+INFO:     162.142.125.125:46692 - "GET /branding/recomamp-icon.png HTTP/1.1" 200 OK
+INFO:     162.142.125.125:46710 - "GET /favicon.ico HTTP/1.1" 200 OK
+INFO:     162.142.125.125:46720 - "PRI %2A HTTP/2.0" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     162.142.125.125:47620 - "PRI %2A HTTP/2.0" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     162.142.125.125:47668 - "GET /favicon.ico HTTP/1.1" 200 OK
+INFO:     162.142.125.125:47696 - "GET /login HTTP/1.1" 200 OK

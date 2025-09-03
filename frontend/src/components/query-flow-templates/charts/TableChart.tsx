@@ -111,7 +111,7 @@ const TableChart: React.FC<TableChartProps> = ({
     document.body.removeChild(link);
   };
 
-  const renderCellValue = (value: any, format?: string) => {
+  const renderCellValue = (value: any) => {
     if (typeof value === 'object' && value?.display !== undefined) {
       return value.display;
     }
@@ -184,7 +184,7 @@ const TableChart: React.FC<TableChartProps> = ({
               <tr key={index} className="hover:bg-gray-50">
                 {tableData.columns.map((column) => (
                   <td key={column.field} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {renderCellValue(row[column.field], column.format)}
+                    {renderCellValue(row[column.field])}
                   </td>
                 ))}
               </tr>

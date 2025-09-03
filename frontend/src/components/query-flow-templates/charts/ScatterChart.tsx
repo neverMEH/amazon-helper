@@ -44,7 +44,7 @@ const ScatterChart: React.FC<ScatterChartProps> = ({ chartConfig, data, classNam
 
   return (
     <div className={className}>
-      <Scatter data={chartData} options={options} />
+      <Scatter data={chartData as any} options={options} />
     </div>
   );
 };

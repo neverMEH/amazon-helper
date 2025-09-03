@@ -183,7 +183,7 @@ const TemplateParameterForm: React.FC<TemplateParameterFormProps> = ({
       )}
 
       {/* Debug info in development */}
-      {process.env.NODE_ENV === 'development' && (
+      {import.meta.env.DEV && (
         <details className="bg-gray-100 border border-gray-300 rounded-md">
           <summary className="p-2 cursor-pointer text-sm font-medium text-gray-700">
             Debug: Parameter Values

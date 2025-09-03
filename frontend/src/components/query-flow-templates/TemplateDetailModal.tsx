@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Star, Heart, Play, Clock, TrendingUp, Users, Settings, BarChart3, AlertCircle } from 'lucide-react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { queryFlowTemplateService } from '../../services/queryFlowTemplateService';
-import { instanceService } from '../../services/instanceService';
+import { instanceService, type AMCInstance } from '../../services/instanceService';
 import type { QueryFlowTemplate, ParameterFormValues } from '../../types/queryFlowTemplate';
 import TemplateParameterForm from './TemplateParameterForm';
 import SQLPreview from './SQLPreview';
@@ -29,7 +29,7 @@ const TemplateDetailModal: React.FC<TemplateDetailModalProps> = ({
   const queryClient = useQueryClient();
 
   // Fetch user's instances
-  const { data: instances } = useQuery({
+  const { data: instances } = useQuery<AMCInstance[]>({
     queryKey: ['instances'],
     queryFn: instanceService.list,
     staleTime: 5 * 60 * 1000
@@ -341,7 +341,7 @@ const TemplateDetailModal: React.FC<TemplateDetailModalProps> = ({
               >
                 {instances?.map((instance) => (
                   <option key={instance.id} value={instance.id}>
-                    {instance.instance_name}
+                    {instance.instanceName}
                   </option>
                 ))}
               </select>

@@ -7,7 +7,7 @@ interface HeatmapChartProps {
   className?: string;
 }
 
-const HeatmapChart: React.FC<HeatmapChartProps> = ({ chartConfig, data, className = '' }) => {
+const HeatmapChart: React.FC<HeatmapChartProps> = ({ className = '' }) => {
   // Simplified heatmap implementation - would typically use a library like D3 or recharts
   return (
     <div className={className}>

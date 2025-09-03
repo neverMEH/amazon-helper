@@ -1,15 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Target, ChevronDown } from 'lucide-react';
 import type { BaseParameterInputProps } from '../../../types/queryFlowTemplate';
-import CampaignSelector from '../../campaigns/CampaignSelector';
-
-interface Campaign {
-  campaign_id: string;
-  campaign_name: string;
-  campaign_status: string;
-  campaign_type: string;
-  portfolio_name?: string;
-}
+import { CampaignSelector } from '../../parameter-detection/CampaignSelector';
 
 const CampaignListParameter: React.FC<BaseParameterInputProps> = ({
   parameter,
@@ -57,12 +49,11 @@ const CampaignListParameter: React.FC<BaseParameterInputProps> = ({
     return true;
   };
 
-  const handleSelectionChange = (selectedCampaigns: Campaign[]) => {
-    const campaignIds = selectedCampaigns.map(c => c.campaign_id);
-    setLocalValue(campaignIds);
+  const handleCampaignSelectorChange = (value: string[]) => {
+    setLocalValue(value);
     
-    if (validateSelection(campaignIds)) {
-      onChange(campaignIds);
+    if (validateSelection(value)) {
+      onChange(value);
     }
     
     setShowSelector(false);
@@ -205,11 +196,9 @@ const CampaignListParameter: React.FC<BaseParameterInputProps> = ({
       {/* Campaign selector modal */}
       {showSelector && (
         <CampaignSelector
-          isOpen={showSelector}
-          onClose={() => setShowSelector(false)}
-          onSelectCampaigns={handleSelectionChange}
-          initialSelection={localValue.filter(id => id !== 'ALL')}
-          multiSelect={parameter.ui_config.multi_select !== false}
+          value={localValue.filter(id => id !== 'ALL')}
+          onChange={handleCampaignSelectorChange}
+          multiple={parameter.ui_config.multi_select !== false}
         />
       )}
     </div>
