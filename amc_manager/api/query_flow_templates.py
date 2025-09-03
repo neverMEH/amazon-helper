@@ -190,7 +190,6 @@ async def create_template(
         
         # Create template
         template = template_service.create_template(
-            user_id=current_user['id'],
             template_data={
                 'template_id': request.template_id,
                 'name': request.name,
@@ -199,32 +198,12 @@ async def create_template(
                 'sql_template': request.sql_template,
                 'tags': request.tags or [],
                 'is_public': request.is_public,
-                'is_active': request.is_active,
-                'created_by': current_user['id']
-            }
+                'is_active': request.is_active
+            },
+            parameters=request.parameters or [],
+            chart_configs=request.chart_configs or [],
+            user_id=current_user['id']
         )
-        
-        # Add parameters if provided
-        if request.parameters:
-            for idx, param in enumerate(request.parameters):
-                template_service.add_parameter(
-                    template_id=template['id'],
-                    parameter_data={
-                        **param,
-                        'order_index': idx
-                    }
-                )
-        
-        # Add chart configs if provided
-        if request.chart_configs:
-            for idx, chart in enumerate(request.chart_configs):
-                template_service.add_chart_config(
-                    template_id=template['id'],
-                    chart_data={
-                        **chart,
-                        'order_index': idx
-                    }
-                )
         
         # Return the created template
         return template_service.get_template(
@@ -652,9 +631,37 @@ async def duplicate_template(
                 detail="Template ID must contain only lowercase letters, numbers, and underscores"
             )
         
+        # Prepare parameters for duplication
+        duplicate_params = []
+        if original.get('parameters'):
+            for param in original['parameters']:
+                duplicate_params.append({
+                    'parameter_name': param['parameter_name'],
+                    'display_name': param['display_name'],
+                    'parameter_type': param['parameter_type'],
+                    'required': param.get('required', False),
+                    'default_value': param.get('default_value'),
+                    'validation_rules': param.get('validation_rules', {}),
+                    'ui_component': param.get('ui_component'),
+                    'ui_config': param.get('ui_config', {}),
+                    'order_index': param.get('order_index', 0)
+                })
+        
+        # Prepare chart configs for duplication
+        duplicate_charts = []
+        if original.get('chart_configs'):
+            for chart in original['chart_configs']:
+                duplicate_charts.append({
+                    'chart_name': chart['chart_name'],
+                    'chart_type': chart['chart_type'],
+                    'chart_config': chart.get('chart_config', {}),
+                    'data_mapping': chart.get('data_mapping', {}),
+                    'is_default': chart.get('is_default', False),
+                    'order_index': chart.get('order_index', 0)
+                })
+        
         # Create the duplicate
         duplicate = template_service.create_template(
-            user_id=current_user['id'],
             template_data={
                 'template_id': new_template_id,
                 'name': request.name,
@@ -663,43 +670,12 @@ async def duplicate_template(
                 'sql_template': original['sql_template'],
                 'tags': original.get('tags', []),
                 'is_public': False,  # Duplicates start as private
-                'is_active': True,
-                'created_by': current_user['id']
-            }
+                'is_active': True
+            },
+            parameters=duplicate_params,
+            chart_configs=duplicate_charts,
+            user_id=current_user['id']
         )
-        
-        # Copy parameters
-        if original.get('parameters'):
-            for param in original['parameters']:
-                template_service.add_parameter(
-                    template_id=duplicate['id'],
-                    parameter_data={
-                        'parameter_name': param['parameter_name'],
-                        'display_name': param['display_name'],
-                        'parameter_type': param['parameter_type'],
-                        'required': param.get('required', False),
-                        'default_value': param.get('default_value'),
-                        'validation_rules': param.get('validation_rules', {}),
-                        'ui_component': param.get('ui_component'),
-                        'ui_config': param.get('ui_config', {}),
-                        'order_index': param.get('order_index', 0)
-                    }
-                )
-        
-        # Copy chart configs
-        if original.get('chart_configs'):
-            for chart in original['chart_configs']:
-                template_service.add_chart_config(
-                    template_id=duplicate['id'],
-                    chart_data={
-                        'chart_name': chart['chart_name'],
-                        'chart_type': chart['chart_type'],
-                        'chart_config': chart.get('chart_config', {}),
-                        'data_mapping': chart.get('data_mapping', {}),
-                        'is_default': chart.get('is_default', False),
-                        'order_index': chart.get('order_index', 0)
-                    }
-                )
         
         # Return the duplicated template
         return template_service.get_template(
