@@ -78,3 +78,33 @@ INFO:     162.142.125.125:47620 - "PRI %2A HTTP/2.0" 404 Not Found
 WARNING:  Invalid HTTP request received.
 INFO:     162.142.125.125:47668 - "GET /favicon.ico HTTP/1.1" 200 OK
 INFO:     162.142.125.125:47696 - "GET /login HTTP/1.1" 200 OK
+2025-09-03 19:30:33 - amc_manager.services.amc_execution_service - INFO - AMC execution ID: 0a1c89d2-5b17-4dba-8a51-b73828b29ddd, Internal execution ID: exec_11a6a7b7
+2025-09-03 19:30:33 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-09-03 19:30:33 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-09-03 19:30:33 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-09-03 19:30:34 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-09-03 19:30:34 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABouJTdG32kOn4I
+2025-09-03 19:30:34 - amc_manager.services.token_service - ERROR - Error decrypting access token for user fe841586-7807-48b1-8808-02877834fce0: Failed to decrypt token: 
+2025-09-03 19:30:34 - amc_manager.services.token_service - ERROR - Token decryption failed - likely due to encryption key mismatch
+2025-09-03 19:30:34 - amc_manager.services.amc_execution_service - ERROR - No valid token for user fe841586-7807-48b1-8808-02877834fce0
+2025-09-03 19:30:50 - amc_manager.services.amc_execution_service - INFO - AMC execution ID: 0a1c89d2-5b17-4dba-8a51-b73828b29ddd, Internal execution ID: exec_11a6a7b7
+2025-09-03 19:30:50 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-09-03 19:30:50 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABouJTdG32kOn4I
+2025-09-03 19:30:50 - amc_manager.services.token_service - ERROR - Error decrypting access token for user fe841586-7807-48b1-8808-02877834fce0: Failed to decrypt token: 
+2025-09-03 19:30:50 - amc_manager.services.token_service - ERROR - Token decryption failed - likely due to encryption key mismatch
+2025-09-03 19:30:50 - amc_manager.services.amc_execution_service - ERROR - No valid token for user fe841586-7807-48b1-8808-02877834fce0
+2025-09-03 19:31:06 - amc_manager.services.amc_execution_service - INFO - AMC execution ID: 0a1c89d2-5b17-4dba-8a51-b73828b29ddd, Internal execution ID: exec_11a6a7b7
+2025-09-03 19:31:06 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-09-03 19:31:06 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABouJTdG32kOn4I
+2025-09-03 19:31:06 - amc_manager.services.token_service - ERROR - Error decrypting access token for user fe841586-7807-48b1-8808-02877834fce0: Failed to decrypt token: 
+2025-09-03 19:31:06 - amc_manager.services.token_service - ERROR - Token decryption failed - likely due to encryption key mismatch
+2025-09-03 19:31:06 - amc_manager.services.amc_execution_service - ERROR - No valid token for user fe841586-7807-48b1-8808-02877834fce0
+2025-09-03 19:31:22 - amc_manager.services.amc_execution_service - INFO - AMC execution ID: 0a1c89d2-5b17-4dba-8a51-b73828b29ddd, Internal execution ID: exec_11a6a7b7
+2025-09-03 19:31:22 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-09-03 19:31:22 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABouJTdG32kOn4I
+2025-09-03 19:31:22 - amc_manager.services.token_service - ERROR - Error decrypting access token for user fe841586-7807-48b1-8808-02877834fce0: Failed to decrypt token: 
+2025-09-03 19:31:22 - amc_manager.services.token_service - ERROR - Token decryption failed - likely due to encryption key mismatch
+2025-09-03 19:31:22 - amc_manager.services.amc_execution_service - ERROR - No valid token for user fe841586-7807-48b1-8808-02877834fce0
+2025-09-03 19:39:57 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-09-03 19:39:57 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-09-03 19:39:57 - amc_manager.services.db_service - INFO - Supabase connection refreshed
