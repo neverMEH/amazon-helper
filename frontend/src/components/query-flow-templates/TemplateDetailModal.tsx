@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Star, Heart, Play, Clock, TrendingUp, Users, Settings, BarChart3, AlertCircle } from 'lucide-react';
+import { X, Star, Heart, Play, Clock, TrendingUp, Users, Settings, BarChart3, AlertCircle, Edit } from 'lucide-react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { queryFlowTemplateService } from '../../services/queryFlowTemplateService';
 import { instanceService, type AMCInstance } from '../../services/instanceService';
 import type { QueryFlowTemplate, ParameterFormValues } from '../../types/queryFlowTemplate';
@@ -26,6 +27,7 @@ const TemplateDetailModal: React.FC<TemplateDetailModalProps> = ({
   const [selectedInstance, setSelectedInstance] = useState<string>('');
   const [isExecuting, setIsExecuting] = useState(false);
 
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   // Fetch user's instances
@@ -355,6 +357,17 @@ const TemplateDetailModal: React.FC<TemplateDetailModalProps> = ({
               disabled={isExecuting}
             >
               Cancel
+            </button>
+            <button
+              onClick={() => {
+                navigate(`/query-flow-templates/edit/${template.template_id}`);
+                onClose();
+              }}
+              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 flex items-center space-x-2"
+              disabled={isExecuting}
+            >
+              <Edit className="h-4 w-4" />
+              <span>Edit Template</span>
             </button>
             <button
               onClick={handleExecuteTemplate}

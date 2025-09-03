@@ -17,6 +17,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import QueryLibrary from './pages/QueryLibrary';
 import QueryFlowTemplates from './pages/QueryFlowTemplates';
 import TemplateEditorWireframe from './components/query-flow-templates/editor/TemplateEditorWireframe';
+import TemplateEditor from './components/query-flow-templates/editor/TemplateEditor';
 import QueryBuilder from './pages/QueryBuilder';
 import MyQueries from './pages/MyQueries';
 import Executions from './pages/Executions';
@@ -82,6 +83,8 @@ function App() {
               <Route path="/query-library" element={<QueryLibrary />} />
               <Route path="/query-flow-templates" element={<QueryFlowTemplates />} />
               <Route path="/query-flow-templates/editor-wireframe" element={<TemplateEditorWireframe />} />
+              <Route path="/query-flow-templates/new" element={<TemplateEditor />} />
+              <Route path="/query-flow-templates/edit/:id" element={<TemplateEditor />} />
               <Route path="/my-queries" element={<MyQueries />} />
               <Route path="/schedules" element={<ScheduleManager />} />
               <Route path="/query-builder/new" element={<QueryBuilder />} />

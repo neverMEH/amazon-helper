@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search, Filter, Star, TrendingUp, Clock, Users, Grid, List, ChevronDown } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Search, Filter, Star, TrendingUp, Clock, Users, Grid, List, ChevronDown, Plus } from 'lucide-react';
 import { queryFlowTemplateService } from '../services/queryFlowTemplateService';
 import type { QueryFlowTemplate } from '../types/queryFlowTemplate';
 import TemplateCard from '../components/query-flow-templates/TemplateCard';
@@ -15,6 +16,7 @@ interface FilterState {
 }
 
 const QueryFlowTemplates: React.FC = () => {
+  const navigate = useNavigate();
   const [filters, setFilters] = useState<FilterState>({
     search: '',
     category: '',
@@ -152,19 +154,28 @@ const QueryFlowTemplates: React.FC = () => {
             </p>
           </div>
           
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3">
             <button
-              onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-md ${viewMode === 'grid' ? 'bg-indigo-100 text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
+              onClick={() => navigate('/query-flow-templates/new')}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
-              <Grid className="h-4 w-4" />
+              <Plus className="h-4 w-4 mr-2" />
+              Create Template
             </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`p-2 rounded-md ${viewMode === 'list' ? 'bg-indigo-100 text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
-            >
-              <List className="h-4 w-4" />
-            </button>
+            <div className="flex items-center space-x-2 border-l pl-3">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2 rounded-md ${viewMode === 'grid' ? 'bg-indigo-100 text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
+              >
+                <Grid className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2 rounded-md ${viewMode === 'list' ? 'bg-indigo-100 text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
+              >
+                <List className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
 
