@@ -95,6 +95,53 @@ export const queryFlowTemplateService = {
     return response.data;
   },
 
+  // Create new template
+  async createTemplate(template: {
+    template_id: string;
+    name: string;
+    description?: string;
+    category: string;
+    sql_template: string;
+    parameters?: any[];
+    chart_configs?: any[];
+    tags?: string[];
+    is_public?: boolean;
+    is_active?: boolean;
+  }): Promise<QueryFlowTemplate> {
+    const response = await api.post('/query-flow-templates/', template);
+    return response.data;
+  },
+
+  // Update existing template
+  async updateTemplate(
+    templateId: string,
+    updates: Partial<{
+      name: string;
+      description: string;
+      category: string;
+      sql_template: string;
+      parameters: any[];
+      chart_configs: any[];
+      tags: string[];
+      is_public: boolean;
+      is_active: boolean;
+    }>
+  ): Promise<QueryFlowTemplate> {
+    const response = await api.put(`/query-flow-templates/${templateId}`, updates);
+    return response.data;
+  },
+
+  // Delete template
+  async deleteTemplate(templateId: string): Promise<void> {
+    await api.delete(`/query-flow-templates/${templateId}`);
+  },
+
+  // Duplicate template
+  async duplicateTemplate(templateId: string, newName: string): Promise<QueryFlowTemplate> {
+    const response = await api.post(`/query-flow-templates/${templateId}/duplicate`, { name: newName });
+    return response.data;
+  },
+
   // Toggle favorite
   async toggleFavorite(templateId: string): Promise<{ is_favorite: boolean; message: string }> {
     const response = await api.post(`/query-flow-templates/${templateId}/favorite`);
@@ -126,8 +173,4 @@ export const queryFlowTemplateService = {
     return response.data.tags;
   },
 
-  // Delete template (for creators only)
-  async deleteTemplate(templateId: string): Promise<void> {
-    await api.delete(`/query-flow-templates/${templateId}`);
-  }
 };

@@ -16,9 +16,15 @@ import {
   PieChart,
   LineChart,
   Table,
-  Copy
+  Copy,
+  X,
+  Tag
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import SQLEditor from '../../common/SQLEditor';
+import { queryFlowTemplateService } from '../../../services/queryFlowTemplateService';
+import toast from 'react-hot-toast';
 
 /**
  * Dynamic, responsive Query Flow Template Editor
@@ -59,6 +65,7 @@ interface VisualizationConfig {
 
 const TemplateEditor: React.FC = () => {
   const navigate = useNavigate();
+  const { id: templateId } = useParams();
   const [activeTab, setActiveTab] = useState<'metadata' | 'sql' | 'parameters' | 'visualizations' | 'preview'>('metadata');
   const [autoSave, setAutoSave] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -208,12 +215,112 @@ LIMIT :limit`);
     setVisualizations(visualizations.filter(viz => viz.id !== id));
   };
 
+  const queryClient = useQueryClient();
+
+  // Load existing template if editing
+  const { data: existingTemplate, isLoading: loadingTemplate } = useQuery({
+    queryKey: ['queryFlowTemplate', templateId],
+    queryFn: () => queryFlowTemplateService.getTemplate(templateId!),
+    enabled: !!templateId
+  });
+
+  // Populate form when template is loaded
+  useEffect(() => {
+    if (existingTemplate) {
+      setTemplateMetadata({
+        template_id: existingTemplate.template_id,
+        name: existingTemplate.name,
+        category: existingTemplate.category,
+        description: existingTemplate.description || '',
+        tags: existingTemplate.tags || [],
+        visibility: existingTemplate.is_public ? 'public' : 'private',
+        status: existingTemplate.is_active ? 'active' : 'inactive'
+      });
+      setSqlContent(existingTemplate.sql_template || '');
+      // TODO: Load parameters and visualizations from existingTemplate
+    }
+  }, [existingTemplate]);
+
+  // Save mutation
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const templateData = {
+        template_id: templateMetadata.template_id,
+        name: templateMetadata.name,
+        description: templateMetadata.description,
+        category: templateMetadata.category,
+        sql_template: sqlContent,
+        tags: templateMetadata.tags,
+        is_public: templateMetadata.visibility === 'public',
+        is_active: templateMetadata.status === 'active',
+        parameters: detectedParameters.map(param => ({
+          parameter_name: param.name,
+          display_name: param.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          parameter_type: param.dataType || 'string',
+          required: param.required || false,
+          default_value: param.defaultValue,
+          validation_rules: {},
+          ui_component: param.dataType === 'date' ? 'date_picker' : 'text_input',
+          ui_config: {},
+          order_index: 0
+        })),
+        chart_configs: visualizations.map((viz, idx) => ({
+          chart_name: viz.name,
+          chart_type: viz.type,
+          chart_config: viz.config,
+          data_mapping: viz.dataMapping,
+          is_default: viz.isDefault,
+          order_index: idx
+        }))
+      };
+
+      if (templateId) {
+        return queryFlowTemplateService.updateTemplate(templateId, templateData);
+      } else {
+        return queryFlowTemplateService.createTemplate(templateData);
+      }
+    },
+    onSuccess: (data) => {
+      toast.success(templateId ? 'Template updated successfully!' : 'Template created successfully!');
+      queryClient.invalidateQueries({ queryKey: ['queryFlowTemplates'] });
+      if (!templateId) {
+        // Navigate to edit mode after creation
+        navigate(`/query-flow-templates/edit/${data.template_id}`, { replace: true });
+      }
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to save template');
+    }
+  });
+
   const handleSave = async () => {
+    // Validate required fields
+    if (!templateMetadata.template_id || !templateMetadata.name || !sqlContent) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    // Validate template_id format
+    if (!/^[a-z0-9_]+$/.test(templateMetadata.template_id)) {
+      toast.error('Template ID must contain only lowercase letters, numbers, and underscores');
+      return;
+    }
+
     setIsSaving(true);
-    // Simulate save
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await saveMutation.mutateAsync();
     setIsSaving(false);
   };
+
+  if (loadingTemplate) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading template...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -319,7 +426,12 @@ LIMIT :limit`);
 };
 
 // Metadata Tab Component
-const MetadataTab: React.FC<{ metadata: any; setMetadata: (m: any) => void }> = ({ metadata, setMetadata }) => (
+const MetadataTab: React.FC<{ metadata: any; setMetadata: (m: any) => void }> = ({ metadata, setMetadata }) => {
+  const [tagInput, setTagInput] = React.useState('');
+  const [showTagInput, setShowTagInput] = React.useState(false);
+  const tagInputRef = React.useRef<HTMLInputElement>(null);
+  
+  return (
   <div className="max-w-4xl mx-auto">
     <div className="bg-white rounded-lg shadow p-4 sm:p-6">
       <h2 className="text-lg font-medium text-gray-900 mb-4 sm:mb-6">Template Information</h2>
@@ -386,6 +498,7 @@ const MetadataTab: React.FC<{ metadata: any; setMetadata: (m: any) => void }> = 
           <div className="flex flex-wrap gap-2">
             {metadata.tags.map((tag: string, index: number) => (
               <span key={index} className="inline-flex items-center px-3 py-1 rounded-full text-xs sm:text-sm font-medium bg-indigo-100 text-indigo-800">
+                <Tag className="h-3 w-3 mr-1" />
                 {tag}
                 <button 
                   onClick={() => setMetadata({
@@ -394,20 +507,59 @@ const MetadataTab: React.FC<{ metadata: any; setMetadata: (m: any) => void }> = 
                   })}
                   className="ml-2 text-indigo-600 hover:text-indigo-800"
                 >
-                  ×
+                  <X className="h-3 w-3" />
                 </button>
               </span>
             ))}
-            <button className="inline-flex items-center px-3 py-1 rounded-full text-xs sm:text-sm font-medium border-2 border-dashed border-gray-300 text-gray-600 hover:border-gray-400">
-              <Plus className="h-3 sm:h-4 w-3 sm:w-4 mr-1" />
-              Add Tag
-            </button>
+            {showTagInput ? (
+              <input
+                ref={tagInputRef}
+                type="text"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && tagInput.trim()) {
+                    setMetadata({
+                      ...metadata,
+                      tags: [...metadata.tags, tagInput.trim()]
+                    });
+                    setTagInput('');
+                    setShowTagInput(false);
+                  }
+                }}
+                onBlur={() => {
+                  if (tagInput.trim()) {
+                    setMetadata({
+                      ...metadata,
+                      tags: [...metadata.tags, tagInput.trim()]
+                    });
+                  }
+                  setTagInput('');
+                  setShowTagInput(false);
+                }}
+                className="px-3 py-1 text-sm border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="Enter tag..."
+                autoFocus
+              />
+            ) : (
+              <button 
+                onClick={() => {
+                  setShowTagInput(true);
+                  setTimeout(() => tagInputRef.current?.focus(), 0);
+                }}
+                className="inline-flex items-center px-3 py-1 rounded-full text-xs sm:text-sm font-medium border-2 border-dashed border-gray-300 text-gray-600 hover:border-gray-400"
+              >
+                <Plus className="h-3 sm:h-4 w-3 sm:w-4 mr-1" />
+                Add Tag
+              </button>
+            )}
           </div>
         </div>
       </div>
     </div>
   </div>
-);
+  );
+};
 
 // SQL Template Tab - Responsive
 const SQLTemplateTab: React.FC<{ 
@@ -428,12 +580,13 @@ const SQLTemplateTab: React.FC<{
       <div className="flex flex-col lg:flex-row">
         {/* SQL Editor */}
         <div className="flex-1 p-4 sm:p-6 lg:border-r border-gray-200">
-          <textarea
-            value={sqlContent}
-            onChange={(e) => setSqlContent(e.target.value)}
-            className="w-full h-64 sm:h-96 lg:h-[500px] bg-gray-900 text-gray-100 p-3 sm:p-4 rounded-lg font-mono text-xs sm:text-sm resize-none"
-            spellCheck={false}
-          />
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <SQLEditor
+              value={sqlContent}
+              onChange={(value) => setSqlContent(value || '')}
+              height="500px"
+            />
+          </div>
         </div>
         
         {/* Helper Panel - Below on mobile, beside on desktop */}
