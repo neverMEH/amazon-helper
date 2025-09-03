@@ -1,237 +1,67 @@
-2025-08-28 12:32:26 - amc_manager.services.token_service - INFO - Using existing FERNET_KEY from environment
-2025-08-28 12:32:26 - amc_manager.services.token_service - INFO - Fernet encryption initialized successfully
-2025-08-28 12:32:26 - amc_manager.services.amc_execution_service - INFO - AMC Execution Service configured to use REAL AMC API
-2025-08-28 12:32:26 - __main__ - INFO - All API routers loaded successfully with rate limiting
-2025-08-28 12:32:26 - __main__ - INFO - Frontend static files mounted
-2025-08-28 12:32:26 - main_supabase - INFO - All API routers loaded successfully with rate limiting
-2025-08-28 12:32:26 - main_supabase - INFO - Frontend static files mounted
-INFO:     Started server process [2792544]
+2025-09-03 17:39:39 - amc_manager.services.token_service - INFO - Using existing FERNET_KEY from environment
+2025-09-03 17:39:39 - amc_manager.services.token_service - INFO - Fernet encryption initialized successfully
+2025-09-03 17:39:39 - amc_manager.services.amc_execution_service - INFO - AMC Execution Service configured to use REAL AMC API
+2025-09-03 17:39:39 - amc_manager.services.amc_execution_service - INFO - AMC Execution Service configured to use REAL AMC API
+2025-09-03 17:39:39 - __main__ - INFO - All API routers loaded successfully with rate limiting
+2025-09-03 17:39:39 - __main__ - INFO - Frontend static files mounted
+2025-09-03 17:39:39 - main_supabase - INFO - All API routers loaded successfully with rate limiting
+2025-09-03 17:39:39 - main_supabase - INFO - Frontend static files mounted
+INFO:     Started server process [3025958]
 INFO:     Waiting for application startup.
-2025-08-28 12:32:26 - main_supabase - INFO - Starting Recom AMP application with Supabase...
-2025-08-28 12:32:26 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-28 12:32:26 - main_supabase - INFO - ✓ Supabase connection successful
-2025-08-28 12:32:26 - amc_manager.services.token_refresh_service - INFO - Token refresh service started
-2025-08-28 12:32:26 - main_supabase - INFO - ✓ Token refresh service started
-2025-08-28 12:32:26 - main_supabase - INFO - ✓ Execution status poller started
-2025-08-28 12:32:26 - amc_manager.services.token_service - INFO - Using existing FERNET_KEY from environment
-2025-08-28 12:32:26 - amc_manager.services.token_service - INFO - Fernet encryption initialized successfully
-2025-08-28 12:32:26 - main_supabase - INFO - ✓ Schedule executor service started
-2025-08-28 12:32:26 - amc_manager.services.token_refresh_service - INFO - Added user fe841586-7807-48b1-8808-02877834fce0 to token refresh tracking
-2025-08-28 12:32:26 - main_supabase - INFO - ✓ Added 1 users with tokens to refresh tracking (out of 15 total)
-2025-08-28 12:32:26 - amc_manager.services.token_refresh_service - INFO - Starting token refresh service (interval: 600s)
-2025-08-28 12:32:26 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
-2025-08-28 12:32:26 - amc_manager.services.schedule_executor_service - INFO - Starting Schedule Executor Service
-2025-08-28 12:32:26 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-28 12:32:26 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-28 12:32:26 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-09-03 17:39:39 - main_supabase - INFO - Starting Recom AMP application with Supabase...
+2025-09-03 17:39:39 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-09-03 17:39:39 - main_supabase - INFO - ✓ Supabase connection successful
+2025-09-03 17:39:39 - amc_manager.services.token_refresh_service - INFO - Token refresh service started
+2025-09-03 17:39:39 - main_supabase - INFO - ✓ Token refresh service started
+2025-09-03 17:39:39 - main_supabase - INFO - ✓ Execution status poller started
+2025-09-03 17:39:39 - amc_manager.services.token_service - INFO - Using existing FERNET_KEY from environment
+2025-09-03 17:39:39 - amc_manager.services.token_service - INFO - Fernet encryption initialized successfully
+2025-09-03 17:39:39 - main_supabase - INFO - ✓ Schedule executor service started
+2025-09-03 17:39:40 - amc_manager.services.token_refresh_service - INFO - Added user fe841586-7807-48b1-8808-02877834fce0 to token refresh tracking
+2025-09-03 17:39:40 - main_supabase - INFO - ✓ Added 1 users with tokens to refresh tracking (out of 15 total)
+2025-09-03 17:39:40 - amc_manager.services.token_refresh_service - INFO - Starting token refresh service (interval: 600s)
+2025-09-03 17:39:40 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
+2025-09-03 17:39:40 - amc_manager.services.schedule_executor_service - INFO - Starting Schedule Executor Service
+2025-09-03 17:39:40 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-09-03 17:39:40 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-09-03 17:39:40 - amc_manager.services.db_service - INFO - Supabase connection refreshed
 INFO:     Application startup complete.
-2025-08-28 12:32:27 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-28 12:32:27 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-28 12:32:27 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-28 12:32:27 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 1 successful, 0 failed
+2025-09-03 17:39:40 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-09-03 17:39:40 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-09-03 17:39:40 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-09-03 17:39:40 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 1 successful, 0 failed
 INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     127.0.0.1:34916 - "GET /api/health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:46086 - "GET /api/campaigns/?page=1&page_size=10 HTTP/1.1" 403 Forbidden
-2025-08-28 12:42:27 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
-2025-08-28 12:42:27 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 1 successful, 0 failed
-2025-08-28 12:52:27 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
-2025-08-28 12:52:27 - amc_manager.services.token_refresh_service - INFO - Token for user fe841586-7807-48b1-8808-02877834fce0 expires in 862s, refreshing...
-2025-08-28 12:52:27 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
-2025-08-28 12:52:27 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABosEZZFniiCjJR
-2025-08-28 12:52:27 - amc_manager.services.token_service - ERROR - Error decrypting access token for user fe841586-7807-48b1-8808-02877834fce0: Failed to decrypt token: 
-2025-08-28 12:52:27 - amc_manager.services.token_service - ERROR - Token decryption failed - likely due to encryption key mismatch
-2025-08-28 12:52:27 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user fe841586-7807-48b1-8808-02877834fce0 - removing from tracking
-2025-08-28 12:52:27 - amc_manager.services.token_refresh_service - INFO - Removed user fe841586-7807-48b1-8808-02877834fce0 from token refresh tracking
-2025-08-28 12:52:27 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 0 successful, 1 failed
-WARNING:  Invalid HTTP request received.
-2025-08-28 13:02:31 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-28 13:02:31 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-28 13:02:31 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-28 13:32:36 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-28 13:32:36 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-28 13:32:36 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-INFO:     206.189.118.222:44822 - "GET / HTTP/1.1" 200 OK
-2025-08-28 14:02:40 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-28 14:02:40 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-28 14:02:40 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-28 14:32:44 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-28 14:32:44 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-28 14:32:44 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-28 15:02:49 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-28 15:02:49 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-28 15:02:49 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-28 15:32:53 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-28 15:32:53 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-28 15:32:53 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-INFO:     127.0.0.1:54110 - "GET /api/health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56586 - "GET /api/campaigns/by-instance-brand/list?instance_id=amccfnbscqp&brand_id=FEKKAI&campaign_type=sponsored_products&limit=5 HTTP/1.1" 403 Forbidden
-2025-08-28 16:02:57 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-28 16:02:57 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-28 16:02:57 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-28 16:33:02 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-28 16:33:02 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-28 16:33:02 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-28 17:03:07 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-28 17:03:07 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-28 17:03:07 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-28 17:33:11 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-28 17:33:11 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-28 17:33:11 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-28 18:03:15 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-28 18:03:15 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-28 18:03:15 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-28 18:33:20 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-28 18:33:20 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-28 18:33:20 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-28 19:03:25 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-28 19:03:25 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-28 19:03:25 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-INFO:     159.223.224.104:56550 - "GET / HTTP/1.1" 200 OK
-INFO:     159.223.224.104:56560 - "GET /favicon.png HTTP/1.1" 200 OK
-2025-08-28 19:33:29 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-28 19:33:29 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-28 19:33:29 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-28 20:03:34 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-28 20:03:34 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-28 20:03:34 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-28 20:33:38 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-28 20:33:38 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-28 20:33:38 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-28 21:03:43 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-28 21:03:43 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-28 21:03:43 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-28 21:33:47 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-28 21:33:47 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-28 21:33:47 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-28 22:03:51 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-28 22:03:51 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-28 22:03:51 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-28 22:33:57 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-28 22:33:57 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-28 22:33:57 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-28 23:04:02 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-28 23:04:02 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-28 23:04:02 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-28 23:34:06 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-28 23:34:06 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-28 23:34:06 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 00:04:12 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 00:04:12 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 00:04:12 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 00:34:16 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 00:34:16 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 00:34:16 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 01:04:20 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 01:04:20 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 01:04:20 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 01:34:25 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 01:34:25 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 01:34:25 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 02:04:30 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 02:04:30 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 02:04:30 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 02:34:35 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 02:34:35 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 02:34:35 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 03:04:39 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 03:04:39 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 03:04:39 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 03:34:43 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 03:34:43 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 03:34:43 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 04:04:47 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 04:04:47 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 04:04:47 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 04:34:51 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 04:34:51 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 04:34:51 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 05:04:54 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 05:04:55 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 05:04:55 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 05:34:59 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 05:34:59 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 05:34:59 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 06:05:03 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 06:05:03 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 06:05:03 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 06:35:07 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 06:35:07 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 06:35:07 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 07:05:11 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 07:05:12 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 07:05:12 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 07:35:16 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 07:35:16 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 07:35:16 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 08:05:20 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 08:05:20 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 08:05:20 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-WARNING:  Invalid HTTP request received.
-2025-08-29 08:35:24 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 08:35:24 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 08:35:24 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 09:00:27 - amc_manager.services.schedule_executor_service - INFO - Found 2 potentially due schedules
-2025-08-29 09:05:28 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 09:05:28 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 09:05:28 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 09:35:34 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 09:35:34 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 09:35:34 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 10:05:39 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 10:05:39 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 10:05:39 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 10:35:44 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 10:35:44 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 10:35:44 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 11:06:30 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 11:06:30 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 11:06:30 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-Error in poll_executions: _ssl.c:983: The handshake operation timed out
-2025-08-29 11:37:00 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 11:37:00 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 11:37:00 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-Error in poll_executions: _ssl.c:983: The handshake operation timed out
-INFO:     54.149.166.158:50242 - "GET / HTTP/1.1" 200 OK
-2025-08-29 12:07:48 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 12:07:48 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 12:07:48 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 12:37:54 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 12:37:54 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 12:37:54 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 13:07:59 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 13:07:59 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 13:07:59 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-WARNING:  Invalid HTTP request received.
-WARNING:  Invalid HTTP request received.
-2025-08-29 13:38:04 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 13:38:04 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 13:38:04 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 14:08:08 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 14:08:08 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 14:08:08 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 14:38:13 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 14:38:13 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 14:38:13 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 15:08:17 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 15:08:17 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 15:08:17 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 15:38:22 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 15:38:22 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 15:38:22 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 16:08:26 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 16:08:26 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 16:08:26 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 16:38:31 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 16:38:31 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 16:38:31 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 17:08:35 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 17:08:35 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 17:08:35 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-2025-08-29 17:38:40 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 17:38:40 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 17:38:40 - amc_manager.services.db_service - INFO - Supabase connection refreshed
-INFO:     127.0.0.1:50588 - "GET /api/debug/routes HTTP/1.1" 200 OK
-INFO:     127.0.0.1:46104 - "GET /api/workflows HTTP/1.1" 403 Forbidden
-2025-08-29 18:08:44 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
-2025-08-29 18:08:44 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
-2025-08-29 18:08:44 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+INFO:     127.0.0.1:49630 - "GET /api/query-flow-templates/categories HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:48562 - "POST /api/auth/login HTTP/1.1" 422 Unprocessable Entity
+2025-09-03 17:49:40 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
+2025-09-03 17:49:40 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 1 successful, 0 failed
+2025-09-03 17:50:25 - amc_manager.services.token_refresh_service - INFO - Refreshing token on login for user 6e2155c1-88d9-4a16-9581-9d0d5bc31d93
+2025-09-03 17:50:25 - amc_manager.services.token_refresh_service - INFO - Added user 6e2155c1-88d9-4a16-9581-9d0d5bc31d93 to token refresh tracking
+2025-09-03 17:50:25 - amc_manager.services.token_refresh_service - INFO - Removed user 6e2155c1-88d9-4a16-9581-9d0d5bc31d93 from token refresh tracking
+INFO:     127.0.0.1:40482 - "POST /api/auth/login?email=test@example.com HTTP/1.1" 200 OK
+2025-09-03 17:56:00 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-09-03 17:56:00 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-09-03 17:56:00 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+INFO:     127.0.0.1:42634 - "GET /api/query-flow-templates/ HTTP/1.1" 200 OK
+2025-09-03 17:59:40 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
+2025-09-03 17:59:40 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 1 successful, 0 failed
+INFO:     127.0.0.1:52218 - "GET /api/query-flow-templates/supergoop_branded_search_trends HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42824 - "GET /api/query-flow-templates/supergoop_branded_search_trends HTTP/1.1" 200 OK
+2025-09-03 18:09:40 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
+2025-09-03 18:09:40 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-09-03 18:09:40 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-09-03 18:09:40 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-09-03 18:09:40 - amc_manager.services.token_refresh_service - INFO - Token for user fe841586-7807-48b1-8808-02877834fce0 expires in 856s, refreshing...
+2025-09-03 18:09:41 - amc_manager.services.token_service - ERROR - Failed to decrypt token: 
+2025-09-03 18:09:41 - amc_manager.services.token_service - ERROR - Encrypted token first 20 chars: gAAAAABouHmsFqUVXgaj
+2025-09-03 18:09:41 - amc_manager.services.token_service - ERROR - Error decrypting access token for user fe841586-7807-48b1-8808-02877834fce0: Failed to decrypt token: 
+2025-09-03 18:09:41 - amc_manager.services.token_service - ERROR - Token decryption failed - likely due to encryption key mismatch
+2025-09-03 18:09:41 - amc_manager.services.token_refresh_service - ERROR - Failed to refresh token for user fe841586-7807-48b1-8808-02877834fce0 - removing from tracking
+2025-09-03 18:09:41 - amc_manager.services.token_refresh_service - INFO - Removed user fe841586-7807-48b1-8808-02877834fce0 from token refresh tracking
+2025-09-03 18:09:41 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 0 successful, 1 failed
+2025-09-03 18:09:44 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-09-03 18:09:44 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-09-03 18:09:44 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-09-03 18:39:49 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-09-03 18:39:49 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-09-03 18:39:49 - amc_manager.services.db_service - INFO - Supabase connection refreshed
