@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { 
   ArrowLeft, 
-  Save, 
   Play, 
   AlertCircle, 
   Check, 
@@ -22,7 +21,6 @@ import {
 const TemplateEditorWireframe: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'metadata' | 'sql' | 'parameters' | 'visualizations' | 'preview'>('metadata');
   const [autoSave, setAutoSave] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   
   // Mock detected parameters
   const detectedParameters = ['start_date', 'end_date', 'campaign_ids', 'limit'];
@@ -320,7 +318,7 @@ const ParametersTab: React.FC<{ parameters: string[] }> = ({ parameters }) => (
 );
 
 // Parameter Card Component
-const ParameterCard: React.FC<{ name: string; index: number }> = ({ name, index }) => (
+const ParameterCard: React.FC<{ name: string; index: number }> = ({ name }) => (
   <div className="bg-white rounded-lg shadow p-6">
     <div className="flex items-center justify-between mb-4">
       <h3 className="text-lg font-medium text-gray-900">Parameter: {name}</h3>
