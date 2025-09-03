@@ -73,6 +73,36 @@ class FavoriteResponse(BaseModel):
     message: str
 
 
+class CreateTemplateRequest(BaseModel):
+    template_id: str = Field(..., description="Unique template identifier (lowercase, underscores)")
+    name: str = Field(..., description="Template display name")
+    description: Optional[str] = Field(None, description="Template description")
+    category: str = Field(..., description="Template category")
+    sql_template: str = Field(..., description="SQL template with parameters")
+    parameters: Optional[List[Dict[str, Any]]] = Field(None, description="Parameter configurations")
+    chart_configs: Optional[List[Dict[str, Any]]] = Field(None, description="Visualization configurations")
+    tags: Optional[List[str]] = Field(None, description="Template tags")
+    is_public: bool = Field(True, description="Whether template is public")
+    is_active: bool = Field(True, description="Whether template is active")
+
+
+class UpdateTemplateRequest(BaseModel):
+    name: Optional[str] = Field(None, description="Template display name")
+    description: Optional[str] = Field(None, description="Template description")
+    category: Optional[str] = Field(None, description="Template category")
+    sql_template: Optional[str] = Field(None, description="SQL template with parameters")
+    parameters: Optional[List[Dict[str, Any]]] = Field(None, description="Parameter configurations")
+    chart_configs: Optional[List[Dict[str, Any]]] = Field(None, description="Visualization configurations")
+    tags: Optional[List[str]] = Field(None, description="Template tags")
+    is_public: Optional[bool] = Field(None, description="Whether template is public")
+    is_active: Optional[bool] = Field(None, description="Whether template is active")
+
+
+class DuplicateTemplateRequest(BaseModel):
+    name: str = Field(..., description="Name for the duplicated template")
+    template_id: Optional[str] = Field(None, description="Custom ID for the duplicate")
+
+
 # Initialize services
 template_service = QueryFlowTemplateService()
 execution_service = TemplateExecutionService()
@@ -141,6 +171,76 @@ async def get_popular_tags(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/", status_code=status.HTTP_201_CREATED)
+async def create_template(
+    request: CreateTemplateRequest,
+    current_user: Dict = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Create a new query flow template
+    """
+    try:
+        # Validate template_id format
+        import re
+        if not re.match(r'^[a-z0-9_]+$', request.template_id):
+            raise HTTPException(
+                status_code=400,
+                detail="Template ID must contain only lowercase letters, numbers, and underscores"
+            )
+        
+        # Create template
+        template = template_service.create_template(
+            user_id=current_user['id'],
+            template_data={
+                'template_id': request.template_id,
+                'name': request.name,
+                'description': request.description,
+                'category': request.category,
+                'sql_template': request.sql_template,
+                'tags': request.tags or [],
+                'is_public': request.is_public,
+                'is_active': request.is_active,
+                'created_by': current_user['id']
+            }
+        )
+        
+        # Add parameters if provided
+        if request.parameters:
+            for idx, param in enumerate(request.parameters):
+                template_service.add_parameter(
+                    template_id=template['id'],
+                    parameter_data={
+                        **param,
+                        'order_index': idx
+                    }
+                )
+        
+        # Add chart configs if provided
+        if request.chart_configs:
+            for idx, chart in enumerate(request.chart_configs):
+                template_service.add_chart_config(
+                    template_id=template['id'],
+                    chart_data={
+                        **chart,
+                        'order_index': idx
+                    }
+                )
+        
+        # Return the created template
+        return template_service.get_template(
+            template_id=request.template_id,
+            user_id=current_user['id'],
+            include_parameters=True,
+            include_charts=True
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating template: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/{template_id}")
 async def get_template(
     template_id: str,
@@ -170,6 +270,99 @@ async def get_template(
         raise
     except Exception as e:
         logger.error(f"Error getting template {template_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/{template_id}")
+async def update_template(
+    template_id: str,
+    request: UpdateTemplateRequest,
+    current_user: Dict = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Update an existing query flow template
+    """
+    try:
+        # Get existing template to verify ownership
+        existing = template_service.get_template(
+            template_id=template_id,
+            user_id=current_user['id'],
+            include_parameters=False,
+            include_charts=False
+        )
+        
+        if not existing:
+            raise HTTPException(status_code=404, detail="Template not found")
+        
+        # Check ownership
+        if existing['created_by'] != current_user['id']:
+            raise HTTPException(status_code=403, detail="Not authorized to update this template")
+        
+        # Prepare update data
+        update_data = {}
+        if request.name is not None:
+            update_data['name'] = request.name
+        if request.description is not None:
+            update_data['description'] = request.description
+        if request.category is not None:
+            update_data['category'] = request.category
+        if request.sql_template is not None:
+            update_data['sql_template'] = request.sql_template
+        if request.tags is not None:
+            update_data['tags'] = request.tags
+        if request.is_public is not None:
+            update_data['is_public'] = request.is_public
+        if request.is_active is not None:
+            update_data['is_active'] = request.is_active
+        
+        # Update template
+        if update_data:
+            template_service.update_template(
+                template_id=template_id,
+                user_id=current_user['id'],
+                updates=update_data
+            )
+        
+        # Update parameters if provided
+        if request.parameters is not None:
+            # Delete existing parameters
+            template_service.delete_parameters(template_id=existing['id'])
+            # Add new parameters
+            for idx, param in enumerate(request.parameters):
+                template_service.add_parameter(
+                    template_id=existing['id'],
+                    parameter_data={
+                        **param,
+                        'order_index': idx
+                    }
+                )
+        
+        # Update chart configs if provided
+        if request.chart_configs is not None:
+            # Delete existing chart configs
+            template_service.delete_chart_configs(template_id=existing['id'])
+            # Add new chart configs
+            for idx, chart in enumerate(request.chart_configs):
+                template_service.add_chart_config(
+                    template_id=existing['id'],
+                    chart_data={
+                        **chart,
+                        'order_index': idx
+                    }
+                )
+        
+        # Return the updated template
+        return template_service.get_template(
+            template_id=template_id,
+            user_id=current_user['id'],
+            include_parameters=True,
+            include_charts=True
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating template {template_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -421,6 +614,105 @@ async def rate_template(
         raise
     except Exception as e:
         logger.error(f"Error rating template {template_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/{template_id}/duplicate", status_code=status.HTTP_201_CREATED)
+async def duplicate_template(
+    template_id: str,
+    request: DuplicateTemplateRequest,
+    current_user: Dict = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Duplicate an existing template
+    """
+    try:
+        # Get the original template
+        original = template_service.get_template(
+            template_id=template_id,
+            user_id=current_user['id'],
+            include_parameters=True,
+            include_charts=True
+        )
+        
+        if not original:
+            raise HTTPException(status_code=404, detail="Template not found")
+        
+        # Generate new template_id if not provided
+        new_template_id = request.template_id
+        if not new_template_id:
+            import time
+            new_template_id = f"{template_id}_copy_{int(time.time())}"
+        
+        # Validate template_id format
+        import re
+        if not re.match(r'^[a-z0-9_]+$', new_template_id):
+            raise HTTPException(
+                status_code=400,
+                detail="Template ID must contain only lowercase letters, numbers, and underscores"
+            )
+        
+        # Create the duplicate
+        duplicate = template_service.create_template(
+            user_id=current_user['id'],
+            template_data={
+                'template_id': new_template_id,
+                'name': request.name,
+                'description': original.get('description'),
+                'category': original['category'],
+                'sql_template': original['sql_template'],
+                'tags': original.get('tags', []),
+                'is_public': False,  # Duplicates start as private
+                'is_active': True,
+                'created_by': current_user['id']
+            }
+        )
+        
+        # Copy parameters
+        if original.get('parameters'):
+            for param in original['parameters']:
+                template_service.add_parameter(
+                    template_id=duplicate['id'],
+                    parameter_data={
+                        'parameter_name': param['parameter_name'],
+                        'display_name': param['display_name'],
+                        'parameter_type': param['parameter_type'],
+                        'required': param.get('required', False),
+                        'default_value': param.get('default_value'),
+                        'validation_rules': param.get('validation_rules', {}),
+                        'ui_component': param.get('ui_component'),
+                        'ui_config': param.get('ui_config', {}),
+                        'order_index': param.get('order_index', 0)
+                    }
+                )
+        
+        # Copy chart configs
+        if original.get('chart_configs'):
+            for chart in original['chart_configs']:
+                template_service.add_chart_config(
+                    template_id=duplicate['id'],
+                    chart_data={
+                        'chart_name': chart['chart_name'],
+                        'chart_type': chart['chart_type'],
+                        'chart_config': chart.get('chart_config', {}),
+                        'data_mapping': chart.get('data_mapping', {}),
+                        'is_default': chart.get('is_default', False),
+                        'order_index': chart.get('order_index', 0)
+                    }
+                )
+        
+        # Return the duplicated template
+        return template_service.get_template(
+            template_id=new_template_id,
+            user_id=current_user['id'],
+            include_parameters=True,
+            include_charts=True
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error duplicating template {template_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

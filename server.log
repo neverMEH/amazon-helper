@@ -111,3 +111,6 @@ INFO:     162.142.125.125:47696 - "GET /login HTTP/1.1" 200 OK
 2025-09-03 20:10:01 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
 2025-09-03 20:10:01 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
 2025-09-03 20:10:01 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-09-03 20:40:15 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-09-03 20:40:15 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-09-03 20:40:15 - amc_manager.services.db_service - INFO - Supabase connection refreshed

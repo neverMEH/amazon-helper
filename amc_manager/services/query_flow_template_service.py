@@ -539,3 +539,97 @@ class QueryFlowTemplateService(DatabaseService):
         # Add timestamp suffix to ensure uniqueness
         timestamp = datetime.utcnow().strftime('%Y%m%d')
         return f"{template_id}_{timestamp}"
+    
+    @with_connection_retry
+    def add_parameter(self, template_id: str, parameter_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Add a parameter configuration to a template
+        
+        Args:
+            template_id: Template UUID
+            parameter_data: Parameter configuration data
+            
+        Returns:
+            Created parameter record
+        """
+        try:
+            result = self.client.table('template_parameters').insert({
+                'template_id': template_id,
+                **parameter_data
+            }).execute()
+            
+            return result.data[0] if result.data else None
+            
+        except Exception as e:
+            logger.error(f"Error adding parameter to template {template_id}: {e}")
+            raise
+    
+    @with_connection_retry
+    def delete_parameters(self, template_id: str) -> bool:
+        """
+        Delete all parameters for a template
+        
+        Args:
+            template_id: Template UUID
+            
+        Returns:
+            Success boolean
+        """
+        try:
+            self.client.table('template_parameters')\
+                .delete()\
+                .eq('template_id', template_id)\
+                .execute()
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error deleting parameters for template {template_id}: {e}")
+            return False
+    
+    @with_connection_retry
+    def add_chart_config(self, template_id: str, chart_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Add a chart configuration to a template
+        
+        Args:
+            template_id: Template UUID
+            chart_data: Chart configuration data
+            
+        Returns:
+            Created chart config record
+        """
+        try:
+            result = self.client.table('template_chart_configs').insert({
+                'template_id': template_id,
+                **chart_data
+            }).execute()
+            
+            return result.data[0] if result.data else None
+            
+        except Exception as e:
+            logger.error(f"Error adding chart config to template {template_id}: {e}")
+            raise
+    
+    @with_connection_retry
+    def delete_chart_configs(self, template_id: str) -> bool:
+        """
+        Delete all chart configs for a template
+        
+        Args:
+            template_id: Template UUID
+            
+        Returns:
+            Success boolean
+        """
+        try:
+            self.client.table('template_chart_configs')\
+                .delete()\
+                .eq('template_id', template_id)\
+                .execute()
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error deleting chart configs for template {template_id}: {e}")
+            return False
