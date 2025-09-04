@@ -5,8 +5,14 @@ from datetime import datetime
 import uuid
 import json
 import asyncio
-import networkx as nx
 from collections import defaultdict
+
+# Try to import networkx, but make it optional
+try:
+    import networkx as nx
+    HAS_NETWORKX = True
+except ImportError:
+    HAS_NETWORKX = False
 
 from ..services.db_service import DatabaseService, with_connection_retry
 from ..services.template_execution_service import TemplateExecutionService
