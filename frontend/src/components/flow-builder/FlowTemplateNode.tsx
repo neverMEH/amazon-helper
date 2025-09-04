@@ -1,4 +1,4 @@
-import React, { memo, useState } from 'react';
+import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
 import type { NodeProps } from 'reactflow';
 import { Settings, Database, AlertCircle, CheckCircle, Clock } from 'lucide-react';
@@ -18,6 +18,7 @@ export interface FlowTemplateNodeData {
   status?: 'idle' | 'running' | 'success' | 'error';
   error?: string;
   result?: any;
+  onConfigure?: (nodeId: string) => void;
 }
 
 const FlowTemplateNode: React.FC<NodeProps<FlowTemplateNodeData>> = ({ 
@@ -25,7 +26,6 @@ const FlowTemplateNode: React.FC<NodeProps<FlowTemplateNodeData>> = ({
   selected,
   id 
 }) => {
-  const [, setIsConfigOpen] = useState(false);
 
   const getStatusIcon = () => {
     switch (data.status) {
@@ -55,9 +55,9 @@ const FlowTemplateNode: React.FC<NodeProps<FlowTemplateNodeData>> = ({
 
   const handleConfigClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsConfigOpen(true);
-    // TODO: Open configuration modal
-    console.log('Opening config for node:', id, data);
+    if (data.onConfigure) {
+      data.onConfigure(id);
+    }
   };
 
   return (

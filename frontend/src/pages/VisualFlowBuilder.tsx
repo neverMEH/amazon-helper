@@ -30,6 +30,8 @@ import { flowCompositionService } from '../services/flowCompositionService';
 import type { QueryTemplate } from '../types/queryTemplate';
 import type { FlowNode, FlowConnection } from '../types/flowComposition';
 import FlowTemplateNode from '../components/flow-builder/FlowTemplateNode';
+import NodeConfigurationModal from '../components/flow-builder/NodeConfigurationModal';
+import type { ParameterMapping } from '../components/flow-builder/NodeConfigurationModal';
 
 // Define custom node types
 const nodeTypes = {
@@ -149,6 +151,8 @@ const VisualFlowBuilderContent: React.FC = () => {
   const [selectedComposition, setSelectedComposition] = useState<string | null>(null);
   const [showMinimap, setShowMinimap] = useState(true);
   const [isAutoLayout, setIsAutoLayout] = useState(false);
+  const [configNodeId, setConfigNodeId] = useState<string | null>(null);
+  const [configTemplate, setConfigTemplate] = useState<any | null>(null);
 
   // Load existing compositions
   const { data: compositionsData } = useQuery({
@@ -217,6 +221,7 @@ const VisualFlowBuilderContent: React.FC = () => {
             description: template.description,
             parameters: template.parameters || [],
             config: {},
+            onConfigure: handleNodeConfigure,
           },
         };
 
@@ -230,6 +235,57 @@ const VisualFlowBuilderContent: React.FC = () => {
     event.preventDefault();
     event.dataTransfer!.dropEffect = 'move';
   }, []);
+
+  // Handle opening node configuration
+  const handleNodeConfigure = useCallback(async (nodeId: string) => {
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node) return;
+
+    // Fetch the template details
+    try {
+      const template = await queryFlowTemplateService.getTemplate(node.data.template_id);
+      setConfigTemplate(template);
+      setConfigNodeId(nodeId);
+    } catch (error) {
+      toast.error('Failed to load template details');
+    }
+  }, [nodes]);
+
+  // Handle saving node configuration
+  const handleNodeConfigSave = useCallback((nodeId: string, config: Record<string, any>, parameterMappings?: ParameterMapping[]) => {
+    setNodes((nds) => nds.map(node => {
+      if (node.id === nodeId) {
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            config,
+            parameter_mappings: parameterMappings
+          }
+        };
+      }
+      return node;
+    }));
+
+    // Update edges if parameter mappings changed
+    if (parameterMappings && parameterMappings.length > 0) {
+      setEdges((eds) => eds.map(edge => {
+        if (edge.target === nodeId) {
+          return {
+            ...edge,
+            data: {
+              ...edge.data,
+              parameter_mappings: parameterMappings
+            }
+          };
+        }
+        return edge;
+      }));
+    }
+
+    setConfigNodeId(null);
+    setConfigTemplate(null);
+  }, [setNodes, setEdges]);
 
   const onConnect = useCallback(
     (params: Connection) => {
@@ -295,6 +351,7 @@ const VisualFlowBuilderContent: React.FC = () => {
           description: node.template?.description,
           parameters: node.template?.parameters || [],
           config: node.config,
+          onConfigure: handleNodeConfigure,
         },
       }));
 
@@ -459,6 +516,22 @@ const VisualFlowBuilderContent: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Node Configuration Modal */}
+      {configNodeId && (
+        <NodeConfigurationModal
+          node={nodes.find(n => n.id === configNodeId)!}
+          nodes={nodes}
+          edges={edges}
+          template={configTemplate || undefined}
+          isOpen={!!configNodeId}
+          onClose={() => {
+            setConfigNodeId(null);
+            setConfigTemplate(null);
+          }}
+          onSave={handleNodeConfigSave}
+        />
+      )}
     </div>
   );
 };
