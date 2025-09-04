@@ -1,5 +1,6 @@
 import React, { memo, useState } from 'react';
-import { Handle, Position, NodeProps } from 'reactflow';
+import { Handle, Position } from 'reactflow';
+import type { NodeProps } from 'reactflow';
 import { Settings, Database, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -24,7 +25,7 @@ const FlowTemplateNode: React.FC<NodeProps<FlowTemplateNodeData>> = ({
   selected,
   id 
 }) => {
-  const [isConfigOpen, setIsConfigOpen] = useState(false);
+  const [, setIsConfigOpen] = useState(false);
 
   const getStatusIcon = () => {
     switch (data.status) {

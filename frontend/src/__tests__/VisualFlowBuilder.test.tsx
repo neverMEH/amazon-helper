@@ -1,15 +1,15 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
-import { vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import VisualFlowBuilder from '../pages/VisualFlowBuilder';
 import { ReactFlowProvider } from 'reactflow';
 
 // Mock React Flow to avoid canvas rendering issues in tests
 vi.mock('reactflow', () => ({
-  ReactFlow: vi.fn(({ children, onNodesChange, onEdgesChange, onConnect, nodes, edges }) => (
+  ReactFlow: vi.fn(({ children, nodes, edges }) => (
     <div data-testid="react-flow-canvas">
       <div data-testid="nodes-count">{nodes?.length || 0}</div>
       <div data-testid="edges-count">{edges?.length || 0}</div>
@@ -51,7 +51,7 @@ vi.mock('reactflow', () => ({
 // Mock API services
 vi.mock('../services/queryFlowTemplateService', () => ({
   queryFlowTemplateService: {
-    getTemplates: vi.fn(() => Promise.resolve({
+    listTemplates: vi.fn(() => Promise.resolve({
       templates: [
         {
           id: 'tmpl_1',
@@ -235,7 +235,7 @@ describe('VisualFlowBuilder', () => {
 
   describe('Node Management', () => {
     it('should add node when template is dropped', async () => {
-      const { rerender } = renderComponent();
+      renderComponent();
       
       // Simulate dropping a template
       await waitFor(() => {
@@ -415,7 +415,7 @@ describe('VisualFlowBuilder', () => {
     it('should show error when template load fails', async () => {
       // Mock service to return error
       const { queryFlowTemplateService } = await import('../services/queryFlowTemplateService');
-      vi.mocked(queryFlowTemplateService.getTemplates).mockRejectedValueOnce(new Error('Load failed'));
+      vi.mocked(queryFlowTemplateService.listTemplates).mockRejectedValueOnce(new Error('Load failed'));
       
       renderComponent();
       

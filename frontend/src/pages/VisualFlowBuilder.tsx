@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useRef, DragEvent } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
+import type { DragEvent } from 'react';
 import ReactFlow, {
   ReactFlowProvider,
   Controls,
@@ -7,14 +8,11 @@ import ReactFlow, {
   useNodesState,
   useEdgesState,
   addEdge,
-  Connection,
-  Edge,
-  Node,
   BackgroundVariant,
   MarkerType,
   useReactFlow,
-  XYPosition,
 } from 'reactflow';
+import type { Connection, Edge, Node } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
@@ -22,21 +20,15 @@ import {
   Search, 
   Save, 
   Play, 
-  Plus, 
-  FolderOpen,
-  Undo,
-  Redo,
+  Plus,
   Layout,
   Eye,
-  EyeOff,
-  Download,
-  Upload,
-  Settings
+  EyeOff
 } from 'lucide-react';
 import { queryFlowTemplateService } from '../services/queryFlowTemplateService';
 import { flowCompositionService } from '../services/flowCompositionService';
 import type { QueryTemplate } from '../types/queryTemplate';
-import type { FlowComposition, FlowNode, FlowConnection } from '../types/flowComposition';
+import type { FlowNode, FlowConnection } from '../types/flowComposition';
 import FlowTemplateNode from '../components/flow-builder/FlowTemplateNode';
 
 // Define custom node types
@@ -53,16 +45,16 @@ const TemplateGallery: React.FC<{
 
   const { data: templatesData, isLoading } = useQuery({
     queryKey: ['queryTemplates'],
-    queryFn: () => queryFlowTemplateService.getTemplates({ limit: 100 }),
+    queryFn: () => queryFlowTemplateService.listTemplates({ limit: 100 }),
   });
 
   const templates = templatesData?.templates || [];
   
   // Get unique categories
-  const categories = ['all', ...new Set(templates.map(t => t.category).filter(Boolean))];
+  const categories = ['all', ...new Set(templates.map((t: any) => t.category).filter(Boolean))];
   
   // Filter templates
-  const filteredTemplates = templates.filter(template => {
+  const filteredTemplates = templates.filter((template: any) => {
     const matchesSearch = searchTerm === '' || 
       template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       template.description?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -93,7 +85,7 @@ const TemplateGallery: React.FC<{
           onChange={(e) => setSelectedCategory(e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
         >
-          {categories.map(category => (
+          {categories.map((category: string) => (
             <option key={category} value={category}>
               {category === 'all' ? 'All Categories' : category}
             </option>
@@ -108,11 +100,11 @@ const TemplateGallery: React.FC<{
         ) : filteredTemplates.length === 0 ? (
           <div className="text-center py-8 text-gray-500">No templates found</div>
         ) : (
-          filteredTemplates.map(template => (
+          filteredTemplates.map((template: any) => (
             <div
               key={template.id}
               draggable
-              onDragStart={(e) => onTemplateDragStart(template, e)}
+              onDragStart={(e: DragEvent) => onTemplateDragStart(template, e)}
               className="template-card p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 cursor-move transition-colors"
             >
               <div className="flex items-start justify-between mb-1">
@@ -128,7 +120,7 @@ const TemplateGallery: React.FC<{
               )}
               {template.parameters && template.parameters.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1">
-                  {template.parameters.slice(0, 3).map((param, idx) => (
+                  {template.parameters.slice(0, 3).map((param: any, idx: number) => (
                     <span key={idx} className="text-xs px-1.5 py-0.5 bg-gray-200 text-gray-700 rounded">
                       {param.name}
                     </span>
@@ -194,7 +186,7 @@ const VisualFlowBuilderContent: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['flowCompositions'] });
     },
     onError: (error) => {
-      toast.error(`Failed to save composition: ${error.message}`);
+      toast.error(`Failed to save composition: ${(error as Error).message}`);
     },
   });
 
@@ -326,7 +318,7 @@ const VisualFlowBuilderContent: React.FC = () => {
       setSelectedComposition(compositionId);
       toast.success('Composition loaded successfully');
     } catch (error) {
-      toast.error(`Failed to load composition: ${error.message}`);
+      toast.error(`Failed to load composition: ${(error as Error).message}`);
     }
   };
 
@@ -387,7 +379,7 @@ const VisualFlowBuilderContent: React.FC = () => {
               className="text-sm border border-gray-300 rounded-md px-2 py-1.5"
             >
               <option value="">Load Composition...</option>
-              {compositionsData?.compositions.map(comp => (
+              {compositionsData?.compositions.map((comp: any) => (
                 <option key={comp.id} value={comp.id}>
                   {comp.name}
                 </option>
@@ -441,8 +433,8 @@ const VisualFlowBuilderContent: React.FC = () => {
             <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
             {showMinimap && (
               <MiniMap 
-                nodeStrokeColor={(node) => '#6366f1'}
-                nodeColor={(node) => '#e0e7ff'}
+                nodeStrokeColor={() => '#6366f1'}
+                nodeColor={() => '#e0e7ff'}
                 nodeStrokeWidth={3}
               />
             )}
