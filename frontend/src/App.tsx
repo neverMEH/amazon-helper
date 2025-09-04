@@ -42,6 +42,9 @@ import ASINManagement from './pages/ASINManagement';
 
 // Visual Flow Builder import
 import VisualFlowBuilder from './pages/VisualFlowBuilder';
+import TestReactFlow from './pages/TestReactFlow';
+import TestReactFlowSimple from './pages/TestReactFlowSimple';
+import TestReactFlowWithProvider from './pages/TestReactFlowWithProvider';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -108,6 +111,9 @@ function App() {
               
               {/* Visual Flow Builder route */}
               <Route path="/flow-builder" element={<VisualFlowBuilder />} />
+              <Route path="/test-flow" element={<TestReactFlow />} />
+              <Route path="/test-flow-simple" element={<TestReactFlowSimple />} />
+              <Route path="/test-flow-provider" element={<TestReactFlowWithProvider />} />
               
               {/* Profile route */}
               <Route path="/profile" element={<Profile />} />

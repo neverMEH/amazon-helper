@@ -13,6 +13,7 @@ import ReactFlow, {
   useReactFlow,
 } from 'reactflow';
 import type { Connection, Edge, Node } from 'reactflow';
+import 'reactflow/dist/base.css';
 import 'reactflow/dist/style.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
@@ -474,7 +475,7 @@ const VisualFlowBuilderContent: React.FC = () => {
         </div>
 
         {/* React Flow Canvas */}
-        <div className="flex-1" ref={reactFlowWrapper}>
+        <div className="flex-1" ref={reactFlowWrapper} style={{ minHeight: '500px' }}>
           <ReactFlow
             nodes={nodes}
             edges={edges}
