@@ -1,15 +1,13 @@
 import React, { useCallback } from 'react';
 import ReactFlow, {
-  Node,
-  Edge,
   addEdge,
-  Connection,
   useNodesState,
   useEdgesState,
   Controls,
   Background,
   BackgroundVariant,
 } from 'reactflow';
+import type { Node, Edge, Connection } from 'reactflow';
 import 'reactflow/dist/style.css';
 
 const initialNodes: Node[] = [
@@ -38,7 +36,7 @@ const initialEdges: Edge[] = [
 ];
 
 const TestReactFlow: React.FC = () => {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [nodes, , onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
   const onConnect = useCallback(
