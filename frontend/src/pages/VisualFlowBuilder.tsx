@@ -353,7 +353,7 @@ const VisualFlowBuilderContent: React.FC = () => {
           description: node.template?.description,
           parameters: node.template?.parameters || [],
           config: node.config,
-          onConfigure: handleNodeConfigure,
+          onConfigure: handleNodeConfigure, // Ensure onConfigure is set
         },
       }));
 
@@ -536,13 +536,13 @@ const VisualFlowBuilderContent: React.FC = () => {
       </div>
 
       {/* Node Configuration Modal */}
-      {configNodeId && (
+      {configNodeId && configTemplate && (
         <NodeConfigurationModal
           node={nodes.find(n => n.id === configNodeId)!}
           nodes={nodes}
           edges={edges}
-          template={configTemplate || undefined}
-          isOpen={!!configNodeId}
+          template={configTemplate}
+          isOpen={true}
           onClose={() => {
             setConfigNodeId(null);
             setConfigTemplate(null);
