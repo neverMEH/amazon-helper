@@ -1,0 +1,3 @@
+# Spec Summary (Lite)
+
+Transform Query Flow Templates into a visual drag-and-drop pipeline builder where users can chain multiple templates together on a canvas, mapping outputs from one template to inputs of another. The system will leverage React Flow for the visual interface, execute templates in dependency order through the existing workflow system, and support saving/loading complete query flows with scheduling capabilities for automated multi-step AMC analysis workflows.
