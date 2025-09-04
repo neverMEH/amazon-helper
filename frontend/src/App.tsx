@@ -40,6 +40,9 @@ import BuildGuideDetail from './pages/BuildGuideDetail';
 // ASIN Management import
 import ASINManagement from './pages/ASINManagement';
 
+// Visual Flow Builder import
+import VisualFlowBuilder from './pages/VisualFlowBuilder';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -102,6 +105,9 @@ function App() {
               
               {/* ASIN Management route */}
               <Route path="/asins" element={<ASINManagement />} />
+              
+              {/* Visual Flow Builder route */}
+              <Route path="/flow-builder" element={<VisualFlowBuilder />} />
               
               {/* Profile route */}
               <Route path="/profile" element={<Profile />} />
