@@ -4,6 +4,7 @@ API endpoints for Query Flow Templates
 
 from typing import Optional, List, Dict, Any
 from datetime import datetime
+import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, Body, status
 from pydantic import BaseModel, Field
 
@@ -11,6 +12,7 @@ from ..api.supabase.auth import get_current_user, get_current_user_optional
 from ..services.query_flow_template_service import QueryFlowTemplateService
 from ..services.template_execution_service import TemplateExecutionService
 from ..services.parameter_engine import ParameterEngine, ParameterValidationError
+from ..services.flow_composition_service import FlowCompositionService
 from ..core.logger_simple import get_logger
 
 logger = get_logger(__name__)
@@ -103,10 +105,81 @@ class DuplicateTemplateRequest(BaseModel):
     template_id: Optional[str] = Field(None, description="Custom ID for the duplicate")
 
 
+# Flow Composition Models
+
+class CompositionListResponse(BaseModel):
+    compositions: List[Dict[str, Any]]
+    total_count: int
+    limit: int
+    offset: int
+    has_more: bool
+
+
+class CreateCompositionRequest(BaseModel):
+    composition_id: str = Field(..., description="Unique composition identifier (comp_*)")
+    name: str = Field(..., description="Composition display name")
+    description: Optional[str] = Field(None, description="Composition description")
+    canvas_state: Dict[str, Any] = Field(default_factory=lambda: {
+        "viewport": {"x": 0, "y": 0, "zoom": 1},
+        "nodes": [],
+        "edges": []
+    }, description="React Flow canvas state")
+    global_parameters: Dict[str, Any] = Field(default_factory=dict, description="Flow-level parameters")
+    tags: Optional[List[str]] = Field(None, description="Composition tags")
+    is_public: bool = Field(False, description="Whether composition is public")
+
+
+class UpdateCompositionRequest(BaseModel):
+    name: Optional[str] = Field(None, description="Composition display name")
+    description: Optional[str] = Field(None, description="Composition description")
+    canvas_state: Optional[Dict[str, Any]] = Field(None, description="React Flow canvas state")
+    global_parameters: Optional[Dict[str, Any]] = Field(None, description="Flow-level parameters")
+    tags: Optional[List[str]] = Field(None, description="Composition tags")
+    is_public: Optional[bool] = Field(None, description="Whether composition is public")
+
+
+class AddNodeRequest(BaseModel):
+    node_id: str = Field(..., description="Unique node identifier within composition")
+    template_id: str = Field(..., description="Reference to query flow template")
+    position: Dict[str, float] = Field(..., description="Node position on canvas {x, y}")
+    parameter_overrides: Dict[str, Any] = Field(default_factory=dict, description="User-configured parameter values")
+    parameter_mappings: Dict[str, Any] = Field(default_factory=dict, description="Parameter mappings from other nodes")
+
+
+class UpdateNodeRequest(BaseModel):
+    position: Optional[Dict[str, float]] = Field(None, description="Node position on canvas")
+    parameter_overrides: Optional[Dict[str, Any]] = Field(None, description="User-configured parameter values")
+    parameter_mappings: Optional[Dict[str, Any]] = Field(None, description="Parameter mappings from other nodes")
+
+
+class CreateConnectionRequest(BaseModel):
+    connection_id: str = Field(..., description="Unique connection identifier")
+    source_node_id: str = Field(..., description="Source node ID")
+    target_node_id: str = Field(..., description="Target node ID")
+    field_mappings: Dict[str, str] = Field(..., description="Source field to target parameter mappings")
+    transformation_rules: Dict[str, Any] = Field(default_factory=dict, description="Optional data transformations")
+    is_required: bool = Field(True, description="Whether connection is required for execution")
+
+
+class ExecuteCompositionRequest(BaseModel):
+    instance_id: str = Field(..., description="AMC instance ID")
+    global_parameters: Dict[str, Any] = Field(default_factory=dict, description="Global parameter overrides")
+    node_overrides: Dict[str, Dict[str, Any]] = Field(default_factory=dict, description="Per-node parameter overrides")
+
+
+class ExecuteCompositionResponse(BaseModel):
+    composition_execution_id: str
+    composition_id: str
+    status: str
+    started_at: str
+    node_executions: List[Dict[str, Any]]
+
+
 # Initialize services
 template_service = QueryFlowTemplateService()
 execution_service = TemplateExecutionService()
 parameter_engine = ParameterEngine()
+composition_service = FlowCompositionService()
 
 
 # Endpoints
@@ -718,4 +791,470 @@ async def delete_template(
         raise
     except Exception as e:
         logger.error(f"Error deleting template {template_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Flow Composition Endpoints
+
+@router.get("/compositions/", response_model=CompositionListResponse)
+async def list_compositions(
+    search: Optional[str] = Query(None, description="Search in name and description"),
+    tags: Optional[List[str]] = Query(None, description="Filter by tags"),
+    is_public: Optional[bool] = Query(None, description="Filter public/private compositions"),
+    limit: int = Query(20, ge=1, le=100, description="Maximum number of results"),
+    offset: int = Query(0, ge=0, description="Pagination offset"),
+    current_user: Dict = Depends(get_current_user)
+) -> CompositionListResponse:
+    """
+    List flow compositions with optional filtering
+    """
+    try:
+        result = composition_service.list_compositions(
+            user_id=current_user['id'],
+            search=search,
+            tags=tags,
+            is_public=is_public,
+            limit=limit,
+            offset=offset
+        )
+        return CompositionListResponse(**result)
+    except Exception as e:
+        logger.error(f"Error listing compositions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/compositions/", status_code=status.HTTP_201_CREATED)
+async def create_composition(
+    request: CreateCompositionRequest,
+    current_user: Dict = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Create a new flow composition
+    """
+    try:
+        # Validate composition_id format
+        if not request.composition_id.startswith('comp_'):
+            raise HTTPException(
+                status_code=400,
+                detail="Composition ID must start with 'comp_' prefix"
+            )
+        
+        import re
+        if not re.match(r'^comp_[a-z0-9_]+$', request.composition_id):
+            raise HTTPException(
+                status_code=400,
+                detail="Composition ID must contain only lowercase letters, numbers, and underscores after 'comp_' prefix"
+            )
+        
+        # Create composition
+        composition = composition_service.create_composition(
+            composition_data={
+                'composition_id': request.composition_id,
+                'name': request.name,
+                'description': request.description,
+                'canvas_state': request.canvas_state,
+                'global_parameters': request.global_parameters,
+                'tags': request.tags or [],
+                'is_public': request.is_public
+            },
+            user_id=current_user['id']
+        )
+        
+        return composition
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating composition: {e}")
+        if "unique constraint" in str(e).lower():
+            raise HTTPException(status_code=409, detail="Composition ID already exists")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/compositions/{composition_id}")
+async def get_composition(
+    composition_id: str,
+    include_nodes: bool = Query(True, description="Include node details"),
+    include_connections: bool = Query(True, description="Include connection details"),
+    current_user: Dict = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Get a single composition with all details
+    """
+    try:
+        composition = composition_service.get_composition_by_id(
+            composition_id=composition_id,
+            user_id=current_user['id'],
+            include_nodes=include_nodes,
+            include_connections=include_connections
+        )
+        
+        if not composition:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Composition not found: {composition_id}"
+            )
+        
+        return composition
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting composition {composition_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/compositions/{composition_id}")
+async def update_composition(
+    composition_id: str,
+    request: UpdateCompositionRequest,
+    current_user: Dict = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Update an existing flow composition
+    """
+    try:
+        # Prepare update data
+        update_data = {}
+        if request.name is not None:
+            update_data['name'] = request.name
+        if request.description is not None:
+            update_data['description'] = request.description
+        if request.canvas_state is not None:
+            update_data['canvas_state'] = request.canvas_state
+        if request.global_parameters is not None:
+            update_data['global_parameters'] = request.global_parameters
+        if request.tags is not None:
+            update_data['tags'] = request.tags
+        if request.is_public is not None:
+            update_data['is_public'] = request.is_public
+        
+        # Update composition
+        composition = composition_service.update_composition(
+            composition_id=composition_id,
+            updates=update_data,
+            user_id=current_user['id']
+        )
+        
+        if not composition:
+            raise HTTPException(
+                status_code=404,
+                detail="Composition not found or unauthorized"
+            )
+        
+        return composition
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating composition {composition_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/compositions/{composition_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_composition(
+    composition_id: str,
+    current_user: Dict = Depends(get_current_user)
+):
+    """
+    Delete a composition (soft delete, only by creator)
+    """
+    try:
+        success = composition_service.delete_composition(
+            composition_id=composition_id,
+            user_id=current_user['id']
+        )
+        
+        if not success:
+            raise HTTPException(
+                status_code=404,
+                detail="Composition not found or unauthorized"
+            )
+        
+        return None
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting composition {composition_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/compositions/{composition_id}/nodes", status_code=status.HTTP_201_CREATED)
+async def add_node_to_composition(
+    composition_id: str,
+    request: AddNodeRequest,
+    current_user: Dict = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Add a node to a composition
+    """
+    try:
+        # Verify template exists
+        template = template_service.get_template(
+            template_id=request.template_id,
+            user_id=current_user['id'],
+            include_parameters=False,
+            include_charts=False
+        )
+        
+        if not template:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Template not found: {request.template_id}"
+            )
+        
+        # Add node
+        node = composition_service.add_node_to_composition(
+            composition_id=composition_id,
+            node_data={
+                'node_id': request.node_id,
+                'template_id': request.template_id,
+                'position': request.position,
+                'parameter_overrides': request.parameter_overrides,
+                'parameter_mappings': request.parameter_mappings
+            },
+            user_id=current_user['id']
+        )
+        
+        return node
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error adding node to composition {composition_id}: {e}")
+        if "unique constraint" in str(e).lower():
+            raise HTTPException(status_code=409, detail="Node ID already exists in composition")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/compositions/{composition_id}/nodes/{node_id}")
+async def update_node(
+    composition_id: str,
+    node_id: str,
+    request: UpdateNodeRequest,
+    current_user: Dict = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Update a node in a composition
+    """
+    try:
+        # Prepare update data
+        update_data = {}
+        if request.position is not None:
+            update_data['position'] = request.position
+        if request.parameter_overrides is not None:
+            update_data['parameter_overrides'] = request.parameter_overrides
+        if request.parameter_mappings is not None:
+            update_data['parameter_mappings'] = request.parameter_mappings
+        
+        # Update node
+        node = composition_service.update_node(
+            composition_id=composition_id,
+            node_id=node_id,
+            updates=update_data,
+            user_id=current_user['id']
+        )
+        
+        if not node:
+            raise HTTPException(
+                status_code=404,
+                detail="Node not found or unauthorized"
+            )
+        
+        return node
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating node {node_id} in composition {composition_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/compositions/{composition_id}/nodes/{node_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_node_from_composition(
+    composition_id: str,
+    node_id: str,
+    current_user: Dict = Depends(get_current_user)
+):
+    """
+    Remove a node from a composition
+    """
+    try:
+        success = composition_service.remove_node_from_composition(
+            composition_id=composition_id,
+            node_id=node_id,
+            user_id=current_user['id']
+        )
+        
+        if not success:
+            raise HTTPException(
+                status_code=404,
+                detail="Node not found or unauthorized"
+            )
+        
+        return None
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error removing node {node_id} from composition {composition_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/compositions/{composition_id}/connections", status_code=status.HTTP_201_CREATED)
+async def create_connection(
+    composition_id: str,
+    request: CreateConnectionRequest,
+    current_user: Dict = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Create a connection between nodes in a composition
+    """
+    try:
+        # Create connection
+        connection = composition_service.create_connection(
+            composition_id=composition_id,
+            connection_data={
+                'connection_id': request.connection_id,
+                'source_node_id': request.source_node_id,
+                'target_node_id': request.target_node_id,
+                'field_mappings': request.field_mappings,
+                'transformation_rules': request.transformation_rules,
+                'is_required': request.is_required
+            },
+            user_id=current_user['id']
+        )
+        
+        return connection
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating connection in composition {composition_id}: {e}")
+        if "foreign key constraint" in str(e).lower():
+            raise HTTPException(status_code=400, detail="Source or target node not found in composition")
+        if "unique constraint" in str(e).lower():
+            raise HTTPException(status_code=409, detail="Connection ID already exists in composition")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/compositions/{composition_id}/connections/{connection_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_connection(
+    composition_id: str,
+    connection_id: str,
+    current_user: Dict = Depends(get_current_user)
+):
+    """
+    Remove a connection from a composition
+    """
+    try:
+        success = composition_service.remove_connection(
+            composition_id=composition_id,
+            connection_id=connection_id,
+            user_id=current_user['id']
+        )
+        
+        if not success:
+            raise HTTPException(
+                status_code=404,
+                detail="Connection not found or unauthorized"
+            )
+        
+        return None
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error removing connection {connection_id} from composition {composition_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/compositions/{composition_id}/execution-summary")
+async def get_composition_execution_summary(
+    composition_id: str,
+    current_user: Dict = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Get execution summary for a composition
+    """
+    try:
+        summary = composition_service.get_composition_execution_summary(
+            composition_id=composition_id,
+            user_id=current_user['id']
+        )
+        
+        if not summary:
+            raise HTTPException(
+                status_code=404,
+                detail="Composition not found or no executions yet"
+            )
+        
+        return summary
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting execution summary for composition {composition_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/compositions/{composition_id}/execute", response_model=ExecuteCompositionResponse, status_code=status.HTTP_201_CREATED)
+async def execute_composition(
+    composition_id: str,
+    request: ExecuteCompositionRequest,
+    current_user: Dict = Depends(get_current_user)
+) -> ExecuteCompositionResponse:
+    """
+    Execute a flow composition (placeholder for future implementation)
+    """
+    try:
+        # Get composition to verify access
+        composition = composition_service.get_composition_by_id(
+            composition_id=composition_id,
+            user_id=current_user['id'],
+            include_nodes=True,
+            include_connections=True
+        )
+        
+        if not composition:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Composition not found: {composition_id}"
+            )
+        
+        # Validate DAG structure
+        is_valid_dag = composition_service.validate_dag(
+            nodes=composition.get('nodes', []),
+            connections=composition.get('connections', [])
+        )
+        
+        if not is_valid_dag:
+            raise HTTPException(
+                status_code=400,
+                detail="Composition contains cycles - invalid DAG structure"
+            )
+        
+        # For now, return a placeholder response
+        # TODO: Implement actual composition execution in Task 1.6
+        execution_id = f"comp_exec_{uuid.uuid4().hex[:8]}"
+        
+        return ExecuteCompositionResponse(
+            composition_execution_id=execution_id,
+            composition_id=composition['composition_id'],
+            status="pending",
+            started_at=datetime.utcnow().isoformat(),
+            node_executions=[
+                {
+                    "node_id": node['node_id'],
+                    "status": "pending",
+                    "template_id": node['template_id']
+                }
+                for node in composition.get('nodes', [])
+            ]
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error executing composition {composition_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
