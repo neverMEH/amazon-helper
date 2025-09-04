@@ -64,10 +64,12 @@ const FlowTemplateNode: React.FC<NodeProps<FlowTemplateNodeData>> = ({
     <div className={getNodeClasses()}>
       {/* Input Handle */}
       <Handle
+        id="input"
         type="target"
         position={Position.Top}
         className="w-3 h-3 !bg-blue-500 !border-2 !border-white"
         style={{ top: -6 }}
+        isConnectable={true}
       />
 
       {/* Node Header */}
@@ -147,10 +149,12 @@ const FlowTemplateNode: React.FC<NodeProps<FlowTemplateNodeData>> = ({
 
       {/* Output Handle */}
       <Handle
+        id="output"
         type="source"
         position={Position.Bottom}
         className="w-3 h-3 !bg-green-500 !border-2 !border-white"
         style={{ bottom: -6 }}
+        isConnectable={true}
       />
 
       {/* Visual Indicators for Connection Status */}

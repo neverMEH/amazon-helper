@@ -160,6 +160,7 @@ const VisualFlowBuilderContent: React.FC = () => {
     queryFn: () => flowCompositionService.getCompositions({ limit: 50 }),
   });
 
+
   // Save composition mutation
   const saveCompositionMutation = useMutation({
     mutationFn: async (data: { name: string; description?: string }) => {
@@ -482,8 +483,24 @@ const VisualFlowBuilderContent: React.FC = () => {
             onConnect={onConnect}
             onDrop={onDrop}
             onDragOver={onDragOver}
+            onNodeClick={(_, node) => {
+              // Open configuration on node click
+              if (node.data.onConfigure) {
+                node.data.onConfigure(node.id);
+              }
+            }}
+            onNodeDoubleClick={(_, node) => {
+              // Also support double-click
+              if (node.data.onConfigure) {
+                node.data.onConfigure(node.id);
+              }
+            }}
             nodeTypes={nodeTypes}
             fitView
+            defaultEdgeOptions={{
+              type: 'smoothstep',
+              animated: true,
+            }}
             className="bg-gray-50"
           >
             <Controls />
