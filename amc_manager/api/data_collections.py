@@ -10,7 +10,7 @@ from ..core.logger_simple import get_logger
 from ..services.historical_collection_service import historical_collection_service
 from ..services.reporting_database_service import reporting_db_service
 from ..services.db_service import db_service
-from ..api.supabase.dependencies import get_current_user_sync
+from ..api.supabase.auth import get_current_user
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/api/data-collections", tags=["data-collections"])
@@ -72,7 +72,7 @@ class CollectionProgress(BaseModel):
 async def create_data_collection(
     collection_data: CollectionCreate,
     background_tasks: BackgroundTasks,
-    current_user: dict = Depends(get_current_user_sync)
+    current_user: dict = Depends(get_current_user)
 ) -> CollectionResponse:
     """
     Start a new historical data collection (52-week backfill)
@@ -131,7 +131,7 @@ async def list_data_collections(
     status: Optional[str] = Query(None, description="Filter by status"),
     workflow_id: Optional[str] = Query(None, description="Filter by workflow"),
     limit: int = Query(50, ge=1, le=100),
-    current_user: dict = Depends(get_current_user_sync)
+    current_user: dict = Depends(get_current_user)
 ) -> List[CollectionResponse]:
     """
     List all data collections for the current user
@@ -181,7 +181,7 @@ async def list_data_collections(
 @router.get("/{collection_id}", response_model=CollectionProgress)
 async def get_collection_progress(
     collection_id: str,
-    current_user: dict = Depends(get_current_user_sync)
+    current_user: dict = Depends(get_current_user)
 ) -> CollectionProgress:
     """
     Get detailed progress for a specific data collection
@@ -227,7 +227,7 @@ async def get_collection_progress(
 @router.post("/{collection_id}/pause")
 async def pause_collection(
     collection_id: str,
-    current_user: dict = Depends(get_current_user_sync)
+    current_user: dict = Depends(get_current_user)
 ) -> Dict[str, str]:
     """
     Pause an active data collection
@@ -274,7 +274,7 @@ async def pause_collection(
 @router.post("/{collection_id}/resume")
 async def resume_collection(
     collection_id: str,
-    current_user: dict = Depends(get_current_user_sync)
+    current_user: dict = Depends(get_current_user)
 ) -> Dict[str, str]:
     """
     Resume a paused data collection
@@ -320,7 +320,7 @@ async def resume_collection(
 @router.delete("/{collection_id}")
 async def cancel_collection(
     collection_id: str,
-    current_user: dict = Depends(get_current_user_sync)
+    current_user: dict = Depends(get_current_user)
 ) -> Dict[str, str]:
     """
     Cancel and delete a data collection
@@ -361,7 +361,7 @@ async def cancel_collection(
 async def retry_failed_weeks(
     collection_id: str,
     background_tasks: BackgroundTasks,
-    current_user: dict = Depends(get_current_user_sync)
+    current_user: dict = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
     Retry failed weeks in a collection

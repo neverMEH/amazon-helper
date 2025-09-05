@@ -5,7 +5,7 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 > Created: 2025-09-05
 > Status: In Progress
 > Last Updated: 2025-09-05
-> Progress: Phase 1-3 Backend Complete (3/8 phases, 8 tasks completed)
+> Progress: Phase 1-3 Complete (3/8 phases, 9 tasks completed)
 
 ## Phase 1: Database Foundation ✅
 
@@ -274,20 +274,22 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 - Failed collection retry with exponential backoff
 - Cleanup task runs hourly for abandoned collections
 
-### Task 3.3: Collection Progress UI 🔄
-**Status:** PENDING
+### Task 3.3: Collection Progress UI ✅
+**Status:** COMPLETED (2025-09-05)
 
 **Description:** Frontend interface for monitoring and managing data collection operations.
 
 **Technical Details:**
-- Create `frontend/src/components/reports/DataCollections.tsx`
-- Implement collection list view with status indicators
-- Add detailed progress view showing week-by-week completion
-- Create collection start form with workflow/instance selection
-- Add pause/resume controls for active collections
-- Implement real-time progress updates using React Query polling
-- Add error display and retry options for failed weeks
-- **Reference Design:** Use `ReportsList.tsx`, `ReportsHeader.tsx`, and `ReportsTable.tsx` from `@.agent-os/specs/2025-09-05-reports-analytics-platform/design-reference.md` as design patterns for list views and controls
+- ✅ Created `frontend/src/components/reports/DataCollections.tsx` main component
+- ✅ Implemented collection list view with animated status indicators and progress bars
+- ✅ Added `CollectionProgress.tsx` detailed view showing week-by-week completion
+- ✅ Created `StartCollectionModal.tsx` with workflow/instance selection
+- ✅ Added pause/resume/cancel/retry controls for all collection states
+- ✅ Implemented real-time progress updates using React Query polling (5s list, 3s details)
+- ✅ Added comprehensive error display and retry options for failed weeks
+- ✅ Created `dataCollectionService.ts` API service and TypeScript types
+- ✅ Updated App.tsx routing and Layout.tsx navigation with Calendar icon
+- ✅ **Reference Design:** Followed design patterns from reports components for consistency
 
 **Dependencies:** Task 3.1
 

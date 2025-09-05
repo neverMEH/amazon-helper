@@ -40,6 +40,9 @@ import BuildGuideDetail from './pages/BuildGuideDetail';
 // ASIN Management import
 import ASINManagement from './pages/ASINManagement';
 
+// Reports & Analytics imports
+import DataCollections from './components/reports/DataCollections';
+
 // Visual Flow Builder import
 import VisualFlowBuilder from './pages/VisualFlowBuilder';
 import TestFlowBuilder from './pages/TestFlowBuilder';
@@ -109,6 +112,9 @@ function App() {
               
               {/* ASIN Management route */}
               <Route path="/asins" element={<ASINManagement />} />
+              
+              {/* Reports & Analytics routes */}
+              <Route path="/data-collections" element={<DataCollections />} />
               
               {/* Visual Flow Builder route */}
               <Route path="/flow-builder" element={<VisualFlowBuilder />} />
