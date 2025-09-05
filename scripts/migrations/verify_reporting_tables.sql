@@ -4,9 +4,9 @@
 -- 1. Check which tables exist
 SELECT 
     'Tables Check' as check_type,
-    table_name,
+    required.table_name,
     CASE 
-        WHEN table_name IS NOT NULL THEN '✅ Exists'
+        WHEN ist.table_name IS NOT NULL THEN '✅ Exists'
         ELSE '❌ Missing'
     END as status
 FROM (
