@@ -5,7 +5,7 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 > Created: 2025-09-05
 > Status: In Progress
 > Last Updated: 2025-09-05
-> Progress: Phase 1-2 Complete (2/8 phases, 6 tasks completed)
+> Progress: Phase 1-3 Backend Complete (3/8 phases, 8 tasks completed)
 
 ## Phase 1: Database Foundation ✅
 
@@ -207,19 +207,23 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 - Z-score based anomaly detection with configurable sensitivity
 - Mock responses for development without API keys
 
-## Phase 3: Historical Data Collection
+## Phase 3: Historical Data Collection (Backend Complete) ⚙️
 
-### Task 3.1: Backfill API Endpoints
+### Task 3.1: Backfill API Endpoints ✅
+**Status:** COMPLETED (2025-09-05)
+
 **Description:** Create FastAPI endpoints for managing historical data collection operations.
 
 **Technical Details:**
-- Add routes to `amc_manager/api/data_collections.py`
-- Implement `POST /api/data-collections/` for starting backfill
-- Add `GET /api/data-collections/` for listing user collections
-- Create `GET /api/data-collections/{collection_id}` for detailed progress
-- Implement pause/resume endpoints: `POST /api/data-collections/{collection_id}/pause`
-- Add authentication and user validation for all endpoints
-- Include rate limiting to prevent excessive backfill requests
+- ✅ Added routes to `amc_manager/api/data_collections.py`
+- ✅ Implemented `POST /api/data-collections/` for starting backfill
+- ✅ Added `GET /api/data-collections/` for listing user collections
+- ✅ Created `GET /api/data-collections/{collection_id}` for detailed progress
+- ✅ Implemented pause/resume endpoints: `POST /api/data-collections/{collection_id}/pause` and `/resume`
+- ✅ Added authentication and user validation for all endpoints
+- ✅ Included rate limiting to prevent excessive backfill requests
+- ✅ Added retry failed weeks endpoint: `POST /api/data-collections/{collection_id}/retry-failed`
+- ✅ Implemented cancel collection endpoint: `DELETE /api/data-collections/{collection_id}`
 
 **Dependencies:** Task 2.1
 
@@ -231,17 +235,27 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 
 **Complexity:** Medium
 
-### Task 3.2: Background Collection Executor
+**Implementation Notes:**
+- Full Pydantic models for request/response validation
+- Comprehensive error handling with proper HTTP status codes
+- Background task support for async processing
+- Collection progress tracking with statistics
+
+### Task 3.2: Background Collection Executor ✅
+**Status:** COMPLETED (2025-09-05)
+
 **Description:** Background service to execute data collection operations asynchronously.
 
 **Technical Details:**
-- Extend existing `ScheduleExecutorService` or create new `CollectionExecutorService`
-- Add collection polling every 30 seconds for pending operations
-- Implement atomic collection claiming to prevent conflicts
-- Add retry logic for failed week executions with exponential backoff
-- Support parallel collection processing (multiple collections simultaneously)
-- Implement cleanup for abandoned/stale collections
-- Add logging and monitoring for collection operations
+- ✅ Created new `CollectionExecutorService` following existing patterns
+- ✅ Added collection polling every 30 seconds for pending operations
+- ✅ Implemented atomic collection claiming to prevent conflicts
+- ✅ Added retry logic for failed week executions (max 3 retries)
+- ✅ Supported parallel collection processing (5 collections, 10 weeks concurrent)
+- ✅ Implemented cleanup for abandoned/stale collections (24 hour timeout)
+- ✅ Added comprehensive logging and monitoring for collection operations
+- ✅ Integrated with main application lifecycle (startup/shutdown)
+- ✅ Rate limiting between AMC API calls (2 second delay)
 
 **Dependencies:** Task 2.1, existing background service infrastructure
 
@@ -253,7 +267,16 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 
 **Complexity:** Complex
 
-### Task 3.3: Collection Progress UI
+**Implementation Notes:**
+- Semaphore-based concurrency control
+- Automatic pause detection during execution
+- Progress tracking with percentage calculation
+- Failed collection retry with exponential backoff
+- Cleanup task runs hourly for abandoned collections
+
+### Task 3.3: Collection Progress UI 🔄
+**Status:** PENDING
+
 **Description:** Frontend interface for monitoring and managing data collection operations.
 
 **Technical Details:**
