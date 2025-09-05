@@ -5,6 +5,8 @@ import { dataCollectionService } from '../../services/dataCollectionService';
 import { workflowService } from '../../services/workflowService';
 import { instanceService } from '../../services/instanceService';
 import type { CollectionCreate } from '../../types/dataCollection';
+import InstanceSelector from '../query-builder/InstanceSelector';
+import WorkflowSelector from './WorkflowSelector';
 
 interface StartCollectionModalProps {
   onClose: () => void;
@@ -102,19 +104,19 @@ const StartCollectionModal: React.FC<StartCollectionModalProps> = ({ onClose, on
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Workflow *
             </label>
-            <select
+            <WorkflowSelector
+              workflows={workflows.map((workflow: any) => ({
+                id: workflow.id,
+                workflow_id: workflow.workflow_id,
+                name: workflow.name,
+                description: workflow.description,
+                instance_name: workflow.instance_name,
+                last_executed: workflow.last_executed
+              }))}
               value={formData.workflow_id}
-              onChange={(e) => setFormData({ ...formData, workflow_id: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            >
-              <option value="">Select a workflow</option>
-              {workflows.map((workflow: any) => (
-                <option key={workflow.id} value={workflow.id}>
-                  {workflow.name} ({workflow.workflow_id})
-                </option>
-              ))}
-            </select>
+              onChange={(workflowId) => setFormData({ ...formData, workflow_id: workflowId })}
+              placeholder="Search and select a workflow..."
+            />
             <p className="mt-1 text-sm text-gray-500">
               Select the workflow to execute for data collection
             </p>
@@ -125,19 +127,19 @@ const StartCollectionModal: React.FC<StartCollectionModalProps> = ({ onClose, on
             <label className="block text-sm font-medium text-gray-700 mb-2">
               AMC Instance *
             </label>
-            <select
+            <InstanceSelector
+              instances={instances.map((instance: any) => ({
+                id: instance.id,
+                instanceId: instance.id, // Use id as instanceId for selection
+                instanceName: instance.instance_name || instance.instanceName || 'Unnamed Instance',
+                region: instance.region,
+                accountName: instance.account_name || instance.accountName,
+                brands: instance.brands
+              }))}
               value={formData.instance_id}
-              onChange={(e) => setFormData({ ...formData, instance_id: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            >
-              <option value="">Select an instance</option>
-              {instances.map((instance: any) => (
-                <option key={instance.id} value={instance.id}>
-                  {instance.instance_name} ({instance.instance_id})
-                </option>
-              ))}
-            </select>
+              onChange={(instanceId) => setFormData({ ...formData, instance_id: instanceId })}
+              placeholder="Search and select an instance..."
+            />
             <p className="mt-1 text-sm text-gray-500">
               Select the AMC instance to run the collection on
             </p>
