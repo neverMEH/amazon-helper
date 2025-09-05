@@ -11,7 +11,7 @@ class DataCollectionService {
    * Start a new data collection
    */
   async createCollection(data: CollectionCreate): Promise<CollectionResponse> {
-    const response = await api.post('/api/data-collections/', data);
+    const response = await api.post('/data-collections/', data);
     return response.data;
   }
 
@@ -23,7 +23,7 @@ class DataCollectionService {
     workflow_id?: string;
     limit?: number;
   }): Promise<CollectionResponse[]> {
-    const response = await api.get('/api/data-collections/', { params });
+    const response = await api.get('/data-collections/', { params });
     return response.data;
   }
 
@@ -31,7 +31,7 @@ class DataCollectionService {
    * Get detailed progress for a specific collection
    */
   async getCollectionProgress(collectionId: string): Promise<CollectionProgress> {
-    const response = await api.get(`/api/data-collections/${collectionId}`);
+    const response = await api.get(`/data-collections/${collectionId}`);
     return response.data;
   }
 
@@ -39,7 +39,7 @@ class DataCollectionService {
    * Pause an active collection
    */
   async pauseCollection(collectionId: string): Promise<{ message: string; status: string }> {
-    const response = await api.post(`/api/data-collections/${collectionId}/pause`);
+    const response = await api.post(`/data-collections/${collectionId}/pause`);
     return response.data;
   }
 
@@ -47,7 +47,7 @@ class DataCollectionService {
    * Resume a paused collection
    */
   async resumeCollection(collectionId: string): Promise<{ message: string; status: string }> {
-    const response = await api.post(`/api/data-collections/${collectionId}/resume`);
+    const response = await api.post(`/data-collections/${collectionId}/resume`);
     return response.data;
   }
 
@@ -55,7 +55,7 @@ class DataCollectionService {
    * Cancel and delete a collection
    */
   async cancelCollection(collectionId: string): Promise<{ message: string; status: string }> {
-    const response = await api.delete(`/api/data-collections/${collectionId}`);
+    const response = await api.delete(`/data-collections/${collectionId}`);
     return response.data;
   }
 
@@ -67,7 +67,7 @@ class DataCollectionService {
     failed_count: number;
     retrying: Array<{ week_start: string; week_end: string }>;
   }> {
-    const response = await api.post(`/api/data-collections/${collectionId}/retry-failed`);
+    const response = await api.post(`/data-collections/${collectionId}/retry-failed`);
     return response.data;
   }
 }
