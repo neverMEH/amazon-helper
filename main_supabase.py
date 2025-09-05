@@ -24,6 +24,7 @@ from amc_manager.core.supabase_client import SupabaseManager
 from amc_manager.services.token_refresh_service import token_refresh_service
 from amc_manager.services.execution_status_poller import execution_status_poller
 from amc_manager.services.schedule_executor_service import get_schedule_executor
+from amc_manager.services.collection_executor_service import get_collection_executor
 
 logger = get_logger(__name__)
 
@@ -62,6 +63,11 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(schedule_executor.start())
     logger.info("✓ Schedule executor service started")
     
+    # Start collection executor service
+    collection_executor = get_collection_executor()
+    asyncio.create_task(collection_executor.start())
+    logger.info("✓ Collection executor service started")
+    
     # Load only users with valid tokens for token refresh tracking
     try:
         users_response = client.table('users').select('id, auth_tokens').execute()
@@ -83,6 +89,7 @@ async def lifespan(app: FastAPI):
     await token_refresh_service.stop()
     await execution_status_poller.stop()
     await schedule_executor.stop()
+    await collection_executor.stop()
 
 
 # Create FastAPI app
@@ -178,6 +185,7 @@ from amc_manager.api.supabase.schedule_endpoints import router as schedules_rout
 from amc_manager.api.routes.build_guides import router as build_guides_router
 from amc_manager.api.asin_router import router as asin_router
 from amc_manager.api.query_flow_templates import router as query_flow_templates_router
+from amc_manager.api.data_collections import router as data_collections_router
 
 # Add redirect for misconfigured callback URL (must be before router includes)
 @app.get("/api/auth/callback")
@@ -200,6 +208,7 @@ app.include_router(query_flow_templates_router, tags=["Query Flow Templates"])  
 app.include_router(brands_router, prefix="/api/brands", tags=["Brands"])
 app.include_router(amc_executions_router, prefix="/api/amc-executions", tags=["AMC Executions"])
 app.include_router(data_sources_router, prefix="/api/data-sources", tags=["Data Sources"])
+app.include_router(data_collections_router)  # Already has prefix in router
 app.include_router(schedules_router, prefix="/api", tags=["Schedules"])
 app.include_router(build_guides_router, prefix="/api", tags=["Build Guides"])
 app.include_router(asin_router, prefix="/api", tags=["ASINs"])
