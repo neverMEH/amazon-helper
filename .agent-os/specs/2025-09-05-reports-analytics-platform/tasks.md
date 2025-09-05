@@ -69,19 +69,24 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 - Checksum-based duplicate detection
 - Permission system for dashboard sharing
 
-## Phase 2: Backend Core Services
+## Phase 2: Backend Core Services (In Progress - 2/4 Complete)
 
-### Task 2.1: Historical Data Collection Service
+### Task 2.1: Historical Data Collection Service ✅
+**Status:** COMPLETED (2025-09-05)
+
 **Description:** Create service to manage 52-week historical data backfill operations.
 
 **Technical Details:**
-- Create `amc_manager/services/historical_collection_service.py`
-- Implement `start_backfill()` method with date parameter substitution
-- Create week-by-week execution scheduling using existing `AMCExecutionService`
-- Add progress tracking with database updates every completed week
-- Implement duplicate detection using data checksums
-- Handle AMC API rate limiting with delays between executions
-- Support pause/resume functionality for long-running collections
+- ✅ Created `amc_manager/services/historical_collection_service.py`
+- ✅ Implemented `start_backfill()` method with date parameter substitution
+- ✅ Created week-by-week execution scheduling using existing `AMCExecutionService`
+- ✅ Added progress tracking with database updates every completed week
+- ✅ Implemented duplicate detection using data checksums
+- ✅ Handled AMC API rate limiting with delays between executions (2 seconds default)
+- ✅ Supported pause/resume functionality for long-running collections
+- ✅ Added `execute_collection_week()` for individual week processing
+- ✅ Created `get_collection_progress()` with detailed statistics
+- ✅ Implemented `cleanup_abandoned_collections()` for stale collection handling
 
 **Dependencies:** Task 1.2, existing `AMCExecutionService`
 
@@ -94,17 +99,28 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 
 **Complexity:** Complex
 
-### Task 2.2: Data Aggregation Service
+**Implementation Notes:**
+- Handles multiple date parameter formats (start_date, week_start, date_from, etc.)
+- Respects AMC 14-day data lag
+- Maximum 52 weeks for backfill
+- Automatic week record creation for progress tracking
+
+### Task 2.2: Data Aggregation Service ✅
+**Status:** COMPLETED (2025-09-05)
+
 **Description:** Create service to pre-compute aggregated data for fast dashboard queries.
 
 **Technical Details:**
-- Create `amc_manager/services/data_aggregation_service.py`
-- Implement `compute_weekly_aggregates()` from `workflow_executions` results
-- Add `compute_monthly_aggregates()` for longer-term trends
-- Create incremental update logic when new execution data arrives
-- Implement common metric calculations: ROAS, ACOS, CTR, etc.
-- Store aggregates in `report_data_aggregates` table with JSONB metrics
-- Add cleanup methods for old/invalid aggregates
+- ✅ Created `amc_manager/services/data_aggregation_service.py`
+- ✅ Implemented `compute_weekly_aggregates()` from `workflow_executions` results
+- ✅ Added `compute_monthly_aggregates()` for longer-term trends
+- ✅ Created incremental update logic with `update_incremental_aggregates()`
+- ✅ Implemented common metrics: ROAS, ACOS, CTR, CVR, CPC, CPM, NTB%
+- ✅ Stored aggregates in `report_data_aggregates` table with JSONB metrics
+- ✅ Added cleanup methods for old/invalid aggregates
+- ✅ Extracted dimensions (campaigns, ASINs, keywords, placements, audiences)
+- ✅ Created `get_metric_trends()` for time-series data
+- ✅ Combined aggregation logic for rolling up weekly to monthly
 
 **Dependencies:** Task 1.2, existing workflow execution data
 
@@ -115,6 +131,12 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 - Verify JSONB storage and retrieval
 
 **Complexity:** Medium
+
+**Implementation Notes:**
+- Supports 10 standard AMC metrics
+- Calculates 8 derived metrics
+- Extracts and limits dimensions (100-200 items per type)
+- Handles multiple date formats for parsing
 
 ### Task 2.3: Dashboard Data Service
 **Description:** Service to query and format data for dashboard widgets.
