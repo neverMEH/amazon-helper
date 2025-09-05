@@ -86,15 +86,15 @@ CREATE TABLE IF NOT EXISTS report_data_aggregates (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     workflow_id UUID REFERENCES workflows(id) ON DELETE CASCADE,
     instance_id UUID REFERENCES amc_instances(id) ON DELETE CASCADE,
-    date_range_start DATE NOT NULL,
-    date_range_end DATE NOT NULL,
+    date_start DATE NOT NULL,
+    date_end DATE NOT NULL,
     aggregation_type VARCHAR(50) NOT NULL,
     metrics JSONB NOT NULL,
     dimensions JSONB DEFAULT '{}',
     data_checksum VARCHAR(64),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    CONSTRAINT unique_aggregate UNIQUE(workflow_id, instance_id, date_range_start, date_range_end, aggregation_type)
+    CONSTRAINT unique_aggregate UNIQUE(workflow_id, instance_id, date_start, date_end, aggregation_type)
 );
 
 -- AI-powered insights storage
@@ -162,7 +162,7 @@ SELECT create_index_if_not_exists('idx_weeks_collection_id', 'report_data_weeks'
 SELECT create_index_if_not_exists('idx_weeks_status', 'report_data_weeks', 'status');
 SELECT create_index_if_not_exists('idx_weeks_dates', 'report_data_weeks', 'week_start_date, week_end_date');
 SELECT create_index_if_not_exists('idx_aggregates_workflow_instance', 'report_data_aggregates', 'workflow_id, instance_id');
-SELECT create_index_if_not_exists('idx_aggregates_dates', 'report_data_aggregates', 'date_range_start, date_range_end');
+SELECT create_index_if_not_exists('idx_aggregates_dates', 'report_data_aggregates', 'date_start, date_end');
 SELECT create_index_if_not_exists('idx_insights_user_id', 'ai_insights', 'user_id');
 SELECT create_index_if_not_exists('idx_insights_dashboard_id', 'ai_insights', 'dashboard_id');
 SELECT create_index_if_not_exists('idx_shares_dashboard_id', 'dashboard_shares', 'dashboard_id');
