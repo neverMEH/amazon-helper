@@ -13,7 +13,7 @@ from ..services.db_service import db_service
 from ..api.supabase.auth import get_current_user
 
 logger = get_logger(__name__)
-router = APIRouter(prefix="/api/data-collections", tags=["data-collections"])
+router = APIRouter(tags=["data-collections"])
 
 
 class CollectionCreate(BaseModel):

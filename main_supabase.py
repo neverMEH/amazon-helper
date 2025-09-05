@@ -208,7 +208,7 @@ app.include_router(query_flow_templates_router, tags=["Query Flow Templates"])  
 app.include_router(brands_router, prefix="/api/brands", tags=["Brands"])
 app.include_router(amc_executions_router, prefix="/api/amc-executions", tags=["AMC Executions"])
 app.include_router(data_sources_router, prefix="/api/data-sources", tags=["Data Sources"])
-app.include_router(data_collections_router)  # Already has prefix in router
+app.include_router(data_collections_router, prefix="/api/data-collections")
 app.include_router(schedules_router, prefix="/api", tags=["Schedules"])
 app.include_router(build_guides_router, prefix="/api", tags=["Build Guides"])
 app.include_router(asin_router, prefix="/api", tags=["ASINs"])
