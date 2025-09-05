@@ -2,9 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Calendar, Play, Pause, RefreshCw, X, AlertCircle, CheckCircle, Clock, ChevronRight } from 'lucide-react';
 import { dataCollectionService } from '../../services/dataCollectionService';
-import type { CollectionResponse, CollectionCreate } from '../../types/dataCollection';
-import { workflowService } from '../../services/workflowService';
-import { instanceService } from '../../services/instanceService';
+import type { CollectionResponse } from '../../types/dataCollection';
 import CollectionProgress from './CollectionProgress';
 import StartCollectionModal from './StartCollectionModal';
 

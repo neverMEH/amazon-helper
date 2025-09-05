@@ -23,13 +23,13 @@ const StartCollectionModal: React.FC<StartCollectionModalProps> = ({ onClose, on
   // Fetch workflows
   const { data: workflows = [] } = useQuery({
     queryKey: ['workflows'],
-    queryFn: () => workflowService.listWorkflows(),
+    queryFn: () => workflowService.getWorkflows(),
   });
 
   // Fetch instances
   const { data: instances = [] } = useQuery({
     queryKey: ['instances'],
-    queryFn: () => instanceService.listInstances(),
+    queryFn: () => instanceService.list(),
   });
 
   // Create collection mutation
@@ -109,7 +109,7 @@ const StartCollectionModal: React.FC<StartCollectionModalProps> = ({ onClose, on
               required
             >
               <option value="">Select a workflow</option>
-              {workflows.map((workflow) => (
+              {workflows.map((workflow: any) => (
                 <option key={workflow.id} value={workflow.id}>
                   {workflow.name} ({workflow.workflow_id})
                 </option>
@@ -132,7 +132,7 @@ const StartCollectionModal: React.FC<StartCollectionModalProps> = ({ onClose, on
               required
             >
               <option value="">Select an instance</option>
-              {instances.map((instance) => (
+              {instances.map((instance: any) => (
                 <option key={instance.id} value={instance.id}>
                   {instance.instance_name} ({instance.instance_id})
                 </option>

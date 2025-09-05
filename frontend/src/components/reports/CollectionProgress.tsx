@@ -2,7 +2,6 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Calendar, CheckCircle, AlertCircle, Clock, RefreshCw } from 'lucide-react';
 import { dataCollectionService } from '../../services/dataCollectionService';
-import type { CollectionProgress as CollectionProgressType } from '../../types/dataCollection';
 
 interface CollectionProgressProps {
   collectionId: string;
