@@ -165,13 +165,18 @@ class HistoricalCollectionService:
         Args:
             collection_id: Collection UUID
             week_record_id: Week record UUID
-            week_start: Start date of the week
-            week_end: End date of the week
+            week_start: Start date of the week (can be date object or ISO string)
+            week_end: End date of the week (can be date object or ISO string)
             
         Returns:
             True if successful, False otherwise
         """
         try:
+            # Convert string dates to date objects if necessary
+            if isinstance(week_start, str):
+                week_start = date.fromisoformat(week_start.split('T')[0])
+            if isinstance(week_end, str):
+                week_end = date.fromisoformat(week_end.split('T')[0])
             # Get collection details
             collection = self.reporting_db.get_collection_status(collection_id)
             if not collection:
