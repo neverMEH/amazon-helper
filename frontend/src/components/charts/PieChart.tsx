@@ -141,29 +141,7 @@ export const DoughnutChart: FC<DoughnutChartProps> = ({
   centerText,
   ...props
 }) => {
-  const doughnutOptions: ChartOptions<'doughnut'> = {
-    ...props.customOptions,
-    cutout,
-    plugins: {
-      ...props.customOptions?.plugins,
-      // Add center text plugin if provided
-      ...(centerText ? {
-        beforeDraw: function(chart: any) {
-          const { ctx, chartArea: { width, height } } = chart;
-          ctx.save();
-          ctx.font = 'bold 20px sans-serif';
-          ctx.fillStyle = '#1f2937';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(centerText, width / 2, height / 2);
-          ctx.restore();
-        }
-      } : {})
-    }
-  };
-
   // Prepare chart data (same as pie)
-  const total = props.data.values.reduce((sum, value) => sum + value, 0);
   const chartData: ChartData<'doughnut'> = {
     labels: props.data.labels,
     datasets: [{
@@ -175,6 +153,42 @@ export const DoughnutChart: FC<DoughnutChartProps> = ({
     }]
   };
 
+  // Create doughnut-specific options
+  const doughnutOptions: ChartOptions<'doughnut'> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout,
+    plugins: {
+      legend: {
+        display: props.showLegend !== undefined ? props.showLegend : true,
+        position: props.legendPosition || 'right',
+        labels: {
+          usePointStyle: true,
+          padding: 15,
+          font: {
+            size: 12
+          }
+        }
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            const label = context.label || '';
+            const value = context.parsed;
+            const total = context.dataset.data.reduce((sum: number, val: number) => sum + val, 0);
+            const percentage = total > 0 ? (value / total * 100) : 0;
+            
+            if (props.showPercentages !== undefined ? props.showPercentages : true) {
+              return `${label}: ${formatNumber(value)} (${formatPercentage(percentage)})`;
+            } else {
+              return `${label}: ${formatNumber(value)}`;
+            }
+          }
+        }
+      }
+    }
+  };
+
   return (
     <BaseChart
       title={props.title}
@@ -184,7 +198,7 @@ export const DoughnutChart: FC<DoughnutChartProps> = ({
       className={props.className}
     >
       <div style={{ height: `${props.height || 300}px` }}>
-        <Doughnut data={chartData} options={doughnutOptions as ChartOptions<'doughnut'>} />
+        <Doughnut data={chartData} options={doughnutOptions} />
       </div>
     </BaseChart>
   );

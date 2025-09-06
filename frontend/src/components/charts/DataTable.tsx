@@ -2,7 +2,7 @@ import type { FC } from 'react';
 import { useState, useMemo } from 'react';
 import { formatNumber, formatPercentage, formatCurrency } from './BaseChart';
 
-interface Column {
+export interface Column {
   key: string;
   header: string;
   format?: 'text' | 'number' | 'currency' | 'percentage' | 'date';

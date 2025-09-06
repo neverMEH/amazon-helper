@@ -1,5 +1,6 @@
 import type { FC, ReactNode } from 'react';
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend, TimeScale, ChartOptions } from 'chart.js';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend, TimeScale } from 'chart.js';
+import type { ChartOptions } from 'chart.js';
 import 'chartjs-adapter-date-fns';
 
 // Register Chart.js components
