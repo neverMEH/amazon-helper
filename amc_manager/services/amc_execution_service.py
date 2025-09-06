@@ -638,10 +638,19 @@ class AMCExecutionService:
                 # The frontend will poll for status updates
                 logger.info(f"Execution {execution_id} created - frontend will poll for status")
                 
+                # Get execution record to get the UUID
+                client = SupabaseManager.get_client(use_service_role=True)
+                exec_response = client.table('workflow_executions')\
+                    .select('id')\
+                    .eq('execution_id', execution_id)\
+                    .execute()
+                
+                execution_uuid = exec_response.data[0]['id'] if exec_response.data else None
+                
                 # Return immediately with pending status
                 # The frontend will poll for status updates
                 return {
-                    "id": execution['id'],  # Add internal UUID for historical collection service
+                    "id": execution_uuid,  # Add internal UUID for historical collection service
                     "execution_id": execution_id,
                     "status": "pending",
                     "amc_execution_id": amc_execution_id,
