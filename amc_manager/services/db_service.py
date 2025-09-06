@@ -113,7 +113,8 @@ class DatabaseService:
             user_instances = self.get_user_instances_sync(user_id)
             
             # Check if the requested instance_id is in the user's instances
-            return any(inst['instance_id'] == instance_id for inst in user_instances)
+            # Note: instance_id parameter is the UUID (id field), not the AMC instance_id
+            return any(inst['id'] == instance_id for inst in user_instances)
         except Exception as e:
             logger.error(f"Error checking instance access: {e}")
             return False
