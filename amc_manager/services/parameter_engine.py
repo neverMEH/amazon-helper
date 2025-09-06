@@ -29,7 +29,8 @@ class ParameterEngine:
         'boolean': 'validate_boolean',
         'campaign_list': 'validate_campaign_list',
         'asin_list': 'validate_asin_list',
-        'string_list': 'validate_string_list'
+        'string_list': 'validate_string_list',
+        'mapped_from_node': 'validate_mapped_from_node'
     }
     
     # SQL injection patterns to detect and prevent
@@ -360,6 +361,68 @@ class ParameterEngine:
             validated.append(item.strip())
         
         return validated
+    
+    def validate_mapped_from_node(self, value: Any, rules: Dict[str, Any]) -> Any:
+        """
+        Validate mapped_from_node parameter type
+        This is used in flow compositions to map values from upstream nodes
+        
+        Args:
+            value: The value from the upstream node (already processed)
+            rules: Validation rules (may include transform rules)
+            
+        Returns:
+            Validated value (may be transformed based on rules)
+        """
+        # For mapped_from_node, the value comes from another node's output
+        # so it's already been validated by that node's execution
+        
+        # Apply any transformations specified in rules
+        transform = rules.get('transform', 'direct')
+        
+        if transform == 'direct':
+            # Pass through as-is
+            return value
+        elif transform == 'to_array':
+            # Convert single value to array
+            if isinstance(value, list):
+                return value
+            return [value] if value is not None else []
+        elif transform == 'to_string':
+            # Convert to string
+            return str(value) if value is not None else ''
+        elif transform == 'to_number':
+            # Convert to number
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                raise ValueError(f"Cannot convert {value} to number")
+        elif transform == 'flatten':
+            # Flatten nested arrays
+            if isinstance(value, list):
+                flattened = []
+                for item in value:
+                    if isinstance(item, list):
+                        flattened.extend(item)
+                    else:
+                        flattened.append(item)
+                return flattened
+            return [value] if value is not None else []
+        elif transform == 'distinct':
+            # Get unique values
+            if isinstance(value, list):
+                return list(set(value))
+            return [value] if value is not None else []
+        elif transform == 'join':
+            # Join array into string
+            if isinstance(value, list):
+                separator = rules.get('separator', ',')
+                return separator.join(str(v) for v in value)
+            return str(value) if value is not None else ''
+        else:
+            # Unknown transform, pass through
+            logger.warning(f"Unknown transform type: {transform}")
+            return value
     
     # Helper methods
     

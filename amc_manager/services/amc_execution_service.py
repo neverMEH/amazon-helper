@@ -220,6 +220,7 @@ class AMCExecutionService:
             # Note: last_executed_at column doesn't exist in workflows table
             
             return {
+                "id": execution['id'],  # Add internal UUID for historical collection service
                 "execution_id": execution['execution_id'],
                 "workflow_id": workflow['workflow_id'],
                 "status": update_data['status'],
@@ -232,10 +233,20 @@ class AMCExecutionService:
             raise
     
     def _get_instance(self, instance_id: str) -> Optional[Dict[str, Any]]:
-        """Get instance details by instance_id"""
+        """Get instance details by instance_id (can be UUID or AMC instance_id)"""
         try:
             client = SupabaseManager.get_client(use_service_role=True)
             
+            # First try to find by UUID (id field)
+            response = client.table('amc_instances')\
+                .select('*, amc_accounts(*)')\
+                .eq('id', instance_id)\
+                .execute()
+            
+            if response.data:
+                return response.data[0]
+            
+            # If not found, try by AMC instance_id
             response = client.table('amc_instances')\
                 .select('*, amc_accounts(*)')\
                 .eq('instance_id', instance_id)\
@@ -627,9 +638,20 @@ class AMCExecutionService:
                 # The frontend will poll for status updates
                 logger.info(f"Execution {execution_id} created - frontend will poll for status")
                 
+                # Get execution record to get the UUID
+                client = SupabaseManager.get_client(use_service_role=True)
+                exec_response = client.table('workflow_executions')\
+                    .select('id')\
+                    .eq('execution_id', execution_id)\
+                    .execute()
+                
+                execution_uuid = exec_response.data[0]['id'] if exec_response.data else None
+                
                 # Return immediately with pending status
                 # The frontend will poll for status updates
                 return {
+                    "id": execution_uuid,  # Add internal UUID for historical collection service
+                    "execution_id": execution_id,
                     "status": "pending",
                     "amc_execution_id": amc_execution_id,
                     "message": "Workflow execution started successfully"

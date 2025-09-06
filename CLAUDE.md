@@ -332,7 +332,209 @@ GET    /api/instances/{id}
 # Data Sources
 GET    /api/data-sources/
 GET    /api/data-sources/{id}
+
+# Data Collections (Phase 3)
+GET    /api/data-collections/
+POST   /api/data-collections/
+GET    /api/data-collections/{id}
+POST   /api/data-collections/{id}/pause
+POST   /api/data-collections/{id}/resume
+POST   /api/data-collections/{id}/retry-failed
+DELETE /api/data-collections/{id}
+
+# Dashboards (Phase 4)
+GET    /api/dashboards/
+POST   /api/dashboards/
+GET    /api/dashboards/{dashboard_id}
+PUT    /api/dashboards/{dashboard_id}
+DELETE /api/dashboards/{dashboard_id}
+POST   /api/dashboards/{dashboard_id}/share
+GET    /api/dashboards/{dashboard_id}/shares
+DELETE /api/dashboards/{dashboard_id}/shares/{user_id}
+GET    /api/dashboards/templates/available
+POST   /api/dashboards/templates/{template_id}/instantiate
+
+# Dashboard Widgets (Phase 4)
+GET    /api/dashboards/{dashboard_id}/widgets/
+POST   /api/dashboards/{dashboard_id}/widgets/
+PUT    /api/dashboards/{dashboard_id}/widgets/{widget_id}
+DELETE /api/dashboards/{dashboard_id}/widgets/{widget_id}
+POST   /api/dashboards/{dashboard_id}/widgets/{widget_id}/data
+PUT    /api/dashboards/{dashboard_id}/widgets/reorder
+GET    /api/dashboards/{dashboard_id}/widgets/templates/{widget_type}
 ```
+
+## Reports & Analytics Platform (Data Collections) - Phase 3 Complete (2025-09-06)
+
+### Overview
+Implemented complete historical data collection system for 52-week backfills with week-by-week AMC workflow execution, progress tracking, and management UI.
+
+### Key Components Added
+1. **Backend Services**:
+   - `reporting_database_service.py` - Database operations for all reporting entities
+   - `historical_collection_service.py` - Manages 52-week backfill operations
+   - `collection_executor_service.py` - Background service for async execution
+   - `data_collections.py` - FastAPI endpoints for collection management
+
+2. **Frontend Components**:
+   - `DataCollections.tsx` - Main collection management interface
+   - `CollectionProgress.tsx` - Detailed week-by-week progress view
+   - `StartCollectionModal.tsx` - Collection creation with workflow/instance selection
+   - `WorkflowSelector.tsx` - Searchable dropdown for improved UX
+   - `dataCollectionService.ts` - API service layer
+
+3. **Database Tables**:
+   - `report_data_collections` - Collection metadata and configuration
+   - `report_data_weeks` - Individual week execution tracking
+   - Migration scripts: `003_create_reporting_tables.sql`, `004_fix_dashboard_shares.sql`, `005_complete_reporting_tables.sql`
+
+### Critical Issues Fixed During Implementation
+
+#### 1. Authentication & Access Control
+- **403 Forbidden**: Fixed `user_has_instance_access_sync` to use UUID `id` instead of AMC `instance_id`
+- **Instance Access**: Updated comparison logic to match frontend's UUID usage
+
+#### 2. Date & Time Handling
+- **Date Serialization**: Convert Python `date` objects to ISO strings before database insertion
+- **strftime Error**: Parse ISO date strings back to `date` objects in `execute_collection_week`
+- **Datetime JSON**: Added `.isoformat()` conversion in `update_week_status`
+
+#### 3. ID Field Management
+- **Workflow Not Found**: Updated `get_workflow_by_id_sync` to support both UUID and string workflow_id
+- **404 on Collections**: Fixed workflows API to return UUID as `id` field
+- **Instance Lookup**: Modified `_get_instance` to try both UUID and AMC instance_id
+- **Missing Execution ID**: Added `id` field to execution results for tracking
+
+#### 4. Code Issues
+- **Undefined Variable**: Fixed scope issue where `execution` variable wasn't accessible in `_execute_real_amc_query`
+
+### Working Features
+- ✅ Create 52-week historical data collections
+- ✅ Execute workflows week-by-week with automatic date substitution
+- ✅ Real-time progress tracking (5s/3s polling intervals)
+- ✅ Pause/resume/cancel collection operations
+- ✅ Retry failed weeks automatically (max 3 attempts)
+- ✅ Parallel processing (5 collections, 10 weeks concurrent)
+- ✅ Duplicate detection using data checksums
+- ✅ Searchable workflow and instance selectors
+
+## Reports & Analytics Platform - Phase 4 Complete (2025-09-06)
+
+### Overview
+Successfully implemented Phase 4: Basic Dashboard Visualization, providing comprehensive dashboard and widget management APIs with a complete chart component library.
+
+### Key Components Added
+
+#### 1. Dashboard Management API
+- **File**: `amc_manager/api/dashboards.py`
+- **Endpoints**: 10 total
+  - `GET /api/dashboards/` - List user dashboards with filtering/search
+  - `POST /api/dashboards/` - Create new dashboard
+  - `GET /api/dashboards/{dashboard_id}` - Get dashboard with widgets
+  - `PUT /api/dashboards/{dashboard_id}` - Update dashboard
+  - `DELETE /api/dashboards/{dashboard_id}` - Delete dashboard (cascade)
+  - `POST /api/dashboards/{dashboard_id}/share` - Share dashboard
+  - `GET /api/dashboards/{dashboard_id}/shares` - List shares
+  - `DELETE /api/dashboards/{dashboard_id}/shares/{user_id}` - Revoke share
+  - `GET /api/dashboards/templates/available` - List templates
+  - `POST /api/dashboards/templates/{template_id}/instantiate` - Create from template
+
+#### 2. Widget Configuration System
+- **Service**: `amc_manager/services/widget_configuration_service.py`
+  - Validates 10 widget types (line, bar, pie, area, scatter, table, metric_card, text, heatmap, funnel)
+  - Data source validation (workflow, aggregate, custom)
+  - Layout positioning with overlap detection
+  - Configuration templates for common widgets
+- **API**: `amc_manager/api/widgets.py`
+  - 7 endpoints for widget CRUD operations
+  - Widget data fetching and reordering
+  - Template generation for each widget type
+
+#### 3. Chart Components Library
+- **Location**: `frontend/src/components/charts/`
+- **Components**:
+  - `BaseChart.tsx` - Foundation with loading states, error handling, utilities
+  - `LineChart.tsx` - Time-series visualization with AreaChart variant
+  - `BarChart.tsx` - Comparative analysis with grouped/stacked variants
+  - `PieChart.tsx` - Composition analysis with DoughnutChart variant
+  - `MetricCard.tsx` - KPI display with trends and MiniMetricCard variant
+  - `DataTable.tsx` - Interactive tables with sorting, filtering, pagination
+- **Dependencies**: chart.js, react-chartjs-2, chartjs-adapter-date-fns
+
+### TypeScript Build Fixes
+Fixed compilation errors for strict mode compliance:
+- Type-only imports for ChartOptions
+- Simplified DoughnutChart to avoid type conflicts
+- Exported Column interface from DataTable
+- All components comply with verbatimModuleSyntax
+
+### Database Schema Updates
+- `dashboards` table - Dashboard configurations
+- `dashboard_widgets` table - Widget definitions with cascade delete
+- `dashboard_shares` table - Sharing permissions
+- All tables include proper indexes and foreign key constraints
+
+### Next Phases
+- Phase 5: Dashboard Builder Interface (drag-and-drop)
+- Phase 6: Automated Weekly Updates
+- Phase 7: AI-Powered Insights Frontend
+- Phase 8: Export and Sharing
+
+## Implementation Notes for Reports & Analytics Platform
+
+### Widget Types Supported
+- **line_chart** - Time-series data with smooth curves
+- **bar_chart** - Comparative analysis, supports stacked/grouped
+- **pie_chart** - Composition analysis with percentages
+- **area_chart** - Filled line chart for trends
+- **scatter_chart** - Correlation analysis
+- **table** - Sortable, filterable data tables
+- **metric_card** - KPI display with trend indicators
+- **text** - Markdown/plain text content
+- **heatmap** - Matrix visualization
+- **funnel** - Conversion funnel analysis
+
+### Chart Component Utilities
+```typescript
+// Available formatting functions
+formatNumber(1234567) // "1.2M"
+formatCurrency(1234) // "$1,234"
+formatPercentage(12.5) // "12.5%"
+
+// Color palette
+CHART_COLORS_ARRAY // 10 predefined colors
+```
+
+### Widget Configuration Structure
+```json
+{
+  "widget_type": "line_chart",
+  "name": "Sales Trend",
+  "data_source": {
+    "type": "aggregate",
+    "metrics": ["sales", "conversions"],
+    "date_range": {
+      "type": "relative",
+      "value": "last_30_days"
+    }
+  },
+  "layout": {
+    "x": 0, "y": 0,
+    "width": 6, "height": 4
+  }
+}
+```
+
+### Dashboard Sharing Permissions
+- **view** - Read-only access to dashboard
+- **edit** - Can modify widgets and configuration
+- **admin** - Full control including sharing
+
+### Known Limitations
+1. Widget overlap detection assumes 12-column grid
+2. Maximum 1000 rows in DataTable by default
+3. Chart.js bundle adds ~500KB to build size
+4. Dashboard templates not yet seeded in database
 
 ## Recent Critical Fixes
 

@@ -8,14 +8,14 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 ## Tasks
 
 ### 1. Database Schema and Service Integration
-- [ ] 1.1 Write tests for new composition tables integration with existing schema
-- [ ] 1.2 Create minimal database tables (template_flow_compositions, template_flow_nodes, template_flow_connections)
-- [ ] 1.3 Extend existing workflow_executions and workflow_schedules tables with composition columns
-- [ ] 1.4 Create FlowCompositionService extending existing DatabaseService patterns with @with_connection_retry
-- [ ] 1.5 Extend existing /api/query-flow-templates/ endpoints with composition management
-- [ ] 1.6 Integrate composition execution with existing template_execution_service and AMC API client
-- [ ] 1.7 Extend existing parameter_engine.py to handle node-to-node parameter mapping
-- [ ] 1.8 Verify all backend tests pass and existing template functionality remains unchanged
+- [x] 1.1 Write tests for new composition tables integration with existing schema
+- [x] 1.2 Create minimal database tables (template_flow_compositions, template_flow_nodes, template_flow_connections)
+- [x] 1.3 Extend existing workflow_executions and workflow_schedules tables with composition columns
+- [x] 1.4 Create FlowCompositionService extending existing DatabaseService patterns with @with_connection_retry
+- [x] 1.5 Extend existing /api/query-flow-templates/ endpoints with composition management
+- [x] 1.6 Integrate composition execution with existing template_execution_service and AMC API client
+- [x] 1.7 Extend existing parameter_engine.py to handle node-to-node parameter mapping
+- [x] 1.8 Verify all backend tests pass and existing template functionality remains unchanged
 
 ### 2. Visual Canvas with Component Reuse
 - [ ] 2.1 Write tests for React Flow canvas integration with existing TemplateCard components

@@ -4,7 +4,16 @@ from typing import Optional, Dict, Any, List, Tuple
 from datetime import datetime
 import uuid
 import json
-import networkx as nx
+
+# Try to import networkx, but make it optional
+try:
+    import networkx as nx
+    HAS_NETWORKX = True
+except ImportError:
+    HAS_NETWORKX = False
+    import warnings
+    warnings.warn("networkx is not installed. DAG validation features will be limited.", ImportWarning)
+
 from ..services.db_service import DatabaseService, with_connection_retry
 from ..core.logger_simple import get_logger
 
@@ -581,6 +590,10 @@ class FlowCompositionService(DatabaseService):
         Returns:
             True if valid DAG, False if cycles detected
         """
+        if not HAS_NETWORKX:
+            # Fallback: Basic cycle detection without networkx
+            return self._validate_dag_fallback(nodes, connections)
+            
         try:
             # Create directed graph
             graph = nx.DiGraph()
@@ -618,6 +631,10 @@ class FlowCompositionService(DatabaseService):
         Returns:
             Dict mapping node_id to execution order, or None if invalid
         """
+        if not HAS_NETWORKX:
+            # Fallback: Simple topological sort without networkx
+            return self._calculate_execution_order_fallback(nodes, connections)
+            
         try:
             # Create directed graph
             graph = nx.DiGraph()
@@ -702,6 +719,82 @@ class FlowCompositionService(DatabaseService):
         # Add timestamp suffix and comp_ prefix
         timestamp = datetime.utcnow().strftime('%Y%m%d')
         return f"comp_{comp_id}_{timestamp}"
+    
+    def _validate_dag_fallback(self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]) -> bool:
+        """
+        Fallback DAG validation without networkx using DFS cycle detection
+        """
+        # Build adjacency list
+        adjacency = {}
+        for node in nodes:
+            adjacency[node['node_id']] = []
+        
+        for connection in connections:
+            source = connection['source_node_id']
+            target = connection['target_node_id']
+            if source in adjacency:
+                adjacency[source].append(target)
+        
+        # Check for cycles using DFS
+        WHITE, GRAY, BLACK = 0, 1, 2
+        colors = {node['node_id']: WHITE for node in nodes}
+        
+        def has_cycle(node_id):
+            colors[node_id] = GRAY
+            for neighbor in adjacency.get(node_id, []):
+                if colors.get(neighbor) == GRAY:
+                    return True  # Back edge found - cycle detected
+                if colors.get(neighbor) == WHITE and has_cycle(neighbor):
+                    return True
+            colors[node_id] = BLACK
+            return False
+        
+        # Check all nodes (handles disconnected components)
+        for node in nodes:
+            if colors[node['node_id']] == WHITE:
+                if has_cycle(node['node_id']):
+                    return False
+        
+        return True
+    
+    def _calculate_execution_order_fallback(
+        self, 
+        nodes: List[Dict[str, Any]], 
+        connections: List[Dict[str, Any]]
+    ) -> Optional[Dict[str, int]]:
+        """
+        Fallback topological sort without networkx using Kahn's algorithm
+        """
+        # Build adjacency list and in-degree count
+        adjacency = {node['node_id']: [] for node in nodes}
+        in_degree = {node['node_id']: 0 for node in nodes}
+        
+        for connection in connections:
+            source = connection['source_node_id']
+            target = connection['target_node_id']
+            if source in adjacency and target in in_degree:
+                adjacency[source].append(target)
+                in_degree[target] += 1
+        
+        # Find all nodes with no incoming edges
+        queue = [node_id for node_id, degree in in_degree.items() if degree == 0]
+        result = []
+        
+        while queue:
+            node_id = queue.pop(0)
+            result.append(node_id)
+            
+            # Reduce in-degree for all neighbors
+            for neighbor in adjacency.get(node_id, []):
+                in_degree[neighbor] -= 1
+                if in_degree[neighbor] == 0:
+                    queue.append(neighbor)
+        
+        # Check if all nodes were processed (no cycles)
+        if len(result) != len(nodes):
+            return None  # Cycle detected
+        
+        return {node_id: i for i, node_id in enumerate(result)}
 
 
 # Global instance

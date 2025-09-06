@@ -13,6 +13,7 @@ from ..services.query_flow_template_service import QueryFlowTemplateService
 from ..services.template_execution_service import TemplateExecutionService
 from ..services.parameter_engine import ParameterEngine, ParameterValidationError
 from ..services.flow_composition_service import FlowCompositionService
+from ..services.composition_execution_service import CompositionExecutionService
 from ..core.logger_simple import get_logger
 
 logger = get_logger(__name__)
@@ -180,6 +181,7 @@ template_service = QueryFlowTemplateService()
 execution_service = TemplateExecutionService()
 parameter_engine = ParameterEngine()
 composition_service = FlowCompositionService()
+composition_execution_service = CompositionExecutionService()
 
 
 # Endpoints
@@ -1208,48 +1210,28 @@ async def execute_composition(
     Execute a flow composition (placeholder for future implementation)
     """
     try:
-        # Get composition to verify access
-        composition = composition_service.get_composition_by_id(
+        # Execute the composition using the execution service
+        result = await composition_execution_service.execute_composition(
             composition_id=composition_id,
+            instance_id=request.instance_id,
             user_id=current_user['id'],
-            include_nodes=True,
-            include_connections=True
+            parameters=request.parameters,
+            schedule_id=request.schedule_id
         )
-        
-        if not composition:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Composition not found: {composition_id}"
-            )
-        
-        # Validate DAG structure
-        is_valid_dag = composition_service.validate_dag(
-            nodes=composition.get('nodes', []),
-            connections=composition.get('connections', [])
-        )
-        
-        if not is_valid_dag:
-            raise HTTPException(
-                status_code=400,
-                detail="Composition contains cycles - invalid DAG structure"
-            )
-        
-        # For now, return a placeholder response
-        # TODO: Implement actual composition execution in Task 1.6
-        execution_id = f"comp_exec_{uuid.uuid4().hex[:8]}"
         
         return ExecuteCompositionResponse(
-            composition_execution_id=execution_id,
-            composition_id=composition['composition_id'],
-            status="pending",
-            started_at=datetime.utcnow().isoformat(),
+            composition_execution_id=result['composition_execution_id'],
+            composition_id=result['composition_id'],
+            status=result['status'],
+            started_at=result['started_at'],
             node_executions=[
                 {
                     "node_id": node['node_id'],
-                    "status": "pending",
-                    "template_id": node['template_id']
+                    "status": node['status'],
+                    "execution_id": node.get('execution_id'),
+                    "error": node.get('error')
                 }
-                for node in composition.get('nodes', [])
+                for node in result['nodes']
             ]
         )
         

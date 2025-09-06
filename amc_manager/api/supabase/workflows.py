@@ -98,8 +98,9 @@ def list_workflows(
             logger.info(f"After filtering: {len(workflows)} workflows for instance {instance_id}")
         
         return [{
-            "id": w['workflow_id'],
-            "workflowId": w['workflow_id'],
+            "id": w['id'],  # Return UUID as id for proper database lookups
+            "workflow_id": w['workflow_id'],  # Keep string workflow_id for display
+            "workflowId": w['workflow_id'],  # Legacy field for compatibility
             "name": w['name'],
             "description": w.get('description'),
             "sqlQuery": w.get('sql_query', ''),

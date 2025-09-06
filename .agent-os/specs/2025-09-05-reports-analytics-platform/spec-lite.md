@@ -1,0 +1,3 @@
+# Spec Summary (Lite)
+
+Build an advanced reporting and analytics platform that transforms AMC workflow executions into interactive dashboards with historical trend analysis, automated data collection, and AI-powered insights. The platform provides comprehensive data visualization capabilities, automated weekly updates with intelligent data merging, and conversational AI interface for exploring business insights across multiple AMC instances and time periods. Users can create custom dashboards, track long-term performance trends, and receive AI-generated insights for data-driven decision making.

@@ -40,6 +40,16 @@ import BuildGuideDetail from './pages/BuildGuideDetail';
 // ASIN Management import
 import ASINManagement from './pages/ASINManagement';
 
+// Reports & Analytics imports
+import DataCollections from './components/reports/DataCollections';
+
+// Visual Flow Builder import
+import VisualFlowBuilder from './pages/VisualFlowBuilder';
+import TestFlowBuilder from './pages/TestFlowBuilder';
+import TestReactFlow from './pages/TestReactFlow';
+import TestReactFlowSimple from './pages/TestReactFlowSimple';
+import TestReactFlowWithProvider from './pages/TestReactFlowWithProvider';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -102,6 +112,16 @@ function App() {
               
               {/* ASIN Management route */}
               <Route path="/asins" element={<ASINManagement />} />
+              
+              {/* Reports & Analytics routes */}
+              <Route path="/data-collections" element={<DataCollections />} />
+              
+              {/* Visual Flow Builder route */}
+              <Route path="/flow-builder" element={<VisualFlowBuilder />} />
+              <Route path="/test-flow-builder" element={<TestFlowBuilder />} />
+              <Route path="/test-flow" element={<TestReactFlow />} />
+              <Route path="/test-flow-simple" element={<TestReactFlowSimple />} />
+              <Route path="/test-flow-provider" element={<TestReactFlowWithProvider />} />
               
               {/* Profile route */}
               <Route path="/profile" element={<Profile />} />
