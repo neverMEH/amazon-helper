@@ -158,12 +158,26 @@ class DatabaseService:
     
     @with_connection_retry
     def get_workflow_by_id_sync(self, workflow_id: str) -> Optional[Dict[str, Any]]:
-        """Get workflow by ID - sync version"""
+        """Get workflow by ID - sync version
+        
+        Note: workflow_id can be either the UUID (id) or the string workflow_id
+        """
         try:
+            # First try to find by UUID id
+            response = self.client.table('workflows')\
+                .select('*, amc_instances(*, amc_accounts(*))')\
+                .eq('id', workflow_id)\
+                .execute()
+            
+            if response.data:
+                return response.data[0]
+            
+            # If not found, try by workflow_id string
             response = self.client.table('workflows')\
                 .select('*, amc_instances(*, amc_accounts(*))')\
                 .eq('workflow_id', workflow_id)\
                 .execute()
+            
             return response.data[0] if response.data else None
         except Exception as e:
             logger.error(f"Error fetching workflow: {e}")
