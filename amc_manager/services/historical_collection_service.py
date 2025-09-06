@@ -81,8 +81,8 @@ class HistoricalCollectionService:
                 'user_id': user_id,
                 'collection_type': collection_type,
                 'target_weeks': target_weeks,
-                'start_date': start_date,
-                'end_date': end_date,
+                'start_date': start_date.isoformat(),  # Convert date to string
+                'end_date': end_date.isoformat(),      # Convert date to string
                 'status': 'pending',
                 'configuration': {
                     'workflow_name': workflow['name'],
@@ -136,8 +136,8 @@ class HistoricalCollectionService:
                 
                 week_data = {
                     'collection_id': collection_id,
-                    'week_start_date': current_date,
-                    'week_end_date': week_end,
+                    'week_start_date': current_date.isoformat(),  # Convert date to string
+                    'week_end_date': week_end.isoformat(),        # Convert date to string
                     'status': 'pending'
                 }
                 
