@@ -220,6 +220,7 @@ class AMCExecutionService:
             # Note: last_executed_at column doesn't exist in workflows table
             
             return {
+                "id": execution['id'],  # Add internal UUID for historical collection service
                 "execution_id": execution['execution_id'],
                 "workflow_id": workflow['workflow_id'],
                 "status": update_data['status'],
@@ -640,6 +641,8 @@ class AMCExecutionService:
                 # Return immediately with pending status
                 # The frontend will poll for status updates
                 return {
+                    "id": execution['id'],  # Add internal UUID for historical collection service
+                    "execution_id": execution_id,
                     "status": "pending",
                     "amc_execution_id": amc_execution_id,
                     "message": "Workflow execution started successfully"
