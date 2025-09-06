@@ -334,6 +334,67 @@ GET    /api/data-sources/
 GET    /api/data-sources/{id}
 ```
 
+## Reports & Analytics Platform (Data Collections) - Phase 3 Complete (2025-09-06)
+
+### Overview
+Implemented complete historical data collection system for 52-week backfills with week-by-week AMC workflow execution, progress tracking, and management UI.
+
+### Key Components Added
+1. **Backend Services**:
+   - `reporting_database_service.py` - Database operations for all reporting entities
+   - `historical_collection_service.py` - Manages 52-week backfill operations
+   - `collection_executor_service.py` - Background service for async execution
+   - `data_collections.py` - FastAPI endpoints for collection management
+
+2. **Frontend Components**:
+   - `DataCollections.tsx` - Main collection management interface
+   - `CollectionProgress.tsx` - Detailed week-by-week progress view
+   - `StartCollectionModal.tsx` - Collection creation with workflow/instance selection
+   - `WorkflowSelector.tsx` - Searchable dropdown for improved UX
+   - `dataCollectionService.ts` - API service layer
+
+3. **Database Tables**:
+   - `report_data_collections` - Collection metadata and configuration
+   - `report_data_weeks` - Individual week execution tracking
+   - Migration scripts: `003_create_reporting_tables.sql`, `004_fix_dashboard_shares.sql`, `005_complete_reporting_tables.sql`
+
+### Critical Issues Fixed During Implementation
+
+#### 1. Authentication & Access Control
+- **403 Forbidden**: Fixed `user_has_instance_access_sync` to use UUID `id` instead of AMC `instance_id`
+- **Instance Access**: Updated comparison logic to match frontend's UUID usage
+
+#### 2. Date & Time Handling
+- **Date Serialization**: Convert Python `date` objects to ISO strings before database insertion
+- **strftime Error**: Parse ISO date strings back to `date` objects in `execute_collection_week`
+- **Datetime JSON**: Added `.isoformat()` conversion in `update_week_status`
+
+#### 3. ID Field Management
+- **Workflow Not Found**: Updated `get_workflow_by_id_sync` to support both UUID and string workflow_id
+- **404 on Collections**: Fixed workflows API to return UUID as `id` field
+- **Instance Lookup**: Modified `_get_instance` to try both UUID and AMC instance_id
+- **Missing Execution ID**: Added `id` field to execution results for tracking
+
+#### 4. Code Issues
+- **Undefined Variable**: Fixed scope issue where `execution` variable wasn't accessible in `_execute_real_amc_query`
+
+### Working Features
+- ✅ Create 52-week historical data collections
+- ✅ Execute workflows week-by-week with automatic date substitution
+- ✅ Real-time progress tracking (5s/3s polling intervals)
+- ✅ Pause/resume/cancel collection operations
+- ✅ Retry failed weeks automatically (max 3 attempts)
+- ✅ Parallel processing (5 collections, 10 weeks concurrent)
+- ✅ Duplicate detection using data checksums
+- ✅ Searchable workflow and instance selectors
+
+### Next Phases
+- Phase 4: Basic Dashboard Visualization
+- Phase 5: Dashboard Builder Interface
+- Phase 6: Automated Weekly Updates
+- Phase 7: AI-Powered Insights Frontend
+- Phase 8: Export and Sharing
+
 ## Recent Critical Fixes
 
 
