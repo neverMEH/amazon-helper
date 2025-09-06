@@ -232,10 +232,20 @@ class AMCExecutionService:
             raise
     
     def _get_instance(self, instance_id: str) -> Optional[Dict[str, Any]]:
-        """Get instance details by instance_id"""
+        """Get instance details by instance_id (can be UUID or AMC instance_id)"""
         try:
             client = SupabaseManager.get_client(use_service_role=True)
             
+            # First try to find by UUID (id field)
+            response = client.table('amc_instances')\
+                .select('*, amc_accounts(*)')\
+                .eq('id', instance_id)\
+                .execute()
+            
+            if response.data:
+                return response.data[0]
+            
+            # If not found, try by AMC instance_id
             response = client.table('amc_instances')\
                 .select('*, amc_accounts(*)')\
                 .eq('instance_id', instance_id)\

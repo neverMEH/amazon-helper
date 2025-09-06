@@ -304,7 +304,12 @@ class ReportingDatabaseService(DatabaseService):
             
             # Add optional fields
             if 'execution_date' in kwargs:
-                updates['execution_date'] = kwargs['execution_date']
+                # Convert datetime to ISO string if necessary
+                exec_date = kwargs['execution_date']
+                if hasattr(exec_date, 'isoformat'):
+                    updates['execution_date'] = exec_date.isoformat()
+                else:
+                    updates['execution_date'] = exec_date
             if 'row_count' in kwargs:
                 updates['row_count'] = kwargs['row_count']
             if 'data_checksum' in kwargs:
