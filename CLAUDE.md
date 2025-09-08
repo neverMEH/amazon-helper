@@ -649,3 +649,21 @@ python scripts/find_running_executions.py
 # Monitor server logs
 tail -f server.log
 ```
+
+
+### Recent Fixes and Enhancements
+
+#### 2025-09-08 (Auto-Generated Update)
+
+**New Features:**
+- docs: Add Agent OS specifications for Visual Query Flow Builder
+  - New files: .agent-os/specs/2025-09-03-visual-query-flow-builder/spec-lite.md, .agent-os/specs/2025-09-03-visual-query-flow-builder/spec.md, .agent-os/specs/2025-09-03-visual-query-flow-builder/sub-specs/api-spec.md
+- feat: Add Flow Composition API endpoints and service layer
+  - New files: amc_manager/services/flow_composition_service.py, scripts/create_flow_composition_tables.sql, scripts/extend_existing_tables_for_compositions.sql
+- fix: Correct backend API method signatures and add CRUD test
+- feat: Add complete backend API for Query Flow Templates CRUD operations
+- feat: Complete Query Flow Template Editor with full functionality
+
+**Bug Fixes:**
+- fix: Remove unused imports and variables in TemplateEditorWireframe
+- fix: Resolve all TypeScript build errors in Query Flow Templates frontend
