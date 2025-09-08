@@ -199,9 +199,9 @@ class ExecutionStatusPoller:
                     # Try to add completed_at if column exists
                     # update_data['completed_at'] = datetime.utcnow().isoformat()
                     
-                    # Add row count if available (use 'row_count' not 'record_count')
+                    # Add row count if available - the column is 'record_count' in the database
                     if 'row_count' in execution_data:
-                        update_data['row_count'] = execution_data['row_count']
+                        update_data['record_count'] = execution_data['row_count']
                     
                     logger.info(f"Updating report_data_weeks {week_record['id']} to completed")
                     
