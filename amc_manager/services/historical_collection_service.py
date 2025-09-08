@@ -231,15 +231,34 @@ class HistoricalCollectionService:
                         )
                         row_count = len(execution_result.get('results', []))
                     
-                    # Update week record with success
+                    # Extract execution IDs for tracking
+                    execution_id = execution_result.get('id')  # Internal UUID
+                    amc_execution_id = execution_result.get('execution_id')  # AMC's ID
+                    
+                    if execution_id:
+                        logger.info(f"Storing execution tracking - Internal: {execution_id}, AMC: {amc_execution_id}")
+                    else:
+                        logger.warning("No execution_id in result - execution tracking will be incomplete")
+                    
+                    # Update week record with success and execution tracking
+                    update_kwargs = {
+                        'row_count': row_count,
+                        'data_checksum': checksum
+                    }
+                    
+                    # Only add execution IDs if they exist
+                    if execution_id:
+                        update_kwargs['execution_id'] = execution_id
+                    if amc_execution_id:
+                        update_kwargs['amc_execution_id'] = amc_execution_id
+                    
                     self.reporting_db.update_week_status(
                         week_record_id,
                         'completed',
-                        row_count=row_count,
-                        data_checksum=checksum
+                        **update_kwargs
                     )
                     
-                    logger.info(f"Week {week_start} completed successfully")
+                    logger.info(f"Week {week_start} completed successfully with execution tracking")
                     return True
                 else:
                     raise ValueError("No execution ID returned")

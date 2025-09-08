@@ -1,7 +1,7 @@
 """Database service for Reports & Analytics Platform operations"""
 
 from typing import Optional, Dict, Any, List
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 import uuid
 import hashlib
 import json
@@ -298,7 +298,19 @@ class ReportingDatabaseService(DatabaseService):
     
     @with_connection_retry
     def update_week_status(self, week_id: str, status: str, **kwargs) -> bool:
-        """Update the status of a week's collection"""
+        """Update the status of a week's collection
+        
+        Args:
+            week_id: UUID of the week record
+            status: New status for the week
+            **kwargs: Optional fields including:
+                - execution_date: When the execution started
+                - execution_id: UUID of the workflow_execution record
+                - amc_execution_id: AMC's execution ID
+                - row_count: Number of rows returned
+                - data_checksum: Checksum of the data
+                - error_message: Error message if failed
+        """
         try:
             updates = {'status': status}
             
@@ -310,17 +322,36 @@ class ReportingDatabaseService(DatabaseService):
                     updates['execution_date'] = exec_date.isoformat()
                 else:
                     updates['execution_date'] = exec_date
+            
+            # Handle execution tracking fields
+            if 'execution_id' in kwargs:
+                updates['execution_id'] = kwargs['execution_id']
+                logger.debug(f"Storing execution_id {kwargs['execution_id']} for week {week_id}")
+            
+            if 'amc_execution_id' in kwargs:
+                updates['amc_execution_id'] = kwargs['amc_execution_id']
+                logger.debug(f"Storing amc_execution_id {kwargs['amc_execution_id']} for week {week_id}")
+            
             if 'row_count' in kwargs:
-                updates['row_count'] = kwargs['row_count']
+                updates['record_count'] = kwargs['row_count']  # Note: column is 'record_count' in schema
             if 'data_checksum' in kwargs:
                 updates['data_checksum'] = kwargs['data_checksum']
             if 'error_message' in kwargs:
                 updates['error_message'] = kwargs['error_message']
             
+            # Add timestamp fields
+            if status == 'running':
+                updates['started_at'] = datetime.now(timezone.utc).isoformat()
+            elif status in ['completed', 'failed']:
+                updates['completed_at'] = datetime.now(timezone.utc).isoformat()
+            
             response = self.client.table('report_data_weeks')\
                 .update(updates)\
                 .eq('id', week_id)\
                 .execute()
+            
+            if response.data:
+                logger.info(f"Updated week {week_id} status to {status} with execution tracking")
             
             return bool(response.data)
         except Exception as e:
