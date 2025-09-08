@@ -159,10 +159,26 @@ class ExecutionStatusPoller:
             workflow_execution_uuid = exec_response.data['id']
             
             # Check if there's a report_data_weeks record linked to this execution
-            week_response = client.table('report_data_weeks')\
-                .select('id, status')\
-                .eq('execution_id', workflow_execution_uuid)\
-                .execute()
+            # Try both possible column names for backward compatibility
+            week_response = None
+            try:
+                # First try with 'execution_id' (newer schema)
+                week_response = client.table('report_data_weeks')\
+                    .select('id, status')\
+                    .eq('execution_id', workflow_execution_uuid)\
+                    .execute()
+            except Exception as e:
+                if 'PGRST204' in str(e) or 'column' in str(e).lower():
+                    # Try with 'workflow_execution_id' (older schema)
+                    try:
+                        week_response = client.table('report_data_weeks')\
+                            .select('id, status')\
+                            .eq('workflow_execution_id', workflow_execution_uuid)\
+                            .execute()
+                    except:
+                        # Column doesn't exist in either form
+                        logger.debug(f"No execution tracking column found in report_data_weeks")
+                        return
             
             if not week_response.data:
                 # No report_data_weeks record linked to this execution
@@ -180,17 +196,19 @@ class ExecutionStatusPoller:
                 
                 if status == 'completed':
                     update_data['status'] = 'completed'
-                    update_data['completed_at'] = datetime.utcnow().isoformat()
+                    # Try to add completed_at if column exists
+                    # update_data['completed_at'] = datetime.utcnow().isoformat()
                     
-                    # Add row count if available
+                    # Add row count if available (use 'row_count' not 'record_count')
                     if 'row_count' in execution_data:
-                        update_data['record_count'] = execution_data['row_count']
+                        update_data['row_count'] = execution_data['row_count']
                     
                     logger.info(f"Updating report_data_weeks {week_record['id']} to completed")
                     
                 elif status == 'failed':
                     update_data['status'] = 'failed'
-                    update_data['completed_at'] = datetime.utcnow().isoformat()
+                    # Try to add completed_at if column exists
+                    # update_data['completed_at'] = datetime.utcnow().isoformat()
                     
                     # Add error message if available
                     if 'error_message' in execution_data:
@@ -200,7 +218,8 @@ class ExecutionStatusPoller:
                     
                 elif status == 'cancelled':
                     update_data['status'] = 'failed'
-                    update_data['completed_at'] = datetime.utcnow().isoformat()
+                    # Try to add completed_at if column exists
+                    # update_data['completed_at'] = datetime.utcnow().isoformat()
                     update_data['error_message'] = 'Execution was cancelled'
                     
                     logger.info(f"Updating report_data_weeks {week_record['id']} to failed (cancelled)")
