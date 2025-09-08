@@ -3,7 +3,9 @@
 These are the tasks to be completed for the spec detailed in @.agent-os/specs/2025-09-08-fix-workflow-execution-tracking/spec.md
 
 > Created: 2025-09-08
-> Status: Ready for Implementation
+> Status: ✅ COMPLETED
+> Completed: 2025-09-08
+> Commit: ea1bd94
 
 ## Tasks
 
