@@ -125,9 +125,12 @@ class ExecutionStatusPoller:
                         progress = status.get('progress', 0)
                         logger.info(f"Execution {execution_id}: status={current_status}, progress={progress}%")
                         
-                        # Mark as processed if completed
+                        # Update report_data_weeks if this execution is part of a collection
                         if current_status in ['completed', 'failed', 'cancelled']:
                             self._processed_executions.add(execution_id)
+                            
+                            # Check if this execution is linked to a report_data_weeks record
+                            await self._update_report_week_status(execution_id, current_status, status)
                     
                 except Exception as e:
                     logger.error(f"Error polling execution {execution_id}: {e}")
@@ -137,6 +140,81 @@ class ExecutionStatusPoller:
                 
         except Exception as e:
             logger.error(f"Error in poll_executions: {e}")
+    
+    async def _update_report_week_status(self, execution_id: str, status: str, execution_data: dict):
+        """Update report_data_weeks record if this execution is part of a collection"""
+        try:
+            client = SupabaseManager.get_client(use_service_role=True)
+            
+            # First, get the workflow_execution record to get the internal ID
+            exec_response = client.table('workflow_executions')\
+                .select('id')\
+                .eq('execution_id', execution_id)\
+                .single()\
+                .execute()
+            
+            if not exec_response.data:
+                return
+            
+            workflow_execution_uuid = exec_response.data['id']
+            
+            # Check if there's a report_data_weeks record linked to this execution
+            week_response = client.table('report_data_weeks')\
+                .select('id, status')\
+                .eq('execution_id', workflow_execution_uuid)\
+                .execute()
+            
+            if not week_response.data:
+                # No report_data_weeks record linked to this execution
+                return
+            
+            for week_record in week_response.data:
+                # Only update if the week is still in 'running' status
+                if week_record['status'] != 'running':
+                    continue
+                
+                # Prepare update based on execution status
+                update_data = {
+                    'updated_at': datetime.utcnow().isoformat()
+                }
+                
+                if status == 'completed':
+                    update_data['status'] = 'completed'
+                    update_data['completed_at'] = datetime.utcnow().isoformat()
+                    
+                    # Add row count if available
+                    if 'row_count' in execution_data:
+                        update_data['record_count'] = execution_data['row_count']
+                    
+                    logger.info(f"Updating report_data_weeks {week_record['id']} to completed")
+                    
+                elif status == 'failed':
+                    update_data['status'] = 'failed'
+                    update_data['completed_at'] = datetime.utcnow().isoformat()
+                    
+                    # Add error message if available
+                    if 'error_message' in execution_data:
+                        update_data['error_message'] = execution_data['error_message']
+                    
+                    logger.info(f"Updating report_data_weeks {week_record['id']} to failed")
+                    
+                elif status == 'cancelled':
+                    update_data['status'] = 'failed'
+                    update_data['completed_at'] = datetime.utcnow().isoformat()
+                    update_data['error_message'] = 'Execution was cancelled'
+                    
+                    logger.info(f"Updating report_data_weeks {week_record['id']} to failed (cancelled)")
+                
+                # Update the week record
+                client.table('report_data_weeks')\
+                    .update(update_data)\
+                    .eq('id', week_record['id'])\
+                    .execute()
+                    
+                logger.info(f"Successfully updated report_data_weeks {week_record['id']} status to {update_data.get('status', status)}")
+                
+        except Exception as e:
+            logger.error(f"Error updating report_data_weeks for execution {execution_id}: {e}")
 
 
 # Global instance

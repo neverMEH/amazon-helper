@@ -220,48 +220,66 @@ class HistoricalCollectionService:
                 )
                 
                 # Store execution ID in week record
-                if execution_result and 'id' in execution_result:
-                    # Calculate data checksum if results available
-                    checksum = None
-                    row_count = 0
-                    
-                    if 'results' in execution_result:
-                        checksum = self.reporting_db.compute_data_checksum(
-                            execution_result['results']
-                        )
-                        row_count = len(execution_result.get('results', []))
-                    
+                if execution_result:
                     # Extract execution IDs for tracking
                     execution_id = execution_result.get('id')  # Internal UUID
                     amc_execution_id = execution_result.get('execution_id')  # AMC's ID
+                    execution_status = execution_result.get('status', 'pending')
                     
                     if execution_id:
-                        logger.info(f"Storing execution tracking - Internal: {execution_id}, AMC: {amc_execution_id}")
+                        logger.info(f"Workflow execution started - Internal: {execution_id}, AMC: {amc_execution_id}, Status: {execution_status}")
                     else:
                         logger.warning("No execution_id in result - execution tracking will be incomplete")
                     
-                    # Update week record with success and execution tracking
-                    update_kwargs = {
-                        'row_count': row_count,
-                        'data_checksum': checksum
-                    }
-                    
-                    # Only add execution IDs if they exist
-                    if execution_id:
-                        update_kwargs['execution_id'] = execution_id
-                    if amc_execution_id:
-                        update_kwargs['amc_execution_id'] = amc_execution_id
-                    
-                    self.reporting_db.update_week_status(
-                        week_record_id,
-                        'completed',
-                        **update_kwargs
-                    )
-                    
-                    logger.info(f"Week {week_start} completed successfully with execution tracking")
-                    return True
+                    # AMC executions are async - they start as 'pending' and complete later
+                    # We store the execution_id now and let the background poller update the status
+                    if execution_status in ['pending', 'running']:
+                        # Execution started successfully, store the IDs
+                        update_kwargs = {}
+                        
+                        if execution_id:
+                            update_kwargs['execution_id'] = execution_id
+                        if amc_execution_id:
+                            update_kwargs['amc_execution_id'] = amc_execution_id
+                        
+                        # Keep status as 'running' since AMC is processing
+                        self.reporting_db.update_week_status(
+                            week_record_id,
+                            'running',
+                            **update_kwargs
+                        )
+                        
+                        logger.info(f"Week {week_start} execution started with ID {execution_id}")
+                        # Return True since execution started successfully
+                        # The background poller will update to 'completed' when done
+                        return True
+                        
+                    elif execution_status == 'completed':
+                        # Rare case where execution completes immediately (cached results?)
+                        update_kwargs = {}
+                        
+                        if execution_id:
+                            update_kwargs['execution_id'] = execution_id
+                        if amc_execution_id:
+                            update_kwargs['amc_execution_id'] = amc_execution_id
+                        
+                        # Get row count if available
+                        if 'row_count' in execution_result:
+                            update_kwargs['row_count'] = execution_result['row_count']
+                        
+                        self.reporting_db.update_week_status(
+                            week_record_id,
+                            'completed',
+                            **update_kwargs
+                        )
+                        
+                        logger.info(f"Week {week_start} completed immediately")
+                        return True
+                    else:
+                        # Execution failed to start
+                        raise ValueError(f"Execution failed with status: {execution_status}")
                 else:
-                    raise ValueError("No execution ID returned")
+                    raise ValueError("No execution result returned")
                     
             except Exception as exec_error:
                 logger.error(f"AMC execution failed for week {week_start}: {exec_error}")

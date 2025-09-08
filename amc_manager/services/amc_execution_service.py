@@ -878,7 +878,8 @@ class AMCExecutionService:
                 return None
             
             return {
-                "execution_id": execution['execution_id'],
+                "id": execution['id'],  # Internal UUID for foreign key reference
+                "execution_id": execution['execution_id'],  # AMC's execution ID
                 "status": execution['status'],
                 "progress": execution.get('progress', 0),
                 "started_at": execution['started_at'],
