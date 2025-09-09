@@ -49,6 +49,7 @@ class CollectionResponse(BaseModel):
     target_weeks: int
     start_date: str
     end_date: str
+    instance_id: Optional[str] = None
     progress_percentage: Optional[int] = 0
     weeks_completed: Optional[int] = 0
     message: Optional[str] = None
@@ -61,6 +62,7 @@ class CollectionProgress(BaseModel):
     collection_id: str
     status: str
     progress_percentage: int
+    instance_id: Optional[str] = None
     statistics: Dict[str, int]
     next_week: Optional[Dict[str, str]]
     weeks: List[Dict[str, Any]]
@@ -163,6 +165,7 @@ async def list_data_collections(
                 target_weeks=collection['target_weeks'],
                 start_date=collection['start_date'].isoformat() if isinstance(collection['start_date'], date) else collection['start_date'],
                 end_date=collection['end_date'].isoformat() if isinstance(collection['end_date'], date) else collection['end_date'],
+                instance_id=collection.get('instance_id'),
                 progress_percentage=collection.get('progress_percentage', 0),
                 weeks_completed=collection.get('weeks_completed', 0),
                 created_at=collection.get('created_at'),
@@ -210,6 +213,7 @@ async def get_collection_progress(
             collection_id=progress['collection_id'],
             status=progress['status'],
             progress_percentage=progress['progress_percentage'],
+            instance_id=collection.get('instance_id'),
             statistics=progress['statistics'],
             next_week=progress['next_week'],
             weeks=progress['weeks'],
