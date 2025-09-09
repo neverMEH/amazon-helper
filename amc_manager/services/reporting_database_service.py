@@ -343,6 +343,8 @@ class ReportingDatabaseService(DatabaseService):
             
             if 'execution_id' in kwargs:
                 execution_tracking_updates['execution_id'] = kwargs['execution_id']
+                # Also set workflow_execution_id for backward compatibility
+                execution_tracking_updates['workflow_execution_id'] = kwargs['execution_id']
                 logger.debug(f"Will try to store execution_id {kwargs['execution_id']} for week {week_id}")
             
             if 'amc_execution_id' in kwargs:
@@ -390,13 +392,11 @@ class ReportingDatabaseService(DatabaseService):
                     if 'error_message' in updates:
                         basic_updates['error_message'] = updates['error_message']
                     
-                    # Also try to store execution_id if it's a core column
+                    # Also try to store execution_id - try both column names
                     if 'execution_id' in execution_tracking_updates:
-                        # Try to include it, but we'll handle if it fails
-                        try:
-                            basic_updates['workflow_execution_id'] = execution_tracking_updates['execution_id']
-                        except:
-                            pass  # Column might be named differently
+                        # Set both columns for compatibility
+                        basic_updates['execution_id'] = execution_tracking_updates['execution_id']
+                        basic_updates['workflow_execution_id'] = execution_tracking_updates['execution_id']
                     
                     response = self.client.table('report_data_weeks')\
                         .update(basic_updates)\
