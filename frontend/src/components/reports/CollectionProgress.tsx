@@ -1,14 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Calendar, CheckCircle, AlertCircle, Clock, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Calendar, CheckCircle, AlertCircle, Clock, RefreshCw, Eye } from 'lucide-react';
 import { dataCollectionService } from '../../services/dataCollectionService';
+import AMCExecutionDetail from '../executions/AMCExecutionDetail';
 
 interface CollectionProgressProps {
   collectionId: string;
   onBack: () => void;
+  instanceId?: string;
 }
 
-const CollectionProgress: React.FC<CollectionProgressProps> = ({ collectionId, onBack }) => {
+const CollectionProgress: React.FC<CollectionProgressProps> = ({ collectionId, onBack, instanceId }) => {
+  const [selectedExecutionId, setSelectedExecutionId] = useState<string | null>(null);
+  const [showExecutionDetail, setShowExecutionDetail] = useState(false);
+
   // Fetch collection progress
   const { data: progress, isLoading, error } = useQuery({
     queryKey: ['collectionProgress', collectionId],
@@ -60,6 +65,18 @@ const CollectionProgress: React.FC<CollectionProgressProps> = ({ collectionId, o
       day: 'numeric',
       year: 'numeric'
     });
+  };
+
+  const handleWeekClick = (executionId: string | null | undefined) => {
+    if (executionId) {
+      setSelectedExecutionId(executionId);
+      setShowExecutionDetail(true);
+    }
+  };
+
+  const handleCloseExecutionDetail = () => {
+    setShowExecutionDetail(false);
+    setSelectedExecutionId(null);
   };
 
   if (isLoading) {
@@ -194,7 +211,12 @@ const CollectionProgress: React.FC<CollectionProgressProps> = ({ collectionId, o
             {progress.weeks.map((week) => (
               <div
                 key={week.id}
-                className={`px-6 py-4 ${getWeekStatusClass(week.status)}`}
+                data-testid="week-row"
+                data-clickable={!!week.execution_id}
+                className={`px-6 py-4 ${getWeekStatusClass(week.status)} ${
+                  week.execution_id ? 'cursor-pointer hover:bg-opacity-80 transition-colors' : ''
+                }`}
+                onClick={() => handleWeekClick(week.execution_id)}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
@@ -228,8 +250,21 @@ const CollectionProgress: React.FC<CollectionProgressProps> = ({ collectionId, o
                       </div>
                     )}
                     {week.execution_id && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        ID: {week.execution_id}
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="text-xs text-gray-500">
+                          ID: {week.execution_id}
+                        </div>
+                        <button
+                          data-testid="view-execution-button"
+                          className="inline-flex items-center text-xs text-blue-600 hover:text-blue-800"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleWeekClick(week.execution_id);
+                          }}
+                        >
+                          <Eye className="w-3 h-3 mr-1" />
+                          View
+                        </button>
                       </div>
                     )}
                   </div>
@@ -247,6 +282,16 @@ const CollectionProgress: React.FC<CollectionProgressProps> = ({ collectionId, o
           <span>Last Updated: {new Date(progress.updated_at).toLocaleString()}</span>
         </div>
       </div>
+
+      {/* AMC Execution Detail Modal */}
+      {showExecutionDetail && selectedExecutionId && (
+        <AMCExecutionDetail
+          instanceId={instanceId || progress.instance_id || ''}
+          executionId={selectedExecutionId}
+          isOpen={showExecutionDetail}
+          onClose={handleCloseExecutionDetail}
+        />
+      )}
     </div>
   );
 };

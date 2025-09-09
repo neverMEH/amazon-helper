@@ -89,9 +89,11 @@ const DataCollections: React.FC = () => {
   };
 
   if (selectedCollection) {
+    const collection = collections.find(c => c.collection_id === selectedCollection);
     return (
       <CollectionProgress
         collectionId={selectedCollection}
+        instanceId={collection?.instance_id}
         onBack={() => setSelectedCollection(null)}
       />
     );

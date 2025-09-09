@@ -23,6 +23,7 @@ export interface CollectionResponse {
   updated_at?: string;
   workflow_name?: string;
   instance_name?: string;
+  instance_id?: string;
   error_message?: string;
 }
 
@@ -30,6 +31,7 @@ export interface CollectionProgress {
   collection_id: string;
   status: string;
   progress_percentage: number;
+  instance_id?: string;
   statistics: {
     total_weeks: number;
     completed: number;
