@@ -206,7 +206,7 @@ class HistoricalCollectionService:
             self.reporting_db.update_week_status(
                 week_record_id,
                 'running',
-                execution_date=datetime.now(timezone.utc)
+                execution_date=datetime.now(timezone.utc).isoformat()
             )
             
             # Execute workflow via AMC

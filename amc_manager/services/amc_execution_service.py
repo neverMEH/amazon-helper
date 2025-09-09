@@ -8,6 +8,7 @@ import re
 
 from ..core.logger_simple import get_logger
 from ..core.supabase_client import SupabaseManager
+from ..config import settings
 from .db_service import db_service
 from .token_service import token_service
 from .token_refresh_service import token_refresh_service
