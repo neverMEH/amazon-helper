@@ -424,6 +424,7 @@ class HistoricalCollectionService:
                 'collection_id': collection['collection_id'],
                 'status': collection['status'],
                 'progress_percentage': collection['progress_percentage'],
+                'instance_id': collection.get('amc_instance_id') or collection.get('instance_id'),  # Use AMC instance_id
                 'statistics': {
                     'total_weeks': total_weeks,
                     'completed': completed_weeks,

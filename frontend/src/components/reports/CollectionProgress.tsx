@@ -69,6 +69,10 @@ const CollectionProgress: React.FC<CollectionProgressProps> = ({ collectionId, o
 
   const handleWeekClick = (executionId: string | null | undefined) => {
     if (executionId) {
+      console.log('Week clicked - Execution ID:', executionId);
+      console.log('Instance ID from prop:', instanceId);
+      console.log('Instance ID from progress:', progress?.instance_id);
+      console.log('Final instance ID:', instanceId || progress?.instance_id || '');
       setSelectedExecutionId(executionId);
       setShowExecutionDetail(true);
     }

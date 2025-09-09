@@ -165,7 +165,7 @@ async def list_data_collections(
                 target_weeks=collection['target_weeks'],
                 start_date=collection['start_date'].isoformat() if isinstance(collection['start_date'], date) else collection['start_date'],
                 end_date=collection['end_date'].isoformat() if isinstance(collection['end_date'], date) else collection['end_date'],
-                instance_id=collection.get('instance_id'),
+                instance_id=collection.get('amc_instance_id') or collection.get('instance_id'),
                 progress_percentage=collection.get('progress_percentage', 0),
                 weeks_completed=collection.get('weeks_completed', 0),
                 created_at=collection.get('created_at'),

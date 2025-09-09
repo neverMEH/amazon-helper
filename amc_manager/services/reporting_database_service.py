@@ -254,12 +254,19 @@ class ReportingDatabaseService(DatabaseService):
         """Get current status of a collection job"""
         try:
             response = self.client.table('report_data_collections')\
-                .select('*, report_data_weeks(count)')\
+                .select('*, report_data_weeks(count), amc_instances!instance_id(instance_id)')\
                 .eq('collection_id', collection_id)\
                 .single()\
                 .execute()
             
-            return response.data if response.data else None
+            # If we have the response, extract the actual AMC instance_id
+            if response.data:
+                data = response.data
+                # Get the actual AMC instance_id from the joined table
+                if 'amc_instances' in data and data['amc_instances']:
+                    data['amc_instance_id'] = data['amc_instances']['instance_id']
+                return data
+            return None
         except Exception as e:
             logger.error(f"Error fetching collection status: {e}")
             return None
@@ -269,14 +276,22 @@ class ReportingDatabaseService(DatabaseService):
         """Get all data collections for a user"""
         try:
             query = self.client.table('report_data_collections')\
-                .select('*, workflows(name, workflow_id), amc_instances(instance_name)')\
+                .select('*, workflows(name, workflow_id), amc_instances(instance_name, instance_id)')\
                 .eq('user_id', user_id)
             
             if status:
                 query = query.eq('status', status)
             
             response = query.order('created_at', desc=True).execute()
-            return response.data or []
+            collections = response.data or []
+            
+            # Add the AMC instance_id to each collection
+            for collection in collections:
+                if 'amc_instances' in collection and collection['amc_instances']:
+                    collection['amc_instance_id'] = collection['amc_instances']['instance_id']
+                    collection['instance_name'] = collection['amc_instances']['instance_name']
+            
+            return collections
         except Exception as e:
             logger.error(f"Error fetching user collections: {e}")
             return []
