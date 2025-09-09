@@ -740,6 +740,33 @@ class AMCExecutionService:
             # Check status with AMC
             api_client = AMCAPIClient()
             
+            # If in mock mode, simulate execution completion
+            if not settings.amc_use_real_api:
+                logger.info(f"Mock mode enabled - simulating execution completion for {execution_id}")
+                # Simulate progression
+                current_progress = execution.get('progress', 0)
+                if current_progress < 100:
+                    new_progress = min(current_progress + 30, 100)
+                    new_status = 'completed' if new_progress >= 100 else 'running'
+                    
+                    self._update_execution_progress(execution_id, new_status, new_progress)
+                    
+                    if new_status == 'completed':
+                        # Simulate some results
+                        mock_results = {
+                            "columns": ["date", "impressions", "clicks"],
+                            "rows": [["2025-01-01", 1000, 50]],
+                            "total_rows": 1,
+                            "sample_size": 1
+                        }
+                        
+                        # Store mock results
+                        self._store_execution_results(execution_id, mock_results, row_count=1)
+                    
+                    return self.get_execution_status(execution_id, user_id)
+                else:
+                    return self.get_execution_status(execution_id, user_id)
+            
             # Add a delay on first check to allow AMC to register the execution
             if execution.get('status') == 'pending' and execution.get('progress', 0) < 20:
                 logger.info(f"First status check - execution status: {execution.get('status')}, progress: {execution.get('progress', 0)}")
