@@ -91,6 +91,7 @@ npx playwright test --ui    # Interactive E2E
 8. **FastAPI Routes**: Collections need trailing slash for POST/PUT (e.g., `/workflows/` not `/workflows`)
 9. **Schedule Deduplication**: Schedules check for recent runs within 5 minutes to prevent duplicates
 10. **Python Command**: Use `python` not `python3` in scripts
+11. **Collection Instance ID**: Collections store UUID reference to `amc_instances.id`, but AMC API needs `amc_instances.instance_id` string. Always join tables and extract the actual instance_id for API calls.
 
 ## Project Structure
 
@@ -252,6 +253,12 @@ User must re-authenticate - FERNET_KEY may have changed
 ### Empty AMC Query Results
 - Check date format (no 'Z' suffix)
 - Account for 14-day data lag
+
+### Collection Execution Modal Shows Nothing (404 on /api/amc-executions//execution-id)
+- Issue: `report_data_collections.instance_id` is a UUID foreign key to `amc_instances.id`
+- Solution: Join `amc_instances` table and extract `instance_id` string field
+- Backend must return `amc_instance_id` with the actual AMC instance string (e.g., "amcibersblt")
+- Frontend uses: `instanceId || progress.instance_id` to get the correct value
 
 ### Schedule Execution Failures
 - Check entity_id is properly joined from amc_accounts
@@ -456,6 +463,8 @@ The repository includes Agent OS configuration for AI-assisted development:
 
 ## Recent Critical Fixes
 
+- **2025-09-09**: Collection Execution View - Added ability to view individual week executions with proper instance_id passing
+- **2025-09-09**: Fixed instance_id confusion between UUID and AMC string ID in collections
 - **2025-08-29**: SQL preview fixes for campaign/ASIN parameters
 - **2025-08-28**: Parameter injection improvements for AMC limits
 - **2025-08-27**: ASIN management system implementation
