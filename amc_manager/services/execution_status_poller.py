@@ -69,7 +69,7 @@ class ExecutionStatusPoller:
             cutoff_time = (datetime.utcnow() - timedelta(hours=2)).isoformat()
             
             response = client.table('workflow_executions')\
-                .select('execution_id, amc_execution_id, workflow_id, progress')\
+                .select('id, execution_id, amc_execution_id, workflow_id, progress')\
                 .in_('status', ['pending', 'running'])\
                 .gte('started_at', cutoff_time)\
                 .execute()
@@ -80,7 +80,8 @@ class ExecutionStatusPoller:
             logger.info(f"Found {len(response.data)} executions to poll")
             
             for execution in response.data:
-                execution_id = execution['execution_id']
+                execution_uuid = execution['id']  # Internal UUID for database relations
+                execution_id = execution['execution_id']  # Human-readable ID
                 amc_execution_id = execution.get('amc_execution_id')
                 
                 if not amc_execution_id:
@@ -130,7 +131,8 @@ class ExecutionStatusPoller:
                             self._processed_executions.add(execution_id)
                             
                             # Check if this execution is linked to a report_data_weeks record
-                            await self._update_report_week_status(execution_id, current_status, status)
+                            # Pass both the UUID and the execution_id
+                            await self._update_report_week_status(execution_uuid, execution_id, current_status, status)
                     
                 except Exception as e:
                     logger.error(f"Error polling execution {execution_id}: {e}")
@@ -141,22 +143,20 @@ class ExecutionStatusPoller:
         except Exception as e:
             logger.error(f"Error in poll_executions: {e}")
     
-    async def _update_report_week_status(self, execution_id: str, status: str, execution_data: dict):
-        """Update report_data_weeks record if this execution is part of a collection"""
+    async def _update_report_week_status(self, execution_uuid: str, execution_id: str, status: str, execution_data: dict):
+        """Update report_data_weeks record if this execution is part of a collection
+        
+        Args:
+            execution_uuid: Internal UUID of the workflow_execution record
+            execution_id: Human-readable execution ID (exec_xxx)
+            status: Execution status (completed, failed, cancelled)
+            execution_data: Additional execution data including row_count
+        """
         try:
             client = SupabaseManager.get_client(use_service_role=True)
             
-            # First, get the workflow_execution record to get the internal ID
-            exec_response = client.table('workflow_executions')\
-                .select('id')\
-                .eq('execution_id', execution_id)\
-                .single()\
-                .execute()
-            
-            if not exec_response.data:
-                return
-            
-            workflow_execution_uuid = exec_response.data['id']
+            # We already have the UUID, no need to look it up
+            workflow_execution_uuid = execution_uuid
             
             # Check if there's a report_data_weeks record linked to this execution
             # Try both possible column names for backward compatibility
@@ -191,24 +191,25 @@ class ExecutionStatusPoller:
                 
                 # Prepare update based on execution status
                 update_data = {
+                    'status': status,  # Always update the status
                     'updated_at': datetime.utcnow().isoformat()
                 }
                 
                 if status == 'completed':
-                    update_data['status'] = 'completed'
                     # Try to add completed_at if column exists
-                    # update_data['completed_at'] = datetime.utcnow().isoformat()
+                    update_data['completed_at'] = datetime.utcnow().isoformat()
                     
                     # Add row count if available - the column is 'record_count' in the database
                     if 'row_count' in execution_data:
                         update_data['record_count'] = execution_data['row_count']
+                    elif 'total_rows' in execution_data:
+                        update_data['record_count'] = execution_data['total_rows']
                     
-                    logger.info(f"Updating report_data_weeks {week_record['id']} to completed")
+                    logger.info(f"Updating report_data_weeks {week_record['id']} to completed with {update_data.get('record_count', 0)} rows")
                     
                 elif status == 'failed':
-                    update_data['status'] = 'failed'
                     # Try to add completed_at if column exists
-                    # update_data['completed_at'] = datetime.utcnow().isoformat()
+                    update_data['completed_at'] = datetime.utcnow().isoformat()
                     
                     # Add error message if available
                     if 'error_message' in execution_data:
@@ -217,9 +218,8 @@ class ExecutionStatusPoller:
                     logger.info(f"Updating report_data_weeks {week_record['id']} to failed")
                     
                 elif status == 'cancelled':
-                    update_data['status'] = 'failed'
-                    # Try to add completed_at if column exists
-                    # update_data['completed_at'] = datetime.utcnow().isoformat()
+                    update_data['status'] = 'failed'  # Map cancelled to failed
+                    update_data['completed_at'] = datetime.utcnow().isoformat()
                     update_data['error_message'] = 'Execution was cancelled'
                     
                     logger.info(f"Updating report_data_weeks {week_record['id']} to failed (cancelled)")
