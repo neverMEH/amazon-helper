@@ -7,12 +7,11 @@ import {
 } from '@heroicons/react/24/outline';
 import type { WeekData, ComparisonData } from '../../services/reportDashboardService';
 import WeekSelector from './WeekSelector';
-import LineChart from '../charts/LineChart';
-import BarChart from '../charts/BarChart';
+import { LineChart } from '../charts/LineChart';
+import { BarChart } from '../charts/BarChart';
 import LoadingSpinner from '../LoadingSpinner';
 
 interface ComparisonPanelProps {
-  collectionId: string;
   weeks: WeekData[];
   onPeriodsChange: (periods: { period1: string[]; period2: string[] }) => void;
   comparisonData?: ComparisonData;
@@ -22,7 +21,6 @@ interface ComparisonPanelProps {
 type ComparisonView = 'metrics' | 'trends' | 'breakdown';
 
 const ComparisonPanel: React.FC<ComparisonPanelProps> = ({
-  collectionId,
   weeks,
   onPeriodsChange,
   comparisonData,
@@ -31,12 +29,12 @@ const ComparisonPanel: React.FC<ComparisonPanelProps> = ({
   const [period1Weeks, setPeriod1Weeks] = useState<string[]>([]);
   const [period2Weeks, setPeriod2Weeks] = useState<string[]>([]);
   const [comparisonView, setComparisonView] = useState<ComparisonView>('metrics');
-  const [selectedMetrics, setSelectedMetrics] = useState<string[]>([
+  const selectedMetrics = [
     'impressions',
     'clicks',
     'conversions',
     'spend',
-  ]);
+  ];
 
   // Handle period selection
   const handlePeriod1Change = useCallback(
@@ -67,7 +65,13 @@ const ComparisonPanel: React.FC<ComparisonPanelProps> = ({
   const comparisonMetrics = useMemo(() => {
     if (!comparisonData) return [];
 
-    const metrics = [];
+    const metrics: Array<{
+      label: string;
+      period1Value: number;
+      period2Value: number;
+      change: number;
+      format: string;
+    }> = [];
     const { period1, period2, changes } = comparisonData;
 
     // Default metrics to compare
@@ -197,7 +201,7 @@ const ComparisonPanel: React.FC<ComparisonPanelProps> = ({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <LoadingSpinner size="large" />
+        <LoadingSpinner size="lg" />
         <span className="ml-3 text-gray-600">Loading comparison data...</span>
       </div>
     );

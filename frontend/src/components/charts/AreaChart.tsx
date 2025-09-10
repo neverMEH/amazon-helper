@@ -10,10 +10,9 @@ import {
   Tooltip,
   Legend,
   Filler,
-  ChartData,
-  ChartOptions,
 } from 'chart.js';
-import BaseChart from './BaseChart';
+import type { ChartData, ChartOptions } from 'chart.js';
+import { BaseChart } from './BaseChart';
 
 // Register Chart.js components
 ChartJS.register(

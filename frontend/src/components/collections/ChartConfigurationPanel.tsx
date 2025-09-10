@@ -1,17 +1,14 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import {
   CogIcon,
-  PlusIcon,
   TrashIcon,
   CheckIcon,
-  XMarkIcon,
   DocumentDuplicateIcon,
   BookmarkIcon,
 } from '@heroicons/react/24/outline';
 import type { DashboardConfig } from '../../services/reportDashboardService';
 
 interface ChartConfigurationPanelProps {
-  collectionId: string;
   availableMetrics: string[];
   savedConfigs: DashboardConfig[];
   onSave: (config: DashboardConfig) => void;
@@ -34,19 +31,16 @@ interface WidgetConfig {
 }
 
 const ChartConfigurationPanel: React.FC<ChartConfigurationPanelProps> = ({
-  collectionId,
   availableMetrics,
   savedConfigs,
   onSave,
   onApply,
 }) => {
   const [configName, setConfigName] = useState('');
-  const [selectedMetrics, setSelectedMetrics] = useState<string[]>([]);
   const [widgets, setWidgets] = useState<WidgetConfig[]>([]);
   const [columns, setColumns] = useState(2);
   const [selectedConfig, setSelectedConfig] = useState<DashboardConfig | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [editingWidget, setEditingWidget] = useState<string | null>(null);
 
   // Widget templates
   const widgetTemplates = useMemo(
@@ -128,14 +122,6 @@ const ChartConfigurationPanel: React.FC<ChartConfigurationPanelProps> = ({
     [widgets]
   );
 
-  // Toggle metric selection
-  const handleMetricToggle = useCallback((metric: string) => {
-    setSelectedMetrics((prev) =>
-      prev.includes(metric)
-        ? prev.filter((m) => m !== metric)
-        : [...prev, metric]
-    );
-  }, []);
 
   // Save configuration
   const handleSaveConfiguration = useCallback(() => {

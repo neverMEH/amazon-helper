@@ -3,26 +3,20 @@ import { useQuery } from '@tanstack/react-query';
 import {
   ChartBarIcon,
   ChartPieIcon,
-  ArrowTrendingUpIcon,
-  ArrowTrendingDownIcon,
-  CalendarIcon,
   CogIcon,
   ArrowDownTrayIcon,
-  ShareIcon,
   CameraIcon,
   ArrowPathIcon,
 } from '@heroicons/react/24/outline';
 import * as reportDashboardService from '../../services/reportDashboardService';
 import type {
-  DashboardData,
   DashboardFilters,
   DashboardConfig,
-  ComparisonData,
 } from '../../services/reportDashboardService';
-import LineChart from '../charts/LineChart';
-import BarChart from '../charts/BarChart';
-import PieChart from '../charts/PieChart';
-import AreaChart from '../charts/AreaChart';
+import { LineChart } from '../charts/LineChart';
+import { BarChart } from '../charts/BarChart';
+import { PieChart } from '../charts/PieChart';
+import { AreaChart } from '../charts/AreaChart';
 import WeekSelector from './WeekSelector';
 import ComparisonPanel from './ComparisonPanel';
 import ChartConfigurationPanel from './ChartConfigurationPanel';
@@ -149,32 +143,20 @@ const CollectionReportDashboard: React.FC<CollectionReportDashboardProps> = ({
     setFilters((prev) => ({ ...prev, weeks }));
   }, []);
 
-  // Handle export
+  // Handle export - currently disabled, will be implemented later
   const handleExport = useCallback(
-    async (format: 'pdf' | 'png' | 'csv') => {
+    async (_format: 'pdf' | 'png' | 'csv') => {
       setIsExporting(true);
       try {
-        const blob = await reportDashboardService.exportDashboard(collectionId, format, {
-          includeCharts: true,
-          includeTables: true,
-        });
-        
-        // Create download link
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `dashboard-${collectionId}-${new Date().toISOString()}.${format}`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        // Export functionality to be implemented
+        console.log('Export functionality not yet implemented');
       } catch (error) {
         console.error('Export failed:', error);
       } finally {
         setIsExporting(false);
       }
     },
-    [collectionId]
+    []
   );
 
   // Handle configuration save
@@ -245,7 +227,7 @@ const CollectionReportDashboard: React.FC<CollectionReportDashboardProps> = ({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <LoadingSpinner size="large" />
+        <LoadingSpinner size="lg" />
         <span className="ml-3 text-gray-600">Loading dashboard...</span>
       </div>
     );
@@ -433,7 +415,6 @@ const CollectionReportDashboard: React.FC<CollectionReportDashboardProps> = ({
 
         {viewMode === 'comparison' && (
           <ComparisonPanel
-            collectionId={collectionId}
             weeks={dashboardData.weeks}
             onPeriodsChange={setComparisonPeriods}
             comparisonData={comparisonData}
@@ -443,7 +424,6 @@ const CollectionReportDashboard: React.FC<CollectionReportDashboardProps> = ({
 
         {viewMode === 'configuration' && (
           <ChartConfigurationPanel
-            collectionId={collectionId}
             availableMetrics={availableMetrics}
             savedConfigs={savedConfigs}
             onSave={handleSaveConfig}
