@@ -211,9 +211,32 @@ The Data Collections system enables automated historical data gathering by execu
     - **Total Coverage**: 29 automated tests ensuring reliability and correctness
 
 ### Frontend Collection Report Dashboard Implementation
-**Major Feature**: Implemented comprehensive frontend components for the Collection Report Dashboard, providing interactive visualizations, period comparisons, and customizable dashboard configurations for 52-week historical data analysis.
+**Major Feature**: Implemented comprehensive frontend components for the Collection Report Dashboard (Task 4 Complete). Components provide interactive visualizations, period comparisons, and customizable dashboard configurations for 52-week historical data analysis.
 
-**New Frontend Components**:
+**⚠️ CURRENT STATUS**: Components are built and fully functional but **NOT YET INTEGRATED** into the application UI. Users cannot access these dashboards through the interface until Task 5 (Integration and Polish) is completed.
+
+**What's Working**:
+- All dashboard components are built and TypeScript-compliant
+- Backend API endpoints are fully functional
+- Database schema and services are complete
+- Components pass all unit tests
+
+**What's Missing** (Task 5 - Integration Required):
+- React Router configuration for dashboard routes
+- Navigation menu items/buttons to access the dashboard
+- Page components that use the dashboard components
+- Connection to actual collection data from backend
+- End-to-end testing of the complete user flow
+
+**How to Access Currently**: 
+- Dashboard components are NOT accessible through the UI yet
+- To make them accessible, need to:
+  1. Add route to React Router configuration
+  2. Add navigation link in the main UI
+  3. Create page component that imports and uses CollectionReportDashboard
+  4. Connect it to actual collection IDs from the data collections list
+
+**New Frontend Components** (Built but Not Integrated):
 
 29. **CollectionReportDashboard.tsx** - Main dashboard container component
     - Three view modes: dashboard, comparison, configuration
@@ -316,25 +339,34 @@ The Data Collections system enables automated historical data gathering by execu
 **Dependencies Added**:
 - `@heroicons/react` - Icon library for consistent UI elements
 
-**Integration Points**:
+**Integration Points** (Pending Task 5 Implementation):
 
-41. **Collection Progress Integration**:
-    - Dashboard accessible from collection progress screens
-    - Seamless navigation between progress tracking and historical analysis
-    - Context-aware dashboard initialization based on collection state
+41. **Collection Progress Integration** (NOT YET IMPLEMENTED):
+    - Dashboard will be accessible from collection progress screens (pending routing)
+    - Seamless navigation between progress tracking and historical analysis (pending)
+    - Context-aware dashboard initialization based on collection state (pending)
 
-42. **Export and Sharing**:
-    - PDF export functionality for reports
-    - PNG export for individual charts
-    - CSV export for raw data analysis
-    - Shareable snapshot URLs for collaboration
+42. **Export and Sharing** (Components Ready):
+    - PDF export functionality for reports (built, needs integration)
+    - PNG export for individual charts (built, needs integration)
+    - CSV export for raw data analysis (built, needs integration)
+    - Shareable snapshot URLs for collaboration (built, needs integration)
 
-**Impact**:
-- Enables comprehensive historical data analysis for 52-week collections
-- Provides interactive visualization capabilities for trend identification
-- Supports data-driven decision making with comparative analysis
-- Enhances user experience with customizable dashboard configurations
-- Completes Phase 3-4 reporting infrastructure for the platform
+**Current Impact**:
+- ✅ Backend infrastructure complete for comprehensive historical data analysis
+- ✅ Frontend components built for interactive visualization capabilities
+- ❌ User-facing access not yet available (requires Task 5 integration)
+- ❌ End-to-end data flow not yet connected
+- 🔄 Phase 3-4 reporting infrastructure 80% complete (Task 5 remaining)
+
+**Next Steps for Task 5 (Integration and Polish)**:
+1. Create `/frontend/src/pages/CollectionReportPage.tsx` page component
+2. Add dashboard route to React Router configuration
+3. Add "View Dashboard" button/link in collection progress screens
+4. Connect dashboard to actual collection data from backend
+5. Implement end-to-end testing
+6. Verify responsive design across devices
+7. Add user documentation for dashboard features
 
 ### Fixed Collection Execution ID Mapping Issue
 **Problem**: The collection progress view was experiencing 404 errors when users tried to view individual week executions. The issue was caused by passing UUID database IDs to the AMC API instead of the actual AMC execution IDs.

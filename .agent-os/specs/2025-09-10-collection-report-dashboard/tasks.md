@@ -49,7 +49,7 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 - [ ] 5. Integration and Polish
   - [ ] 5.1 Write end-to-end tests for complete report dashboard flow
   - [ ] 5.2 Integrate report dashboard into CollectionProgress page
-  - [ ] 5.3 Implement responsive design for mobile/tablet views
+  - [ ] 5.3 Implement responsive design for desktop views
   - [ ] 5.4 Add export and sharing functionality UI
   - [ ] 5.5 Optimize performance with lazy loading and memoization
   - [ ] 5.6 Add user documentation and tooltips
