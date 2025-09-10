@@ -144,7 +144,7 @@ const CollectionReportDashboard: React.FC<CollectionReportDashboardProps> = ({
   }, []);
 
   // Handle export - currently disabled, will be implemented later
-  const handleExport = useCallback(
+  const _handleExport = useCallback(
     async (_format: 'pdf' | 'png' | 'csv') => {
       setIsExporting(true);
       try {
@@ -211,9 +211,16 @@ const CollectionReportDashboard: React.FC<CollectionReportDashboardProps> = ({
           <BarChart data={chartData.bar} height={400} />
         ) : null;
       case 'pie':
-        return chartData.pie ? (
-          <PieChart data={chartData.pie} height={400} />
-        ) : null;
+        if (chartData.pie) {
+          // Transform data to match PieChart's expected format
+          const pieData = {
+            labels: chartData.pie.labels,
+            values: chartData.pie.datasets[0]?.data || [],
+            backgroundColor: chartData.pie.datasets[0]?.backgroundColor,
+          };
+          return <PieChart data={pieData} height={400} />;
+        }
+        return null;
       case 'area':
         return chartData.area ? (
           <AreaChart data={chartData.area} height={400} />

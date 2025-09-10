@@ -32,7 +32,7 @@ interface AreaChartProps {
   height?: number | string;
   options?: Partial<ChartOptions<'line'>>;
   loading?: boolean;
-  error?: string | null;
+  error?: string;
 }
 
 const AreaChart: React.FC<AreaChartProps> = ({
@@ -41,7 +41,7 @@ const AreaChart: React.FC<AreaChartProps> = ({
   height = 300,
   options = {},
   loading = false,
-  error = null,
+  error,
 }) => {
   // Ensure all datasets have fill enabled for area chart
   const areaData = {
@@ -185,4 +185,5 @@ const AreaChart: React.FC<AreaChartProps> = ({
   );
 };
 
+export { AreaChart };
 export default AreaChart;
