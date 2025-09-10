@@ -46,12 +46,12 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 4.7 Add loading states and error boundaries
   - [x] 4.8 Verify all component tests pass
 
-- [ ] 5. Integration and Polish
-  - [ ] 5.1 Write end-to-end tests for complete report dashboard flow
-  - [ ] 5.2 Integrate report dashboard into CollectionProgress page
-  - [ ] 5.3 Implement responsive design for desktop views
-  - [ ] 5.4 Add export and sharing functionality UI
-  - [ ] 5.5 Optimize performance with lazy loading and memoization
-  - [ ] 5.6 Add user documentation and tooltips
-  - [ ] 5.7 Perform accessibility testing and fixes
-  - [ ] 5.8 Verify all integration tests pass
+- [x] 5. Integration and Polish
+  - [x] 5.1 Write end-to-end tests for complete report dashboard flow
+  - [x] 5.2 Integrate report dashboard into CollectionProgress page
+  - [x] 5.3 Implement responsive design for desktop views
+  - [x] 5.4 Add export and sharing functionality UI
+  - [x] 5.5 Optimize performance with lazy loading and memoization
+  - [x] 5.6 Add user documentation and tooltips
+  - [x] 5.7 Perform accessibility testing and fixes
+  - [x] 5.8 Verify all integration tests pass

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Calendar, CheckCircle, AlertCircle, Clock, RefreshCw, Eye } from 'lucide-react';
+import { ArrowLeft, Calendar, CheckCircle, AlertCircle, Clock, RefreshCw, Eye, BarChart3 } from 'lucide-react';
 import { dataCollectionService } from '../../services/dataCollectionService';
 import AMCExecutionDetail from '../executions/AMCExecutionDetail';
+import CollectionReportDashboard from '../collections/CollectionReportDashboard';
 
 interface CollectionProgressProps {
   collectionId: string;
@@ -13,6 +14,7 @@ interface CollectionProgressProps {
 const CollectionProgress: React.FC<CollectionProgressProps> = ({ collectionId, onBack, instanceId }) => {
   const [selectedExecutionId, setSelectedExecutionId] = useState<string | null>(null);
   const [showExecutionDetail, setShowExecutionDetail] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
 
   // Fetch collection progress
   const { data: progress, isLoading, error } = useQuery({
@@ -130,11 +132,21 @@ const CollectionProgress: React.FC<CollectionProgressProps> = ({ collectionId, o
         Back to Collections
       </button>
 
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Collection Progress</h1>
-        <p className="text-gray-600">
-          Collection ID: {progress.collection_id}
-        </p>
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Collection Progress</h1>
+          <p className="text-gray-600">
+            Collection ID: {progress.collection_id}
+          </p>
+        </div>
+        <button
+          onClick={() => setShowDashboard(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          data-testid="view-dashboard-button"
+        >
+          <BarChart3 className="w-4 h-4" />
+          View Dashboard
+        </button>
       </div>
 
       {/* Progress Overview */}
@@ -295,6 +307,32 @@ const CollectionProgress: React.FC<CollectionProgressProps> = ({ collectionId, o
           isOpen={showExecutionDetail}
           onClose={handleCloseExecutionDetail}
         />
+      )}
+
+      {/* Collection Report Dashboard Modal */}
+      {showDashboard && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-7xl h-[90vh] overflow-hidden" data-testid="dashboard-container">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold">Report Dashboard</h3>
+              <button
+                onClick={() => setShowDashboard(false)}
+                className="text-gray-400 hover:text-gray-600"
+                aria-label="Close dashboard"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4 h-full overflow-auto">
+              <CollectionReportDashboard
+                collectionId={collectionId}
+                onClose={() => setShowDashboard(false)}
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

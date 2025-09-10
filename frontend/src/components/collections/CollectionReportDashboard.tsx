@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, lazy, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   ChartBarIcon,
@@ -13,15 +13,19 @@ import type {
   DashboardFilters,
   DashboardConfig,
 } from '../../services/reportDashboardService';
-import { LineChart } from '../charts/LineChart';
-import { BarChart } from '../charts/BarChart';
-import { PieChart } from '../charts/PieChart';
-import { AreaChart } from '../charts/AreaChart';
-import WeekSelector from './WeekSelector';
-import ComparisonPanel from './ComparisonPanel';
-import ChartConfigurationPanel from './ChartConfigurationPanel';
 import LoadingSpinner from '../LoadingSpinner';
 import ErrorMessage from '../ErrorMessage';
+import Tooltip from '../common/Tooltip';
+
+// Lazy load heavy components
+const LineChart = lazy(() => import('../charts/LineChart').then(module => ({ default: module.LineChart })));
+const BarChart = lazy(() => import('../charts/BarChart').then(module => ({ default: module.BarChart })));
+const PieChart = lazy(() => import('../charts/PieChart').then(module => ({ default: module.PieChart })));
+const AreaChart = lazy(() => import('../charts/AreaChart').then(module => ({ default: module.AreaChart })));
+const WeekSelector = lazy(() => import('./WeekSelector'));
+const ComparisonPanel = lazy(() => import('./ComparisonPanel'));
+const ChartConfigurationPanel = lazy(() => import('./ChartConfigurationPanel'));
+const ExportShareModal = lazy(() => import('./ExportShareModal'));
 
 interface CollectionReportDashboardProps {
   collectionId: string;
@@ -48,6 +52,7 @@ const CollectionReportDashboard: React.FC<CollectionReportDashboardProps> = ({
   }>({ period1: [], period2: [] });
   const [activeConfig, setActiveConfig] = useState<DashboardConfig | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   // Fetch dashboard data
   const {
@@ -207,33 +212,45 @@ const CollectionReportDashboard: React.FC<CollectionReportDashboardProps> = ({
 
     const { chartData } = dashboardData;
 
-    switch (selectedChartType) {
-      case 'line':
-        return chartData.line ? (
-          <LineChart data={chartData.line} height={400} />
-        ) : null;
-      case 'bar':
-        return chartData.bar ? (
-          <BarChart data={chartData.bar} height={400} />
-        ) : null;
-      case 'pie':
-        if (chartData.pie) {
-          // Transform data to match PieChart's expected format
-          const pieData = {
-            labels: chartData.pie.labels,
-            values: chartData.pie.datasets[0]?.data || [],
-            backgroundColor: chartData.pie.datasets[0]?.backgroundColor,
-          };
-          return <PieChart data={pieData} height={400} />;
-        }
-        return null;
-      case 'area':
-        return chartData.area ? (
-          <AreaChart data={chartData.area} height={400} />
-        ) : null;
-      default:
-        return null;
-    }
+    const chartElement = (() => {
+      switch (selectedChartType) {
+        case 'line':
+          return chartData.line ? (
+            <LineChart data={chartData.line} height={400} />
+          ) : null;
+        case 'bar':
+          return chartData.bar ? (
+            <BarChart data={chartData.bar} height={400} />
+          ) : null;
+        case 'pie':
+          if (chartData.pie) {
+            // Transform data to match PieChart's expected format
+            const pieData = {
+              labels: chartData.pie.labels,
+              values: chartData.pie.datasets[0]?.data || [],
+              backgroundColor: chartData.pie.datasets[0]?.backgroundColor,
+            };
+            return <PieChart data={pieData} height={400} />;
+          }
+          return null;
+        case 'area':
+          return chartData.area ? (
+            <AreaChart data={chartData.area} height={400} />
+          ) : null;
+        default:
+          return null;
+      }
+    })();
+
+    return (
+      <Suspense fallback={
+        <div className="flex items-center justify-center h-64" data-testid="chart-skeleton">
+          <LoadingSpinner size="lg" />
+        </div>
+      }>
+        {chartElement}
+      </Suspense>
+    );
   }, [dashboardData, selectedChartType]);
 
   // Loading state
@@ -273,50 +290,60 @@ const CollectionReportDashboard: React.FC<CollectionReportDashboardProps> = ({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-lg">
+    <div className="bg-white rounded-lg shadow-lg" role="main" aria-label="Report Dashboard">
       {/* Header */}
-      <div className="border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
+      <div className="border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">
-              {dashboardData.collection.name}
-            </h2>
-            <p className="text-sm text-gray-500 mt-1">
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+                {dashboardData.collection.name}
+              </h2>
+              <Tooltip content="This dashboard shows historical data trends and metrics from your AMC collection executions. You can view different time periods, compare weeks, and export the data." />
+            </div>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1">
               {dashboardData.collection.weeks_completed} weeks completed
             </p>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
             {/* View mode toggle */}
             <div className="flex rounded-lg shadow-sm">
               <button
                 onClick={() => setViewMode('dashboard')}
-                className={`px-4 py-2 text-sm font-medium rounded-l-lg ${
+                className={`px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-l-lg ${
                   viewMode === 'dashboard'
                     ? 'bg-indigo-600 text-white'
                     : 'bg-white text-gray-700 hover:bg-gray-50'
                 }`}
+                data-testid="view-dashboard"
+                title="View overall metrics and trends"
               >
-                Dashboard
+                <span className="hidden sm:inline">Dashboard</span>
+                <span className="sm:hidden">Dash</span>
               </button>
               <button
                 onClick={() => setViewMode('comparison')}
-                className={`px-4 py-2 text-sm font-medium ${
+                className={`px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium ${
                   viewMode === 'comparison'
                     ? 'bg-indigo-600 text-white'
                     : 'bg-white text-gray-700 hover:bg-gray-50'
                 }`}
+                data-testid="comparison-toggle"
+                title="Compare metrics between different time periods"
               >
-                Compare Periods
+                <span className="hidden sm:inline">Compare Periods</span>
+                <span className="sm:hidden">Compare</span>
               </button>
               <button
                 onClick={() => setViewMode('configuration')}
-                className={`px-4 py-2 text-sm font-medium rounded-r-lg ${
+                className={`px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-r-lg ${
                   viewMode === 'configuration'
                     ? 'bg-indigo-600 text-white'
                     : 'bg-white text-gray-700 hover:bg-gray-50'
                 }`}
+                title="Configuration"
               >
-                <CogIcon className="h-4 w-4" />
+                <CogIcon className="h-3 w-3 sm:h-4 sm:w-4" />
               </button>
             </div>
 
@@ -335,17 +362,14 @@ const CollectionReportDashboard: React.FC<CollectionReportDashboardProps> = ({
             >
               <CameraIcon className="h-5 w-5" />
             </button>
-            <div className="relative">
-              <button
-                onClick={() => {}}
-                className="p-2 text-gray-400 hover:text-gray-500"
-                title="Export"
-                disabled={isExporting}
-              >
-                <ArrowDownTrayIcon className="h-5 w-5" />
-              </button>
-              {/* Export dropdown would go here */}
-            </div>
+            <button
+              onClick={() => setShowExportModal(true)}
+              className="p-2 text-gray-400 hover:text-gray-500"
+              title="Export & Share"
+              disabled={isExporting}
+            >
+              <ArrowDownTrayIcon className="h-5 w-5" />
+            </button>
             {onClose && (
               <button
                 onClick={onClose}
@@ -362,52 +386,59 @@ const CollectionReportDashboard: React.FC<CollectionReportDashboardProps> = ({
       </div>
 
       {/* Main content */}
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         {viewMode === 'dashboard' && (
           <>
             {/* Summary cards */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+            <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 mb-6" data-testid="chart-grid">
               {summaryCards.map((card, index) => (
                 <div
                   key={index}
-                  className="bg-gray-50 rounded-lg p-4 border border-gray-200"
+                  className="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-200"
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <card.icon className="h-5 w-5 text-gray-400" />
+                  <div className="flex items-center justify-between mb-1 sm:mb-2">
+                    <card.icon className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
                     {card.trend && (
                       <span
                         className={`text-xs font-medium ${
                           card.trend > 0 ? 'text-green-600' : 'text-red-600'
                         }`}
+                        data-testid={card.trend > 0 ? 'positive-change' : 'negative-change'}
                       >
                         {card.trend > 0 ? '+' : ''}{card.trend}%
                       </span>
                     )}
                   </div>
-                  <p className="text-2xl font-bold text-gray-900">{card.value}</p>
-                  <p className="text-xs text-gray-500 mt-1">{card.label}</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 truncate">{card.value}</p>
+                  <p className="text-xs text-gray-500 mt-0.5 sm:mt-1 truncate">{card.label}</p>
                 </div>
               ))}
             </div>
 
             {/* Week selector and chart type */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 space-y-4 sm:space-y-0">
-              <WeekSelector
-                weeks={dashboardData.weeks}
-                selectedWeeks={selectedWeeks}
-                onSelectionChange={handleWeekSelection}
-                multiSelect={true}
-              />
+              <Suspense fallback={<div className="h-10 w-48 bg-gray-200 animate-pulse rounded" />}>
+                <WeekSelector
+                  weeks={dashboardData.weeks}
+                  selectedWeeks={selectedWeeks}
+                  onSelectionChange={handleWeekSelection}
+                  multiSelect={true}
+                  data-testid="week-selector"
+                />
+              </Suspense>
               
               <div className="flex items-center space-x-2">
-                <label htmlFor="chart-type" className="text-sm font-medium text-gray-700">
-                  Chart Type:
+                <label htmlFor="chart-type" className="flex items-center gap-1 text-xs sm:text-sm font-medium text-gray-700">
+                  <span className="hidden sm:inline">Chart Type:</span>
+                  <span className="sm:hidden">Type:</span>
+                  <Tooltip content="Choose how to visualize your data. Line charts show trends over time, bar charts compare values, pie charts show proportions, and area charts show cumulative totals." />
                 </label>
                 <select
                   id="chart-type"
+                  data-testid="chart-type-selector"
                   value={selectedChartType}
                   onChange={(e) => setSelectedChartType(e.target.value as ChartType)}
-                  className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  className="text-xs sm:text-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 >
                   <option value="line">Line Chart</option>
                   <option value="bar">Bar Chart</option>
@@ -418,8 +449,19 @@ const CollectionReportDashboard: React.FC<CollectionReportDashboardProps> = ({
             </div>
 
             {/* Chart */}
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-              {renderChart()}
+            <div 
+              className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4" 
+              data-testid="chart-container"
+              role="region"
+              aria-label="Report Dashboard Charts"
+            >
+              <div data-testid={`${selectedChartType}-chart`}>
+                {renderChart()}
+              </div>
+              {/* Screen reader announcement for chart changes */}
+              <div className="sr-only" aria-live="polite" aria-atomic="true">
+                Chart updated: Now showing {selectedChartType} chart with {selectedWeeks.length || 'all'} weeks selected
+              </div>
             </div>
 
             {/* Additional metrics or tables could go here */}
@@ -427,25 +469,52 @@ const CollectionReportDashboard: React.FC<CollectionReportDashboardProps> = ({
         )}
 
         {viewMode === 'comparison' && (
-          <ComparisonPanel
-            weeks={dashboardData.weeks}
-            onPeriodsChange={setComparisonPeriods}
-            comparisonData={comparisonData}
-            isLoading={isLoadingComparison}
-          />
+          <Suspense fallback={
+            <div className="flex items-center justify-center h-64">
+              <LoadingSpinner size="lg" />
+            </div>
+          }>
+            <ComparisonPanel
+              weeks={dashboardData.weeks}
+              onPeriodsChange={setComparisonPeriods}
+              comparisonData={comparisonData}
+              isLoading={isLoadingComparison}
+              data-testid="comparison-panel"
+            />
+          </Suspense>
         )}
 
         {viewMode === 'configuration' && (
-          <ChartConfigurationPanel
-            availableMetrics={availableMetrics}
-            savedConfigs={savedConfigs}
-            onSave={handleSaveConfig}
-            onApply={setActiveConfig}
-          />
+          <Suspense fallback={
+            <div className="flex items-center justify-center h-64">
+              <LoadingSpinner size="lg" />
+            </div>
+          }>
+            <ChartConfigurationPanel
+              availableMetrics={availableMetrics}
+              savedConfigs={savedConfigs}
+              onSave={handleSaveConfig}
+              onApply={setActiveConfig}
+            />
+          </Suspense>
         )}
       </div>
+
+      {/* Export & Share Modal */}
+      <Suspense fallback={null}>
+        <ExportShareModal
+          isOpen={showExportModal}
+          onClose={() => setShowExportModal(false)}
+          collectionId={collectionId}
+          dashboardData={dashboardData}
+          activeConfig={activeConfig}
+        />
+      </Suspense>
     </div>
   );
 };
 
-export default CollectionReportDashboard;
+export default React.memo(CollectionReportDashboard, (prevProps, nextProps) => {
+  // Only re-render if collectionId changes
+  return prevProps.collectionId === nextProps.collectionId;
+});
