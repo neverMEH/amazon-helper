@@ -4,6 +4,111 @@
 
 The Data Collections system enables automated historical data gathering by executing workflows across multiple time periods. It supports 52-week backfills with parallel processing, automatic retry logic, and real-time progress tracking for reporting and analytics.
 
+## Recent Changes (2025-09-10)
+
+### Collection Report Dashboard Database Schema Implementation
+**Major Feature**: Added comprehensive database schema foundation for the Collection Report Dashboard feature, providing historical trending views, week-over-week comparisons, and multi-week analysis capabilities for KPIs and metrics.
+
+**New Database Tables**:
+
+1. **`collection_report_configs`** - Stores saved report dashboard configurations and user preferences
+   - Tracks custom dashboard layouts, filters, and visualization settings
+   - Enables users to save and share report configurations
+   - Links to collections for personalized reporting experiences
+
+2. **`collection_report_snapshots`** - Stores shareable report snapshots with data
+   - Captures point-in-time report data for sharing and historical reference
+   - Includes computed metrics and visualization data
+   - Supports report sharing and collaboration features
+
+**Enhanced Existing Tables**:
+
+3. **`report_data_collections`** enhancements:
+   - Added `report_metadata` JSONB column for caching KPI metadata and performance metrics
+   - Added `last_report_generated_at` timestamp for tracking report freshness
+   - Optimizes report generation by caching frequently accessed calculations
+
+4. **`report_data_weeks`** enhancements:
+   - Added `summary_stats` JSONB column for pre-calculated weekly statistics
+   - Stores aggregated metrics (totals, averages, min/max values) to improve query performance
+   - Enables faster dashboard loading and trend analysis
+
+**New Database Functions**:
+
+5. **`calculate_week_over_week_change()`** - Calculates percentage and absolute change between two weeks
+   - Computes week-over-week growth/decline for all metrics
+   - Returns both percentage change and absolute difference
+   - Handles null values and division by zero cases
+
+6. **`aggregate_collection_weeks()`** - Aggregates metrics across multiple weeks
+   - Supports sum, average, minimum, and maximum aggregation methods
+   - Processes multiple weeks efficiently for trend analysis
+   - Used for multi-week reporting and dashboard widgets
+
+**Performance Optimizations**:
+
+7. **Specialized Indexes** for optimal query performance:
+   - `idx_collection_report_configs_collection_user` - For user-specific report configs
+   - `idx_collection_report_snapshots_shared` - For shared report access
+   - `idx_report_data_collections_report_metadata` - GIN index for JSONB searches
+   - `idx_report_data_weeks_summary_stats` - GIN index for summary statistics
+   - `idx_report_data_weeks_collection_date` - For date-based reporting queries
+
+8. **Summary View** - `collection_report_summary` for aggregated reporting
+   - Provides pre-calculated collection metrics and progress
+   - Optimizes dashboard loading with cached calculations
+   - Reduces database load for frequently accessed data
+
+**Security Implementation**:
+
+9. **Row Level Security (RLS)** on new tables:
+   - `collection_report_configs` - Users can only access their own configurations
+   - `collection_report_snapshots` - Access controlled by ownership and sharing permissions
+   - Comprehensive policies ensure user data isolation
+
+**Testing Infrastructure**:
+
+10. **Comprehensive Test Suite** - `tests/supabase/test_report_dashboard_schema.py`
+    - 10 passing tests covering all new functionality
+    - Validates table creation, indexes, functions, and RLS policies
+    - Ensures data integrity and performance requirements
+
+**Migration Files**:
+- `scripts/migrations/009_create_collection_report_dashboard_tables.sql` - Full migration
+- `scripts/migrations/apply_report_dashboard_final.sql` - Corrected final version
+- `scripts/apply_collection_report_dashboard_migration.py` - Python migration script
+
+**Impact**:
+- Foundation for advanced historical reporting and trending analysis
+- Enables week-over-week comparison views and multi-week analysis
+- Supports dashboard customization and sharing capabilities
+- Optimizes performance for large historical datasets
+- Prepares platform for Phase 3-4 reporting features
+
+### Fixed Collection Execution ID Mapping Issue
+**Problem**: The collection progress view was experiencing 404 errors when users tried to view individual week executions. The issue was caused by passing UUID database IDs to the AMC API instead of the actual AMC execution IDs.
+
+**Root Cause**: 
+- `report_data_weeks` table stores `workflow_execution_id` (UUID reference to `workflow_executions.id`)
+- AMC API endpoints expect the actual AMC execution ID string (e.g., "20241010-abc123-def456")
+- The frontend was passing the UUID directly to AMC API routes, causing 404 responses
+
+**Solution**: Updated `historical_collection_service.py` in the `get_collection_progress` method:
+
+1. **Primary Fix**: Use `amc_execution_id` from `report_data_weeks` table when available
+2. **Fallback Logic**: When only `workflow_execution_id` (UUID) exists, look up the actual AMC execution ID from the `workflow_executions` table
+3. **ID Mapping**: Map the correct execution ID to the `execution_id` field for frontend consumption
+
+**Files Modified**:
+- `/amc_manager/services/historical_collection_service.py` - Added execution ID mapping logic
+- `/amc_manager/config/settings.py` - Added `extra = 'ignore'` to allow additional environment variables
+
+**Impact**: 
+- Users can now successfully view individual week execution details from collection progress screens
+- Resolves 404 errors when clicking on week execution entries
+- Maintains backward compatibility with existing collection data
+- No database schema changes required
+
 ## Key Components
 
 ### Backend Services
@@ -128,6 +233,28 @@ collection_data = self.db.table('report_data_collections')\
 # Use amc_instances.instance_id for API calls, not collections.instance_id (UUID)
 instance_id = collection_data['amc_instances']['instance_id']  # String like "amcibersblt"
 entity_id = collection_data['amc_instances']['amc_accounts']['account_id']
+```
+
+### Execution ID Mapping (Fixed 2025-09-10)
+```python
+# CRITICAL: Collections page was passing UUID database IDs to AMC API instead of AMC execution IDs
+# Fixed in historical_collection_service.py get_collection_progress method
+
+# Problem: report_data_weeks table stores workflow_execution_id (UUID) but AMC API needs amc_execution_id
+for week in weeks:
+    # Use amc_execution_id if available, otherwise use execution_id
+    if 'amc_execution_id' in week and week['amc_execution_id']:
+        week['execution_id'] = week['amc_execution_id']
+    # If only workflow_execution_id exists (UUID), look it up in workflow_executions table
+    elif 'workflow_execution_id' in week and week['workflow_execution_id']:
+        exec_response = self.db.client.table('workflow_executions')\
+            .select('execution_id, amc_execution_id')\
+            .eq('id', week['workflow_execution_id'])\
+            .execute()
+        if exec_response.data and len(exec_response.data) > 0:
+            exec_data = exec_response.data[0]
+            # Prefer amc_execution_id, fallback to execution_id
+            week['execution_id'] = exec_data.get('amc_execution_id') or exec_data.get('execution_id')
 ```
 
 ## Status Management

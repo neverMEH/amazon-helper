@@ -274,6 +274,10 @@ CREATE TABLE report_data_collections (
     progress_percentage DECIMAL(5,2) DEFAULT 0,
     estimated_completion TIMESTAMPTZ,
     
+    -- Report Dashboard Enhancements (2025-09-10)
+    report_metadata JSONB, -- Cached KPI metadata and performance metrics
+    last_report_generated_at TIMESTAMPTZ, -- Report freshness tracking
+    
     -- Audit Fields
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
@@ -286,6 +290,7 @@ CREATE INDEX idx_data_collections_workflow_id ON report_data_collections(workflo
 CREATE INDEX idx_data_collections_instance_id ON report_data_collections(instance_id);
 CREATE INDEX idx_data_collections_user_id ON report_data_collections(user_id);
 CREATE INDEX idx_data_collections_status ON report_data_collections(status);
+CREATE INDEX idx_report_data_collections_report_metadata ON report_data_collections USING GIN(report_metadata);
 ```
 
 #### report_data_weeks
@@ -296,6 +301,8 @@ CREATE TABLE report_data_weeks (
     -- Foreign Keys
     collection_id UUID NOT NULL REFERENCES report_data_collections(id) ON DELETE CASCADE,
     execution_id UUID REFERENCES workflow_executions(id) ON DELETE SET NULL,
+    workflow_execution_id UUID REFERENCES workflow_executions(id) ON DELETE SET NULL,
+    amc_execution_id TEXT, -- AMC's actual execution ID for API calls
     
     -- Week Definition
     week_start_date DATE NOT NULL,
@@ -312,6 +319,9 @@ CREATE TABLE report_data_weeks (
     result_rows INTEGER,
     result_size_bytes BIGINT,
     
+    -- Report Dashboard Enhancements (2025-09-10)
+    summary_stats JSONB, -- Pre-calculated weekly statistics (totals, averages, min/max)
+    
     -- Audit Fields
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
@@ -322,8 +332,80 @@ CREATE TABLE report_data_weeks (
 -- Indexes
 CREATE INDEX idx_data_weeks_collection_id ON report_data_weeks(collection_id);
 CREATE INDEX idx_data_weeks_execution_id ON report_data_weeks(execution_id);
+CREATE INDEX idx_data_weeks_workflow_execution_id ON report_data_weeks(workflow_execution_id);
 CREATE INDEX idx_data_weeks_status ON report_data_weeks(status);
 CREATE INDEX idx_data_weeks_dates ON report_data_weeks(week_start_date, week_end_date);
+CREATE INDEX idx_report_data_weeks_summary_stats ON report_data_weeks USING GIN(summary_stats);
+CREATE INDEX idx_report_data_weeks_collection_date ON report_data_weeks(collection_id, week_start_date);
+```
+
+### Collection Report Dashboard (2025-09-10)
+
+#### collection_report_configs
+```sql
+CREATE TABLE collection_report_configs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    description TEXT,
+    
+    -- Foreign Keys
+    collection_id UUID NOT NULL REFERENCES report_data_collections(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    
+    -- Configuration Data
+    config_data JSONB NOT NULL DEFAULT '{}', -- Dashboard layout, filters, visualization settings
+    
+    -- Sharing and Access
+    is_default BOOLEAN DEFAULT false,
+    is_shared BOOLEAN DEFAULT false,
+    shared_with_users UUID[] DEFAULT '{}',
+    
+    -- Audit Fields
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    last_used_at TIMESTAMPTZ
+);
+
+-- Indexes
+CREATE INDEX idx_collection_report_configs_collection_user ON collection_report_configs(collection_id, user_id);
+CREATE INDEX idx_collection_report_configs_user ON collection_report_configs(user_id);
+CREATE INDEX idx_collection_report_configs_shared ON collection_report_configs(is_shared) WHERE is_shared = true;
+CREATE INDEX idx_collection_report_configs_config_data ON collection_report_configs USING GIN(config_data);
+```
+
+#### collection_report_snapshots
+```sql
+CREATE TABLE collection_report_snapshots (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    description TEXT,
+    
+    -- Foreign Keys
+    collection_id UUID NOT NULL REFERENCES report_data_collections(id) ON DELETE CASCADE,
+    config_id UUID REFERENCES collection_report_configs(id) ON DELETE SET NULL,
+    created_by UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    
+    -- Snapshot Data
+    snapshot_data JSONB NOT NULL, -- Computed metrics and visualization data
+    metadata JSONB DEFAULT '{}', -- Report metadata (date range, parameters, etc.)
+    
+    -- Sharing Configuration
+    is_public BOOLEAN DEFAULT false,
+    access_token TEXT, -- For public sharing
+    expires_at TIMESTAMPTZ,
+    
+    -- Audit Fields
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX idx_collection_report_snapshots_collection ON collection_report_snapshots(collection_id);
+CREATE INDEX idx_collection_report_snapshots_created_by ON collection_report_snapshots(created_by);
+CREATE INDEX idx_collection_report_snapshots_config ON collection_report_snapshots(config_id);
+CREATE INDEX idx_collection_report_snapshots_public ON collection_report_snapshots(is_public) WHERE is_public = true;
+CREATE INDEX idx_collection_report_snapshots_token ON collection_report_snapshots(access_token) WHERE access_token IS NOT NULL;
+CREATE INDEX idx_collection_report_snapshots_data ON collection_report_snapshots USING GIN(snapshot_data);
 ```
 
 ### Campaign and Product Management
@@ -731,6 +813,150 @@ CREATE TRIGGER trigger_calculate_collection_progress
     AFTER INSERT OR UPDATE OR DELETE ON report_data_weeks
     FOR EACH ROW
     EXECUTE FUNCTION calculate_collection_progress();
+
+-- Collection Report Dashboard Functions (2025-09-10)
+
+-- Function to calculate week-over-week changes
+CREATE OR REPLACE FUNCTION calculate_week_over_week_change(
+    current_week_data JSONB,
+    previous_week_data JSONB,
+    metric_name TEXT
+) RETURNS JSONB AS $$
+DECLARE
+    current_value NUMERIC;
+    previous_value NUMERIC;
+    percentage_change NUMERIC;
+    absolute_change NUMERIC;
+    result JSONB;
+BEGIN
+    -- Extract metric values (handle null/missing values)
+    current_value = COALESCE((current_week_data ->> metric_name)::NUMERIC, 0);
+    previous_value = COALESCE((previous_week_data ->> metric_name)::NUMERIC, 0);
+    
+    -- Calculate absolute change
+    absolute_change = current_value - previous_value;
+    
+    -- Calculate percentage change (handle division by zero)
+    IF previous_value = 0 THEN
+        IF current_value = 0 THEN
+            percentage_change = 0;
+        ELSE
+            percentage_change = NULL; -- Infinite change from zero
+        END IF;
+    ELSE
+        percentage_change = (absolute_change / previous_value) * 100;
+    END IF;
+    
+    -- Return result as JSON
+    result = jsonb_build_object(
+        'metric', metric_name,
+        'current_value', current_value,
+        'previous_value', previous_value,
+        'absolute_change', absolute_change,
+        'percentage_change', percentage_change
+    );
+    
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to aggregate collection weeks data
+CREATE OR REPLACE FUNCTION aggregate_collection_weeks(
+    collection_id_param UUID,
+    start_date_param DATE,
+    end_date_param DATE,
+    aggregation_method TEXT DEFAULT 'sum' -- 'sum', 'avg', 'min', 'max'
+) RETURNS JSONB AS $$
+DECLARE
+    week_data JSONB;
+    aggregated_data JSONB;
+    week_record RECORD;
+BEGIN
+    -- Initialize aggregated data object
+    aggregated_data = '{}'::JSONB;
+    
+    -- Process each week in the date range
+    FOR week_record IN 
+        SELECT summary_stats 
+        FROM report_data_weeks 
+        WHERE collection_id = collection_id_param 
+        AND week_start_date >= start_date_param 
+        AND week_end_date <= end_date_param
+        AND status = 'SUCCESS'
+        AND summary_stats IS NOT NULL
+    LOOP
+        week_data = week_record.summary_stats;
+        
+        -- Aggregate based on method
+        IF aggregation_method = 'sum' THEN
+            aggregated_data = jsonb_concat_sum(aggregated_data, week_data);
+        ELSIF aggregation_method = 'avg' THEN
+            aggregated_data = jsonb_concat_avg(aggregated_data, week_data);
+        ELSIF aggregation_method = 'min' THEN
+            aggregated_data = jsonb_concat_min(aggregated_data, week_data);
+        ELSIF aggregation_method = 'max' THEN
+            aggregated_data = jsonb_concat_max(aggregated_data, week_data);
+        END IF;
+    END LOOP;
+    
+    RETURN aggregated_data;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Helper functions for JSONB aggregation
+CREATE OR REPLACE FUNCTION jsonb_concat_sum(a JSONB, b JSONB) RETURNS JSONB AS $$
+DECLARE
+    key TEXT;
+    result JSONB;
+BEGIN
+    result = a;
+    FOR key IN SELECT jsonb_object_keys(b) LOOP
+        IF jsonb_typeof(b -> key) = 'number' THEN
+            result = result || jsonb_build_object(key, 
+                COALESCE((result ->> key)::NUMERIC, 0) + (b ->> key)::NUMERIC
+            );
+        END IF;
+    END LOOP;
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Collection Report Summary View
+CREATE OR REPLACE VIEW collection_report_summary AS
+SELECT 
+    c.id as collection_id,
+    c.name,
+    c.status,
+    c.start_date,
+    c.end_date,
+    c.total_weeks,
+    c.completed_weeks,
+    c.progress_percentage,
+    c.report_metadata,
+    c.last_report_generated_at,
+    
+    -- Week statistics
+    COUNT(w.id) as actual_week_count,
+    COUNT(CASE WHEN w.status = 'SUCCESS' THEN 1 END) as successful_weeks,
+    COUNT(CASE WHEN w.status = 'FAILED' THEN 1 END) as failed_weeks,
+    COUNT(CASE WHEN w.status = 'PENDING' THEN 1 END) as pending_weeks,
+    
+    -- Performance metrics
+    AVG(w.execution_duration) as avg_execution_duration,
+    SUM(w.result_rows) as total_result_rows,
+    SUM(w.result_size_bytes) as total_result_size_bytes,
+    
+    -- Date ranges
+    MIN(w.week_start_date) as earliest_week_start,
+    MAX(w.week_end_date) as latest_week_end,
+    
+    c.created_at,
+    c.updated_at
+FROM report_data_collections c
+LEFT JOIN report_data_weeks w ON w.collection_id = c.id
+GROUP BY c.id, c.name, c.status, c.start_date, c.end_date, c.total_weeks, 
+         c.completed_weeks, c.progress_percentage, c.report_metadata, 
+         c.last_report_generated_at, c.created_at, c.updated_at;
 ```
 
 ## Data Integrity Constraints
@@ -791,6 +1017,9 @@ ALTER TABLE workflows ENABLE ROW LEVEL SECURITY;
 ALTER TABLE workflow_executions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE amc_instances ENABLE ROW LEVEL SECURITY;
 ALTER TABLE campaigns ENABLE ROW LEVEL SECURITY;
+ALTER TABLE report_data_collections ENABLE ROW LEVEL SECURITY;
+ALTER TABLE collection_report_configs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE collection_report_snapshots ENABLE ROW LEVEL SECURITY;
 
 -- Policies for data access
 CREATE POLICY workflows_user_access ON workflows
@@ -801,6 +1030,31 @@ CREATE POLICY executions_user_access ON workflow_executions
 
 CREATE POLICY instances_user_access ON amc_instances
     FOR ALL USING (user_id = auth.uid());
+
+CREATE POLICY collections_user_access ON report_data_collections
+    FOR ALL USING (user_id = auth.uid());
+
+-- Collection Report Dashboard RLS Policies (2025-09-10)
+CREATE POLICY collection_report_configs_user_access ON collection_report_configs
+    FOR ALL USING (
+        user_id = auth.uid() 
+        OR auth.uid() = ANY(shared_with_users)
+    );
+
+CREATE POLICY collection_report_snapshots_access ON collection_report_snapshots
+    FOR ALL USING (
+        created_by = auth.uid() 
+        OR is_public = true
+        OR EXISTS (
+            SELECT 1 FROM collection_report_configs 
+            WHERE id = collection_report_snapshots.config_id 
+            AND (user_id = auth.uid() OR auth.uid() = ANY(shared_with_users))
+        )
+    );
+
+-- Allow users to create their own snapshots
+CREATE POLICY collection_report_snapshots_create ON collection_report_snapshots
+    FOR INSERT WITH CHECK (created_by = auth.uid());
 ```
 
 ## Performance Optimization
