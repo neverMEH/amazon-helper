@@ -177,7 +177,7 @@ const AreaChart: React.FC<AreaChartProps> = ({
   };
 
   return (
-    <BaseChart loading={loading} error={error} height={height}>
+    <BaseChart loading={loading} error={error}>
       <div style={{ height: typeof height === 'number' ? `${height}px` : height }}>
         <Line data={areaData} options={mergedOptions} />
       </div>
