@@ -187,6 +187,7 @@ from amc_manager.api.asin_router import router as asin_router
 from amc_manager.api.query_flow_templates import router as query_flow_templates_router
 from amc_manager.api.data_collections import router as data_collections_router
 from amc_manager.api.dashboards import router as dashboards_router
+from amc_manager.api.report_dashboard import router as report_dashboard_router
 
 # Add redirect for misconfigured callback URL (must be before router includes)
 @app.get("/api/auth/callback")
@@ -211,6 +212,7 @@ app.include_router(amc_executions_router, prefix="/api/amc-executions", tags=["A
 app.include_router(data_sources_router, prefix="/api/data-sources", tags=["Data Sources"])
 app.include_router(data_collections_router, prefix="/api/data-collections")
 app.include_router(dashboards_router)  # Already has prefix in router
+app.include_router(report_dashboard_router, prefix="/api", tags=["Report Dashboard"])
 app.include_router(schedules_router, prefix="/api", tags=["Schedules"])
 app.include_router(build_guides_router, prefix="/api", tags=["Build Guides"])
 app.include_router(asin_router, prefix="/api", tags=["ASINs"])

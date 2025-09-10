@@ -85,6 +85,131 @@ The Data Collections system enables automated historical data gathering by execu
 - Optimizes performance for large historical datasets
 - Prepares platform for Phase 3-4 reporting features
 
+### Backend Report Dashboard Service Implementation
+**Major Feature**: Implemented comprehensive backend service layer for the Collection Report Dashboard, providing data aggregation, comparison calculations, and Chart.js integration.
+
+**New Backend Service**:
+
+11. **`ReportDashboardService`** - Complete backend service extending DatabaseService
+    - Fetches collection data with automatic JSONB parsing of metadata and summary stats
+    - Implements week-over-week comparison calculations with percentage and absolute changes
+    - Provides data aggregation across multiple weeks (sum, average, min, max)
+    - Transforms raw collection data into Chart.js compatible format
+    - Includes comprehensive error handling and logging
+    - Supports caching strategy for improved performance
+
+**Key Service Methods**:
+
+12. **Core Data Methods**:
+    - `get_collection_dashboard_data()` - Fetches collection with all weeks and parsed metadata
+    - `get_collection_summary()` - Aggregates key metrics across all completed weeks
+    - `get_week_comparison_data()` - Compares two specific weeks with calculated changes
+    - `get_multi_week_comparison()` - Compares multiple week periods for trending
+
+13. **Chart Integration Methods**:
+    - `get_chart_data_for_line()` - Time series data for line charts
+    - `get_chart_data_for_bar()` - Categorical comparison data for bar charts  
+    - `get_chart_data_for_metric_cards()` - Single KPI displays with trends
+    - `transform_data_for_charts()` - Unified data transformation utility
+
+14. **Advanced Analytics Methods**:
+    - `calculate_trend_analysis()` - Statistical trend detection across weeks
+    - `get_performance_insights()` - Automated insights and recommendations
+    - `export_dashboard_data()` - Data export in multiple formats
+
+**Technical Implementation Features**:
+
+15. **JSONB Data Processing**:
+    - Automatic parsing of `report_metadata` and `summary_stats` columns
+    - Type-safe handling of nested JSON structures
+    - Efficient querying with GIN indexes
+    - Fallback handling for null or malformed JSON
+
+16. **Performance Optimizations**:
+    - Batch processing for multiple week comparisons
+    - Intelligent caching of aggregated calculations
+    - Optimized SQL queries with minimal database round trips
+    - Lazy loading of detailed week data when needed
+
+**Files Created**:
+- `/amc_manager/services/report_dashboard_service.py` - Complete service implementation
+- `/tests/services/test_report_dashboard_service_unit.py` - 11 passing unit tests
+
+### API Endpoints Implementation  
+**Major Feature**: Implemented complete REST API layer for Collection Report Dashboard with 8 endpoints supporting data retrieval, comparisons, and export functionality.
+
+**New API Endpoints**:
+
+17. **GET `/api/collections/{collection_id}/report-dashboard`**
+    - Returns complete dashboard data for a collection
+    - Includes parsed metadata, summary statistics, and week details
+    - Supports query parameters for date filtering and aggregation options
+
+18. **POST `/api/collections/{collection_id}/report-dashboard/compare`**
+    - Compares two specific weeks or week periods
+    - Returns calculated differences, percentage changes, and trend indicators
+    - Supports flexible comparison configurations
+
+19. **GET `/api/collections/{collection_id}/report-dashboard/summary`** 
+    - Returns aggregated summary across all collection weeks
+    - Includes totals, averages, and key performance indicators
+    - Optimized for dashboard overview widgets
+
+20. **POST `/api/collections/{collection_id}/report-dashboard/chart-data`**
+    - Transforms collection data into Chart.js compatible format
+    - Supports multiple chart types (line, bar, pie, metric cards)
+    - Configurable data transformations and styling options
+
+21. **GET `/api/collections/{collection_id}/report-dashboard/weeks/{week_id}/details`**
+    - Returns detailed data for a specific week
+    - Includes parsed summary statistics and execution metadata
+    - Used for drill-down analysis and detailed views
+
+22. **POST `/api/collections/{collection_id}/report-dashboard/export`**
+    - Exports dashboard data in various formats (JSON, CSV)
+    - Supports filtered exports and custom column selection
+    - Returns downloadable file or data stream
+
+23. **GET `/api/collections/{collection_id}/report-dashboard/insights`**
+    - Returns automated insights and recommendations
+    - Identifies trends, anomalies, and performance patterns
+    - Supports configurable insight types and thresholds
+
+24. **POST `/api/collections/{collection_id}/report-dashboard/snapshot`**
+    - Creates a shareable snapshot of current dashboard state
+    - Stores dashboard configuration and data for sharing
+    - Returns snapshot ID for link sharing
+
+**API Features**:
+
+25. **Authentication & Authorization**:
+    - JWT-based authentication required for all endpoints
+    - User access validation through collection ownership
+    - Proper HTTP status codes and error messages
+
+26. **Request/Response Format**:
+    - JSON request/response bodies with proper content types
+    - Comprehensive input validation using Pydantic schemas
+    - Detailed error responses with actionable messages
+
+27. **Performance Features**:
+    - Query parameter support for filtering and pagination
+    - Efficient database queries with minimal data transfer
+    - Response compression for large datasets
+
+**Files Created**:
+- `/amc_manager/api/report_dashboard.py` - Complete API router implementation
+- `/tests/api/test_report_dashboard_integration.py` - Integration tests covering all endpoints
+- `/main_supabase.py` - Router integration (updated)
+
+**Testing Infrastructure**:
+
+28. **Comprehensive Test Coverage**:
+    - **Database Schema Tests**: 10 passing tests validating migration and database functions
+    - **Service Unit Tests**: 11 passing tests covering all service methods and edge cases  
+    - **API Integration Tests**: 8 passing tests validating all endpoint functionality
+    - **Total Coverage**: 29 automated tests ensuring reliability and correctness
+
 ### Fixed Collection Execution ID Mapping Issue
 **Problem**: The collection progress view was experiencing 404 errors when users tried to view individual week executions. The issue was caused by passing UUID database IDs to the AMC API instead of the actual AMC execution IDs.
 
