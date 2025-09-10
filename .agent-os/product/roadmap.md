@@ -54,60 +54,89 @@
 - [x] Export functionality (CSV, JSON)
 - [x] Execution timeline visualization
 
-## Current Development (Q3 2025)
+## Phase 0: Already Completed ✅
 
-### Phase 3: Enhanced User Experience
-**Goal:** Improve usability and add advanced features
-**Status:** 🔄 In Progress (80% complete)
+The following features have been implemented in production:
 
-#### Build Guides System
-- [x] Step-by-step tactical query guidance
-- [x] Markdown content with interactive elements
-- [x] Progress tracking and favorites
-- [x] Sample data visualization
-- [ ] Interactive query builder wizard (Planned)
+### Core AMC Platform
+- [x] **AMC Instance Management** - Multi-instance configuration with brand associations
+- [x] **SQL Query Builder** - Monaco editor with AMC-specific syntax highlighting
+- [x] **OAuth Authentication** - Secure Amazon Advertising API integration
+- [x] **Workflow Scheduling** - Automated query execution with retry logic
+- [x] **Campaign/ASIN Management** - Import and filter by brand associations
+- [x] **Build Guides** - Step-by-step tactical AMC use cases
+- [x] **Execution Tracking** - Real-time status polling and history
 
-#### Schedule Execution Bug Fix
-- [x] Identified issue: Schedule executing multiple times instead of once
-- [x] Root cause: Missing deduplication in schedule executor
-- [x] Implemented 5-minute window check for recent runs
-- [ ] Testing and verification in production (In Progress)
+### Backend Infrastructure
+- [x] **Token Refresh Service** - Automatic OAuth token renewal
+- [x] **Execution Poller** - 15-second status updates
+- [x] **Schedule Executor** - Deduplication and timezone handling
+- [x] **Database Optimization** - Performance indexes and query optimization
 
-#### Performance Optimizations
-- [x] Database indexing for improved query performance
-- [x] Results pagination for large datasets
-- [ ] Query result caching layer (In Progress)
-- [ ] Background export for large results (Planned)
+## Current Development 🚀
+
+### Phase 3: Data Collections & Historical Analytics
+**Goal:** Enable continuous data collection and trend analysis
+**Status:** 🔄 In Progress (Main Focus)
+**Target:** Q4 2025
+
+#### Historical Data Collections
+- [x] Collection framework with progress tracking
+- [x] 52-week backfill capability
+- [x] Week-by-week execution management
+- [ ] **Custom Dashboards** - Trend analysis and comparisons (In Progress)
+- [ ] **Automatic weekly/daily/monthly continuation** - Ongoing data collection
+- [ ] **Collection templates** - Pre-built report types for common use cases
+
+#### Dashboard Visualization Platform
+- [ ] **10+ widget types** - Line, bar, pie, heatmap, funnel charts
+- [ ] **Comparison views** - Period-over-period analysis
+- [ ] **Export capabilities** - Dashboard snapshots and data exports
+- [ ] **Real-time updates** - Auto-refresh with new execution data
 
 ## Planned Features 🎯
 
-### Phase 4: Advanced Analytics (Q4 2025)
-**Goal:** Provide deeper insights and advanced workflows
+### Phase 4: AI Integration & Insights (Q1 2026)
+**Goal:** Add AI-powered analysis and reporting capabilities
 **Success Criteria:** 
-- Enable multi-step analytical workflows
-- Reduce time-to-insight by 40%
-- Support complex ASIN-level analysis
+- Enable natural language queries and insights
+- Generate automated reports with AI analysis
+- Support markdown reports and presentation exports
 
-#### Products Page - ASIN Management Hub
-- **ASIN Discovery Engine**: Import ASINs from campaigns, orders, or manual upload
-- **Product Intelligence**: Enrich ASINs with catalog data, performance metrics, and market insights
-- **Bulk Operations**: Apply queries, schedules, or analyses to ASIN cohorts
-- **Performance Tracking**: Historical trend analysis and competitive positioning
-- **Export Capabilities**: Formatted reports for client delivery
+#### AI Assistant for AMC
+- **AMC SQL Understanding**: AI trained on Amazon SQL syntax and limitations
+- **Natural Language Queries**: Convert questions to AMC-compatible SQL
+- **Result Interpretation**: Understand AMC report structures and metrics
+- **Insight Generation**: Automated analysis of trends and anomalies
+- **Report Generation**: Create markdown reports with charts and insights
 
-#### Flow Page - Multi-Step Query Workflows
-- **Visual Workflow Builder**: Drag-and-drop interface for complex analytical sequences
-- **Query Chaining**: Pass results between queries with data transformation
-- **Conditional Logic**: Branch workflows based on results or thresholds
-- **Template Workflows**: Pre-built flows for common use cases (attribution analysis, audience building)
-- **Parallel Execution**: Run multiple queries simultaneously for efficiency
+#### Export & Presentation Layer
+- **PDF Reports**: Professional reports with AI-generated insights
+- **PowerPoint Export**: Presentation-ready slides with charts
+- **Markdown Documentation**: Technical reports with code blocks
+- **Chart Export**: Individual chart downloads for presentations
+- **Scheduled Reports**: Automated report generation and distribution
 
-#### AI-Powered Query Assistant
-- **Natural Language Query**: Convert business questions to SQL queries
-- **Query Optimization**: Suggest performance improvements and best practices
-- **Insight Generation**: Automatically interpret results and highlight key findings
-- **Anomaly Detection**: Flag unusual patterns in query results
-- **Smart Recommendations**: Suggest follow-up queries based on results
+### Phase 5: Data Pipeline & Multi-Tenancy (Q2 2026)
+**Goal:** Enterprise-scale data management and user hierarchy
+**Success Criteria:**
+- Snowflake pipeline operational
+- Multi-tenant architecture deployed
+- Support 50+ concurrent users
+
+#### Snowflake Integration
+- **Automated Data Pipeline**: Stream execution results to Snowflake
+- **Data Transformation**: ETL processes for AMC data normalization
+- **Historical Data Warehouse**: Centralized storage for all executions
+- **Advanced Analytics**: Enable complex cross-brand analysis
+- **API Access**: Snowflake data available via REST APIs
+
+#### Multi-Tenant User Management
+- **Super Admin Role**: Platform management and configuration
+- **Admin Role**: Team management and instance assignment
+- **Team Member Role**: Instance-specific access and permissions
+- **Role-Based Access Control**: Granular permission management
+- **Audit Logging**: Complete activity tracking for compliance
 
 ### Phase 5: Enterprise Features (Q1 2026)
 **Goal:** Scale platform for larger agency operations

@@ -420,6 +420,27 @@ class HistoricalCollectionService:
                     }
                     break
             
+            # Map execution IDs to use amc_execution_id for AMC API calls
+            for week in weeks:
+                # Use amc_execution_id if available, otherwise use execution_id
+                # The frontend should use this field for viewing execution details
+                if 'amc_execution_id' in week and week['amc_execution_id']:
+                    week['execution_id'] = week['amc_execution_id']
+                # If only workflow_execution_id exists (UUID), we need to look it up
+                elif 'workflow_execution_id' in week and week['workflow_execution_id']:
+                    # Try to get the AMC execution ID from workflow_executions table
+                    try:
+                        exec_response = self.db.client.table('workflow_executions')\
+                            .select('execution_id, amc_execution_id')\
+                            .eq('id', week['workflow_execution_id'])\
+                            .execute()
+                        if exec_response.data and len(exec_response.data) > 0:
+                            exec_data = exec_response.data[0]
+                            # Prefer amc_execution_id, fallback to execution_id
+                            week['execution_id'] = exec_data.get('amc_execution_id') or exec_data.get('execution_id')
+                    except Exception as e:
+                        logger.warning(f"Could not lookup execution ID for week {week.get('id')}: {e}")
+            
             return {
                 'collection_id': collection['collection_id'],
                 'status': collection['status'],
