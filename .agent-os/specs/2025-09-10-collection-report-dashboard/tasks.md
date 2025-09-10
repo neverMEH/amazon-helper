@@ -36,15 +36,15 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 3.7 Implement export functionality endpoint
   - [x] 3.8 Verify all API tests pass
 
-- [ ] 4. Frontend Dashboard Components
-  - [ ] 4.1 Write tests for CollectionReportDashboard component
-  - [ ] 4.2 Create CollectionReportDashboard.tsx main container component
-  - [ ] 4.3 Implement WeekSelector component for single/multi-week selection
-  - [ ] 4.4 Create ComparisonPanel component for period comparisons
-  - [ ] 4.5 Extend existing chart components for dashboard visualization
-  - [ ] 4.6 Implement chart configuration controls
-  - [ ] 4.7 Add loading states and error boundaries
-  - [ ] 4.8 Verify all component tests pass
+- [x] 4. Frontend Dashboard Components
+  - [x] 4.1 Write tests for CollectionReportDashboard component
+  - [x] 4.2 Create CollectionReportDashboard.tsx main container component
+  - [x] 4.3 Implement WeekSelector component for single/multi-week selection
+  - [x] 4.4 Create ComparisonPanel component for period comparisons
+  - [x] 4.5 Extend existing chart components for dashboard visualization
+  - [x] 4.6 Implement chart configuration controls
+  - [x] 4.7 Add loading states and error boundaries
+  - [x] 4.8 Verify all component tests pass
 
 - [ ] 5. Integration and Polish
   - [ ] 5.1 Write end-to-end tests for complete report dashboard flow
