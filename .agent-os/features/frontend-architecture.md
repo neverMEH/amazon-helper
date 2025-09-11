@@ -4,6 +4,15 @@
 
 The RecomAMP frontend is built with React 19.1.0, TypeScript 5.8, and modern development practices. It follows a component-based architecture with centralized state management, type safety, and performance optimization patterns.
 
+## Recent Updates (2025-09-11)
+
+### Campaign Page Routing Fix
+- **Issue**: The CampaignsOptimized component was using incorrect API endpoint `/campaigns` instead of `/campaigns/`
+- **Fix**: Updated API service calls to include proper trailing slash for backend compatibility
+- **File**: `frontend/src/pages/CampaignsOptimized.tsx`
+- **Impact**: Resolved 404 errors when loading the campaigns page
+- **Technical**: Fixed routing mismatch between frontend and backend API expectations
+
 ## Technology Stack
 
 ### Core Technologies

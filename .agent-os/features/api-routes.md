@@ -582,7 +582,7 @@ Authorization: Bearer <jwt_token>
 ## Campaign Routes
 
 ### GET /api/campaigns/
-List campaigns with filtering.
+List campaigns with filtering. **Updated 2025-09-11**: Now includes user-level filtering for data security.
 
 ```http
 GET /api/campaigns/?instance_id=instance-uuid&campaign_type=sponsoredProducts&state=ENABLED
@@ -596,6 +596,8 @@ Authorization: Bearer <jwt_token>
 - `search` (optional): Search campaign names
 - `min_spend` (optional): Minimum spend filter
 - `max_acos` (optional): Maximum ACoS filter
+
+**Security**: All campaign data is automatically filtered by authenticated user ID to ensure data isolation.
 
 **Response:**
 ```json
@@ -621,6 +623,22 @@ Authorization: Bearer <jwt_token>
     }
   ]
 }
+```
+
+### GET /api/campaigns/brands
+List campaign brands with user filtering. **Added user security 2025-09-11**.
+
+```http
+GET /api/campaigns/brands?instance_id=instance-uuid
+Authorization: Bearer <jwt_token>
+```
+
+### GET /api/campaigns/stats
+Get campaign statistics with user filtering. **Added user security 2025-09-11**.
+
+```http
+GET /api/campaigns/stats?instance_id=instance-uuid
+Authorization: Bearer <jwt_token>
 ```
 
 ### POST /api/campaigns/import/{instance_id}

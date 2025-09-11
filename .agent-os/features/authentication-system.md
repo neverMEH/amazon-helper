@@ -4,6 +4,15 @@
 
 RecomAMP uses OAuth 2.0 with Amazon's Login with Amazon (LWA) service for user authentication, coupled with JWT tokens for session management and Fernet encryption for secure token storage. The system handles automatic token refresh and multi-instance account management.
 
+## Recent Security Enhancements (2025-09-11)
+
+### Enhanced Data Isolation Implementation
+- **Security Fix**: Implemented comprehensive user-level filtering across all campaign endpoints
+- **Scope**: All campaign-related API operations now automatically filter by authenticated user ID
+- **Impact**: Prevents cross-user data access and ensures multi-tenant security
+- **Implementation**: Backend services now enforce user-level data boundaries at the database query level
+- **Testing**: Added TDD test suite to verify user isolation works correctly
+
 ## Key Components
 
 ### Backend Services
