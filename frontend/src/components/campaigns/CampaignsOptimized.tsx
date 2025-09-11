@@ -171,7 +171,7 @@ export default function CampaignsOptimized() {
       params.append('sort_by', sortConfig.field);
       params.append('sort_order', sortConfig.order);
       
-      const response = await api.get(`/campaigns?${params}`);
+      const response = await api.get(`/campaigns/?${params}`);
       return response.data;
     },
     staleTime: 30 * 1000, // 30 seconds

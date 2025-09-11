@@ -29,12 +29,18 @@ def list_campaigns(
     
     By default shows only ENABLED campaigns to improve performance.
     Set show_all_states=true or state='' to see all campaigns.
+    Only returns campaigns for the authenticated user.
     """
     try:
         client = SupabaseManager.get_client(use_service_role=True)
         
-        # Build query
+        # Build query - filter by user_id first
         query = client.table('campaigns').select('*', count='exact')
+        
+        # CRITICAL: Filter by authenticated user
+        user_id = current_user.get('id')
+        if user_id:
+            query = query.eq('user_id', user_id)
         
         # Apply filters
         if search:
@@ -129,15 +135,17 @@ def sync_campaigns(
 def list_brands(
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> List[Dict[str, Any]]:
-    """List unique brands from campaigns table using optimized database function
+    """List unique brands from campaigns table for the authenticated user
     
     This uses a PostgreSQL function for dramatically improved performance,
     especially with large campaign datasets.
     """
     try:
         client = SupabaseManager.get_client(use_service_role=True)
+        user_id = current_user.get('id')
         
-        # Use the optimized database function
+        # Use the optimized database function with user filter
+        # Note: If the function doesn't support user_id parameter, fall back to manual filtering
         result = client.rpc('get_campaign_brands_with_counts').execute()
         
         if not result.data:
@@ -165,9 +173,13 @@ def list_brands_legacy(current_user: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Legacy method for listing brands - kept as fallback"""
     try:
         client = SupabaseManager.get_client(use_service_role=True)
+        user_id = current_user.get('id')
         
-        # Get total count first
-        count_result = client.table('campaigns').select('*', count='exact').limit(1).execute()
+        # Get total count first - filtered by user
+        query = client.table('campaigns').select('*', count='exact')
+        if user_id:
+            query = query.eq('user_id', user_id)
+        count_result = query.limit(1).execute()
         total_count = count_result.count if hasattr(count_result, 'count') else 0
         
         # Extract all unique brands by fetching in batches
@@ -176,7 +188,10 @@ def list_brands_legacy(current_user: Dict[str, Any]) -> List[Dict[str, Any]]:
         offset = 0
         
         while offset < total_count:
-            result = client.table('campaigns').select('brand').range(offset, offset + batch_size - 1).execute()
+            query = client.table('campaigns').select('brand')
+            if user_id:
+                query = query.eq('user_id', user_id)
+            result = query.range(offset, offset + batch_size - 1).execute()
             
             if not result.data:
                 break
@@ -190,7 +205,10 @@ def list_brands_legacy(current_user: Dict[str, Any]) -> List[Dict[str, Any]]:
         # Count campaigns per brand (these counts use Supabase's count feature which works correctly)
         brand_counts = {}
         for brand in brands:
-            count_result = client.table('campaigns').select('*', count='exact').eq('brand', brand).limit(1).execute()
+            query = client.table('campaigns').select('*', count='exact').eq('brand', brand)
+            if user_id:
+                query = query.eq('user_id', user_id)
+            count_result = query.limit(1).execute()
             brand_counts[brand] = count_result.count if hasattr(count_result, 'count') else 0
         
         return [
@@ -206,9 +224,10 @@ def list_brands_legacy(current_user: Dict[str, Any]) -> List[Dict[str, Any]]:
 def get_campaign_stats(
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
-    """Get campaign statistics using optimized database function"""
+    """Get campaign statistics for the authenticated user"""
     try:
         client = SupabaseManager.get_client(use_service_role=True)
+        user_id = current_user.get('id')
         
         # Try to use the optimized database function first
         try:

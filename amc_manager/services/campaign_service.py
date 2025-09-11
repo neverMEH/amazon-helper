@@ -21,6 +21,61 @@ class CampaignService:
         self.sp_campaigns_endpoint = f"{self.base_url}/sp/campaigns"
         self.sd_campaigns_endpoint = f"{self.base_url}/sd/campaigns"
         self.sb_campaigns_endpoint = f"{self.base_url}/sb/campaigns"
+        self.client = None  # Will be set by tests or initialized from db_service
+    
+    def get_campaigns_for_user(self, user_id: str, page: int = 1, page_size: int = 50, 
+                              brand: Optional[str] = None, **kwargs) -> Dict[str, Any]:
+        """
+        Get campaigns for a specific user with pagination and filtering
+        
+        Args:
+            user_id: User ID to filter campaigns
+            page: Page number for pagination
+            page_size: Number of items per page
+            brand: Optional brand filter
+            **kwargs: Additional filter parameters
+            
+        Returns:
+            Dictionary with campaigns list and total count
+        """
+        if not self.client:
+            from ..core.supabase_client import SupabaseManager
+            self.client = SupabaseManager.get_client(use_service_role=True)
+        
+        try:
+            # Build query with user filter
+            query = self.client.table('campaigns').select('*', count='exact')
+            
+            # Filter by user_id - CRITICAL for security
+            if user_id:
+                query = query.eq('user_id', user_id)
+            
+            # Apply brand filter if provided
+            if brand:
+                query = query.eq('brand', brand)
+            
+            # Apply pagination
+            offset = (page - 1) * page_size
+            query = query.range(offset, offset + page_size - 1)
+            
+            # Execute query
+            result = query.execute()
+            
+            # Get data and count
+            campaigns = result.data if result.data else []
+            total = result.count if hasattr(result, 'count') else len(campaigns)
+            
+            return {
+                'campaigns': campaigns,
+                'total': total
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting campaigns for user {user_id}: {e}")
+            return {
+                'campaigns': [],
+                'total': 0
+            }
     
     async def import_campaigns_for_user(self, user_id: str, profile_id: str) -> Dict[str, int]:
         """

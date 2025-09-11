@@ -708,8 +708,8 @@ class DatabaseService:
         """Get brands associated with a specific instance"""
         try:
             # Query instance_brands table to get brands for this instance
-            response = self.client.table('instance_brands').select('brand_name').eq('instance_id', instance_id).execute()
-            brands = [item['brand_name'] for item in response.data if item.get('brand_name')]
+            response = self.client.table('instance_brands').select('brand_tag').eq('instance_id', instance_id).execute()
+            brands = [item['brand_tag'] for item in response.data if item.get('brand_tag')]
             
             # If no brands in instance_brands, try to get from campaigns
             if not brands:
