@@ -418,3 +418,65 @@ async def export_dashboard_data(
     except Exception as e:
         logger.error(f"Error exporting dashboard data: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/collections/{collection_id}/report-dashboard/metrics")
+async def get_available_metrics(
+    collection_id: str,
+    current_user: dict = Depends(get_current_user)
+) -> List[str]:
+    """
+    Get available metrics for a collection
+    
+    Returns a list of metric names that can be used for dashboard visualization.
+    """
+    try:
+        user_id = current_user.get('id')
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User not authenticated")
+        
+        # TODO: Implement actual metric extraction from collection data
+        # For now, return common metrics
+        return [
+            "impressions",
+            "clicks", 
+            "conversions",
+            "spend",
+            "ctr",
+            "cvr",
+            "cpc",
+            "revenue",
+            "roas"
+        ]
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting available metrics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/collections/{collection_id}/report-dashboard/configs")
+async def get_dashboard_configs(
+    collection_id: str,
+    current_user: dict = Depends(get_current_user)
+) -> List[Dict[str, Any]]:
+    """
+    Get saved dashboard configurations for a collection
+    
+    Returns a list of saved dashboard configurations.
+    """
+    try:
+        user_id = current_user.get('id')
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User not authenticated")
+        
+        # TODO: Implement actual config storage and retrieval
+        # For now, return empty list
+        return []
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting dashboard configs: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
