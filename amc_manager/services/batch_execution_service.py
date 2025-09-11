@@ -10,6 +10,7 @@ import secrets
 
 from ..core.supabase_client import SupabaseManager
 from .amc_execution_service import AMCExecutionService
+from .db_service import db_service
 
 logger = logging.getLogger(__name__)
 
@@ -44,19 +45,14 @@ class BatchExecutionService:
         """Get workflow details from database.
         
         Args:
-            workflow_id: The workflow UUID
+            workflow_id: The workflow ID (can be UUID or string ID with 'wf_' prefix)
             
         Returns:
             Workflow dict or None if not found
         """
         try:
-            response = self.supabase.table('workflows')\
-                .select('*')\
-                .eq('id', workflow_id)\
-                .single()\
-                .execute()
-            
-            return response.data if response.data else None
+            # Use db_service method which handles both UUID and string workflow IDs
+            return db_service.get_workflow_by_id_sync(workflow_id)
         except Exception as e:
             logger.error(f"Error fetching workflow {workflow_id}: {e}")
             return None

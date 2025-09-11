@@ -163,16 +163,30 @@ class DatabaseService:
         Note: workflow_id can be either the UUID (id) or the string workflow_id
         """
         try:
-            # First try to find by UUID id
-            response = self.client.table('workflows')\
-                .select('*, amc_instances(*, amc_accounts(*))')\
-                .eq('id', workflow_id)\
-                .execute()
+            # Check if the workflow_id looks like a UUID
+            # UUIDs are 36 chars with hyphens, or 32 without
+            # Custom workflow IDs start with 'wf_'
+            is_uuid = False
+            if workflow_id and not workflow_id.startswith('wf_'):
+                try:
+                    # Try to parse as UUID to validate format
+                    import uuid as uuid_lib
+                    uuid_lib.UUID(workflow_id)
+                    is_uuid = True
+                except (ValueError, AttributeError):
+                    is_uuid = False
             
-            if response.data:
-                return response.data[0]
+            if is_uuid:
+                # Try to find by UUID id
+                response = self.client.table('workflows')\
+                    .select('*, amc_instances(*, amc_accounts(*))')\
+                    .eq('id', workflow_id)\
+                    .execute()
+                
+                if response.data:
+                    return response.data[0]
             
-            # If not found, try by workflow_id string
+            # Try by workflow_id string (for custom IDs like 'wf_xxx')
             response = self.client.table('workflows')\
                 .select('*, amc_instances(*, amc_accounts(*))')\
                 .eq('workflow_id', workflow_id)\

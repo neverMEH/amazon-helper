@@ -261,14 +261,8 @@ class AMCExecutionService:
     def _get_workflow_with_instance(self, workflow_id: str) -> Optional[Dict[str, Any]]:
         """Get workflow with instance details"""
         try:
-            client = SupabaseManager.get_client(use_service_role=True)
-            
-            response = client.table('workflows')\
-                .select('*, amc_instances(*, amc_accounts(*))')\
-                .eq('id', workflow_id)\
-                .execute()
-            
-            return response.data[0] if response.data else None
+            # Use db_service method which handles both UUID and string workflow IDs
+            return self.db.get_workflow_by_id_sync(workflow_id)
         except Exception as e:
             logger.error(f"Error fetching workflow: {e}")
             return None
