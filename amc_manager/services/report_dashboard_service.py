@@ -96,12 +96,22 @@ class ReportDashboardService(DatabaseService):
             # Calculate summary statistics
             summary = self._calculate_summary(processed_data)
             
+            # Return data structure matching frontend expectations
             return {
-                'collection_id': collection_id,
-                'collection_name': collection.get('collection_id', 'Unknown'),
-                'metadata': metadata,
-                'data': processed_data,
-                'summary': summary
+                'collection': {
+                    'id': collection_id,
+                    'name': collection.get('collection_id', 'Unknown'),
+                    'workflow_id': collection.get('workflow_id', ''),
+                    'instance_id': collection.get('instance_id', ''),
+                    'status': collection.get('status', 'unknown'),
+                    'created_at': collection.get('created_at', ''),
+                    'weeks_completed': metadata.get('successful_weeks', 0),
+                    'weeks_failed': metadata.get('total_weeks', 0) - metadata.get('successful_weeks', 0),
+                    'weeks_pending': 0
+                },
+                'weeks': processed_data,  # Changed from 'data' to 'weeks'
+                'summary': summary,
+                'chartData': None  # Will be populated by frontend
             }
             
         except Exception as e:
@@ -147,12 +157,16 @@ class ReportDashboardService(DatabaseService):
                     week['workflow_executions']['result_rows']
                 )
             
+            # Match the WeekData interface expected by frontend
             processed.append({
+                'id': week.get('id', f"week_{week.get('week_number', 0)}"),
+                'week_number': week.get('week_number', 0),
                 'week_start': week['week_start_date'],
                 'week_end': week['week_end_date'],
-                'metrics': week_metrics,
-                'execution_id': week.get('workflow_execution_id'),
-                'row_count': week.get('record_count', 0)
+                'status': week.get('status', 'unknown'),
+                'execution_results': {
+                    'metrics': week_metrics
+                } if week_metrics else None
             })
         
         # Apply aggregation if requested

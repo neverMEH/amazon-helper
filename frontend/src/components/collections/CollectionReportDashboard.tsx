@@ -127,8 +127,8 @@ const CollectionReportDashboard: React.FC<CollectionReportDashboardProps> = ({
       ),
     enabled:
       viewMode === 'comparison' &&
-      comparisonPeriods.period1.length > 0 &&
-      comparisonPeriods.period2.length > 0,
+      comparisonPeriods.period1?.length > 0 &&
+      comparisonPeriods.period2?.length > 0,
   });
 
   // Fetch available metrics
@@ -336,7 +336,7 @@ const CollectionReportDashboard: React.FC<CollectionReportDashboardProps> = ({
   }
 
   // No data state
-  if (!dashboardData || dashboardData.weeks.length === 0) {
+  if (!dashboardData || !dashboardData.weeks || dashboardData.weeks.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-96 text-gray-500">
         <ChartBarIcon className="h-16 w-16 mb-4" />
@@ -519,7 +519,7 @@ const CollectionReportDashboard: React.FC<CollectionReportDashboardProps> = ({
               </div>
               {/* Screen reader announcement for chart changes */}
               <div className="sr-only" aria-live="polite" aria-atomic="true">
-                Chart updated: Now showing {selectedChartType} chart with {selectedWeeks.length || 'all'} weeks selected
+                Chart updated: Now showing {selectedChartType} chart with {selectedWeeks?.length || 'all'} weeks selected
               </div>
             </div>
 
