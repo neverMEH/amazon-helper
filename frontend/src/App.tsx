@@ -15,9 +15,6 @@ import ErrorBoundary from './components/ErrorBoundary';
 
 // New Query Builder imports
 import QueryLibrary from './pages/QueryLibrary';
-import QueryFlowTemplates from './pages/QueryFlowTemplates';
-import TemplateEditorWireframe from './components/query-flow-templates/editor/TemplateEditorWireframe';
-import TemplateEditor from './components/query-flow-templates/editor/TemplateEditor';
 import QueryBuilder from './pages/QueryBuilder';
 import MyQueries from './pages/MyQueries';
 import Executions from './pages/Executions';
@@ -43,12 +40,6 @@ import ASINManagement from './pages/ASINManagement';
 // Reports & Analytics imports
 import DataCollections from './components/reports/DataCollections';
 
-// Visual Flow Builder import
-import VisualFlowBuilder from './pages/VisualFlowBuilder';
-import TestFlowBuilder from './pages/TestFlowBuilder';
-import TestReactFlow from './pages/TestReactFlow';
-import TestReactFlowSimple from './pages/TestReactFlowSimple';
-import TestReactFlowWithProvider from './pages/TestReactFlowWithProvider';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -91,10 +82,6 @@ function App() {
               
               {/* New Query Builder routes */}
               <Route path="/query-library" element={<QueryLibrary />} />
-              <Route path="/query-flow-templates" element={<QueryFlowTemplates />} />
-              <Route path="/query-flow-templates/editor-wireframe" element={<TemplateEditorWireframe />} />
-              <Route path="/query-flow-templates/new" element={<TemplateEditor />} />
-              <Route path="/query-flow-templates/edit/:id" element={<TemplateEditor />} />
               <Route path="/my-queries" element={<MyQueries />} />
               <Route path="/schedules" element={<ScheduleManager />} />
               <Route path="/query-builder/new" element={<QueryBuilder />} />
@@ -116,12 +103,6 @@ function App() {
               {/* Reports & Analytics routes */}
               <Route path="/data-collections" element={<DataCollections />} />
               
-              {/* Visual Flow Builder route */}
-              <Route path="/flow-builder" element={<VisualFlowBuilder />} />
-              <Route path="/test-flow-builder" element={<TestFlowBuilder />} />
-              <Route path="/test-flow" element={<TestReactFlow />} />
-              <Route path="/test-flow-simple" element={<TestReactFlowSimple />} />
-              <Route path="/test-flow-provider" element={<TestReactFlowWithProvider />} />
               
               {/* Profile route */}
               <Route path="/profile" element={<Profile />} />

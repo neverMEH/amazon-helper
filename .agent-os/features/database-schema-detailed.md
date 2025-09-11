@@ -927,10 +927,12 @@ CREATE TABLE public.asin_import_logs (
 );
 ```
 
-## Query Flow Template Tables
+## Query Flow Template Tables - DEPRECATED (2025-09-11)
 
-### `public.query_flow_templates` (RLS: enabled)
-**Purpose**: Reusable query workflow templates
+**DEPRECATED**: Flow template features were removed from the codebase on 2025-09-11. While these tables may still exist in some database instances, they are no longer used by the application. See `flow-template-removal.md` for details.
+
+### `public.query_flow_templates` (RLS: enabled) - DEPRECATED
+**Purpose**: ~~Reusable query workflow templates~~ - Feature removed from application
 
 ```sql
 CREATE TABLE public.query_flow_templates (
@@ -953,8 +955,8 @@ CREATE TABLE public.query_flow_templates (
 );
 ```
 
-### `public.template_parameters` (RLS: enabled)
-**Purpose**: Parameter definitions for templates
+### `public.template_parameters` (RLS: enabled) - DEPRECATED
+**Purpose**: ~~Parameter definitions for templates~~ - Feature removed from application
 
 ```sql
 CREATE TABLE public.template_parameters (
@@ -975,8 +977,8 @@ CREATE TABLE public.template_parameters (
 );
 ```
 
-### `public.template_chart_configs` (RLS: enabled)
-**Purpose**: Visualization configurations for templates
+### `public.template_chart_configs` (RLS: enabled) - DEPRECATED
+**Purpose**: ~~Visualization configurations for templates~~ - Feature removed from application
 
 ```sql
 CREATE TABLE public.template_chart_configs (
@@ -993,8 +995,8 @@ CREATE TABLE public.template_chart_configs (
 );
 ```
 
-### `public.template_executions` (RLS: enabled)
-**Purpose**: Track template usage
+### `public.template_executions` (RLS: enabled) - DEPRECATED
+**Purpose**: ~~Track template usage~~ - Feature removed from application
 
 ```sql
 CREATE TABLE public.template_executions (
@@ -1014,8 +1016,8 @@ CREATE TABLE public.template_executions (
 );
 ```
 
-### `public.user_template_favorites` (RLS: enabled)
-**Purpose**: User's favorite templates
+### `public.user_template_favorites` (RLS: enabled) - DEPRECATED
+**Purpose**: ~~User's favorite templates~~ - Feature removed from application
 
 ```sql
 CREATE TABLE public.user_template_favorites (
@@ -1027,8 +1029,8 @@ CREATE TABLE public.user_template_favorites (
 );
 ```
 
-### `public.template_ratings` (RLS: enabled)
-**Purpose**: Template ratings and reviews
+### `public.template_ratings` (RLS: enabled) - DEPRECATED
+**Purpose**: ~~Template ratings and reviews~~ - Feature removed from application
 
 ```sql
 CREATE TABLE public.template_ratings (
@@ -1043,10 +1045,12 @@ CREATE TABLE public.template_ratings (
 );
 ```
 
-## Flow Composition Tables
+## Flow Composition Tables - DEPRECATED (2025-09-11)
 
-### `public.template_flow_compositions` (RLS: enabled)
-**Purpose**: Multi-step query workflows
+**DEPRECATED**: Flow composition features were removed from the codebase on 2025-09-11.
+
+### `public.template_flow_compositions` (RLS: enabled) - DEPRECATED
+**Purpose**: ~~Multi-step query workflows~~ - Feature removed from application
 
 ```sql
 CREATE TABLE public.template_flow_compositions (
@@ -1067,8 +1071,8 @@ CREATE TABLE public.template_flow_compositions (
 );
 ```
 
-### `public.template_flow_nodes` (RLS: enabled)
-**Purpose**: Individual nodes in a flow
+### `public.template_flow_nodes` (RLS: enabled) - DEPRECATED
+**Purpose**: ~~Individual nodes in a flow~~ - Feature removed from application
 
 ```sql
 CREATE TABLE public.template_flow_nodes (
@@ -1089,8 +1093,8 @@ CREATE TABLE public.template_flow_nodes (
 );
 ```
 
-### `public.template_flow_connections` (RLS: enabled)
-**Purpose**: Connections between flow nodes
+### `public.template_flow_connections` (RLS: enabled) - DEPRECATED
+**Purpose**: ~~Connections between flow nodes~~ - Feature removed from application
 
 ```sql
 CREATE TABLE public.template_flow_connections (

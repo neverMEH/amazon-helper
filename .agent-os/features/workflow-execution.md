@@ -23,6 +23,42 @@ The workflow execution system is the core feature of RecomAMP that enables users
 - `amc_instances` - AMC instance configurations
 - `amc_accounts` - Account details with entity_id
 
+## Recent Changes (2025-09-11)
+
+### Critical Workflow ID Handling Fix
+- **Issue**: Workflows with string IDs (prefixed with 'wf_') were causing PostgreSQL UUID parsing errors (error code 22P02)
+- **Root Cause**: System has dual ID system with both UUID 'id' field and string 'workflow_id' field
+- **Solution**: Enhanced `db_service.get_workflow_by_id_sync()` to intelligently handle both ID types
+
+### Changes Made
+1. **Enhanced ID Detection Logic**: Added UUID format validation to determine query strategy
+2. **Smart Query Routing**: Queries UUID 'id' field for valid UUIDs, 'workflow_id' field for string IDs
+3. **Service Consistency**: Updated `amc_execution_service` and `batch_execution_service` to use centralized db_service method
+
+### Technical Implementation
+```python
+# New dual ID handling pattern in db_service.py
+def get_workflow_by_id_sync(self, workflow_id: str):
+    # Check if workflow_id looks like a UUID
+    is_uuid = False
+    if workflow_id and not workflow_id.startswith('wf_'):
+        try:
+            import uuid as uuid_lib
+            uuid_lib.UUID(workflow_id)
+            is_uuid = True
+        except (ValueError, AttributeError):
+            is_uuid = False
+    
+    if is_uuid:
+        # Query by UUID 'id' field
+        response = self.client.table('workflows')\
+            .eq('id', workflow_id).execute()
+    else:
+        # Query by string 'workflow_id' field
+        response = self.client.table('workflows')\
+            .eq('workflow_id', workflow_id).execute()
+```
+
 ## Technical Implementation
 
 ### Execution Flow
@@ -104,6 +140,7 @@ async def create_workflow_execution(self, ...):
 - **Token Expired**: Triggers automatic token refresh
 - **Query Timeout**: AMC queries have 10-minute timeout
 - **Data Not Available**: 14-day data lag handling
+- **PostgreSQL UUID Error (22P02)**: "invalid input syntax for type uuid" - Fixed by dual ID handling in db_service
 
 ## Testing Considerations
 

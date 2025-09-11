@@ -903,4 +903,46 @@ class ExampleService(DatabaseService):
         pass
 ```
 
+## Recent Changes (2025-09-11)
+
+### Dual ID Handling Pattern Enhancement
+Enhanced the DatabaseService base class with intelligent dual ID handling to support both UUID and string identifiers:
+
+```python
+# Enhanced db_service.py with dual ID pattern
+def get_workflow_by_id_sync(self, workflow_id: str):
+    """
+    Get workflow by ID, supporting both UUID and string identifiers.
+    
+    The workflows table has both:
+    - 'id': UUID primary key
+    - 'workflow_id': Optional string identifier (e.g., 'wf_custom_name')
+    
+    This method automatically detects the ID type and queries the appropriate field,
+    preventing PostgreSQL UUID parsing errors (22P02) with string IDs.
+    """
+    is_uuid = False
+    if workflow_id and not workflow_id.startswith('wf_'):
+        try:
+            import uuid as uuid_lib
+            uuid_lib.UUID(workflow_id)
+            is_uuid = True
+        except (ValueError, AttributeError):
+            is_uuid = False
+    
+    # Query appropriate field based on ID type
+    field = 'id' if is_uuid else 'workflow_id'
+    return self.client.table('workflows').eq(field, workflow_id).execute()
+```
+
+### Benefits
+- **Error Prevention**: Eliminates PostgreSQL UUID parsing errors
+- **Flexible Querying**: Supports both system-generated UUIDs and custom string IDs
+- **Centralized Logic**: All services use consistent ID resolution pattern
+- **Backward Compatibility**: Maintains support for existing workflow references
+
+### Services Updated
+- `amc_execution_service.py`: Now uses db_service for consistent workflow lookups
+- `batch_execution_service.py`: Updated to use centralized ID handling pattern
+
 This service layer architecture provides a robust, scalable, and maintainable foundation for RecomAMP's business logic, ensuring consistency across all application domains while maintaining flexibility for future enhancements.

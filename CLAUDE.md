@@ -115,8 +115,7 @@ amazon-helper-2/
 ├── scripts/                 # Utility and migration scripts
 ├── tests/                   # Test suites
 │   ├── amc/                # AMC integration tests
-│   ├── supabase/           # Database tests
-│   └── flow_composition/   # Flow composition tests (future feature)
+│   └── supabase/           # Database tests
 ├── .agent-os/              # Agent OS configuration
 │   ├── instructions/       # Execution instructions
 │   └── standards/          # Code standards
@@ -141,7 +140,6 @@ schedule_runs             -- Schedule execution history
 amc_data_sources         -- AMC schema documentation
 amc_schema_fields        -- Field metadata
 query_templates          -- Pre-built query library
-query_flow_templates     -- Flow template definitions
 campaigns                -- Campaign data
 instance_brands          -- Brand-instance associations
 asins                    -- ASIN management
@@ -358,12 +356,6 @@ POST   /api/build-guides/{guide_id}/favorite
 GET    /api/query-templates/
 GET    /api/query-templates/{id}
 
-# Query Flow Templates
-GET    /api/query-flow-templates/
-POST   /api/query-flow-templates/
-GET    /api/query-flow-templates/{id}
-PUT    /api/query-flow-templates/{id}
-DELETE /api/query-flow-templates/{id}
 
 # Data Collections (Phase 3)
 GET    /api/data-collections/
@@ -406,8 +398,6 @@ pytest tests/test_api_auth.py -v
 # With coverage
 pytest --cov=amc_manager tests/
 
-# Flow composition tests (future feature)
-pytest tests/flow_composition/ -v
 ```
 
 ### Frontend Testing
@@ -463,6 +453,7 @@ The repository includes Agent OS configuration for AI-assisted development:
 
 ## Recent Critical Fixes
 
+- **2025-09-11**: Flow Template Removal - Removed unused flow template and visual builder features from codebase (major cleanup)
 - **2025-09-09**: Collection Execution View - Added ability to view individual week executions with proper instance_id passing
 - **2025-09-09**: Fixed instance_id confusion between UUID and AMC string ID in collections
 - **2025-08-29**: SQL preview fixes for campaign/ASIN parameters

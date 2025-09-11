@@ -184,7 +184,6 @@ from amc_manager.api.supabase.data_sources import router as data_sources_router
 from amc_manager.api.supabase.schedule_endpoints import router as schedules_router
 from amc_manager.api.routes.build_guides import router as build_guides_router
 from amc_manager.api.asin_router import router as asin_router
-from amc_manager.api.query_flow_templates import router as query_flow_templates_router
 from amc_manager.api.data_collections import router as data_collections_router
 from amc_manager.api.dashboards import router as dashboards_router
 from amc_manager.api.report_dashboard import router as report_dashboard_router
@@ -206,7 +205,6 @@ app.include_router(instances_router, prefix="/api/instances", tags=["AMC Instanc
 app.include_router(workflows_router, prefix="/api/workflows", tags=["Workflows"])
 app.include_router(campaigns_router, prefix="/api/campaigns", tags=["Campaigns"])
 app.include_router(query_templates_router, prefix="/api/query-templates", tags=["Query Templates"])
-app.include_router(query_flow_templates_router, tags=["Query Flow Templates"])  # Already has prefix in router
 app.include_router(brands_router, prefix="/api/brands", tags=["Brands"])
 app.include_router(amc_executions_router, prefix="/api/amc-executions", tags=["AMC Executions"])
 app.include_router(data_sources_router, prefix="/api/data-sources", tags=["Data Sources"])
