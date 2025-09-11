@@ -1,0 +1,3 @@
+# Query Library Redesign - Lite Summary
+
+Transform the query library into a comprehensive template management system with sophisticated parameter handling, enabling non-technical users to execute complex AMC queries through reusable templates. Templates support bulk parameter input (60+ ASINs), integrate seamlessly with workflows/collections/schedules, and automatically generate interactive dashboards from results, reducing query creation time by 50% while standardizing analysis patterns across the organization.

@@ -629,7 +629,9 @@ CREATE INDEX idx_amc_schema_fields_name ON amc_schema_fields(field_name);
 CREATE UNIQUE INDEX idx_amc_schema_fields_unique ON amc_schema_fields(data_source_id, field_name);
 ```
 
-#### query_templates
+### Query Library System (Enhanced 2025-09-11)
+
+#### query_templates (Enhanced)
 ```sql
 CREATE TABLE query_templates (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -639,7 +641,14 @@ CREATE TABLE query_templates (
     
     -- Template Content
     sql_template TEXT NOT NULL,
-    parameters JSONB DEFAULT '{}', -- Parameter definitions
+    parameters JSONB DEFAULT '{}', -- Legacy parameter definitions
+    parameters_schema JSONB DEFAULT '{}', -- JSON Schema for parameters
+    
+    -- Enhanced Features (Added 2025-09-11)
+    report_config JSONB, -- Dashboard configuration for auto-generation
+    version INTEGER DEFAULT 1, -- Template version number
+    parent_template_id UUID REFERENCES query_templates(id), -- For forked templates
+    execution_count INTEGER DEFAULT 0, -- Usage tracking
     
     -- Template Metadata
     tags TEXT[] DEFAULT '{}',
@@ -647,7 +656,7 @@ CREATE TABLE query_templates (
     estimated_runtime TEXT, -- Expected execution time
     
     -- Usage Tracking
-    usage_count INTEGER DEFAULT 0,
+    usage_count INTEGER DEFAULT 0, -- Legacy usage counter
     last_used_at TIMESTAMPTZ,
     
     -- Authoring
@@ -660,11 +669,108 @@ CREATE TABLE query_templates (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Indexes
+-- Enhanced Indexes (Updated 2025-09-11)
 CREATE INDEX idx_query_templates_category ON query_templates(category);
 CREATE INDEX idx_query_templates_tags ON query_templates USING GIN(tags);
 CREATE INDEX idx_query_templates_usage ON query_templates(usage_count DESC);
 CREATE INDEX idx_query_templates_public ON query_templates(is_public) WHERE is_public = true;
+CREATE INDEX idx_query_templates_parent ON query_templates(parent_template_id);
+CREATE INDEX idx_query_templates_execution_usage ON query_templates(execution_count DESC, created_at DESC);
+```
+
+#### query_template_parameters (New 2025-09-11)
+```sql
+CREATE TABLE query_template_parameters (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    template_id UUID NOT NULL REFERENCES query_templates(id) ON DELETE CASCADE,
+    parameter_name TEXT NOT NULL,
+    parameter_type TEXT NOT NULL CHECK (parameter_type IN (
+        'asin_list', 'campaign_list', 'date_range', 'date_expression',
+        'campaign_filter', 'threshold_numeric', 'percentage', 'enum_select',
+        'string', 'number', 'boolean', 'string_list', 'mapped_from_node'
+    )),
+    
+    -- Display Configuration
+    display_name TEXT NOT NULL,
+    description TEXT,
+    display_order INTEGER,
+    group_name TEXT,
+    
+    -- Validation Rules
+    required BOOLEAN DEFAULT true,
+    default_value JSONB,
+    validation_rules JSONB, -- JSON Schema validation rules
+    
+    -- UI Configuration
+    ui_config JSONB, -- Component configuration and hints
+    
+    -- Audit Fields
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    UNIQUE(template_id, parameter_name)
+);
+
+-- Indexes
+CREATE INDEX idx_template_parameters_template ON query_template_parameters(template_id);
+CREATE INDEX idx_template_parameters_order ON query_template_parameters(template_id, display_order);
+
+-- Enable RLS
+ALTER TABLE query_template_parameters ENABLE ROW LEVEL SECURITY;
+```
+
+#### query_template_reports (New 2025-09-11)
+```sql
+CREATE TABLE query_template_reports (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    template_id UUID NOT NULL REFERENCES query_templates(id) ON DELETE CASCADE,
+    report_name TEXT NOT NULL,
+    
+    -- Dashboard Configuration
+    dashboard_config JSONB NOT NULL, -- Widget layouts and types
+    field_mappings JSONB NOT NULL,   -- Query field to widget mapping
+    default_filters JSONB,           -- Default filter values
+    widget_order JSONB,              -- Layout configuration
+    
+    -- Audit Fields
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX idx_template_reports_template ON query_template_reports(template_id);
+
+-- Enable RLS
+ALTER TABLE query_template_reports ENABLE ROW LEVEL SECURITY;
+```
+
+#### query_template_instances (New 2025-09-11)
+```sql
+CREATE TABLE query_template_instances (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    template_id UUID NOT NULL REFERENCES query_templates(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    
+    -- Instance Configuration
+    instance_name TEXT NOT NULL,
+    saved_parameters JSONB NOT NULL, -- User-saved parameter values
+    
+    -- Usage Tracking
+    is_favorite BOOLEAN DEFAULT false,
+    last_executed_at TIMESTAMPTZ,
+    execution_count INTEGER DEFAULT 0,
+    
+    -- Audit Fields
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX idx_template_instances_user ON query_template_instances(user_id, is_favorite DESC, last_executed_at DESC);
+CREATE INDEX idx_template_instances_template ON query_template_instances(template_id);
+
+-- Enable RLS
+ALTER TABLE query_template_instances ENABLE ROW LEVEL SECURITY;
 ```
 
 ### Build Guides System
