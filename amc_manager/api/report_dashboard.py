@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List, Dict, Any, Optional
 from datetime import date, datetime
 from pydantic import BaseModel, Field
+import uuid
 
 from ..core.logger_simple import get_logger
 from ..services.report_dashboard_service import ReportDashboardService
@@ -55,6 +56,12 @@ async def get_dashboard_data(
         if not user_id:
             raise HTTPException(status_code=401, detail="User not authenticated")
         
+        # Validate collection_id is a valid UUID
+        try:
+            uuid.UUID(collection_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid collection ID format: {collection_id}")
+        
         # Get dashboard data from service
         result = report_dashboard_service.get_dashboard_data(
             collection_id=collection_id,
@@ -77,7 +84,11 @@ async def get_dashboard_data(
         raise
     except Exception as e:
         logger.error(f"Error getting dashboard data: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        error_str = str(e)
+        # Handle database UUID format errors
+        if "invalid input syntax for type uuid" in error_str:
+            raise HTTPException(status_code=400, detail=f"Invalid collection ID format")
+        raise HTTPException(status_code=500, detail=error_str)
 
 
 @router.post("/collections/{collection_id}/report-dashboard/compare")

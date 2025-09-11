@@ -27,6 +27,36 @@ const ComparisonPanel = lazy(() => import('./ComparisonPanel'));
 const ChartConfigurationPanel = lazy(() => import('./ChartConfigurationPanel'));
 const ExportShareModal = lazy(() => import('./ExportShareModal'));
 
+// UUID validation helper
+const isValidUUID = (id: string): boolean => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(id);
+};
+
+// Error message helper
+const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    if (message.includes('404') || message.includes('not found')) {
+      return 'Collection not found. Please verify the collection exists.';
+    }
+    if (message.includes('403') || message.includes('forbidden')) {
+      return 'Access denied. You don\'t have permission to view this collection.';
+    }
+    if (message.includes('401') || message.includes('unauthorized')) {
+      return 'Authentication required. Please log in again.';
+    }
+    if (message.includes('400') || message.includes('bad request') || message.includes('invalid')) {
+      return 'Invalid collection ID format. Please check the collection ID.';
+    }
+    if (message.includes('network') || message.includes('fetch')) {
+      return 'Network error. Please check your connection and try again.';
+    }
+    return error.message;
+  }
+  return 'An unexpected error occurred while loading the dashboard.';
+};
+
 interface CollectionReportDashboardProps {
   collectionId: string;
   onClose?: () => void;
@@ -54,6 +84,9 @@ const CollectionReportDashboard: React.FC<CollectionReportDashboardProps> = ({
   const [isExporting, setIsExporting] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
 
+  // Validate collection ID first
+  const isValidCollectionId = isValidUUID(collectionId);
+
   // Fetch dashboard data
   const {
     data: dashboardData,
@@ -62,9 +95,22 @@ const CollectionReportDashboard: React.FC<CollectionReportDashboardProps> = ({
     refetch,
   } = useQuery({
     queryKey: ['dashboard', collectionId, filters],
-    queryFn: () => reportDashboardService.getDashboardData(collectionId, filters),
+    queryFn: async () => {
+      if (!isValidCollectionId) {
+        throw new Error('Invalid collection ID format. Expected a valid UUID.');
+      }
+      console.log('Fetching dashboard data for collection:', collectionId);
+      try {
+        const result = await reportDashboardService.getDashboardData(collectionId, filters);
+        console.log('Dashboard data received:', result);
+        return result;
+      } catch (err) {
+        console.error('Dashboard fetch error:', err);
+        throw err;
+      }
+    },
     refetchInterval: 30000, // Refresh every 30 seconds
-    enabled: viewMode === 'dashboard',
+    enabled: viewMode === 'dashboard' && isValidCollectionId,
   });
 
   // Fetch comparison data
@@ -263,13 +309,26 @@ const CollectionReportDashboard: React.FC<CollectionReportDashboardProps> = ({
     );
   }
 
+  // Check for invalid collection ID first
+  if (!isValidCollectionId) {
+    return (
+      <div className="p-4">
+        <ErrorMessage
+          title="Invalid Collection ID"
+          message="The collection ID format is invalid. Please ensure you're using a valid collection."
+          onRetry={onClose}
+        />
+      </div>
+    );
+  }
+
   // Error state
   if (error) {
     return (
       <div className="p-4">
         <ErrorMessage
           title="Error Loading Dashboard"
-          message={(error as Error).message}
+          message={getErrorMessage(error)}
           onRetry={() => refetch()}
         />
       </div>
