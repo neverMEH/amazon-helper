@@ -255,7 +255,7 @@ class ReportingDatabaseService(DatabaseService):
         try:
             response = self.client.table('report_data_collections')\
                 .select('*, report_data_weeks(count), amc_instances!instance_id(instance_id)')\
-                .eq('collection_id', collection_id)\
+                .eq('id', collection_id)\
                 .single()\
                 .execute()
             
