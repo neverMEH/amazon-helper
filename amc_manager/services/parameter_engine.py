@@ -20,16 +20,21 @@ class ParameterValidationError(Exception):
 class ParameterEngine:
     """Engine for processing and validating template parameters"""
     
-    # Parameter type definitions with validation functions
+    # Enhanced parameter type definitions with validation functions
     PARAMETER_TYPES = {
         'date': 'validate_date',
         'date_range': 'validate_date_range',
+        'date_expression': 'validate_date_expression',  # New
         'string': 'validate_string',
         'number': 'validate_number',
         'boolean': 'validate_boolean',
         'campaign_list': 'validate_campaign_list',
+        'campaign_filter': 'validate_campaign_filter',  # New
         'asin_list': 'validate_asin_list',
         'string_list': 'validate_string_list',
+        'threshold_numeric': 'validate_threshold_numeric',  # New
+        'percentage': 'validate_percentage',  # New
+        'enum_select': 'validate_enum_select',  # New
         'mapped_from_node': 'validate_mapped_from_node'
     }
     
@@ -310,19 +315,22 @@ class ParameterEngine:
         return validated
     
     def validate_asin_list(self, value: List[str], rules: Dict[str, Any]) -> List[str]:
-        """Validate a list of ASINs"""
+        """Validate a list of ASINs with support for bulk input (60-1000 items)"""
         if not isinstance(value, list):
             raise ValueError("ASIN list must be an array")
         
-        # Check count constraints
-        if 'min_selections' in rules and len(value) < rules['min_selections']:
-            raise ValueError(f"Must select at least {rules['min_selections']} ASINs")
+        # Check count constraints - support for bulk input
+        min_items = rules.get('minItems', rules.get('min_selections', 1))
+        max_items = rules.get('maxItems', rules.get('max_selections', 1000))  # Support up to 1000 ASINs
         
-        if 'max_selections' in rules and len(value) > rules['max_selections']:
-            raise ValueError(f"Cannot select more than {rules['max_selections']} ASINs")
+        if len(value) < min_items:
+            raise ValueError(f"Must select at least {min_items} ASINs")
+        
+        if len(value) > max_items:
+            raise ValueError(f"Cannot select more than {max_items} ASINs")
         
         # Validate each ASIN
-        asin_pattern = re.compile(r'^B[0-9A-Z]{9}$')
+        asin_pattern = re.compile(r'^[A-Z0-9]{10}$')  # Updated pattern for all ASIN formats
         validated = []
         
         for asin in value:
@@ -361,6 +369,144 @@ class ParameterEngine:
             validated.append(item.strip())
         
         return validated
+    
+    def validate_date_expression(self, value: str, rules: Dict[str, Any]) -> Dict[str, str]:
+        """Validate a date expression parameter (e.g., 'last_7_days', 'this_month')"""
+        if not isinstance(value, str):
+            raise ValueError("Date expression must be a string")
+        
+        # Valid date expressions
+        valid_expressions = [
+            'today', 'yesterday',
+            'last_7_days', 'last_14_days', 'last_30_days', 'last_60_days', 'last_90_days',
+            'this_week', 'last_week',
+            'this_month', 'last_month',
+            'this_quarter', 'last_quarter',
+            'this_year', 'last_year',
+            'mtd',  # Month to date
+            'qtd',  # Quarter to date
+            'ytd'   # Year to date
+        ]
+        
+        if value not in valid_expressions:
+            raise ValueError(f"Invalid date expression. Must be one of: {', '.join(valid_expressions)}")
+        
+        # Convert expression to actual date range
+        return self._resolve_date_expression(value)
+    
+    def validate_campaign_filter(self, value: str, rules: Dict[str, Any]) -> str:
+        """Validate a campaign filter pattern with wildcard support"""
+        if not isinstance(value, str):
+            raise ValueError("Campaign filter must be a string")
+        
+        # Check for SQL injection attempts
+        self._check_string_injection(value)
+        
+        # Validate pattern length
+        max_length = rules.get('max_length', 200)
+        if len(value) > max_length:
+            raise ValueError(f"Campaign filter cannot exceed {max_length} characters")
+        
+        # Allow wildcards (* and %)
+        # Convert user-friendly * to SQL %
+        sql_pattern = value.replace('*', '%')
+        
+        # Validate that the pattern doesn't have dangerous SQL
+        dangerous_patterns = ['--', ';', '/*', '*/', 'DROP', 'DELETE', 'TRUNCATE', 'UPDATE', 'INSERT']
+        for pattern in dangerous_patterns:
+            if pattern in sql_pattern.upper():
+                raise ValueError(f"Invalid characters in campaign filter: {pattern}")
+        
+        return sql_pattern
+    
+    def validate_threshold_numeric(self, value: Union[int, float], rules: Dict[str, Any]) -> Union[int, float]:
+        """Validate a numeric threshold parameter with min/max constraints"""
+        try:
+            num_value = float(value)
+        except (ValueError, TypeError):
+            raise ValueError(f"Invalid numeric threshold: {value}")
+        
+        # Check min/max thresholds
+        min_val = rules.get('min', float('-inf'))
+        max_val = rules.get('max', float('inf'))
+        
+        if num_value < min_val:
+            raise ValueError(f"Threshold must be at least {min_val}")
+        
+        if num_value > max_val:
+            raise ValueError(f"Threshold cannot exceed {max_val}")
+        
+        # Check step if specified
+        if 'step' in rules:
+            step = rules['step']
+            if step > 0:
+                # Check if value is a multiple of step from min
+                base = rules.get('min', 0)
+                if abs((num_value - base) % step) > 0.0001:  # Small epsilon for float comparison
+                    raise ValueError(f"Threshold must be in increments of {step}")
+        
+        # Return as integer if no decimal places
+        if num_value == int(num_value):
+            return int(num_value)
+        return num_value
+    
+    def validate_percentage(self, value: Union[int, float], rules: Dict[str, Any]) -> float:
+        """Validate a percentage parameter (0-100)"""
+        try:
+            num_value = float(value)
+        except (ValueError, TypeError):
+            raise ValueError(f"Invalid percentage: {value}")
+        
+        # Check if within 0-100 range
+        if num_value < 0:
+            raise ValueError("Percentage cannot be negative")
+        
+        if num_value > 100:
+            raise ValueError("Percentage cannot exceed 100")
+        
+        # Convert to decimal if specified
+        if rules.get('as_decimal', False):
+            return num_value / 100.0
+        
+        return num_value
+    
+    def validate_enum_select(self, value: Union[str, List[str]], rules: Dict[str, Any]) -> Union[str, List[str]]:
+        """Validate an enum selection (single or multiple)"""
+        options = rules.get('options', [])
+        if not options:
+            raise ValueError("No options defined for enum selection")
+        
+        multiple = rules.get('multiple', False)
+        
+        if multiple:
+            # Handle multiple selection
+            if not isinstance(value, list):
+                raise ValueError("Multiple selection must be an array")
+            
+            invalid_options = [v for v in value if v not in options]
+            if invalid_options:
+                raise ValueError(f"Invalid options selected: {', '.join(invalid_options)}")
+            
+            # Check selection limits
+            min_selections = rules.get('min_selections', 0)
+            max_selections = rules.get('max_selections', len(options))
+            
+            if len(value) < min_selections:
+                raise ValueError(f"Must select at least {min_selections} options")
+            
+            if len(value) > max_selections:
+                raise ValueError(f"Cannot select more than {max_selections} options")
+            
+            return value
+        else:
+            # Handle single selection
+            if isinstance(value, list):
+                raise ValueError("Single selection cannot be an array")
+            
+            if value not in options:
+                raise ValueError(f"Invalid option selected. Must be one of: {', '.join(options)}")
+            
+            return value
     
     def validate_mapped_from_node(self, value: Any, rules: Dict[str, Any]) -> Any:
         """
@@ -432,8 +578,141 @@ class ParameterEngine:
             # Handle preset date ranges
             if 'preset' in default_value:
                 return self._get_preset_date_range(default_value['preset'])
+        elif param_type == 'date_expression' and isinstance(default_value, str):
+            # Handle date expression defaults
+            return self._resolve_date_expression(default_value)
         
         return default_value
+    
+    def _resolve_date_expression(self, expression: str) -> Dict[str, str]:
+        """Resolve a date expression to actual date range"""
+        today = datetime.now().date()
+        
+        if expression == 'today':
+            return {
+                'start': today.strftime('%Y-%m-%d'),
+                'end': today.strftime('%Y-%m-%d')
+            }
+        elif expression == 'yesterday':
+            yesterday = today - timedelta(days=1)
+            return {
+                'start': yesterday.strftime('%Y-%m-%d'),
+                'end': yesterday.strftime('%Y-%m-%d')
+            }
+        elif expression == 'last_7_days':
+            return {
+                'start': (today - timedelta(days=6)).strftime('%Y-%m-%d'),
+                'end': today.strftime('%Y-%m-%d')
+            }
+        elif expression == 'last_14_days':
+            return {
+                'start': (today - timedelta(days=13)).strftime('%Y-%m-%d'),
+                'end': today.strftime('%Y-%m-%d')
+            }
+        elif expression == 'last_30_days':
+            return {
+                'start': (today - timedelta(days=29)).strftime('%Y-%m-%d'),
+                'end': today.strftime('%Y-%m-%d')
+            }
+        elif expression == 'last_60_days':
+            return {
+                'start': (today - timedelta(days=59)).strftime('%Y-%m-%d'),
+                'end': today.strftime('%Y-%m-%d')
+            }
+        elif expression == 'last_90_days':
+            return {
+                'start': (today - timedelta(days=89)).strftime('%Y-%m-%d'),
+                'end': today.strftime('%Y-%m-%d')
+            }
+        elif expression == 'this_week':
+            # Start from Monday
+            start = today - timedelta(days=today.weekday())
+            return {
+                'start': start.strftime('%Y-%m-%d'),
+                'end': today.strftime('%Y-%m-%d')
+            }
+        elif expression == 'last_week':
+            # Previous Monday to Sunday
+            end = today - timedelta(days=today.weekday() + 1)
+            start = end - timedelta(days=6)
+            return {
+                'start': start.strftime('%Y-%m-%d'),
+                'end': end.strftime('%Y-%m-%d')
+            }
+        elif expression == 'this_month':
+            return {
+                'start': today.replace(day=1).strftime('%Y-%m-%d'),
+                'end': today.strftime('%Y-%m-%d')
+            }
+        elif expression == 'last_month':
+            last_day_prev_month = today.replace(day=1) - timedelta(days=1)
+            first_day_prev_month = last_day_prev_month.replace(day=1)
+            return {
+                'start': first_day_prev_month.strftime('%Y-%m-%d'),
+                'end': last_day_prev_month.strftime('%Y-%m-%d')
+            }
+        elif expression == 'this_quarter':
+            quarter = (today.month - 1) // 3
+            quarter_start_month = quarter * 3 + 1
+            quarter_start = today.replace(month=quarter_start_month, day=1)
+            return {
+                'start': quarter_start.strftime('%Y-%m-%d'),
+                'end': today.strftime('%Y-%m-%d')
+            }
+        elif expression == 'last_quarter':
+            current_quarter = (today.month - 1) // 3
+            if current_quarter == 0:
+                # Previous year Q4
+                year = today.year - 1
+                quarter_start = datetime(year, 10, 1).date()
+                quarter_end = datetime(year, 12, 31).date()
+            else:
+                quarter_start_month = (current_quarter - 1) * 3 + 1
+                quarter_start = today.replace(month=quarter_start_month, day=1)
+                quarter_end_month = current_quarter * 3
+                if quarter_end_month == 12:
+                    quarter_end = today.replace(month=12, day=31)
+                else:
+                    quarter_end = today.replace(month=quarter_end_month + 1, day=1) - timedelta(days=1)
+            return {
+                'start': quarter_start.strftime('%Y-%m-%d'),
+                'end': quarter_end.strftime('%Y-%m-%d')
+            }
+        elif expression == 'this_year':
+            return {
+                'start': today.replace(month=1, day=1).strftime('%Y-%m-%d'),
+                'end': today.strftime('%Y-%m-%d')
+            }
+        elif expression == 'last_year':
+            last_year = today.year - 1
+            return {
+                'start': f'{last_year}-01-01',
+                'end': f'{last_year}-12-31'
+            }
+        elif expression == 'mtd':  # Month to date
+            return {
+                'start': today.replace(day=1).strftime('%Y-%m-%d'),
+                'end': today.strftime('%Y-%m-%d')
+            }
+        elif expression == 'qtd':  # Quarter to date
+            quarter = (today.month - 1) // 3
+            quarter_start_month = quarter * 3 + 1
+            quarter_start = today.replace(month=quarter_start_month, day=1)
+            return {
+                'start': quarter_start.strftime('%Y-%m-%d'),
+                'end': today.strftime('%Y-%m-%d')
+            }
+        elif expression == 'ytd':  # Year to date
+            return {
+                'start': today.replace(month=1, day=1).strftime('%Y-%m-%d'),
+                'end': today.strftime('%Y-%m-%d')
+            }
+        else:
+            # Default to last 30 days if unknown
+            return {
+                'start': (today - timedelta(days=29)).strftime('%Y-%m-%d'),
+                'end': today.strftime('%Y-%m-%d')
+            }
     
     def _get_preset_date_range(self, preset: str) -> Dict[str, str]:
         """Get date range for preset values"""
