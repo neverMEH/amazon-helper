@@ -41,19 +41,24 @@ const ExportShareModal: React.FC<ExportShareModalProps> = ({
   const handleExport = async () => {
     setIsExporting(true);
     try {
-      const exportData = await reportDashboardService.exportDashboardData(
+      // Map our format to the service format
+      const serviceFormat = selectedFormat === 'excel' ? 'csv' : selectedFormat as 'pdf' | 'png' | 'csv';
+      
+      const blob = await reportDashboardService.exportDashboard(
         collectionId,
-        selectedFormat
+        serviceFormat,
+        {
+          includeCharts: true,
+          includeTables: true,
+        }
       );
       
       // Create download link
-      const blob = new Blob([exportData], { 
-        type: selectedFormat === 'csv' ? 'text/csv' : 'application/json' 
-      });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `dashboard-export-${new Date().toISOString().split('T')[0]}.${selectedFormat}`;
+      const extension = selectedFormat === 'excel' ? 'xlsx' : selectedFormat;
+      a.download = `dashboard-export-${new Date().toISOString().split('T')[0]}.${extension}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
