@@ -160,7 +160,7 @@ async def list_data_collections(
         response = []
         for collection in collections:
             response.append(CollectionResponse(
-                collection_id=collection['collection_id'],
+                collection_id=collection.get('id', collection.get('collection_id', '')),  # Use 'id' field from database
                 status=collection['status'],
                 target_weeks=collection['target_weeks'],
                 start_date=collection['start_date'].isoformat() if isinstance(collection['start_date'], date) else collection['start_date'],

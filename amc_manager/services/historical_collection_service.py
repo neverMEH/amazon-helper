@@ -442,7 +442,7 @@ class HistoricalCollectionService:
                         logger.warning(f"Could not lookup execution ID for week {week.get('id')}: {e}")
             
             return {
-                'collection_id': collection['collection_id'],
+                'collection_id': collection.get('id', collection.get('collection_id', '')),  # Use 'id' field from database
                 'status': collection['status'],
                 'progress_percentage': collection['progress_percentage'],
                 'instance_id': collection.get('amc_instance_id') or collection.get('instance_id'),  # Use AMC instance_id
