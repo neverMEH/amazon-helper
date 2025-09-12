@@ -26,13 +26,15 @@ import {
   Copy,
   Lock,
   Globe,
-  User
+  User,
+  Sparkles
 } from 'lucide-react';
 import { queryTemplateService } from '../services/queryTemplateService';
 import type { QueryTemplate } from '../types/queryTemplate';
 import { TEMPLATE_CATEGORIES } from '../constants/templateCategories';
 import toast from 'react-hot-toast';
 import TemplateEditor from '../components/query-library/TemplateEditor';
+import SQLPreview from '../components/query-library/SQLPreview';
 
 // Icon mapping for categories
 const iconMap: Record<string, any> = {
@@ -390,7 +392,7 @@ export default function QueryLibrary() {
                   onClick={handleCreateNew}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
                 >
-                  <Plus className="h-4 w-4 mr-2" />
+                  <Sparkles className="h-4 w-4 mr-2 animate-pulse" />
                   Create Template
                 </button>
               </div>
@@ -459,17 +461,20 @@ export default function QueryLibrary() {
               <p className="mt-1 text-sm text-gray-500">
                 {searchQuery
                   ? 'Try adjusting your search criteria'
-                  : 'Get started by creating a new template'}
+                  : 'Create your first query template with the Monaco SQL editor'}
               </p>
               <div className="mt-6">
                 <button
                   onClick={handleCreateNew}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 group"
                 >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create New Template
+                  <Sparkles className="h-4 w-4 mr-2 group-hover:animate-pulse" />
+                  Create New Template with SQL Editor
                 </button>
               </div>
+              <p className="mt-3 text-xs text-gray-400">
+                The template editor includes a full Monaco SQL editor with syntax highlighting and auto-completion
+              </p>
             </div>
           )}
         </div>
@@ -573,6 +578,16 @@ function TemplateCard({ template, onUse, onEdit, onDelete, testId }: TemplateCar
       <p className="text-xs text-gray-600 mb-3 line-clamp-2">
         {template.description || 'No description available'}
       </p>
+
+      {/* SQL Preview */}
+      <div className="mb-3">
+        <SQLPreview 
+          sql={template.sqlTemplate} 
+          maxLines={2}
+          onEdit={() => onEdit()}
+          showActions={template.isOwner}
+        />
+      </div>
 
       {/* Tags */}
       {template.tags && template.tags.length > 0 && (
@@ -691,6 +706,18 @@ function TemplateListItem({ template, onUse, onEdit, onDelete }: TemplateListIte
           <p className="text-xs text-gray-600 mt-1">
             {template.description || 'No description available'}
           </p>
+          
+          {/* SQL Preview for list view */}
+          <div className="mt-2">
+            <SQLPreview 
+              sql={template.sqlTemplate} 
+              maxLines={1}
+              onEdit={() => onEdit()}
+              showActions={false}
+              className="text-xs"
+            />
+          </div>
+          
           <div className="flex items-center mt-2 space-x-4 text-xs text-gray-500">
             <span>{TEMPLATE_CATEGORIES[template.category]?.name || template.category}</span>
             <span>{template.usageCount || 0} uses</span>
