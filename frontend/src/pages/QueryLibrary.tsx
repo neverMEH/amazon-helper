@@ -16,6 +16,7 @@ import {
   BarChart,
   Code,
   Play,
+  Plus,
   Filter,
   SortAsc,
   Grid,
