@@ -1,8 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Save, X, Wand2, Eye, Code, Settings, Tag, AlertCircle, Check } from 'lucide-react';
+import { Save, X, Wand2, Eye, Code, Settings, Tag, AlertCircle, Check, Info, Sparkles } from 'lucide-react';
 import SQLEditor from '../common/SQLEditor';
 import { toast } from 'react-hot-toast';
 import type { QueryTemplate } from '../../types/queryTemplate';
+import { 
+  detectParametersWithContext, 
+  generatePreviewSQL,
+  type ParameterDefinition as AnalyzerParameterDef
+} from '../../utils/sqlParameterAnalyzer';
+import AsinMultiSelect from './AsinMultiSelect';
+import ParameterEditor from '../workflows/ParameterEditor';
 
 interface TemplateEditorProps {
   template?: QueryTemplate;
@@ -11,18 +18,8 @@ interface TemplateEditorProps {
   isLoading?: boolean;
 }
 
-interface ParameterDefinition {
-  name: string;
-  type: 'text' | 'number' | 'date' | 'date_range' | 'asin_list' | 'campaign_list' | 'boolean';
-  required: boolean;
-  defaultValue?: any;
-  description?: string;
-  validation?: {
-    min?: number;
-    max?: number;
-    pattern?: string;
-    enum?: string[];
-  };
+interface ParameterDefinition extends AnalyzerParameterDef {
+  userValue?: any;
 }
 
 const PARAMETER_TYPES = [
@@ -32,6 +29,7 @@ const PARAMETER_TYPES = [
   { value: 'date_range', label: 'Date Range', icon: '📆' },
   { value: 'asin_list', label: 'ASIN List', icon: '📦' },
   { value: 'campaign_list', label: 'Campaign List', icon: '📊' },
+  { value: 'pattern', label: 'Pattern (LIKE)', icon: '🔍' },
   { value: 'boolean', label: 'Boolean', icon: '✓' },
 ];
 
@@ -60,39 +58,45 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
   const [activeTab, setActiveTab] = useState<'editor' | 'preview' | 'settings'>('editor');
   const [isSaving, setIsSaving] = useState(false);
 
-  // Detect parameters in SQL query
+  // Detect parameters in SQL query with context awareness
   useEffect(() => {
-    const paramPattern = /\{\{(\w+)\}\}/g;
-    const matches = formData.sqlTemplate.matchAll(paramPattern) as IterableIterator<RegExpMatchArray>;
-    const params = Array.from(new Set(Array.from(matches, m => m[1])));
-    setDetectedParams(params);
+    const detectedParamsWithContext = detectParametersWithContext(formData.sqlTemplate);
+    const paramNames = detectedParamsWithContext.map(p => p.name);
+    setDetectedParams(paramNames);
 
-    // Auto-add new detected parameters
-    params.forEach(paramName => {
-      if (!parameters.find(p => p.name === paramName)) {
-        setParameters(prev => [...prev, {
-          name: paramName,
-          type: guessParameterType(paramName),
-          required: true,
-          description: '',
-        }]);
-      }
+    // Update parameters with context-aware detection
+    setParameters(prev => {
+      const updated: ParameterDefinition[] = [];
+      
+      // Process each detected parameter
+      detectedParamsWithContext.forEach(detectedParam => {
+        const existing = prev.find(p => p.name === detectedParam.name);
+        if (existing) {
+          // Preserve user values and descriptions
+          updated.push({
+            ...detectedParam,
+            description: existing.description,
+            userValue: existing.userValue,
+            defaultValue: existing.defaultValue,
+          });
+        } else {
+          // Add new parameter
+          updated.push(detectedParam);
+        }
+      });
+      
+      return updated;
     });
-
-    // Remove parameters that are no longer in the query
-    setParameters(prev => prev.filter(p => params.includes(p.name)));
   }, [formData.sqlTemplate]);
 
-  // Guess parameter type based on name
-  const guessParameterType = (name: string): ParameterDefinition['type'] => {
-    const lowerName = name.toLowerCase();
-    if (lowerName.includes('date') || lowerName.includes('time')) return 'date';
-    if (lowerName.includes('start') && lowerName.includes('end')) return 'date_range';
-    if (lowerName.includes('asin')) return 'asin_list';
-    if (lowerName.includes('campaign')) return 'campaign_list';
-    if (lowerName.includes('count') || lowerName.includes('number') || lowerName.includes('limit')) return 'number';
-    if (lowerName.includes('enabled') || lowerName.includes('active') || lowerName.includes('is_')) return 'boolean';
-    return 'text';
+  // Handle ASIN selection for asin_list parameters
+  const [showAsinModal, setShowAsinModal] = useState<string | null>(null);
+  
+  const handleAsinSelection = (paramName: string, asins: string[]) => {
+    setParameters(prev => prev.map(p => 
+      p.name === paramName ? { ...p, userValue: asins } : p
+    ));
+    setShowAsinModal(null);
   };
 
   // Update parameter definition
@@ -195,39 +199,9 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
     }
   };
 
-  // Generate preview SQL with sample values
-  const generatePreviewSQL = (): string => {
-    let previewSQL = formData.sqlTemplate;
-    
-    parameters.forEach(param => {
-      const sampleValue = getSampleValue(param);
-      previewSQL = previewSQL.replace(
-        new RegExp(`\\{\\{${param.name}\\}\\}`, 'g'),
-        sampleValue
-      );
-    });
-
-    return previewSQL;
-  };
-
-  // Get sample value for parameter type
-  const getSampleValue = (param: ParameterDefinition): string => {
-    switch (param.type) {
-      case 'date':
-        return "'2024-01-15'";
-      case 'date_range':
-        return "'2024-01-01' AND '2024-01-31'";
-      case 'asin_list':
-        return "('B001234567', 'B002345678', 'B003456789')";
-      case 'campaign_list':
-        return "('Campaign 1', 'Campaign 2')";
-      case 'number':
-        return '100';
-      case 'boolean':
-        return 'true';
-      default:
-        return "'sample_value'";
-    }
+  // Generate preview SQL using context-aware formatting
+  const getPreviewSQL = (): string => {
+    return generatePreviewSQL(formData.sqlTemplate, parameters);
   };
 
   return (
@@ -378,7 +352,7 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
                         <div className="grid grid-cols-3 gap-3">
                           <div>
                             <label className="block text-xs font-medium text-gray-600 mb-1">
-                              Parameter: {param.name}
+                              Parameter: {{`{{${param.name}}}`}}
                             </label>
                             <select
                               value={param.type}
@@ -407,6 +381,118 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
                             />
                           </div>
                         </div>
+                        
+                        {/* Context Information */}
+                        {param.sqlContext && (
+                          <div className="mt-2 flex items-start space-x-2 p-2 bg-blue-50 rounded text-xs">
+                            <Info className="w-3 h-3 text-blue-600 flex-shrink-0 mt-0.5" />
+                            <div className="text-blue-800">
+                              <span className="font-medium">SQL Context:</span> {param.sqlContext}
+                              {param.formatPattern && (
+                                <div className="mt-1 text-blue-700">{param.formatPattern}</div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Input fields based on type */}
+                        <div className="mt-3">
+                          <label className="block text-xs font-medium text-gray-600 mb-1">
+                            Test Value (for preview)
+                          </label>
+                          
+                          {param.type === 'asin_list' ? (
+                            <div className="space-y-2">
+                              <AsinMultiSelect
+                                value={param.userValue || []}
+                                onChange={(asins) => updateParameter(index, 'userValue', asins)}
+                                placeholder="Select ASINs for testing"
+                                maxItems={100}
+                                className="text-sm"
+                              />
+                            </div>
+                          ) : param.type === 'pattern' ? (
+                            <div>
+                              <input
+                                type="text"
+                                value={param.userValue || ''}
+                                onChange={(e) => updateParameter(index, 'userValue', e.target.value)}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                                placeholder="Enter pattern (will be wrapped with %...%)"
+                              />
+                              {param.userValue && (
+                                <div className="mt-1 text-xs text-gray-500">
+                                  Will be formatted as: <code className="bg-gray-100 px-1 py-0.5 rounded">%{param.userValue}%</code>
+                                </div>
+                              )}
+                            </div>
+                          ) : param.type === 'campaign_list' ? (
+                            <textarea
+                              value={param.userValue || ''}
+                              onChange={(e) => updateParameter(index, 'userValue', e.target.value)}
+                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                              placeholder="Enter campaign names/IDs, comma-separated"
+                              rows={2}
+                            />
+                          ) : param.type === 'date' ? (
+                            <input
+                              type="date"
+                              value={param.userValue || ''}
+                              onChange={(e) => updateParameter(index, 'userValue', e.target.value)}
+                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                            />
+                          ) : param.type === 'date_range' ? (
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="date"
+                                value={param.userValue?.start || ''}
+                                onChange={(e) => updateParameter(index, 'userValue', {
+                                  ...param.userValue,
+                                  start: e.target.value
+                                })}
+                                className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded"
+                                placeholder="Start date"
+                              />
+                              <span className="text-gray-500">to</span>
+                              <input
+                                type="date"
+                                value={param.userValue?.end || ''}
+                                onChange={(e) => updateParameter(index, 'userValue', {
+                                  ...param.userValue,
+                                  end: e.target.value
+                                })}
+                                className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded"
+                                placeholder="End date"
+                              />
+                            </div>
+                          ) : param.type === 'number' ? (
+                            <input
+                              type="number"
+                              value={param.userValue || ''}
+                              onChange={(e) => updateParameter(index, 'userValue', Number(e.target.value))}
+                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                              placeholder="Enter a number"
+                            />
+                          ) : param.type === 'boolean' ? (
+                            <select
+                              value={param.userValue || 'true'}
+                              onChange={(e) => updateParameter(index, 'userValue', e.target.value === 'true')}
+                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                            >
+                              <option value="true">True</option>
+                              <option value="false">False</option>
+                            </select>
+                          ) : (
+                            <input
+                              type="text"
+                              value={param.userValue || ''}
+                              onChange={(e) => updateParameter(index, 'userValue', e.target.value)}
+                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                              placeholder="Enter value"
+                            />
+                          )}
+                        </div>
+                        
                         <div className="mt-2 flex items-center space-x-4">
                           <label className="flex items-center text-sm">
                             <input
@@ -417,29 +503,6 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
                             />
                             Required
                           </label>
-                          {param.type === 'number' && (
-                            <div className="flex items-center space-x-2 text-sm">
-                              <input
-                                type="number"
-                                placeholder="Min"
-                                className="w-20 px-2 py-1 border border-gray-300 rounded"
-                                onChange={(e) => updateParameter(index, 'validation', {
-                                  ...param.validation,
-                                  min: e.target.value ? Number(e.target.value) : undefined,
-                                })}
-                              />
-                              <span>-</span>
-                              <input
-                                type="number"
-                                placeholder="Max"
-                                className="w-20 px-2 py-1 border border-gray-300 rounded"
-                                onChange={(e) => updateParameter(index, 'validation', {
-                                  ...param.validation,
-                                  max: e.target.value ? Number(e.target.value) : undefined,
-                                })}
-                              />
-                            </div>
-                          )}
                         </div>
                       </div>
                     ))}
@@ -466,7 +529,7 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
 
               <div className="border border-gray-300 rounded-lg">
                 <SQLEditor
-                  value={generatePreviewSQL()}
+                  value={getPreviewSQL()}
                   onChange={() => {}}
                   height="400px"
                   readOnly
@@ -475,12 +538,24 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
 
               {parameters.length > 0 && (
                 <div className="border border-gray-200 rounded-lg p-4">
-                  <h3 className="font-medium text-gray-900 mb-3">Sample Parameter Values</h3>
-                  <div className="space-y-2">
+                  <h3 className="font-medium text-gray-900 mb-3">Parameter Context & Formatting</h3>
+                  <div className="space-y-3">
                     {parameters.map(param => (
-                      <div key={param.name} className="flex justify-between text-sm">
-                        <span className="font-mono text-gray-600">{`{{${param.name}}}`}</span>
-                        <span className="text-gray-900">{getSampleValue(param)}</span>
+                      <div key={param.name} className="border-b border-gray-100 pb-2 last:border-0">
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="font-mono text-gray-600">{`{{${param.name}}}`}</span>
+                          <span className="text-xs text-gray-500">{param.type}</span>
+                        </div>
+                        {param.sqlContext && (
+                          <div className="text-xs text-gray-600 mb-1">
+                            <span className="font-medium">Context:</span> {param.sqlContext}
+                          </div>
+                        )}
+                        {param.formatPattern && (
+                          <div className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                            {param.formatPattern}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
