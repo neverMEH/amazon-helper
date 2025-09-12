@@ -168,8 +168,8 @@ export default function QueryLibrary() {
   const handleUseTemplate = (template: QueryTemplate) => {
     // Track template usage
     queryTemplateService.useTemplate(template.templateId);
-    // Navigate to query builder with template
-    navigate('/query-builder/new', { state: { templateId: template.templateId } });
+    // Navigate to query builder with template using the proper route
+    navigate(`/query-builder/template/${template.templateId}`);
   };
 
   const handleEditTemplate = (template: QueryTemplate) => {
