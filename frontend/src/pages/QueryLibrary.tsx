@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Search, 
   Star, 
@@ -15,11 +15,23 @@ import {
   Target,
   BarChart,
   Code,
-  Play
+  Play,
+  Plus,
+  Filter,
+  SortAsc,
+  Grid,
+  List,
+  Edit2,
+  Trash2,
+  Copy,
+  Lock,
+  Globe,
+  User
 } from 'lucide-react';
 import { queryTemplateService } from '../services/queryTemplateService';
 import type { QueryTemplate } from '../types/queryTemplate';
 import { TEMPLATE_CATEGORIES } from '../constants/templateCategories';
+import toast from 'react-hot-toast';
 
 // Icon mapping for categories
 const iconMap: Record<string, any> = {
@@ -32,12 +44,23 @@ const iconMap: Record<string, any> = {
   Code
 };
 
+type ViewMode = 'grid' | 'list';
+type SortOption = 'newest' | 'oldest' | 'usage' | 'alphabetical';
+type OwnershipFilter = 'all' | 'my-templates' | 'public';
+
 export default function QueryLibrary() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [showFavorites, setShowFavorites] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [sortBy, setSortBy] = useState<SortOption>('newest');
+  const [ownershipFilter, setOwnershipFilter] = useState<OwnershipFilter>('all');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<QueryTemplate | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
   // Fetch templates
   const { data: templates = [], isLoading } = useQuery({
@@ -45,15 +68,36 @@ export default function QueryLibrary() {
     queryFn: () => queryTemplateService.listTemplates(true),
   });
 
-  // Filter templates based on search and category
-  const filteredTemplates = useMemo(() => {
+  // Fetch categories
+  const { data: categories = [] } = useQuery({
+    queryKey: ['query-template-categories'],
+    queryFn: () => queryTemplateService.getCategories(),
+  });
+
+  // Delete template mutation
+  const deleteTemplateMutation = useMutation({
+    mutationFn: (templateId: string) => queryTemplateService.deleteTemplate(templateId),
+    onSuccess: () => {
+      toast.success('Template deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['query-templates'] });
+      setShowDeleteConfirm(null);
+    },
+    onError: () => {
+      toast.error('Failed to delete template');
+    },
+  });
+
+  // Filter and sort templates
+  const filteredAndSortedTemplates = useMemo(() => {
     let filtered = templates;
 
     // Filter by search query
     if (searchQuery) {
+      const query = searchQuery.toLowerCase();
       filtered = filtered.filter(t => 
-        t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.description?.toLowerCase().includes(searchQuery.toLowerCase())
+        t.name.toLowerCase().includes(query) ||
+        t.description?.toLowerCase().includes(query) ||
+        t.tags?.some(tag => tag.toLowerCase().includes(query))
       );
     }
 
@@ -62,18 +106,43 @@ export default function QueryLibrary() {
       filtered = filtered.filter(t => t.category === selectedCategory);
     }
 
-    // Filter by favorites (temporarily disabled until backend support)
-    // if (showFavorites) {
-    //   filtered = filtered.filter(t => t.isFavorite);
-    // }
+    // Filter by ownership
+    if (ownershipFilter === 'my-templates') {
+      filtered = filtered.filter(t => t.isOwner);
+    } else if (ownershipFilter === 'public') {
+      filtered = filtered.filter(t => t.isPublic && !t.isOwner);
+    }
 
-    return filtered;
-  }, [templates, searchQuery, selectedCategory, showFavorites]);
+    // Filter by favorites (if implemented)
+    if (showFavorites) {
+      // TODO: Implement favorites filtering when backend support is added
+      // filtered = filtered.filter(t => t.isFavorite);
+    }
+
+    // Sort templates
+    const sorted = [...filtered];
+    switch (sortBy) {
+      case 'newest':
+        sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        break;
+      case 'oldest':
+        sorted.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        break;
+      case 'usage':
+        sorted.sort((a, b) => (b.usageCount || 0) - (a.usageCount || 0));
+        break;
+      case 'alphabetical':
+        sorted.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+    }
+
+    return sorted;
+  }, [templates, searchQuery, selectedCategory, ownershipFilter, showFavorites, sortBy]);
 
   // Group templates by category
   const templatesByCategory = useMemo(() => {
     const grouped: Record<string, QueryTemplate[]> = {};
-    filteredTemplates.forEach(template => {
+    filteredAndSortedTemplates.forEach(template => {
       const category = template.category || 'custom-queries';
       if (!grouped[category]) {
         grouped[category] = [];
@@ -81,7 +150,7 @@ export default function QueryLibrary() {
       grouped[category].push(template);
     });
     return grouped;
-  }, [filteredTemplates]);
+  }, [filteredAndSortedTemplates]);
 
   const toggleCategory = (categoryId: string) => {
     setExpandedCategories(prev => {
@@ -96,12 +165,30 @@ export default function QueryLibrary() {
   };
 
   const handleUseTemplate = (template: QueryTemplate) => {
+    // Track template usage
+    queryTemplateService.useTemplate(template.templateId);
     // Navigate to query builder with template
-    navigate(`/query-builder/template/${template.templateId}`);
+    navigate('/query-builder/new', { state: { templateId: template.templateId } });
+  };
+
+  const handleEditTemplate = (template: QueryTemplate) => {
+    setSelectedTemplate(template);
+    setShowCreateModal(true);
+  };
+
+  const handleDeleteTemplate = (templateId: string) => {
+    setShowDeleteConfirm(templateId);
+  };
+
+  const confirmDelete = () => {
+    if (showDeleteConfirm) {
+      deleteTemplateMutation.mutate(showDeleteConfirm);
+    }
   };
 
   const handleCreateNew = () => {
-    navigate('/query-builder/new');
+    setSelectedTemplate(null);
+    setShowCreateModal(true);
   };
 
   return (
@@ -123,7 +210,47 @@ export default function QueryLibrary() {
             </div>
           </div>
 
-          {/* Filter Tabs */}
+          {/* Filters */}
+          <div className="mb-4 space-y-2">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                <Filter className="inline-block h-3 w-3 mr-1" />
+                Ownership
+              </label>
+              <select
+                value={ownershipFilter}
+                onChange={(e) => setOwnershipFilter(e.target.value as OwnershipFilter)}
+                className="w-full text-sm border-gray-300 rounded-md"
+                aria-label="ownership"
+              >
+                <option value="all">All Templates</option>
+                <option value="my-templates">My Templates</option>
+                <option value="public">Public Templates</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                <SortAsc className="inline-block h-3 w-3 mr-1" />
+                Sort by
+              </label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortOption)}
+                className="w-full text-sm border-gray-300 rounded-md"
+                aria-label="sort"
+              >
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="usage">Most Used</option>
+                <option value="alphabetical">Alphabetical</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="border-t border-gray-200 my-4"></div>
+
+          {/* Quick Filters */}
           <div className="mb-4 space-y-2">
             <button
               onClick={() => {
@@ -159,6 +286,9 @@ export default function QueryLibrary() {
 
           {/* Categories */}
           <div className="space-y-1">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+              Categories
+            </h3>
             {Object.values(TEMPLATE_CATEGORIES).map(category => {
               const isExpanded = expandedCategories.has(category.id);
               const isSelected = selectedCategory === category.id;
@@ -196,15 +326,20 @@ export default function QueryLibrary() {
                   {/* Expanded template list */}
                   {isExpanded && templatesByCategory[category.id] && (
                     <div className="ml-8 mt-1 space-y-1">
-                      {templatesByCategory[category.id].map(template => (
+                      {templatesByCategory[category.id].slice(0, 5).map(template => (
                         <button
                           key={template.templateId}
                           onClick={() => handleUseTemplate(template)}
-                          className="w-full text-left px-3 py-1 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded"
+                          className="w-full text-left px-3 py-1 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded truncate"
                         >
                           {template.name}
                         </button>
                       ))}
+                      {templateCount > 5 && (
+                        <div className="px-3 py-1 text-xs text-gray-500">
+                          +{templateCount - 5} more...
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -226,13 +361,55 @@ export default function QueryLibrary() {
                   Browse and use pre-built query templates or create your own
                 </p>
               </div>
-              <button
-                onClick={handleCreateNew}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
-              >
-                <Code className="h-4 w-4 mr-2" />
-                New Workflow
-              </button>
+              <div className="flex items-center space-x-2">
+                {/* View Mode Toggle */}
+                <div className="flex items-center bg-gray-100 rounded-md p-1">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`p-1 rounded ${
+                      viewMode === 'grid' ? 'bg-white shadow' : ''
+                    }`}
+                    aria-label="Grid view"
+                  >
+                    <Grid className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={`p-1 rounded ${
+                      viewMode === 'list' ? 'bg-white shadow' : ''
+                    }`}
+                    aria-label="List view"
+                  >
+                    <List className="h-4 w-4" />
+                  </button>
+                </div>
+                
+                {/* Create Button */}
+                <button
+                  onClick={handleCreateNew}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Template
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Stats Bar */}
+          <div className="mb-4 flex items-center justify-between text-sm text-gray-600">
+            <div>
+              Showing {filteredAndSortedTemplates.length} of {templates.length} templates
+            </div>
+            <div className="flex items-center space-x-4">
+              <span>
+                <Globe className="inline-block h-4 w-4 mr-1" />
+                {templates.filter(t => t.isPublic).length} public
+              </span>
+              <span>
+                <User className="inline-block h-4 w-4 mr-1" />
+                {templates.filter(t => t.isOwner).length} owned
+              </span>
             </div>
           </div>
 
@@ -243,53 +420,117 @@ export default function QueryLibrary() {
             </div>
           )}
 
-          {/* Template Grid */}
-          {!isLoading && (
+          {/* Template Grid/List */}
+          {!isLoading && viewMode === 'grid' && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredTemplates.map(template => (
+              {filteredAndSortedTemplates.map(template => (
                 <TemplateCard
                   key={template.templateId}
                   template={template}
                   onUse={() => handleUseTemplate(template)}
+                  onEdit={() => handleEditTemplate(template)}
+                  onDelete={() => handleDeleteTemplate(template.templateId)}
+                  testId="template-card"
+                />
+              ))}
+            </div>
+          )}
+
+          {!isLoading && viewMode === 'list' && (
+            <div className="space-y-2">
+              {filteredAndSortedTemplates.map(template => (
+                <TemplateListItem
+                  key={template.templateId}
+                  template={template}
+                  onUse={() => handleUseTemplate(template)}
+                  onEdit={() => handleEditTemplate(template)}
+                  onDelete={() => handleDeleteTemplate(template.templateId)}
                 />
               ))}
             </div>
           )}
 
           {/* Empty State */}
-          {!isLoading && filteredTemplates.length === 0 && (
+          {!isLoading && filteredAndSortedTemplates.length === 0 && (
             <div className="text-center py-12">
               <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">No templates found</h3>
               <p className="mt-1 text-sm text-gray-500">
                 {searchQuery
                   ? 'Try adjusting your search criteria'
-                  : 'Get started by creating a new workflow'}
+                  : 'Get started by creating a new template'}
               </p>
               <div className="mt-6">
                 <button
                   onClick={handleCreateNew}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
                 >
-                  <Code className="h-4 w-4 mr-2" />
-                  Create New Workflow
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create New Template
                 </button>
               </div>
             </div>
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-semibold mb-4">Delete Template</h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete this template? This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setShowDeleteConfirm(null)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+              >
+                Confirm Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TODO: Add Template Editor Modal when component is ready */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-4xl w-full h-[90vh] overflow-auto">
+            <h3 className="text-lg font-semibold mb-4">
+              {selectedTemplate ? 'Edit Template' : 'Create New Template'}
+            </h3>
+            <p className="text-gray-600">Template editor component will be implemented in Task 4.6</p>
+            <button
+              onClick={() => setShowCreateModal(false)}
+              className="mt-4 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// Template Card Component
+// Template Card Component for Grid View
 interface TemplateCardProps {
   template: QueryTemplate;
   onUse: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  testId?: string;
 }
 
-function TemplateCard({ template, onUse }: TemplateCardProps) {
+function TemplateCard({ template, onUse, onEdit, onDelete, testId }: TemplateCardProps) {
   const [isFavorite, setIsFavorite] = useState(false);
 
   const handleToggleFavorite = async (e: React.MouseEvent) => {
@@ -299,7 +540,7 @@ function TemplateCard({ template, onUse }: TemplateCardProps) {
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-shadow">
+    <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-shadow" data-testid={testId}>
       <div className="flex items-start justify-between mb-2">
         <h3 className="text-sm font-semibold text-gray-900 line-clamp-2">
           {template.name}
@@ -320,25 +561,149 @@ function TemplateCard({ template, onUse }: TemplateCardProps) {
         {template.description || 'No description available'}
       </p>
 
+      {/* Tags */}
+      {template.tags && template.tags.length > 0 && (
+        <div className="mb-3 flex flex-wrap gap-1">
+          {template.tags.slice(0, 3).map(tag => (
+            <span key={tag} className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
+
       <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
         <div className="flex items-center">
           <Clock className="h-3 w-3 mr-1" />
-          <span>Run Times: {template.usageCount || 0}</span>
+          <span>{template.usageCount || 0} uses</span>
         </div>
-        {template.category && (
+        <div className="flex items-center space-x-2">
+          {template.isOwner && (
+            <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
+              Your Template
+            </span>
+          )}
+          {template.isPublic ? (
+            <Globe className="h-3 w-3 text-green-600" title="Public" />
+          ) : (
+            <Lock className="h-3 w-3 text-gray-400" title="Private" />
+          )}
+        </div>
+      </div>
+
+      {template.category && (
+        <div className="mb-3">
           <span className="px-2 py-1 bg-gray-100 rounded text-xs">
             {TEMPLATE_CATEGORIES[template.category]?.name || template.category}
           </span>
+        </div>
+      )}
+
+      <div className="flex items-center space-x-2">
+        <button
+          onClick={onUse}
+          className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-blue-600 text-sm font-medium rounded-md text-blue-600 bg-white hover:bg-blue-50"
+        >
+          <Play className="h-4 w-4 mr-2" />
+          Use Template
+        </button>
+        {template.isOwner && (
+          <>
+            <button
+              onClick={onEdit}
+              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded"
+              aria-label="Edit template"
+            >
+              <Edit2 className="h-4 w-4" />
+            </button>
+            <button
+              onClick={onDelete}
+              className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded"
+              aria-label="Delete template"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </>
+        )}
+        {!template.isOwner && template.isPublic && (
+          <button
+            onClick={() => {/* TODO: Implement fork */}}
+            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded"
+            aria-label="Fork template"
+          >
+            <Copy className="h-4 w-4" />
+          </button>
         )}
       </div>
+    </div>
+  );
+}
 
-      <button
-        onClick={onUse}
-        className="w-full inline-flex items-center justify-center px-3 py-2 border border-blue-600 text-sm font-medium rounded-md text-blue-600 bg-white hover:bg-blue-50"
-      >
-        <Play className="h-4 w-4 mr-2" />
-        Create Workflow
-      </button>
+// Template List Item Component for List View
+interface TemplateListItemProps {
+  template: QueryTemplate;
+  onUse: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}
+
+function TemplateListItem({ template, onUse, onEdit, onDelete }: TemplateListItemProps) {
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow transition-shadow">
+      <div className="flex items-center justify-between">
+        <div className="flex-1">
+          <div className="flex items-center">
+            <h3 className="text-sm font-semibold text-gray-900 mr-2">
+              {template.name}
+            </h3>
+            {template.isOwner && (
+              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">
+                Your Template
+              </span>
+            )}
+            {template.isPublic ? (
+              <Globe className="h-3 w-3 text-green-600 ml-2" title="Public" />
+            ) : (
+              <Lock className="h-3 w-3 text-gray-400 ml-2" title="Private" />
+            )}
+          </div>
+          <p className="text-xs text-gray-600 mt-1">
+            {template.description || 'No description available'}
+          </p>
+          <div className="flex items-center mt-2 space-x-4 text-xs text-gray-500">
+            <span>{TEMPLATE_CATEGORIES[template.category]?.name || template.category}</span>
+            <span>{template.usageCount || 0} uses</span>
+            <span>Created {new Date(template.createdAt).toLocaleDateString()}</span>
+          </div>
+        </div>
+        <div className="flex items-center space-x-2 ml-4">
+          <button
+            onClick={onUse}
+            className="inline-flex items-center px-3 py-1.5 border border-blue-600 text-sm font-medium rounded-md text-blue-600 bg-white hover:bg-blue-50"
+          >
+            <Play className="h-3 w-3 mr-1" />
+            Use
+          </button>
+          {template.isOwner && (
+            <>
+              <button
+                onClick={onEdit}
+                className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded"
+                aria-label="Edit template"
+              >
+                <Edit2 className="h-3 w-3" />
+              </button>
+              <button
+                onClick={onDelete}
+                className="p-1.5 text-red-600 hover:text-red-900 hover:bg-red-50 rounded"
+                aria-label="Delete template"
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -38,9 +38,9 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 3.8 Verify all tests pass
 
 - [ ] 4. Frontend Components Development
-  - [ ] 4.1 Write tests for Query Library page components
-  - [ ] 4.2 Create Query Library page with template gallery and search
-  - [ ] 4.3 Build AsinMultiSelect component with bulk paste support (60+ items)
+  - [x] 4.1 Write tests for Query Library page components
+  - [x] 4.2 Create Query Library page with template gallery and search
+  - [x] 4.3 Build AsinMultiSelect component with bulk paste support (60+ items)
   - [ ] 4.4 Create CampaignSelector with wildcard pattern support
   - [ ] 4.5 Implement DateRangePicker with presets and dynamic expressions
   - [ ] 4.6 Build Template Editor with Monaco SQL editor and live parameter detection
