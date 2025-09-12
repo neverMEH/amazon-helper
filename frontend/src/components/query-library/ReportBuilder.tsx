@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { 
-  Plus, Save, X, Layout, BarChart3, LineChart, PieChart, 
+  Save, Layout, BarChart3, LineChart, PieChart, 
   Table, Hash, Type, Grid3x3, Move,
   Trash2, Copy, Eye, EyeOff
 } from 'lucide-react';

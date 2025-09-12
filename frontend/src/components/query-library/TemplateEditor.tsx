@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Save, X, Wand2, Eye, Code, Settings, Tag, Folder, AlertCircle, Check } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Save, X, Wand2, Eye, Code, Settings, Tag, AlertCircle, Check } from 'lucide-react';
 import SQLEditor from '../common/SQLEditor';
 import { toast } from 'react-hot-toast';
 import type { QueryTemplate } from '../../types/queryTemplate';
@@ -168,7 +168,7 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
     try {
       const templateData: Partial<QueryTemplate> = {
         ...formData,
-        parameters: parameters.reduce((acc, param) => {
+        parametersSchema: parameters.reduce((acc, param) => {
           acc[param.name] = {
             type: param.type,
             required: param.required,
@@ -176,6 +176,12 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
             description: param.description,
             validation: param.validation,
           };
+          return acc;
+        }, {} as Record<string, any>),
+        defaultParameters: parameters.reduce((acc, param) => {
+          if (param.defaultValue !== undefined) {
+            acc[param.name] = param.defaultValue;
+          }
           return acc;
         }, {} as Record<string, any>),
       };
