@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Calendar, ChevronDown, ChevronUp, X, Info, Clock, CalendarDays } from 'lucide-react';
+import { ChevronDown, ChevronUp, X, Info, Clock, CalendarDays } from 'lucide-react';
 import { format, parse, subDays, addDays, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isAfter, isBefore, isValid } from 'date-fns';
 import type { FC } from 'react';
 
@@ -15,8 +15,6 @@ interface DateRangePickerProps {
   error?: string;
   showAmcWarning?: boolean;
   supportDynamic?: boolean;
-  minDate?: Date;
-  maxDate?: Date;
   className?: string;
 }
 
@@ -37,8 +35,6 @@ const DateRangePicker: FC<DateRangePickerProps> = ({
   error,
   showAmcWarning = false,
   supportDynamic = false,
-  minDate,
-  maxDate,
   className = ''
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -47,8 +43,6 @@ const DateRangePicker: FC<DateRangePickerProps> = ({
   const [dynamicEnd, setDynamicEnd] = useState('');
   const [showDynamicHelp, setShowDynamicHelp] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
-  const [selecting, setSelecting] = useState<'start' | 'end' | null>(null);
-  const [tempRange, setTempRange] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
 
   const today = new Date();
   const amcCutoffDate = showAmcWarning ? subDays(today, 14) : today;
@@ -311,51 +305,6 @@ const DateRangePicker: FC<DateRangePickerProps> = ({
     }
   }, [dynamicStart, dynamicEnd, onChange]);
 
-  // Handle calendar date selection
-  const handleCalendarSelect = useCallback((date: Date) => {
-    if (!selecting) {
-      // Start new selection
-      setSelecting('end');
-      setTempRange({ start: date, end: null });
-    } else if (selecting === 'end') {
-      // Complete selection
-      const start = tempRange.start!;
-      if (isBefore(date, start)) {
-        // If end is before start, swap them
-        onChange({
-          startDate: date.toISOString(),
-          endDate: start.toISOString(),
-          isDynamic: false
-        });
-      } else {
-        onChange({
-          startDate: start.toISOString(),
-          endDate: date.toISOString(),
-          isDynamic: false
-        });
-      }
-      setSelecting(null);
-      setTempRange({ start: null, end: null });
-      setIsOpen(false);
-    }
-  }, [selecting, tempRange, onChange]);
-
-  // Check if date is disabled
-  const isDateDisabled = useCallback((date: Date): boolean => {
-    if (disabled) return true;
-    
-    // AMC lookback period
-    if (showAmcWarning) {
-      if (isAfter(date, amcCutoffDate)) return true;
-      if (isBefore(date, subDays(today, 365))) return true; // Max 1 year back
-    }
-    
-    // Min/max date constraints
-    if (minDate && isBefore(date, minDate)) return true;
-    if (maxDate && isAfter(date, maxDate)) return true;
-    
-    return false;
-  }, [disabled, showAmcWarning, amcCutoffDate, today, minDate, maxDate]);
 
   // Format display text
   const displayText = useMemo(() => {

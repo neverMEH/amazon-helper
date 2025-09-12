@@ -462,7 +462,7 @@ export const CampaignSelector: FC<CampaignSelectorProps> = ({
                 type="button"
                 onClick={handleSelectAllMatching}
                 className="text-sm text-blue-600 hover:text-blue-700"
-                disabled={maxSelections && selectedCampaigns.size >= maxSelections}
+                disabled={!!(maxSelections && selectedCampaigns.size >= maxSelections)}
               >
                 Select All Matching ({filteredCampaigns.length})
                 {maxSelections && ` (max ${maxSelections})`}
@@ -518,7 +518,7 @@ export const CampaignSelector: FC<CampaignSelectorProps> = ({
                         type={multiple ? 'checkbox' : 'radio'}
                         checked={selectedCampaigns.has(valueToCheck)}
                         onChange={() => handleToggleCampaign(campaign.campaign_id, campaignName)}
-                        disabled={isDisabled}
+                        disabled={!!isDisabled}
                         className="mr-3 text-blue-600 focus:ring-blue-500"
                       />
                       <div className="flex-1">
