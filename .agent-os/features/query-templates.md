@@ -4,7 +4,22 @@
 
 The Query Library is a comprehensive, standalone system that serves as the central hub for AMC query templates with sophisticated parameter handling, seamless integration with workflows/collections/schedules, and automatic report generation. This major redesign transforms the system from simple template storage into a comprehensive query management platform.
 
-## Recent Changes (2025-09-11)
+## Recent Changes (2025-09-12)
+
+### Phase 3: API Endpoints Implementation (Complete - 2025-09-12)
+- **Comprehensive REST API** with 17 endpoints under `/api/query-library/` prefix
+- **Template CRUD Operations** with advanced filtering, search, and pagination
+- **Parameter Management System** with full CRUD operations and validation
+- **Template Execution Engine** with AMC integration and parameter injection
+- **Dashboard Generation** from query results with automatic widget suggestions
+- **Template Versioning & Forking** for collaborative development
+- **Instance Management** for saving and reusing parameter configurations
+- **Advanced Query Features** including parameter detection and widget suggestions
+- **Authentication Integration** with user-based access control
+- **Error Handling** with comprehensive HTTP status codes and logging
+- **API Testing Suite** with mock-based testing for all endpoints
+
+### Recent Changes (2025-09-11)
 
 ### Phase 1: Database Schema Implementation (Complete)
 - **Enhanced query_templates table** with new columns: `report_config`, `version`, `parent_template_id`, `execution_count`
@@ -61,7 +76,27 @@ The Query Library is a comprehensive, standalone system that serves as the centr
 - `amc_manager/services/template_report_service.py` - Dashboard generation and report configuration
 - `amc_manager/services/parameter_engine.py` - Enhanced parameter validation and processing
 - `amc_manager/services/template_instantiation_service.py` - Template to workflow conversion (planned)
-- `amc_manager/api/supabase/query_templates.py` - Template API endpoints (planned)
+- `amc_manager/api/supabase/query_library.py` - Complete Query Library API endpoints (implemented)
+
+### API Endpoints (Phase 3 - Complete)
+- `GET /api/query-library/templates` - List templates with filtering, search, and pagination
+- `POST /api/query-library/templates` - Create new template with auto-parameter detection
+- `GET /api/query-library/templates/{id}` - Get specific template details
+- `GET /api/query-library/templates/{id}/full` - Get template with all relations (parameters, reports, instances)
+- `PUT /api/query-library/templates/{id}` - Update template with version incrementing
+- `DELETE /api/query-library/templates/{id}` - Delete template (owner only)
+- `POST /api/query-library/templates/{id}/fork` - Fork template to create customized version
+- `GET /api/query-library/templates/{id}/parameters` - Get all template parameters
+- `POST /api/query-library/templates/{id}/parameters` - Create new parameter for template
+- `PUT /api/query-library/templates/{id}/parameters/{param_id}` - Update specific parameter
+- `DELETE /api/query-library/templates/{id}/parameters/{param_id}` - Delete parameter
+- `POST /api/query-library/templates/{id}/validate-parameters` - Validate parameter values
+- `POST /api/query-library/templates/{id}/execute` - Execute template with parameters and AMC integration
+- `POST /api/query-library/templates/{id}/instances` - Save parameter configuration as instance
+- `POST /api/query-library/templates/{id}/generate-dashboard` - Generate dashboard from execution results
+- `POST /api/query-library/templates/detect-parameters` - Auto-detect parameters from SQL
+- `GET /api/query-library/templates/{id}/versions` - Get all template versions
+- `POST /api/query-library/templates/{id}/suggest-widgets` - Suggest dashboard widgets from data
 
 ### Frontend Components
 - `frontend/src/pages/QueryTemplates.tsx` - Template library interface
@@ -1185,11 +1220,70 @@ CREATE TABLE query_template_instances (
 - TemplateReportService for dashboard generation
 - Enhanced ParameterEngine supporting all 14 parameter types
 
-### Phase 3: API Endpoints (Next)
-- GET /api/query-library/templates with sophisticated filtering
-- Template CRUD operations with parameter management
-- Template execution and validation endpoints
-- Dashboard generation and preview endpoints
+### Phase 3: API Endpoints Implementation (Complete - 2025-09-12)
+- **Comprehensive REST API** with 17 endpoints providing full Query Library functionality
+- **Template Management API** with sophisticated filtering, search, pagination, and CRUD operations
+- **Parameter System API** with full lifecycle management and validation endpoints
+- **Execution Engine API** with AMC integration and parameter injection capabilities
+- **Dashboard Generation API** with automatic widget suggestions and report creation
+- **Advanced Features API** including template forking, versioning, and instance management
+- **Testing Infrastructure** with comprehensive mock-based API testing suite
+
+#### Key API Features Implemented:
+
+##### 1. Advanced Template Filtering & Search
+```python
+# GET /api/query-library/templates supports:
+- category: Filter by template category
+- search: Full-text search across name and description
+- tags: Filter by tags (array support)
+- include_public: Include public templates from other users
+- user_only: Show only current user's templates
+- sort_by: Sort by usage_count, created_at, updated_at
+- page: Pagination support
+- limit: Results per page (default 50)
+```
+
+##### 2. Template Execution with AMC Integration
+```python
+# POST /api/query-library/templates/{id}/execute
+- Real-time parameter validation before execution
+- AMC instance selection and authentication
+- Time window configuration for data queries
+- Parameter injection with SQL injection prevention
+- Execution tracking and result storage
+- Integration with existing workflow execution system
+```
+
+##### 3. Dashboard Generation from Query Results
+```python
+# POST /api/query-library/templates/{id}/generate-dashboard
+- Automatic widget type detection based on data structure
+- Support for 10 widget types: line_chart, bar_chart, pie_chart, area_chart, scatter_plot, table, metric_card, text, heatmap, funnel
+- Field mapping and transformation for complex visualizations
+- Dashboard layout optimization
+- Saved dashboard configurations for reuse
+```
+
+##### 4. Parameter Detection and Management
+```python
+# POST /api/query-library/templates/detect-parameters
+- Automatic parameter extraction from SQL templates using regex analysis
+- Parameter type inference based on naming patterns and context
+- Support for 14 parameter types including advanced types like date_expression and campaign_filter
+- UI component configuration generation for frontend rendering
+- Validation rule generation with appropriate constraints
+```
+
+##### 5. Template Versioning and Collaboration
+```python
+# Fork and Version Management:
+- POST /api/query-library/templates/{id}/fork - Create customized versions
+- GET /api/query-library/templates/{id}/versions - Track template history
+- Automatic version incrementing when SQL templates are modified
+- Parent-child relationship tracking for template genealogy
+- Usage analytics across all versions
+```
 
 ### Phase 4: Frontend Components (Planned)
 - Query Library page with template gallery and search
@@ -1219,6 +1313,12 @@ CREATE TABLE query_template_instances (
 - `/amc_manager/services/template_report_service.py` - Dashboard generation and report service
 - `/amc_manager/services/parameter_engine.py` - Enhanced parameter processing engine
 - `/tests/services/test_query_template_service_enhanced.py` - Comprehensive backend services test suite
+
+#### Phase 3 - API Endpoints Implementation (2025-09-12)
+- `/amc_manager/api/supabase/query_library.py` - Complete Query Library REST API with 17 endpoints
+- `/tests/api/test_query_library_api.py` - Comprehensive API test suite with mock-based testing
+- `/main_supabase.py` - Updated with query_library router registration and proper routing
+- `/amc_manager/services/parameter_engine.py` - Added singleton instance for proper API integration
 
 ### Performance Targets
 - Template library page load: <2 seconds

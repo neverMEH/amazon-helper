@@ -177,6 +177,7 @@ from amc_manager.api.supabase.instances_simple import router as instances_router
 from amc_manager.api.supabase.workflows import router as workflows_router
 from amc_manager.api.supabase.campaigns import router as campaigns_router
 from amc_manager.api.supabase.query_templates import router as query_templates_router
+from amc_manager.api.supabase.query_library import router as query_library_router
 from amc_manager.api.supabase.brands import router as brands_router
 from amc_manager.api.supabase.amc_executions import router as amc_executions_router
 from amc_manager.api.supabase.profile import router as profile_router
@@ -205,6 +206,7 @@ app.include_router(instances_router, prefix="/api/instances", tags=["AMC Instanc
 app.include_router(workflows_router, prefix="/api/workflows", tags=["Workflows"])
 app.include_router(campaigns_router, prefix="/api/campaigns", tags=["Campaigns"])
 app.include_router(query_templates_router, prefix="/api/query-templates", tags=["Query Templates"])
+app.include_router(query_library_router, tags=["Query Library"])  # Has prefix in router
 app.include_router(brands_router, prefix="/api/brands", tags=["Brands"])
 app.include_router(amc_executions_router, prefix="/api/amc-executions", tags=["AMC Executions"])
 app.include_router(data_sources_router, prefix="/api/data-sources", tags=["Data Sources"])

@@ -812,3 +812,7 @@ class ParameterEngine:
         
         # Log the query for audit
         logger.debug(f"Processed SQL length: {len(sql)} characters")
+
+
+# Create singleton instance
+parameter_engine = ParameterEngine()
