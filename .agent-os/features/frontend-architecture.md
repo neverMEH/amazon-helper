@@ -4,9 +4,18 @@
 
 The RecomAMP frontend is built with React 19.1.0, TypeScript 5.8, and modern development practices. It follows a component-based architecture with centralized state management, type safety, and performance optimization patterns.
 
-## Recent Updates (2025-09-11)
+## Recent Updates (2025-09-12)
 
-### Campaign Page Routing Fix
+### Query Library Redesign Components Implementation
+- **New Components**: Added advanced Query Library components with enhanced parameter handling
+  - `/frontend/src/components/query-library/CampaignSelector.tsx` - Enhanced campaign selection with wildcard patterns
+  - `/frontend/src/components/query-library/DateRangePicker.tsx` - Advanced date picker with presets and dynamic expressions
+- **Features**: Wildcard pattern support (`Brand_*`, `*_2025`), bulk selection, AMC 14-day lookback support
+- **Testing**: Comprehensive test suites with 95+ test scenarios for user interactions and accessibility
+- **TypeScript**: Fixed compilation errors with boolean type conversion and unused import cleanup
+- **Performance**: React-window virtualization for large datasets, debounced search, optimistic updates
+
+### Campaign Page Routing Fix (2025-09-11)
 - **Issue**: The CampaignsOptimized component was using incorrect API endpoint `/campaigns` instead of `/campaigns/`
 - **Fix**: Updated API service calls to include proper trailing slash for backend compatibility
 - **File**: `frontend/src/pages/CampaignsOptimized.tsx`

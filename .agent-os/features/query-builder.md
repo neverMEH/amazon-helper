@@ -16,6 +16,8 @@ The query builder system provides a sophisticated SQL editing environment with M
 - `frontend/src/components/QueryBuilder.tsx` - Query building interface
 - `frontend/src/components/ParameterForm.tsx` - Parameter input interface
 - `frontend/src/components/SchemaExplorer.tsx` - AMC schema browser
+- `frontend/src/components/query-library/CampaignSelector.tsx` - Enhanced campaign selector (2025-09-12)
+- `frontend/src/components/query-library/DateRangePicker.tsx` - Advanced date range picker (2025-09-12)
 
 ### Database Tables
 - `workflows` - SQL query storage
@@ -405,32 +407,121 @@ const ParameterForm: React.FC<ParameterFormProps> = ({
 };
 ```
 
-### Campaign and ASIN Integration
+### Enhanced Campaign and ASIN Integration (2025-09-12)
+
+#### Advanced CampaignSelector Component
 ```typescript
-// Campaign/ASIN selection for query parameters
-const CampaignSelector: React.FC<{
-  value: string[];
-  onChange: (value: string[]) => void;
-  campaigns: Campaign[];
-  multiple?: boolean;
-}> = ({ value, onChange, campaigns, multiple = false }) => {
-  return (
-    <select
-      multiple={multiple}
-      value={value}
-      onChange={(e) => {
-        const selected = Array.from(e.target.selectedOptions, option => option.value);
-        onChange(selected);
-      }}
-      className="form-select"
-    >
-      {campaigns.map((campaign) => (
-        <option key={campaign.campaign_id} value={campaign.campaign_id}>
-          {campaign.name} ({campaign.campaign_id})
-        </option>
-      ))}
-    </select>
+// Enhanced campaign selection with wildcard pattern support
+const CampaignSelector: React.FC<CampaignSelectorProps> = ({
+  instanceId,
+  brandId,
+  value,
+  onChange,
+  placeholder = 'Select campaigns or use wildcards...',
+  multiple = true,
+  campaignType,
+  valueType = 'ids',
+  showAll = false,
+  className = '',
+  enableWildcards = true,
+  maxSelections
+}) => {
+  // Key Features:
+  // - Wildcard pattern support: Brand_*, *_2025, *Holiday*
+  // - Bulk selection with "Select All Matching" functionality
+  // - Real-time search and filtering
+  // - Campaign type badges (SP, SB, SD, DSP)
+  // - Maximum selection limits with clear feedback
+  // - Pattern match visualization with count indicators
+  
+  // Wildcard pattern matching
+  const wildcardToRegex = (pattern: string): RegExp => {
+    const escaped = pattern
+      .replace(/[.+?^${}()|[\]\\]/g, '\\$&')  // Escape special regex characters
+      .replace(/\*/g, '.*');  // Replace * with .*
+    return new RegExp(`^${escaped}$`, 'i');  // Case insensitive
+  };
+  
+  // Visual pattern management with active pattern display
+  const PatternDisplay = () => (
+    <div className="p-2 border-b bg-gray-50">
+      <div className="text-xs text-gray-600 mb-1">
+        Active Patterns ({wildcardMatchCount} matches):
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {Array.from(wildcardPatterns).map(pattern => (
+          <span key={pattern} className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+            <Asterisk className="h-3 w-3 mr-1" />
+            {pattern}
+            <button onClick={() => handleRemoveWildcardPattern(pattern)}>
+              <X className="h-3 w-3" />
+            </button>
+          </span>
+        ))}
+      </div>
+    </div>
   );
+};
+```
+
+#### Advanced DateRangePicker Component
+```typescript
+// Advanced date range picker with presets and dynamic expressions
+const DateRangePicker: React.FC<DateRangePickerProps> = ({
+  value,
+  onChange,
+  showAmcWarning = false,
+  supportDynamic = false
+}) => {
+  // Key Features:
+  // - Static date selection with calendar interface
+  // - Preset date ranges (Last 7 days, This month, Last quarter)
+  // - Dynamic date expressions (today - 7 days, start of month)
+  // - AMC 14-day lookback automatic adjustment
+  // - Expression validation with real-time preview
+  
+  // Dynamic date expression resolution
+  function resolveDynamicExpression(expr: string): Date | null {
+    const normalized = expr.toLowerCase().trim();
+    const now = new Date();
+    
+    // Simple expressions
+    if (normalized === 'today') return now;
+    if (normalized === 'start of month') return startOfMonth(now);
+    if (normalized === 'end of quarter') return endOfQuarter(now);
+    
+    // Complex expressions with math
+    const mathRegex = /^(today|start of month|end of quarter)\s*([\+\-])\s*(\d+)\s*(days?|months?)$/i;
+    const match = normalized.match(mathRegex);
+    
+    if (match) {
+      const [, base, operator, amount, unit] = match;
+      let baseDate = resolveDynamicExpression(base);
+      if (!baseDate) return null;
+      
+      const num = parseInt(amount);
+      const isAdd = operator === '+';
+      
+      if (unit.startsWith('day')) {
+        return isAdd ? addDays(baseDate, num) : subDays(baseDate, num);
+      }
+    }
+    
+    return null;
+  }
+  
+  // AMC-aware preset configuration
+  const presets = [
+    {
+      label: 'Last 7 days',
+      getValue: () => ({
+        startDate: subDays(showAmcWarning ? amcCutoffDate : today, 7),
+        endDate: showAmcWarning ? amcCutoffDate : today
+      }),
+      adjustForAmc: true
+    },
+    // ... additional presets
+  ];
 };
 ```
 

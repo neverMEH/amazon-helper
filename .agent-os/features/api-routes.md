@@ -893,71 +893,326 @@ GET /api/data-sources/source-uuid
 Authorization: Bearer <jwt_token>
 ```
 
-## Query Template Routes
+## Query Library Routes
 
-### GET /api/query-templates/
-List available query templates.
+**Enhanced Query Library API (2025-09-12)** - Comprehensive template management system with advanced parameter handling, execution engine, and dashboard generation.
+
+### Template Management
+
+#### GET /api/query-library/templates
+List templates with advanced filtering and search.
 
 ```http
-GET /api/query-templates/?category=Attribution&difficulty=BEGINNER&tags=conversion
+GET /api/query-library/templates?category=Attribution&search=conversion&tags=campaign&include_public=true&sort_by=usage_count&page=1&limit=20
+Authorization: Bearer <jwt_token>
+```
+
+**Response:**
+```json
+[
+  {
+    "templateId": "tpl_12345",
+    "name": "Advanced Attribution Analysis",
+    "description": "Multi-touch attribution with campaign performance",
+    "category": "Attribution",
+    "tags": ["attribution", "campaign", "conversion"],
+    "version": 2,
+    "executionCount": 127,
+    "isPublic": true,
+    "isOwner": false,
+    "createdAt": "2025-09-10T10:00:00Z",
+    "updatedAt": "2025-09-11T15:30:00Z"
+  }
+]
+```
+
+#### POST /api/query-library/templates
+Create new template with automatic parameter detection.
+
+```http
+POST /api/query-library/templates
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+{
+  "name": "Custom Attribution Template",
+  "description": "Custom analysis for brand campaigns",
+  "category": "Attribution",
+  "sql_template": "SELECT campaign_name, SUM(conversions) FROM attribution WHERE date >= {{start_date}} AND campaign_id IN ({{campaign_ids}}) GROUP BY 1",
+  "auto_detect_parameters": true,
+  "is_public": false,
+  "tags": ["custom", "attribution"]
+}
+```
+
+#### GET /api/query-library/templates/{template_id}/full
+Get template with all related data (parameters, reports, instances).
+
+```http
+GET /api/query-library/templates/tpl_12345/full
 Authorization: Bearer <jwt_token>
 ```
 
 **Response:**
 ```json
 {
-  "data": [
+  "templateId": "tpl_12345",
+  "name": "Advanced Attribution Analysis",
+  "sqlTemplate": "SELECT ...",
+  "parameters": [
     {
-      "id": "template-uuid",
-      "name": "Basic Attribution Analysis",
-      "description": "Analyze first-touch attribution for campaigns",
-      "category": "Attribution",
-      "sql_template": "SELECT campaign_id, COUNT(*) as conversions FROM attribution_events WHERE event_date BETWEEN '{{start_date}}' AND '{{end_date}}' GROUP BY campaign_id",
-      "parameters": {
-        "start_date": {
-          "type": "date",
-          "label": "Start Date",
-          "required": true
-        },
-        "end_date": {
-          "type": "date", 
-          "label": "End Date",
-          "required": true
-        }
-      },
-      "tags": ["attribution", "conversion"],
-      "difficulty_level": "BEGINNER",
-      "usage_count": 45,
-      "rating": 4.2
+      "parameterId": "param_1",
+      "parameterName": "start_date",
+      "parameterType": "date_range",
+      "displayName": "Analysis Period",
+      "required": true,
+      "uiConfig": {
+        "component": "DateRangePicker",
+        "presets": ["last_7_days", "last_30_days", "this_month"]
+      }
     }
-  ]
+  ],
+  "reports": [...],
+  "instances": [...]
 }
 ```
 
-### GET /api/query-templates/{template_id}
-Get specific template details.
+#### PUT /api/query-library/templates/{template_id}
+Update template (owner only) with automatic version incrementing.
 
 ```http
-GET /api/query-templates/template-uuid
-Authorization: Bearer <jwt_token>
-```
-
-### POST /api/query-templates/{template_id}/instantiate
-Create workflow from template.
-
-```http
-POST /api/query-templates/template-uuid/instantiate
+PUT /api/query-library/templates/tpl_12345
 Authorization: Bearer <jwt_token>
 Content-Type: application/json
 
 {
-  "name": "My Attribution Analysis",
-  "instance_id": "instance-uuid",
+  "name": "Updated Template Name",
+  "sql_template": "SELECT ... (updated SQL)",
+  "tags": ["updated", "attribution"]
+}
+```
+
+#### DELETE /api/query-library/templates/{template_id}
+Delete template (owner only).
+
+```http
+DELETE /api/query-library/templates/tpl_12345
+Authorization: Bearer <jwt_token>
+```
+
+#### POST /api/query-library/templates/{template_id}/fork
+Fork template to create customized version.
+
+```http
+POST /api/query-library/templates/tpl_12345/fork
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+{
+  "name": "My Custom Attribution Fork",
+  "description": "Forked for specific analysis needs"
+}
+```
+
+### Parameter Management
+
+#### GET /api/query-library/templates/{template_id}/parameters
+Get all parameters for template.
+
+```http
+GET /api/query-library/templates/tpl_12345/parameters
+Authorization: Bearer <jwt_token>
+```
+
+#### POST /api/query-library/templates/{template_id}/parameters
+Create new parameter for template.
+
+```http
+POST /api/query-library/templates/tpl_12345/parameters
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+{
+  "parameter_name": "conversion_threshold",
+  "parameter_type": "threshold_numeric",
+  "display_name": "Minimum Conversions",
+  "description": "Filter campaigns with at least this many conversions",
+  "required": false,
+  "default_value": 10,
+  "validation_rules": {"min": 1, "max": 1000},
+  "ui_config": {"step": 5, "unit": "conversions"}
+}
+```
+
+#### POST /api/query-library/templates/{template_id}/validate-parameters
+Validate parameter values before execution.
+
+```http
+POST /api/query-library/templates/tpl_12345/validate-parameters
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+{
   "parameters": {
     "start_date": "2024-01-01",
-    "end_date": "2024-01-31"
+    "campaign_ids": ["12345", "67890"],
+    "conversion_threshold": 5
   }
 }
+```
+
+### Template Execution
+
+#### POST /api/query-library/templates/{template_id}/execute
+Execute template with parameters and AMC integration.
+
+```http
+POST /api/query-library/templates/tpl_12345/execute
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+{
+  "instance_id": "amcibersblt",
+  "parameters": {
+    "start_date": "2024-01-01",
+    "end_date": "2024-01-31",
+    "campaign_ids": ["12345", "67890"]
+  },
+  "time_window_start": "2024-01-01T00:00:00",
+  "time_window_end": "2024-01-31T23:59:59"
+}
+```
+
+**Response:**
+```json
+{
+  "executionId": "exec_789",
+  "status": "PENDING",
+  "estimated_completion": "2024-01-15T10:05:00Z",
+  "message": "Query execution started successfully"
+}
+```
+
+### Dashboard Generation
+
+#### POST /api/query-library/templates/{template_id}/generate-dashboard
+Generate dashboard from execution results.
+
+```http
+POST /api/query-library/templates/tpl_12345/generate-dashboard
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+{
+  "execution_id": "exec_789",
+  "report_config": {
+    "title": "Attribution Analysis Dashboard",
+    "layout": "grid",
+    "widget_suggestions": true
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "dashboardId": "dash_456",
+  "widgets": [
+    {
+      "type": "line_chart",
+      "title": "Conversion Trend",
+      "size": "large",
+      "config": {...}
+    },
+    {
+      "type": "metric_card", 
+      "title": "Total Conversions",
+      "size": "small",
+      "value": 1247
+    }
+  ],
+  "reportId": "report_123"
+}
+```
+
+### Instance Management
+
+#### POST /api/query-library/templates/{template_id}/instances
+Save parameter configuration as reusable instance.
+
+```http
+POST /api/query-library/templates/tpl_12345/instances
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+{
+  "instance_name": "Monthly Brand Analysis",
+  "description": "Standard monthly brand campaign analysis",
+  "parameter_values": {
+    "start_date": "{{first_day_of_month}}",
+    "end_date": "{{last_day_of_month}}",
+    "campaign_ids": ["brand_123", "brand_456"]
+  },
+  "is_default": false
+}
+```
+
+### Utility Endpoints
+
+#### POST /api/query-library/templates/detect-parameters
+Auto-detect parameters from SQL template.
+
+```http
+POST /api/query-library/templates/detect-parameters
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+{
+  "sql_template": "SELECT * FROM campaigns WHERE date >= {{start_date}} AND campaign_id IN ({{campaign_list}})"
+}
+```
+
+**Response:**
+```json
+{
+  "parameters": [
+    {
+      "parameter_name": "start_date",
+      "parameter_type": "date",
+      "suggested_display_name": "Start Date",
+      "inferred_from": "date comparison pattern"
+    },
+    {
+      "parameter_name": "campaign_list",
+      "parameter_type": "campaign_list",
+      "suggested_display_name": "Campaign List",
+      "inferred_from": "IN clause with campaign context"
+    }
+  ],
+  "count": 2
+}
+```
+
+#### GET /api/query-library/templates/{template_id}/versions
+Get all versions of template.
+
+```http
+GET /api/query-library/templates/tpl_12345/versions
+Authorization: Bearer <jwt_token>
+```
+
+#### POST /api/query-library/templates/{template_id}/suggest-widgets
+Suggest dashboard widgets based on sample data.
+
+```http
+POST /api/query-library/templates/tpl_12345/suggest-widgets
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+[
+  {"campaign_name": "Brand A", "conversions": 125, "date": "2024-01-01"},
+  {"campaign_name": "Brand B", "conversions": 87, "date": "2024-01-01"}
+]
 ```
 
 ## Build Guide Routes
