@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, X, Wand2, Eye, Code, Settings, Tag, AlertCircle, Check, Info, Sparkles } from 'lucide-react';
+import { Save, X, Wand2, Eye, Code, Settings, Tag, AlertCircle, Check, Info } from 'lucide-react';
 import SQLEditor from '../common/SQLEditor';
 import { toast } from 'react-hot-toast';
 import type { QueryTemplate } from '../../types/queryTemplate';
@@ -9,7 +9,6 @@ import {
   type ParameterDefinition as AnalyzerParameterDef
 } from '../../utils/sqlParameterAnalyzer';
 import AsinMultiSelect from './AsinMultiSelect';
-import ParameterEditor from '../workflows/ParameterEditor';
 
 interface TemplateEditorProps {
   template?: QueryTemplate;
@@ -89,15 +88,6 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
     });
   }, [formData.sqlTemplate]);
 
-  // Handle ASIN selection for asin_list parameters
-  const [showAsinModal, setShowAsinModal] = useState<string | null>(null);
-  
-  const handleAsinSelection = (paramName: string, asins: string[]) => {
-    setParameters(prev => prev.map(p => 
-      p.name === paramName ? { ...p, userValue: asins } : p
-    ));
-    setShowAsinModal(null);
-  };
 
   // Update parameter definition
   const updateParameter = (index: number, field: keyof ParameterDefinition, value: any) => {
