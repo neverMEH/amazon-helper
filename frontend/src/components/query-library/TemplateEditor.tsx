@@ -352,7 +352,7 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
                         <div className="grid grid-cols-3 gap-3">
                           <div>
                             <label className="block text-xs font-medium text-gray-600 mb-1">
-                              Parameter: {{`{{${param.name}}}`}}
+                              Parameter: {`{{${param.name}}}`}
                             </label>
                             <select
                               value={param.type}
