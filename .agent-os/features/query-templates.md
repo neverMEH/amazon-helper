@@ -6,91 +6,6 @@ The Query Library is a comprehensive, standalone system that serves as the centr
 
 ## Recent Changes (2025-09-12)
 
-### Query Library UX Improvements: SQL Editor Discoverability Fix (2025-09-12)
-
-#### **Problem Identified and Resolved**
-- **Issue**: Users were confused when creating query templates because they saw "No SQL query content" text in template cards and didn't realize they needed to click "Create Template" or "Edit" buttons to access the Monaco SQL editor
-- **Root Cause**: The Monaco editor was working perfectly in the TemplateEditor modal, but users couldn't discover how to get there due to misleading empty state messaging
-
-#### **Solution: SQLPreview Component and Enhanced UX Guidance**
-
-**1. Created SQLPreview Component** (`/frontend/src/components/query-library/SQLPreview.tsx`)
-- **Syntax Highlighted SQL Previews**: Shows actual SQL content with syntax highlighting using the existing SQLHighlight component
-- **Expandable Content**: Configurable max lines (2 for grid view, 1 for list view) with expand/collapse functionality
-- **Smart Empty State**: When no SQL is present, shows helpful guidance with "Add SQL Query" button and explicit mention of "Monaco editor"
-- **Copy Functionality**: Quick SQL copy button for easy access to query content
-- **Edit Integration**: Direct access to Monaco editor via edit button with clear tooltip messaging
-- **Responsive Design**: Adapts to different view modes and container sizes
-
-**2. Enhanced QueryLibrary Page Integration** (`/frontend/src/pages/QueryLibrary.tsx`)
-- **Template Cards (Grid View)**: Integrated SQLPreview with 2-line preview and full action buttons for template owners
-- **List Items (List View)**: Integrated SQLPreview with 1-line preview and compact display for better density
-- **Improved Create Button**: Added animated Sparkles icon to draw attention to template creation
-- **Better Empty State**: Enhanced empty state messaging to explicitly mention "Monaco SQL editor with syntax highlighting and auto-completion"
-- **Visual Hierarchy**: Clear guidance flow from empty templates to SQL editor access
-
-**3. User Experience Enhancements**
-- **Before**: Users saw misleading "No SQL query content" text and thought the SQL editor was missing
-- **After**: Users see actual SQL previews with syntax highlighting, clear "Add SQL Query" buttons for empty templates, and explicit guidance about the Monaco editor
-- **Discovery Path**: Template cards now clearly show either SQL previews or helpful guidance with direct access buttons
-- **Visual Feedback**: Copy success toasts, hover states, and animated elements guide users to the right actions
-
-#### **Key Features Implemented**
-
-**SQLPreview Component Capabilities:**
-```typescript
-interface SQLPreviewProps {
-  sql: string | null | undefined;
-  maxLines?: number;              // Configurable truncation
-  className?: string;
-  onEdit?: () => void;           // Direct Monaco editor access
-  showActions?: boolean;         // Copy/edit button visibility
-}
-```
-
-**Template Card Integration:**
-- Grid view: 2-line SQL preview with full actions for owners
-- List view: 1-line SQL preview with compact layout
-- Empty state: Clear guidance with "Add SQL Query" button
-- Owner permissions: Edit buttons only shown for template owners
-
-**Enhanced User Guidance:**
-- Empty state messaging emphasizes Monaco editor capabilities
-- Animated Sparkles icon on "Create Template" button
-- Explicit mention of syntax highlighting and auto-completion features
-- Clear visual distinction between empty and populated templates
-
-#### **Technical Implementation Details**
-
-**Component Architecture:**
-- SQLPreview uses existing SQLHighlight component for consistent syntax highlighting
-- Configurable line limits for different view contexts
-- Responsive expand/collapse functionality with smooth transitions
-- Integration with react-hot-toast for user feedback
-
-**Integration Points:**
-- TemplateCard component: SQLPreview with maxLines={2} and owner-based actions
-- TemplateListItem component: SQLPreview with maxLines={1} and compact display
-- Template creation flow: Direct access to TemplateEditor with Monaco integration
-
-**Performance Considerations:**
-- Efficient SQL truncation without full parsing
-- Lazy expansion of SQL content to prevent layout shifts
-- Optimized re-rendering with proper dependency management
-
-#### **Impact and Results**
-
-**UX Problem Resolution:**
-- Eliminated user confusion about SQL editor location
-- Provided immediate visual feedback about template content
-- Created clear pathways from template discovery to editor access
-- Maintained all existing Monaco editor functionality while making it discoverable
-
-**No Functionality Changes:**
-- The Monaco SQL editor in TemplateEditor modal was already fully functional
-- This was purely a discoverability and user experience enhancement
-- All existing features (syntax highlighting, auto-completion, parameter detection) remain unchanged
-
 ### Phase 4: Frontend Components Implementation (In Progress - 2025-09-12)
 - **Task 4.1: Comprehensive Test Suites Created** for all Query Library components
   - `QueryLibrary.test.tsx` - Full Query Library page testing with 95+ test scenarios
@@ -234,8 +149,7 @@ interface SQLPreviewProps {
 ### Frontend Components
 
 #### Implemented Components (2025-09-12)
-- `frontend/src/pages/QueryLibrary.tsx` - Enhanced template library interface with advanced features and SQL preview integration
-- `frontend/src/components/query-library/SQLPreview.tsx` - SQL preview component with syntax highlighting and editor access (NEW)
+- `frontend/src/pages/QueryLibrary.tsx` - Enhanced template library interface with advanced features
 - `frontend/src/components/query-library/AsinMultiSelect.tsx` - Bulk ASIN input with virtualization support
 - `frontend/src/components/query-library/CampaignSelector.tsx` - Enhanced campaign selector with wildcard pattern support
 - `frontend/src/components/query-library/DateRangePicker.tsx` - Advanced date range picker with presets and dynamic expressions
@@ -1486,8 +1400,7 @@ CREATE TABLE query_template_instances (
 - `/amc_manager/services/parameter_engine.py` - Added singleton instance for proper API integration
 
 #### Phase 4 - Frontend Components Implementation (2025-09-12)
-- `/frontend/src/pages/QueryLibrary.tsx` - Enhanced Query Library page with advanced features and SQL preview integration
-- `/frontend/src/components/query-library/SQLPreview.tsx` - SQL preview component with syntax highlighting and Monaco editor access
+- `/frontend/src/pages/QueryLibrary.tsx` - Enhanced Query Library page with advanced features
 - `/frontend/src/components/query-library/AsinMultiSelect.tsx` - Bulk ASIN input component with virtualization
 - `/frontend/src/components/query-library/CampaignSelector.tsx` - Enhanced campaign selector with wildcard patterns
 - `/frontend/src/components/query-library/DateRangePicker.tsx` - Advanced date range picker with presets and dynamic expressions
