@@ -10,6 +10,7 @@ The Query Library is a comprehensive, standalone system that serves as the centr
 - **Task 4.1: Comprehensive Test Suites Created** for all Query Library components
   - `QueryLibrary.test.tsx` - Full Query Library page testing with 95+ test scenarios
   - `AsinMultiSelect.test.tsx` - Complete ASIN input component testing including bulk paste and virtualization
+  - `CampaignSelector.test.tsx` - Campaign selection component testing with wildcard pattern support
   - `DateRangePicker.test.tsx` - Date range picker component testing with presets and validation
   - `TemplateEditor.test.tsx` - Template editor component testing with Monaco integration
 - **Task 4.2: Enhanced Query Library Page** (`/frontend/src/pages/QueryLibrary.tsx`)
@@ -30,6 +31,28 @@ The Query Library is a comprehensive, standalone system that serves as the centr
   - **Search & Filter**: Search functionality for large ASIN collections
   - **Error Handling**: Comprehensive validation with clear error messaging
   - **Accessibility**: Full keyboard navigation and screen reader support
+- **Task 4.4: CampaignSelector Component** (`/frontend/src/components/query-library/CampaignSelector.tsx`)
+  - **Wildcard Pattern Support**: Enhanced campaign selection with pattern matching (e.g., `Brand_*`, `*_2025`)
+  - **Bulk Selection Capabilities**: Select all campaigns matching patterns or search criteria
+  - **Comprehensive Filtering**: Search by campaign name, ID, type, and brand with real-time results
+  - **Pattern Management**: Visual management of active wildcard patterns with match counts
+  - **Type-Aware Display**: Campaign type badges with appropriate styling (SP, SB, SD, DSP)
+  - **Maximum Selection Limits**: Configurable limits with clear user feedback
+  - **Multiple API Support**: Works with both instance-based and global campaign endpoints
+- **Task 4.5: DateRangePicker Component** (`/frontend/src/components/query-library/DateRangePicker.tsx`)
+  - **Advanced Date Range Selection**: Supports both static dates and dynamic expressions
+  - **Preset Date Ranges**: Common ranges like "Last 7 days", "This month", "Last quarter"
+  - **Dynamic Date Expressions**: Support for expressions like "today - 7 days", "start of month"
+  - **AMC 14-day Lookback**: Automatic adjustment for AMC data availability constraints
+  - **Expression Validation**: Real-time validation of dynamic date expressions with previews
+  - **Multiple Input Modes**: Calendar picker, preset selection, and dynamic expression modes
+  - **Accessibility**: Full keyboard navigation and screen reader support with ARIA labels
+- **Task 4.6: TypeScript Build Fixes** (2025-09-12)
+  - **Boolean Type Conversion**: Fixed TypeScript errors by using explicit `!!` conversion for boolean contexts
+  - **Unused Import Cleanup**: Removed unused imports including `Calendar` icon from lucide-react
+  - **Props Interface Cleanup**: Removed unused props (`minDate`, `maxDate`) from DateRangePicker interface
+  - **Function Declaration Cleanup**: Removed unused functions and state variables to prevent compilation warnings
+  - **Docker Build Compatibility**: Fixed critical TypeScript compilation errors preventing Docker builds
 
 ### Phase 3: API Endpoints Implementation (Complete - 2025-09-12)
 - **Comprehensive REST API** with 17 endpoints under `/api/query-library/` prefix
@@ -128,15 +151,17 @@ The Query Library is a comprehensive, standalone system that serves as the centr
 #### Implemented Components (2025-09-12)
 - `frontend/src/pages/QueryLibrary.tsx` - Enhanced template library interface with advanced features
 - `frontend/src/components/query-library/AsinMultiSelect.tsx` - Bulk ASIN input with virtualization support
+- `frontend/src/components/query-library/CampaignSelector.tsx` - Enhanced campaign selector with wildcard pattern support
+- `frontend/src/components/query-library/DateRangePicker.tsx` - Advanced date range picker with presets and dynamic expressions
 
 #### Comprehensive Test Suites (2025-09-12)
 - `frontend/src/pages/__tests__/QueryLibrary.test.tsx` - Query Library page testing
 - `frontend/src/components/query-library/__tests__/AsinMultiSelect.test.tsx` - ASIN input component testing
+- `frontend/src/components/query-library/__tests__/CampaignSelector.test.tsx` - Campaign selector component testing
 - `frontend/src/components/query-library/__tests__/DateRangePicker.test.tsx` - Date picker component testing
 - `frontend/src/components/query-library/__tests__/TemplateEditor.test.tsx` - Template editor component testing
 
 #### Planned Components (To Be Implemented)
-- `frontend/src/components/query-library/DateRangePicker.tsx` - Date range picker with presets
 - `frontend/src/components/query-library/TemplateEditor.tsx` - Monaco-based SQL template editor
 - `frontend/src/components/query-library/ParameterForm.tsx` - Dynamic parameter input form
 - `frontend/src/components/query-library/TemplateCustomizer.tsx` - Parameter customization interface
@@ -1277,9 +1302,11 @@ CREATE TABLE query_template_instances (
 - **Task 4.1: Test Suites** ✅ Complete - Comprehensive test coverage for all components
 - **Task 4.2: Query Library Page** ✅ Complete - Advanced features and CRUD operations
 - **Task 4.3: AsinMultiSelect Component** ✅ Complete - Bulk input with virtualization
-- **Task 4.4: DateRangePicker Component** 🔄 Planned - Date picker with presets
-- **Task 4.5: TemplateEditor Component** 🔄 Planned - Monaco-based SQL editor
-- **Task 4.6: Parameter Forms** 🔄 Planned - Dynamic parameter input forms
+- **Task 4.4: CampaignSelector Component** ✅ Complete - Enhanced campaign selection with wildcard patterns
+- **Task 4.5: DateRangePicker Component** ✅ Complete - Advanced date picker with presets and dynamic expressions
+- **Task 4.6: TypeScript Build Fixes** ✅ Complete - Fixed compilation errors and cleaned up components
+- **Task 4.7: TemplateEditor Component** 🔄 Planned - Monaco-based SQL editor
+- **Task 4.8: Parameter Forms** 🔄 Planned - Dynamic parameter input forms
 
 #### Key API Features Implemented:
 
@@ -1375,9 +1402,12 @@ CREATE TABLE query_template_instances (
 #### Phase 4 - Frontend Components Implementation (2025-09-12)
 - `/frontend/src/pages/QueryLibrary.tsx` - Enhanced Query Library page with advanced features
 - `/frontend/src/components/query-library/AsinMultiSelect.tsx` - Bulk ASIN input component with virtualization
+- `/frontend/src/components/query-library/CampaignSelector.tsx` - Enhanced campaign selector with wildcard patterns
+- `/frontend/src/components/query-library/DateRangePicker.tsx` - Advanced date range picker with presets and dynamic expressions
 - `/frontend/src/pages/__tests__/QueryLibrary.test.tsx` - Comprehensive Query Library page tests
 - `/frontend/src/components/query-library/__tests__/AsinMultiSelect.test.tsx` - Complete ASIN component tests
-- `/frontend/src/components/query-library/__tests__/DateRangePicker.test.tsx` - Date picker component tests (component pending)
+- `/frontend/src/components/query-library/__tests__/CampaignSelector.test.tsx` - Campaign selector component tests
+- `/frontend/src/components/query-library/__tests__/DateRangePicker.test.tsx` - Date picker component tests
 - `/frontend/src/components/query-library/__tests__/TemplateEditor.test.tsx` - Template editor tests (component pending)
 
 ### Performance Targets
