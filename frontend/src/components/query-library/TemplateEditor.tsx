@@ -476,7 +476,7 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
                   <div className="space-y-2">
                     {parameters.map(param => (
                       <div key={param.name} className="flex justify-between text-sm">
-                        <span className="font-mono text-gray-600">{{{{param.name}}}}</span>
+                        <span className="font-mono text-gray-600">{`{{${param.name}}}`}</span>
                         <span className="text-gray-900">{getSampleValue(param)}</span>
                       </div>
                     ))}
