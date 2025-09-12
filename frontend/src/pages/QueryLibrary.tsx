@@ -68,11 +68,11 @@ export default function QueryLibrary() {
     queryFn: () => queryTemplateService.listTemplates(true),
   });
 
-  // Fetch categories
-  const { data: categories = [] } = useQuery({
-    queryKey: ['query-template-categories'],
-    queryFn: () => queryTemplateService.getCategories(),
-  });
+  // Fetch categories - commented out until backend implementation
+  // const { data: categories = [] } = useQuery({
+  //   queryKey: ['query-template-categories'],
+  //   queryFn: () => queryTemplateService.getCategories(),
+  // });
 
   // Delete template mutation
   const deleteTemplateMutation = useMutation({
@@ -584,9 +584,13 @@ function TemplateCard({ template, onUse, onEdit, onDelete, testId }: TemplateCar
             </span>
           )}
           {template.isPublic ? (
-            <Globe className="h-3 w-3 text-green-600" title="Public" />
+            <span title="Public">
+              <Globe className="h-3 w-3 text-green-600" />
+            </span>
           ) : (
-            <Lock className="h-3 w-3 text-gray-400" title="Private" />
+            <span title="Private">
+              <Lock className="h-3 w-3 text-gray-400" />
+            </span>
           )}
         </div>
       </div>
@@ -662,9 +666,13 @@ function TemplateListItem({ template, onUse, onEdit, onDelete }: TemplateListIte
               </span>
             )}
             {template.isPublic ? (
-              <Globe className="h-3 w-3 text-green-600 ml-2" title="Public" />
+              <span title="Public">
+                <Globe className="h-3 w-3 text-green-600 ml-2" />
+              </span>
             ) : (
-              <Lock className="h-3 w-3 text-gray-400 ml-2" title="Private" />
+              <span title="Private">
+                <Lock className="h-3 w-3 text-gray-400 ml-2" />
+              </span>
             )}
           </div>
           <p className="text-xs text-gray-600 mt-1">
