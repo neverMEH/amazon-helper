@@ -505,15 +505,15 @@ export default function QueryLibrary() {
       {showCreateModal && (
         <TemplateEditor
           template={selectedTemplate || undefined}
-          onSave={async (template) => {
-            // TODO: Implement save logic
+          onSave={async (template: any) => {
+            // The template data is already in snake_case format from TemplateEditor
             try {
               if (selectedTemplate) {
-                // Update existing template
+                // Update existing template - cast to QueryTemplateUpdate
                 await queryTemplateService.updateTemplate(selectedTemplate.templateId, template);
                 toast.success('Template updated successfully');
               } else {
-                // Create new template
+                // Create new template - cast to QueryTemplateCreate
                 await queryTemplateService.createTemplate(template);
                 toast.success('Template created successfully');
               }

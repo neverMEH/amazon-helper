@@ -6,7 +6,7 @@ import type { QueryTemplate } from '../../types/queryTemplate';
 
 interface TemplateEditorProps {
   template?: QueryTemplate;
-  onSave: (template: Partial<QueryTemplate>) => Promise<void>;
+  onSave: (template: any) => Promise<void>;  // Returns snake_case format for API
   onCancel: () => void;
   isLoading?: boolean;
 }
