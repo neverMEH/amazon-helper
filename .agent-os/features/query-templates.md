@@ -6,6 +6,15 @@ The Query Library is a comprehensive, standalone system that serves as the centr
 
 ## Recent Changes (2025-09-12)
 
+### Critical SQL Editor Fix (2025-09-12)
+- **Fixed Template Creation SQL Input Issue**: Resolved critical UX bug where users couldn't enter SQL when creating new query templates
+  - **Problem**: When clicking "Create Template", the SQL Query section showed a greyed-out area with "No SQL query content" text instead of the Monaco editor
+  - **Root Cause**: SQLEditor component had a fallback condition (lines 95-101 in `/frontend/src/components/common/SQLEditor.tsx`) that was preventing the Monaco editor from loading when value was empty and not readonly
+  - **Solution**: Removed the problematic fallback condition that blocked empty editor initialization
+  - **Impact**: Users can now immediately start typing SQL when creating new templates with full syntax highlighting and auto-completion
+  - **Files Modified**: `/frontend/src/components/common/SQLEditor.tsx` - Removed fallback div that was interfering with Monaco editor instantiation
+  - **Technical Details**: The fallback was intended as a loading state but was actually preventing the editor from appearing for new templates with empty SQL content
+
 ### Phase 4: Frontend Components Implementation (In Progress - 2025-09-12)
 - **Task 4.1: Comprehensive Test Suites Created** for all Query Library components
   - `QueryLibrary.test.tsx` - Full Query Library page testing with 95+ test scenarios

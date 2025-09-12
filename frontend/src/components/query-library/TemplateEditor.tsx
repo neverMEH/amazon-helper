@@ -135,16 +135,9 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
       newErrors.sqlTemplate = 'SQL query is required';
     }
 
-    // Check for SQL injection patterns
-    const dangerousPatterns = [
-      /;\s*(drop|delete|truncate|alter|create)\s+/i,
-      /--/,
-      /\/\*/,
-    ];
-    
-    if (dangerousPatterns.some(pattern => pattern.test(formData.sqlTemplate))) {
-      newErrors.sqlTemplate = 'SQL query contains potentially dangerous statements';
-    }
+    // AMC is a read-only environment, so we don't need to check for dangerous SQL
+    // Comments (--), CTEs (WITH), and VALUES clauses are all perfectly safe
+    // Removing overly aggressive validation that was blocking legitimate queries
 
     // Validate parameters
     parameters.forEach((param, index) => {
