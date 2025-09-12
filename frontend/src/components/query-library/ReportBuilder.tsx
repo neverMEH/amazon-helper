@@ -1,8 +1,8 @@
 import { useState, useCallback, useRef } from 'react';
 import { 
   Plus, Save, X, Layout, BarChart3, LineChart, PieChart, 
-  Table, Hash, Type, TrendingUp, Grid3x3, Move, Settings,
-  Trash2, Copy, Eye, EyeOff, Maximize2, Minimize2
+  Table, Hash, Type, Grid3x3, Move,
+  Trash2, Copy, Eye, EyeOff
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -36,7 +36,6 @@ interface Widget {
 }
 
 interface ReportBuilderProps {
-  queryResults?: any[];
   columns?: string[];
   templateId?: string;
   onSave?: (dashboard: DashboardConfig) => Promise<void>;
@@ -67,7 +66,6 @@ const GRID_COLS = 12;
 const ROW_HEIGHT = 80;
 
 export default function ReportBuilder({ 
-  queryResults = [], 
   columns = [], 
   onSave, 
   onCancel 
@@ -534,7 +532,6 @@ export default function ReportBuilder({
                         onMouseDown={(e) => {
                           e.stopPropagation();
                           const startX = e.clientX;
-                          const startW = widget.config.w;
                           
                           const handleMouseMove = (e: MouseEvent) => {
                             handleResize(widget, 'right', e.clientX - startX);

@@ -49,9 +49,8 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
     description: template?.description || '',
     category: template?.category || 'Custom',
     tags: template?.tags || [],
-    sql_query: template?.sql_query || '',
-    is_public: template?.is_public ?? true,
-    version: template?.version || '1.0.0',
+    sqlTemplate: template?.sqlTemplate || '',
+    isPublic: template?.isPublic ?? true,
   });
 
   const [parameters, setParameters] = useState<ParameterDefinition[]>([]);
@@ -64,7 +63,7 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
   // Detect parameters in SQL query
   useEffect(() => {
     const paramPattern = /\{\{(\w+)\}\}/g;
-    const matches = formData.sql_query.matchAll(paramPattern);
+    const matches = formData.sqlTemplate.matchAll(paramPattern) as IterableIterator<RegExpMatchArray>;
     const params = Array.from(new Set(Array.from(matches, m => m[1])));
     setDetectedParams(params);
 
@@ -82,7 +81,7 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
 
     // Remove parameters that are no longer in the query
     setParameters(prev => prev.filter(p => params.includes(p.name)));
-  }, [formData.sql_query]);
+  }, [formData.sqlTemplate]);
 
   // Guess parameter type based on name
   const guessParameterType = (name: string): ParameterDefinition['type'] => {
@@ -132,8 +131,8 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
       newErrors.name = 'Template name is required';
     }
 
-    if (!formData.sql_query.trim()) {
-      newErrors.sql_query = 'SQL query is required';
+    if (!formData.sqlTemplate.trim()) {
+      newErrors.sqlTemplate = 'SQL query is required';
     }
 
     // Check for SQL injection patterns
@@ -143,8 +142,8 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
       /\/\*/,
     ];
     
-    if (dangerousPatterns.some(pattern => pattern.test(formData.sql_query))) {
-      newErrors.sql_query = 'SQL query contains potentially dangerous statements';
+    if (dangerousPatterns.some(pattern => pattern.test(formData.sqlTemplate))) {
+      newErrors.sqlTemplate = 'SQL query contains potentially dangerous statements';
     }
 
     // Validate parameters
@@ -193,7 +192,7 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
 
   // Generate preview SQL with sample values
   const generatePreviewSQL = (): string => {
-    let previewSQL = formData.sql_query;
+    let previewSQL = formData.sqlTemplate;
     
     parameters.forEach(param => {
       const sampleValue = getSampleValue(param);
@@ -344,17 +343,15 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   SQL Query *
                 </label>
-                <div className={`border rounded-lg ${errors.sql_query ? 'border-red-500' : 'border-gray-300'}`}>
+                <div className={`border rounded-lg ${errors.sqlTemplate ? 'border-red-500' : 'border-gray-300'}`}>
                   <SQLEditor
-                    value={formData.sql_query}
-                    onChange={(value) => setFormData(prev => ({ ...prev, sql_query: value || '' }))}
+                    value={formData.sqlTemplate}
+                    onChange={(value) => setFormData(prev => ({ ...prev, sqlTemplate: value || '' }))}
                     height="300px"
-                    placeholder="-- Enter your SQL query here
--- Use {{parameter_name}} for dynamic parameters"
                   />
                 </div>
-                {errors.sql_query && (
-                  <p className="mt-1 text-sm text-red-600">{errors.sql_query}</p>
+                {errors.sqlTemplate && (
+                  <p className="mt-1 text-sm text-red-600">{errors.sqlTemplate}</p>
                 )}
               </div>
 
@@ -465,6 +462,7 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
               <div className="border border-gray-300 rounded-lg">
                 <SQLEditor
                   value={generatePreviewSQL()}
+                  onChange={() => {}}
                   height="400px"
                   readOnly
                 />
@@ -528,27 +526,13 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
                 </div>
               </div>
 
-              {/* Version */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Version
-                </label>
-                <input
-                  type="text"
-                  value={formData.version}
-                  onChange={(e) => setFormData(prev => ({ ...prev, version: e.target.value }))}
-                  className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-lg"
-                  placeholder="1.0.0"
-                />
-              </div>
-
               {/* Visibility */}
               <div>
                 <label className="flex items-center space-x-2">
                   <input
                     type="checkbox"
-                    checked={formData.is_public}
-                    onChange={(e) => setFormData(prev => ({ ...prev, is_public: e.target.checked }))}
+                    checked={formData.isPublic}
+                    onChange={(e) => setFormData(prev => ({ ...prev, isPublic: e.target.checked }))}
                     className="rounded text-blue-600"
                   />
                   <span className="text-sm font-medium text-gray-700">
