@@ -32,6 +32,7 @@ import { queryTemplateService } from '../services/queryTemplateService';
 import type { QueryTemplate } from '../types/queryTemplate';
 import { TEMPLATE_CATEGORIES } from '../constants/templateCategories';
 import toast from 'react-hot-toast';
+import TemplateEditor from '../components/query-library/TemplateEditor';
 
 // Icon mapping for categories
 const iconMap: Record<string, any> = {
@@ -500,22 +501,34 @@ export default function QueryLibrary() {
         </div>
       )}
 
-      {/* TODO: Add Template Editor Modal when component is ready */}
+      {/* Template Editor Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-4xl w-full h-[90vh] overflow-auto">
-            <h3 className="text-lg font-semibold mb-4">
-              {selectedTemplate ? 'Edit Template' : 'Create New Template'}
-            </h3>
-            <p className="text-gray-600">Template editor component will be implemented in Task 4.6</p>
-            <button
-              onClick={() => setShowCreateModal(false)}
-              className="mt-4 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
-            >
-              Close
-            </button>
-          </div>
-        </div>
+        <TemplateEditor
+          template={selectedTemplate || undefined}
+          onSave={async (template) => {
+            // TODO: Implement save logic
+            try {
+              if (selectedTemplate) {
+                // Update existing template
+                await queryTemplateService.updateTemplate(selectedTemplate.templateId, template);
+                toast.success('Template updated successfully');
+              } else {
+                // Create new template
+                await queryTemplateService.createTemplate(template);
+                toast.success('Template created successfully');
+              }
+              queryClient.invalidateQueries({ queryKey: ['query-templates'] });
+              setShowCreateModal(false);
+              setSelectedTemplate(null);
+            } catch (error) {
+              toast.error('Failed to save template');
+            }
+          }}
+          onCancel={() => {
+            setShowCreateModal(false);
+            setSelectedTemplate(null);
+          }}
+        />
       )}
     </div>
   );

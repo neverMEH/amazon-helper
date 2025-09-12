@@ -166,9 +166,15 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
 
     setIsSaving(true);
     try {
-      const templateData: Partial<QueryTemplate> = {
-        ...formData,
-        parametersSchema: parameters.reduce((acc, param) => {
+      // Convert to snake_case for API
+      const templateData: any = {
+        name: formData.name,
+        description: formData.description,
+        category: formData.category,
+        tags: formData.tags,
+        sql_template: formData.sqlTemplate,
+        is_public: formData.isPublic,
+        parameters_schema: parameters.reduce((acc, param) => {
           acc[param.name] = {
             type: param.type,
             required: param.required,
@@ -178,7 +184,7 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
           };
           return acc;
         }, {} as Record<string, any>),
-        defaultParameters: parameters.reduce((acc, param) => {
+        default_parameters: parameters.reduce((acc, param) => {
           if (param.defaultValue !== undefined) {
             acc[param.name] = param.defaultValue;
           }
