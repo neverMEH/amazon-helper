@@ -192,7 +192,20 @@ export default function QueryReviewStep({ state, instances, onNavigateToStep }: 
       } else if (Array.isArray(value)) {
         previewSQL = previewSQL.replace(regex, `(${value.map(v => `'${v}'`).join(', ')})`);
       } else if (typeof value === 'string') {
-        previewSQL = previewSQL.replace(regex, `'${value}'`);
+        // Check if this is a pattern parameter (for LIKE clauses)
+        const paramLower = param.toLowerCase();
+        const isPatternParam = paramLower.includes('pattern') || paramLower.includes('like');
+
+        // Also check if parameter is used in a LIKE context in the SQL
+        const likePattern = new RegExp(`\\bLIKE\\s+['"]?\\s*\\{\\{${param}\\}\\}`, 'gi');
+        const isInLikeContext = likePattern.test(state.sqlQuery);
+
+        if (isPatternParam || isInLikeContext) {
+          // Add wildcards for pattern matching
+          previewSQL = previewSQL.replace(regex, `'%${value}%'`);
+        } else {
+          previewSQL = previewSQL.replace(regex, `'${value}'`);
+        }
       } else {
         previewSQL = previewSQL.replace(regex, String(value));
       }

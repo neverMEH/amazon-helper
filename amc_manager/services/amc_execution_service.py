@@ -336,12 +336,25 @@ class AMCExecutionService:
                 
                 # Check if this parameter is used in a LIKE context
                 # Look for patterns like "LIKE {{param}}" in the SQL template
+                # Also check if the parameter name suggests it's a pattern
+                param_lower = param.lower()
+                is_pattern_param = 'pattern' in param_lower or 'like' in param_lower
+
                 # In f-strings, we need to double the braces to escape them: {{ becomes {
-                like_pattern = rf'\bLIKE\s+\{{\{{{param}\}}\}}'
-                if re.search(like_pattern, sql_template, re.IGNORECASE):
+                # Allow for any amount of whitespace and potential quotes
+                like_pattern = rf'\bLIKE\s+[\'"]?\s*\{{\{{{param}\}}\}}'
+
+                # Also check for LIKE with other parameter formats
+                like_colon = rf'\bLIKE\s+[\'"]?\s*:{param}\b'
+                like_dollar = rf'\bLIKE\s+[\'"]?\s*\${param}\b'
+
+                if (re.search(like_pattern, sql_template, re.IGNORECASE) or
+                    re.search(like_colon, sql_template, re.IGNORECASE) or
+                    re.search(like_dollar, sql_template, re.IGNORECASE) or
+                    is_pattern_param):
                     # Add % wildcards for LIKE pattern matching
                     value_str = f"'%{value_escaped}%'"
-                    logger.debug(f"Parameter {param} detected in LIKE context, formatting as pattern: {value_str}")
+                    logger.info(f"Parameter {param} detected as LIKE pattern (context or name), formatting with wildcards: {value_str}")
                 else:
                     value_str = f"'{value_escaped}'"
             else:
