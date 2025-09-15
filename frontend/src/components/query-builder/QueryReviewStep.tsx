@@ -177,14 +177,35 @@ export default function QueryReviewStep({ state, instances, onNavigateToStep }: 
       
       // Handle SQL injection parameters differently
       if (value && typeof value === 'object' && '_sqlInject' in value && value._sqlInject) {
-        // For SQL injection mode, replace with VALUES clause
+        // For SQL injection mode, check if VALUES already exists in the template
         const valuesClause = (value as any)._values.map((v: string) => `    ('${v}')`).join(',\n');
-        const replacement = `VALUES\n${valuesClause}`;
-        previewSQL = previewSQL.replace(regex, replacement);
+        // Check if the parameter is preceded by VALUES in the SQL
+        const valuesPattern = new RegExp(`VALUES\\s*\\{\\{${param}\\}\\}`, 'gi');
+        if (valuesPattern.test(previewSQL)) {
+          // VALUES already exists, just replace with the values
+          previewSQL = previewSQL.replace(regex, `\n${valuesClause}`);
+        } else {
+          // No VALUES keyword, add it
+          const replacement = `VALUES\n${valuesClause}`;
+          previewSQL = previewSQL.replace(regex, replacement);
+        }
       } else if (Array.isArray(value)) {
         previewSQL = previewSQL.replace(regex, `(${value.map(v => `'${v}'`).join(', ')})`);
       } else if (typeof value === 'string') {
-        previewSQL = previewSQL.replace(regex, `'${value}'`);
+        // Check if this is a pattern parameter (for LIKE clauses)
+        const paramLower = param.toLowerCase();
+        const isPatternParam = paramLower.includes('pattern') || paramLower.includes('like');
+
+        // Also check if parameter is used in a LIKE context in the SQL
+        const likePattern = new RegExp(`\\bLIKE\\s+['"]?\\s*\\{\\{${param}\\}\\}`, 'gi');
+        const isInLikeContext = likePattern.test(state.sqlQuery);
+
+        if (isPatternParam || isInLikeContext) {
+          // Add wildcards for pattern matching
+          previewSQL = previewSQL.replace(regex, `'%${value}%'`);
+        } else {
+          previewSQL = previewSQL.replace(regex, `'${value}'`);
+        }
       } else {
         previewSQL = previewSQL.replace(regex, String(value));
       }

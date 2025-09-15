@@ -18,6 +18,8 @@ The query builder system provides a sophisticated SQL editing environment with M
 - `frontend/src/components/SchemaExplorer.tsx` - AMC schema browser
 - `frontend/src/components/query-library/CampaignSelector.tsx` - Enhanced campaign selector (2025-09-12)
 - `frontend/src/components/query-library/DateRangePicker.tsx` - Advanced date range picker (2025-09-12)
+- `frontend/src/components/query-library/TemplateEditor.tsx` - Context-aware template editor (2025-09-12)
+- `frontend/src/utils/sqlParameterAnalyzer.ts` - Smart SQL context analysis utility (2025-09-12)
 
 ### Database Tables
 - `workflows` - SQL query storage

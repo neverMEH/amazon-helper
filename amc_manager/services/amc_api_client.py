@@ -840,7 +840,11 @@ class AMCAPIClient:
             body['inputParameters'] = input_parameters
         
         logger.info(f"Creating workflow {workflow_id} in instance {instance_id}")
-        
+        logger.debug(f"SQL Query length: {len(sql_query)} characters")
+
+        # Log the first part of the SQL to verify it's being sent correctly
+        logger.debug(f"SQL Query preview (first 500 chars): {sql_query[:500]}")
+
         try:
             response = requests.post(
                 url,
@@ -848,9 +852,9 @@ class AMCAPIClient:
                 json=body,
                 timeout=30
             )
-            
+
             response_data = response.json() if response.text else {}
-            
+
             if response.status_code == 200:
                 logger.info(f"Successfully created workflow {workflow_id}")
                 return {
@@ -860,6 +864,14 @@ class AMCAPIClient:
                 }
             else:
                 logger.error(f"Failed to create workflow: Status {response.status_code}, Response: {response_data}")
+                logger.error(f"Response text: {response.text}")
+                logger.error(f"Request body size: {len(json.dumps(body))} bytes")
+
+                # Check for specific error messages that might indicate size issues
+                error_message = response_data.get('message', '')
+                if 'too large' in error_message.lower() or 'exceeds' in error_message.lower():
+                    logger.error("Query may be too large for AMC API")
+
                 return {
                     "success": False,
                     "error": response_data.get('message', f'API Error: {response.status_code}')

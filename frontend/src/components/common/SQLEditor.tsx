@@ -91,14 +91,8 @@ export default function SQLEditor({
     onChange(value || '');
   };
 
-  // Fallback if Monaco fails to load
-  if (!value && !readOnly) {
-    return (
-      <div className="border border-gray-300 rounded-md p-4 bg-gray-50">
-        <p className="text-gray-500">No SQL query content</p>
-      </div>
-    );
-  }
+  // Remove the fallback - always show the Monaco editor even for empty content
+  // This allows users to type SQL when creating new templates
 
   return (
     <div className="border border-gray-300 rounded-md overflow-hidden">

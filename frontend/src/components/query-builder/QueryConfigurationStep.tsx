@@ -206,7 +206,17 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
 
   const isCampaignParameter = (paramName: string): boolean => {
     const lowerParam = paramName.toLowerCase();
-    return lowerParam.includes('campaign') || lowerParam.includes('camp_id') || lowerParam.includes('campaign_id');
+    // Exclude pattern parameters - they should be text inputs for LIKE matching
+    if (lowerParam.includes('pattern') || lowerParam.includes('like')) {
+      return false;
+    }
+    // Only treat as campaign selector for actual campaign ID/name lists
+    return (lowerParam === 'campaign' ||
+            lowerParam === 'campaigns' ||
+            lowerParam === 'campaign_id' ||
+            lowerParam === 'campaign_ids' ||
+            lowerParam === 'camp_id' ||
+            lowerParam.includes('campaign_list'));
   };
 
   const getParameterType = (paramName: string): 'asin' | 'campaign' | 'date' | 'number' | 'text' => {
@@ -360,6 +370,21 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
                       className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                       rows={2}
                     />
+                  ) : (param.toLowerCase().includes('pattern') || param.toLowerCase().includes('like')) ? (
+                    <div>
+                      <input
+                        type="text"
+                        value={typeof value === 'string' ? value : ''}
+                        onChange={(e) => handleParameterChange(param, e.target.value)}
+                        placeholder="Enter pattern (will be wrapped with %...%)"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      />
+                      {typeof value === 'string' && value.length > 0 && (
+                        <p className="mt-1 text-xs text-gray-500">
+                          Will be formatted as: <code className="bg-gray-100 px-1 py-0.5 rounded">%{value}%</code>
+                        </p>
+                      )}
+                    </div>
                   ) : (
                     <input
                       type="text"

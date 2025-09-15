@@ -333,7 +333,51 @@ class AMCExecutionService:
                 for keyword in dangerous_keywords:
                     if keyword in value_escaped.upper():
                         raise ValueError(f"Dangerous SQL keyword '{keyword}' detected in parameter '{param}'")
-                value_str = f"'{value_escaped}'"
+                
+                # Check if this parameter is used in a LIKE context
+                # Look for patterns like "LIKE {{param}}" in the SQL template
+                # Also check if the parameter name suggests it's a pattern
+                param_lower = param.lower()
+                is_pattern_param = 'pattern' in param_lower or 'like' in param_lower
+
+                # In f-strings, we need to double the braces to escape them: {{ becomes {
+                # Allow for any amount of whitespace and potential quotes
+                like_pattern = rf'\bLIKE\s+[\'"]?\s*\{{\{{{param}\}}\}}'
+
+                # Also check for LIKE with other parameter formats
+                like_colon = rf'\bLIKE\s+[\'"]?\s*:{param}\b'
+                like_dollar = rf'\bLIKE\s+[\'"]?\s*\${param}\b'
+
+                # Check if ANY LIKE clause exists followed by this parameter within 50 chars
+                # This catches cases like "s.campaign LIKE {{campaign_brand}}"
+                like_anywhere = rf'\bLIKE\s+.{{0,50}}\{{\{{{param}\}}\}}'
+                is_like_nearby = re.search(like_anywhere, sql_template, re.IGNORECASE)
+
+                # Debug logging
+                logger.info(f"Checking parameter '{param}' for LIKE context...")
+                logger.info(f"  - Parameter name check: is_pattern_param={is_pattern_param}")
+                logger.info(f"  - Checking regex patterns against SQL template...")
+                logger.info(f"  - SQL snippet: {sql_template[max(0, sql_template.find(param)-50):min(len(sql_template), sql_template.find(param)+50)]}")
+
+                if re.search(like_pattern, sql_template, re.IGNORECASE):
+                    logger.info(f"  - Matched {{{{param}}}} pattern directly after LIKE")
+                if re.search(like_colon, sql_template, re.IGNORECASE):
+                    logger.info(f"  - Matched :param pattern")
+                if re.search(like_dollar, sql_template, re.IGNORECASE):
+                    logger.info(f"  - Matched $param pattern")
+                if is_like_nearby:
+                    logger.info(f"  - Found LIKE keyword near parameter")
+
+                if (re.search(like_pattern, sql_template, re.IGNORECASE) or
+                    re.search(like_colon, sql_template, re.IGNORECASE) or
+                    re.search(like_dollar, sql_template, re.IGNORECASE) or
+                    is_like_nearby or
+                    is_pattern_param):
+                    # Add % wildcards for LIKE pattern matching
+                    value_str = f"'%{value_escaped}%'"
+                    logger.info(f"✓ Parameter {param} formatted with wildcards: {value_str}")
+                else:
+                    value_str = f"'{value_escaped}'"
             else:
                 value_str = str(value)
             
@@ -497,98 +541,22 @@ class AMCExecutionService:
             # Create workflow execution via AMC API
             # Initialize API client with correct service
             api_client = AMCAPIClient()
-            
+
             # Update progress to show we're starting
             self._update_execution_progress(execution_id, 'running', 10)
-            
+
             try:
-                # Always try to execute using workflow ID first
-                response = None
-                if amc_workflow_id:
-                    # Execute using saved workflow ID
-                    logger.info(f"Executing saved workflow {amc_workflow_id}")
-                    try:
-                        response = api_client.create_workflow_execution(
-                            instance_id=instance_id,
-                            workflow_id=amc_workflow_id,
-                            access_token=valid_token,
-                            entity_id=entity_id,
-                            marketplace_id=marketplace_id,
-                            parameter_values=amc_parameters,  # Only pass non-injection parameters to AMC
-                            output_format=amc_parameters.get('output_format', 'CSV')
-                        )
-                        
-                        # Check if the response indicates the workflow doesn't exist
-                        if isinstance(response, dict) and not response.get('success'):
-                            error_msg = response.get('error', '')
-                            if "does not exist" in str(error_msg).lower() or "not found" in str(error_msg).lower():
-                                logger.info(f"Workflow {amc_workflow_id} not found (from response), will try to create it")
-                                raise ValueError(f"Workflow not found: {error_msg}")
-                    except (ValueError, Exception) as e:
-                        # Check if the error is because the workflow doesn't exist in AMC
-                        error_str = str(e)
-                        logger.info(f"Caught exception during workflow execution: {error_str}")
-                        if "does not exist" in error_str.lower() or "not found" in error_str.lower() or "workflow not found" in error_str.lower():
-                            logger.warning(f"Workflow {amc_workflow_id} doesn't exist in AMC, will try to create it")
-                            
-                            # Try to create the workflow in AMC with processed query
-                            create_response = api_client.create_workflow(
-                                instance_id=instance_id,
-                                workflow_id=amc_workflow_id,
-                                sql_query=processed_sql_query,
-                                access_token=valid_token,
-                                entity_id=entity_id,
-                                marketplace_id=marketplace_id,
-                                output_format='CSV'
-                            )
-                            
-                            if create_response.get('success'):
-                                logger.info(f"Successfully created workflow {amc_workflow_id} in AMC, retrying execution")
-                                # Update database to mark as synced
-                                update_data = {
-                                    'amc_workflow_id': amc_workflow_id,
-                                    'is_synced_to_amc': True,
-                                    'amc_sync_status': 'synced',
-                                    'last_synced_at': datetime.now(timezone.utc).isoformat()
-                                }
-                                self.db.update_workflow_sync(workflow['workflow_id'], update_data)
-                                
-                                # Retry execution with the newly created workflow
-                                response = api_client.create_workflow_execution(
-                                    instance_id=instance_id,
-                                    workflow_id=amc_workflow_id,
-                                    access_token=valid_token,
-                                    entity_id=entity_id,
-                                    marketplace_id=marketplace_id,
-                                    parameter_values=execution_parameters,
-                                    output_format=execution_parameters.get('output_format', 'CSV') if execution_parameters else 'CSV'
-                                )
-                            else:
-                                logger.warning(f"Failed to create workflow in AMC: {create_response.get('error')}, falling back to ad-hoc")
-                                # Fall back to ad-hoc execution with processed query
-                                response = api_client.create_workflow_execution(
-                                    instance_id=instance_id,
-                                    sql_query=processed_sql_query,
-                                    access_token=valid_token,
-                                    entity_id=entity_id,
-                                    marketplace_id=marketplace_id,
-                                    output_format=amc_parameters.get('output_format', 'CSV')
-                                )
-                        else:
-                            # Other error, re-raise
-                            raise
-                
-                # If we still don't have a response, use ad-hoc execution
-                if not response:
-                    logger.warning("No AMC workflow ID available, using ad-hoc execution")
-                    response = api_client.create_workflow_execution(
-                        instance_id=instance_id,
-                        sql_query=processed_sql_query,
-                        access_token=valid_token,
-                        entity_id=entity_id,
-                        marketplace_id=marketplace_id,
-                        output_format=amc_parameters.get('output_format', 'CSV')
-                    )
+                # ALWAYS use ad-hoc execution - simpler and no size limits
+                # This handles queries of any size without needing workflow management
+                logger.info(f"Executing query via ad-hoc execution (query size: {len(processed_sql_query)} chars)")
+                response = api_client.create_workflow_execution(
+                    instance_id=instance_id,
+                    sql_query=processed_sql_query,
+                    access_token=valid_token,
+                    entity_id=entity_id,
+                    marketplace_id=marketplace_id,
+                    output_format=amc_parameters.get('output_format', 'CSV')
+                )
                 
                 # Check if execution was created successfully
                 if not response.get('success'):
