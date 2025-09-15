@@ -78,7 +78,9 @@ export default function DynamicParameterForm({
       return schema.refine(
         (data) => {
           if (data.start_date && data.end_date) {
-            return new Date(data.end_date) >= new Date(data.start_date);
+            const startDate = typeof data.start_date === 'string' ? new Date(data.start_date) : data.start_date;
+            const endDate = typeof data.end_date === 'string' ? new Date(data.end_date) : data.end_date;
+            return endDate >= startDate;
           }
           return true;
         },
@@ -245,10 +247,10 @@ export default function DynamicParameterForm({
                   );
                 }
                 // TODO: Add support for tag input or other array widgets
-                return null;
+                return <div>Array input not yet supported</div>;
 
               default:
-                return null;
+                return <div>Unsupported field type: {def.type}</div>;
             }
           }}
         />
@@ -262,7 +264,9 @@ export default function DynamicParameterForm({
 
         {errors[key] && (
           <p className="text-xs text-red-600">
-            {errors[key]?.message || `${def.label} is required`}
+            {typeof errors[key]?.message === 'string'
+              ? errors[key]?.message
+              : `${def.label} is required`}
           </p>
         )}
       </div>

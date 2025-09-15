@@ -13,7 +13,6 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  AlertCircle,
 } from 'lucide-react';
 import type { Report } from '../../types/report';
 
@@ -131,14 +130,6 @@ export default function DashboardsTable({
     }
   };
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return '-';
-    try {
-      return format(parseISO(dateString), 'MMM d, yyyy');
-    } catch {
-      return '-';
-    }
-  };
 
   const formatDateTime = (dateString?: string) => {
     if (!dateString) return '-';

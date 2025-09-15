@@ -48,8 +48,8 @@ export default function ReportBuilder() {
     }
   };
 
-  const handleEditReport = (report: Report) => {
-    toast.info('Edit functionality coming soon');
+  const handleEditReport = () => {
+    toast('Edit functionality coming soon', { icon: 'ℹ️' });
   };
 
   const handleDeleteReport = async (report: Report) => {

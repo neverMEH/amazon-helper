@@ -179,7 +179,7 @@ export default function QueryBuilder() {
     if (template) {
       setQueryState(prev => ({
         ...prev,
-        sqlQuery: template.sqlTemplate,
+        sqlQuery: template.sqlTemplate || template.sql_query || '',
         name: template.name,
         description: template.description || '',
         parameters: template.defaultParameters || {}

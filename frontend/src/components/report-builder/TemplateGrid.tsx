@@ -164,7 +164,7 @@ export default function TemplateGrid({ templates, onSelect }: TemplateGridProps)
               <option value="">All Types</option>
               {reportTypes.map(type => (
                 <option key={type} value={type}>
-                  {type.charAt(0).toUpperCase() + type.slice(1)}
+                  {type ? type.charAt(0).toUpperCase() + type.slice(1) : ''}
                 </option>
               ))}
             </select>
