@@ -1,0 +1,3 @@
+# Spec Summary (Lite)
+
+Replace the workflow-based AMC query system with a streamlined Report Builder that executes SQL directly via ad-hoc AMC API calls, providing template-based report creation with dynamic parameters, flexible scheduling (one-time/recurring), and historical backfill capabilities up to 365 days. Reports automatically generate dashboards with visualizations, AI insights, and export options, reducing agency time-to-insight from hours to minutes while eliminating workflow management complexity.
