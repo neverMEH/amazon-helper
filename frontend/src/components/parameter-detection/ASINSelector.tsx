@@ -17,8 +17,8 @@ interface ASINSelectorProps {
 
 interface ASIN {
   asin: string;
-  product_title: string;
-  brand_name: string;
+  title?: string;
+  brand?: string;
 }
 
 /**
@@ -86,7 +86,8 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
-  const asins = data?.asins || [];
+  // Handle different response structures
+  const asins = data?.asins || data?.items || [];
 
   // Handle ASIN selection
   const handleToggleASIN = useCallback((asin: string) => {
@@ -130,7 +131,7 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
     if (selectedASINs.size === 1) {
       const asin = Array.from(selectedASINs)[0];
       const asinData = asins.find((a: ASIN) => a.asin === asin);
-      return asinData ? `${asinData.asin} - ${asinData.product_title}` : asin;
+      return asinData ? `${asinData.asin} - ${asinData.title || 'No title'}` : asin;
     }
     
     return `${selectedASINs.size} ASINs selected`;
@@ -237,9 +238,9 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
                         {asin.asin}
                       </div>
                       <div className="text-xs text-gray-500 truncate">
-                        {asin.product_title}
-                        {showAll && asin.brand_name && (
-                          <span className="ml-2">• {asin.brand_name}</span>
+                        {asin.title || 'No title available'}
+                        {showAll && asin.brand && (
+                          <span className="ml-2">• {asin.brand}</span>
                         )}
                       </div>
                     </div>
