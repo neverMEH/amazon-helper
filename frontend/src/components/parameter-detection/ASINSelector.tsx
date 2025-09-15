@@ -48,21 +48,20 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
     }
   }, [value]);
 
-  // Fetch ASINs from the API
+  // Fetch ASINs from the API - don't include searchTerm in query to get all ASINs for client-side filtering
   const { data, isLoading, error } = useQuery({
-    queryKey: ['asins', instanceId, brandId, searchTerm, showAll],
+    queryKey: ['asins', instanceId, brandId, showAll],
     queryFn: async () => {
       // If showAll is true or no filters, use the regular ASINs endpoint
       if (showAll || (!instanceId && !brandId)) {
         const params = new URLSearchParams({
           page: '1',
-          page_size: '200',  // Get more ASINs when showing all
+          page_size: '500',  // Get more ASINs for better client-side filtering
         });
-        
-        if (searchTerm) {
-          params.append('search', searchTerm);
-        }
-        
+
+        // Note: We don't send searchTerm to backend anymore for better brand filtering
+        // Backend search might not include brand name search
+
         const response = await api.get(`/asins/?${params.toString()}`);
         return response.data;
       } else {
@@ -70,13 +69,9 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
         const params = new URLSearchParams({
           instance_id: instanceId || '',
           brand_id: brandId || '',
-          limit: '100',
+          limit: '500',  // Increased for better client-side filtering
           offset: '0'
         });
-        
-        if (searchTerm) {
-          params.append('search', searchTerm);
-        }
 
         const response = await api.get(`/asins/by-instance-brand/list?${params.toString()}`);
         return response.data;
@@ -87,7 +82,23 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
   });
 
   // Handle different response structures
-  const asins = data?.asins || data?.items || [];
+  const rawAsins = data?.asins || data?.items || [];
+
+  // Filter ASINs client-side to include brand name matching
+  const asins = useMemo(() => {
+    if (!searchTerm) return rawAsins;
+
+    const searchLower = searchTerm.toLowerCase();
+    return rawAsins.filter((asin: ASIN) => {
+      // Check ASIN code
+      if (asin.asin?.toLowerCase().includes(searchLower)) return true;
+      // Check product title
+      if (asin.title?.toLowerCase().includes(searchLower)) return true;
+      // Check brand name
+      if (asin.brand?.toLowerCase().includes(searchLower)) return true;
+      return false;
+    });
+  }, [rawAsins, searchTerm]);
 
   // Handle ASIN selection
   const handleToggleASIN = useCallback((asin: string) => {
@@ -179,7 +190,7 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Search ASINs or product titles..."
+                placeholder="Search by ASIN, title, or brand name..."
                 autoFocus
               />
             </div>
@@ -239,8 +250,8 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
                       </div>
                       <div className="text-xs text-gray-500 truncate">
                         {asin.title || 'No title available'}
-                        {showAll && asin.brand && (
-                          <span className="ml-2">• {asin.brand}</span>
+                        {asin.brand && (
+                          <span className="ml-2 font-medium">• {asin.brand}</span>
                         )}
                       </div>
                     </div>
