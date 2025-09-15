@@ -1,8 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, ChevronLeft, ChevronRight, Play, Clock, Calendar, Database } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import DynamicParameterForm from './DynamicParameterForm';
+import InstanceSelector from '../query-builder/InstanceSelector';
+import { UniversalParameterSelector } from '../parameter-detection';
+import { ParameterDetector } from '../../utils/parameterDetection';
+import { instanceService } from '../../services/instanceService';
 import type { QueryTemplate } from '../../types/queryTemplate';
 import type { CreateReportRequest, ScheduleConfig } from '../../types/report';
+import type { DetectedParameter } from '../../utils/parameterDetection';
 
 interface RunReportModalProps {
   isOpen: boolean;
@@ -38,6 +44,36 @@ export default function RunReportModal({
   });
   const [backfillPeriod, setBackfillPeriod] = useState(7);
   const [selectedInstance, setSelectedInstance] = useState('');
+  const [detectedParameters, setDetectedParameters] = useState<DetectedParameter[]>([]);
+
+  // Fetch instances
+  const { data: instances = [], isLoading: loadingInstances } = useQuery({
+    queryKey: ['instances'],
+    queryFn: () => instanceService.list(),
+    enabled: isOpen,
+  });
+
+  // Detect parameters from the SQL query
+  useEffect(() => {
+    if (template && isOpen) {
+      const sqlQuery = template.sqlTemplate || template.sql_query || '';
+      if (sqlQuery) {
+        const detected = ParameterDetector.detectParameters(sqlQuery);
+        setDetectedParameters(detected);
+
+        // Initialize parameters with defaults if they exist
+        const defaultParams: Record<string, any> = {};
+        detected.forEach(param => {
+          if (template.defaultParameters?.[param.name] !== undefined) {
+            defaultParams[param.name] = template.defaultParameters[param.name];
+          } else if (template.parameters?.[param.name] !== undefined) {
+            defaultParams[param.name] = template.parameters[param.name];
+          }
+        });
+        setParameters(defaultParams);
+      }
+    }
+  }, [template, isOpen]);
 
   if (!isOpen) return null;
 
@@ -70,12 +106,16 @@ export default function RunReportModal({
   };
 
   const handleParameterSubmit = (values: Record<string, any>) => {
-    // Extract instance_id if present
-    if (values.instance_id) {
-      setSelectedInstance(values.instance_id);
-    }
+    // No need to extract instance_id separately as it's managed by selectedInstance state
     setParameters(values);
     goToNextStep();
+  };
+
+  const handleParameterChange = (paramName: string, value: any) => {
+    setParameters(prev => ({
+      ...prev,
+      [paramName]: value
+    }));
   };
 
   const handleFinalSubmit = () => {
@@ -83,7 +123,7 @@ export default function RunReportModal({
       name: reportName,
       description: reportDescription,
       template_id: template.id,
-      instance_id: selectedInstance || parameters.instance_id,
+      instance_id: selectedInstance,
       parameters,
       execution_type: executionType === 'backfill' ? 'backfill' : executionType,
       schedule_config:
@@ -131,16 +171,81 @@ export default function RunReportModal({
                            focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>
+
+              {/* Instance Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  AMC Instance <span className="text-red-500">*</span>
+                </label>
+                {loadingInstances ? (
+                  <div className="text-sm text-gray-500">Loading instances...</div>
+                ) : (
+                  <InstanceSelector
+                    instances={instances}
+                    value={selectedInstance}
+                    onChange={setSelectedInstance}
+                    placeholder="Select an AMC instance..."
+                  />
+                )}
+              </div>
             </div>
 
             <div className="border-t pt-4">
-              <DynamicParameterForm
-                parameterDefinitions={template.parameter_definitions || {}}
-                uiSchema={template.ui_schema || {}}
-                initialValues={parameters}
-                onSubmit={handleParameterSubmit}
-                submitLabel="Next"
-              />
+              {/* If template has predefined parameter definitions, use DynamicParameterForm */}
+              {template.parameter_definitions && Object.keys(template.parameter_definitions).length > 0 ? (
+                <DynamicParameterForm
+                  parameterDefinitions={template.parameter_definitions}
+                  uiSchema={template.ui_schema || {}}
+                  initialValues={parameters}
+                  onSubmit={handleParameterSubmit}
+                  submitLabel="Next"
+                />
+              ) : detectedParameters.length > 0 ? (
+                /* Use detected parameters from SQL query */
+                <div className="space-y-4">
+                  <div className="text-sm font-medium text-gray-700 mb-2">
+                    Query Parameters
+                  </div>
+                  {detectedParameters.map((param) => (
+                    <div key={param.name}>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {param.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </label>
+                      <UniversalParameterSelector
+                        parameter={param}
+                        value={parameters[param.name]}
+                        onChange={(value) => handleParameterChange(param.name, value)}
+                        instanceId={selectedInstance}
+                      />
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => handleParameterSubmit(parameters)}
+                    disabled={!selectedInstance}
+                    className="w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md
+                             hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500
+                             disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              ) : (
+                /* No parameters needed */
+                <div className="text-sm text-gray-500">
+                  No parameters required for this template.
+                  <button
+                    type="button"
+                    onClick={() => handleParameterSubmit({})}
+                    disabled={!selectedInstance}
+                    className="mt-4 w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md
+                             hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500
+                             disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         );
@@ -388,16 +493,29 @@ export default function RunReportModal({
               )}
 
               <div>
-                <div className="text-sm font-medium text-gray-700">Parameters:</div>
-                <div className="text-sm text-gray-900 space-y-1">
-                  {Object.entries(parameters).map(([key, value]) => (
-                    <div key={key} className="flex justify-between">
-                      <span className="text-gray-600">{key}:</span>
-                      <span>{JSON.stringify(value)}</span>
-                    </div>
-                  ))}
+                <div className="text-sm font-medium text-gray-700">Instance:</div>
+                <div className="text-sm text-gray-900">
+                  {instances.find(i => i.instanceId === selectedInstance)?.instanceName || selectedInstance}
                 </div>
               </div>
+
+              {Object.keys(parameters).length > 0 && (
+                <div>
+                  <div className="text-sm font-medium text-gray-700">Parameters:</div>
+                  <div className="text-sm text-gray-900 space-y-1">
+                    {Object.entries(parameters).map(([key, value]) => (
+                      <div key={key} className="flex justify-between">
+                        <span className="text-gray-600">{key}:</span>
+                        <span className="text-gray-900">
+                          {Array.isArray(value) ? `${value.length} selected` :
+                           typeof value === 'object' ? JSON.stringify(value) :
+                           String(value)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );
