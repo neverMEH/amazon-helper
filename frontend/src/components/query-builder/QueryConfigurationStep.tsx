@@ -364,14 +364,14 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
                     <div>
                       <input
                         type="text"
-                        value={value as string}
+                        value={typeof value === 'string' ? value : ''}
                         onChange={(e) => handleParameterChange(param, e.target.value)}
                         placeholder="Enter pattern (will be wrapped with %...%)"
                         className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                       />
-                      {value && typeof value === 'string' && value.length > 0 && (
+                      {typeof value === 'string' && value.length > 0 && (
                         <p className="mt-1 text-xs text-gray-500">
-                          Will be formatted as: <code className="bg-gray-100 px-1 py-0.5 rounded">%{String(value)}%</code>
+                          Will be formatted as: <code className="bg-gray-100 px-1 py-0.5 rounded">%{value}%</code>
                         </p>
                       )}
                     </div>
