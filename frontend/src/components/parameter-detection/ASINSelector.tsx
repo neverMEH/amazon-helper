@@ -86,12 +86,21 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
   // Handle different response structures
   const rawAsins = data?.asins || data?.items || [];
 
+  // Debug logging
+  useEffect(() => {
+    if (data) {
+      console.log('ASIN API Response:', data);
+      console.log('Raw ASINs extracted:', rawAsins);
+      console.log('ShowAll:', showAll, 'InstanceId:', instanceId, 'BrandId:', brandId);
+    }
+  }, [data, rawAsins, showAll, instanceId, brandId]);
+
   // Filter ASINs client-side to include brand name matching
   const asins = useMemo(() => {
     if (!searchTerm) return rawAsins;
 
     const searchLower = searchTerm.toLowerCase();
-    return rawAsins.filter((asin: ASIN) => {
+    const filtered = rawAsins.filter((asin: ASIN) => {
       // Check ASIN code
       if (asin.asin?.toLowerCase().includes(searchLower)) return true;
       // Check product title (handle both field names)
@@ -102,6 +111,9 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
       if (brand?.toLowerCase().includes(searchLower)) return true;
       return false;
     });
+
+    console.log('Filtered ASINs:', filtered.length, 'from', rawAsins.length, 'with search:', searchTerm);
+    return filtered;
   }, [rawAsins, searchTerm]);
 
   // Handle ASIN selection
@@ -230,11 +242,17 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
               </div>
             ) : error ? (
               <div className="p-4 text-center text-red-600">
-                Error loading ASINs. Please try again.
+                Error loading ASINs: {(error as any)?.message || 'Please try again.'}
+                {console.error('ASIN Load Error:', error)}
               </div>
             ) : asins.length === 0 ? (
               <div className="p-4 text-center text-gray-500">
                 No ASINs found{!showAll && brandId ? ' for this brand' : ''}
+                {rawAsins.length > 0 && searchTerm && (
+                  <div className="text-xs mt-1">
+                    ({rawAsins.length} ASINs available, none match "{searchTerm}")
+                  </div>
+                )}
               </div>
             ) : (
               <div className="py-1">
