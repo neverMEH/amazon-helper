@@ -82,7 +82,7 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
         return response.data;
       }
     },
-    enabled: isOpen && (showAll || (!!instanceId && !!brandId)),
+    enabled: isOpen,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
