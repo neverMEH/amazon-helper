@@ -58,7 +58,7 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
       if (showAll || (!instanceId && !brandId)) {
         const params = new URLSearchParams({
           page: '1',
-          page_size: '500',  // Get more ASINs for better client-side filtering
+          page_size: '10000',  // Load all ASINs for comprehensive client-side filtering
         });
 
         // Note: We don't send searchTerm to backend anymore for better brand filtering
@@ -71,7 +71,7 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
         const params = new URLSearchParams({
           instance_id: instanceId || '',
           brand_id: brandId || '',
-          limit: '500',  // Increased for better client-side filtering
+          limit: '10000',  // Load all ASINs for comprehensive filtering
           offset: '0'
         });
 
@@ -251,7 +251,7 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
                 onClick={handleSelectAll}
                 className="text-sm text-blue-600 hover:text-blue-700"
               >
-                Select All ({asins.length})
+                Select All ({asins.length}{rawAsins.length > asins.length ? ` of ${rawAsins.length}` : ''})
               </button>
               <button
                 type="button"
@@ -268,7 +268,7 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
             {isLoading ? (
               <div className="p-4 text-center text-gray-500">
                 <div className="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>
-                Loading ASINs...
+                Loading all ASINs from database...
               </div>
             ) : error ? (
               <div className="p-4 text-center text-red-600">
