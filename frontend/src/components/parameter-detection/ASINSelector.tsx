@@ -18,7 +18,9 @@ interface ASINSelectorProps {
 interface ASIN {
   asin: string;
   title?: string;
+  product_title?: string;  // Some endpoints use product_title
   brand?: string;
+  brand_name?: string;  // Some endpoints use brand_name
 }
 
 /**
@@ -92,10 +94,12 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
     return rawAsins.filter((asin: ASIN) => {
       // Check ASIN code
       if (asin.asin?.toLowerCase().includes(searchLower)) return true;
-      // Check product title
-      if (asin.title?.toLowerCase().includes(searchLower)) return true;
-      // Check brand name
-      if (asin.brand?.toLowerCase().includes(searchLower)) return true;
+      // Check product title (handle both field names)
+      const title = asin.title || asin.product_title;
+      if (title?.toLowerCase().includes(searchLower)) return true;
+      // Check brand name (handle both field names)
+      const brand = asin.brand || asin.brand_name;
+      if (brand?.toLowerCase().includes(searchLower)) return true;
       return false;
     });
   }, [rawAsins, searchTerm]);
@@ -142,7 +146,8 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
     if (selectedASINs.size === 1) {
       const asin = Array.from(selectedASINs)[0];
       const asinData = asins.find((a: ASIN) => a.asin === asin);
-      return asinData ? `${asinData.asin} - ${asinData.title || 'No title'}` : asin;
+      const title = asinData?.title || asinData?.product_title || 'No title';
+      return asinData ? `${asinData.asin} - ${title}` : asin;
     }
     
     return `${selectedASINs.size} ASINs selected`;
@@ -249,9 +254,9 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
                         {asin.asin}
                       </div>
                       <div className="text-xs text-gray-500 truncate">
-                        {asin.title || 'No title available'}
-                        {asin.brand && (
-                          <span className="ml-2 font-medium">• {asin.brand}</span>
+                        {asin.title || asin.product_title || 'No title available'}
+                        {(asin.brand || asin.brand_name) && (
+                          <span className="ml-2 font-medium">• {asin.brand || asin.brand_name}</span>
                         )}
                       </div>
                     </div>
