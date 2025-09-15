@@ -541,122 +541,22 @@ class AMCExecutionService:
             # Create workflow execution via AMC API
             # Initialize API client with correct service
             api_client = AMCAPIClient()
-            
+
             # Update progress to show we're starting
             self._update_execution_progress(execution_id, 'running', 10)
-            
+
             try:
-                # Always try to execute using workflow ID first
-                response = None
-                if amc_workflow_id:
-                    # Execute using saved workflow ID
-                    logger.info(f"Executing saved workflow {amc_workflow_id}")
-                    try:
-                        response = api_client.create_workflow_execution(
-                            instance_id=instance_id,
-                            workflow_id=amc_workflow_id,
-                            access_token=valid_token,
-                            entity_id=entity_id,
-                            marketplace_id=marketplace_id,
-                            parameter_values=amc_parameters,  # Only pass non-injection parameters to AMC
-                            output_format=amc_parameters.get('output_format', 'CSV')
-                        )
-                        
-                        # Check if the response indicates the workflow doesn't exist
-                        if isinstance(response, dict) and not response.get('success'):
-                            error_msg = response.get('error', '')
-                            if "does not exist" in str(error_msg).lower() or "not found" in str(error_msg).lower():
-                                logger.info(f"Workflow {amc_workflow_id} not found (from response), will try to create it")
-                                raise ValueError(f"Workflow not found: {error_msg}")
-                    except (ValueError, Exception) as e:
-                        # Check if the error is because the workflow doesn't exist in AMC
-                        error_str = str(e)
-                        logger.info(f"Caught exception during workflow execution: {error_str}")
-                        if "does not exist" in error_str.lower() or "not found" in error_str.lower() or "workflow not found" in error_str.lower():
-                            logger.warning(f"Workflow {amc_workflow_id} doesn't exist in AMC")
-
-                            # Check if query is too large for workflow creation (rough estimate)
-                            query_size = len(processed_sql_query)
-                            # Amazon API typically has issues with queries over 50KB
-                            MAX_WORKFLOW_SIZE = 50000
-
-                            if query_size > MAX_WORKFLOW_SIZE:
-                                logger.warning(f"Query is too large ({query_size} chars) for workflow creation, using ad-hoc execution")
-                                # Skip workflow creation and go directly to ad-hoc execution
-                                response = api_client.create_workflow_execution(
-                                    instance_id=instance_id,
-                                    sql_query=processed_sql_query,
-                                    access_token=valid_token,
-                                    entity_id=entity_id,
-                                    marketplace_id=marketplace_id,
-                                    output_format=amc_parameters.get('output_format', 'CSV')
-                                )
-                            else:
-                                # Try to create the workflow in AMC with processed query
-                                logger.info(f"Attempting to create workflow {amc_workflow_id} (query size: {query_size} chars)")
-                                create_response = api_client.create_workflow(
-                                    instance_id=instance_id,
-                                    workflow_id=amc_workflow_id,
-                                    sql_query=processed_sql_query,
-                                    access_token=valid_token,
-                                    entity_id=entity_id,
-                                    marketplace_id=marketplace_id,
-                                    output_format='CSV'
-                                )
-
-                                if create_response.get('success'):
-                                    logger.info(f"Successfully created workflow {amc_workflow_id} in AMC, retrying execution")
-                                    # Update database to mark as synced
-                                    update_data = {
-                                        'amc_workflow_id': amc_workflow_id,
-                                        'is_synced_to_amc': True,
-                                        'amc_sync_status': 'synced',
-                                        'last_synced_at': datetime.now(timezone.utc).isoformat()
-                                    }
-                                    self.db.update_workflow_sync(workflow['workflow_id'], update_data)
-
-                                    # Retry execution with the newly created workflow
-                                    response = api_client.create_workflow_execution(
-                                        instance_id=instance_id,
-                                        workflow_id=amc_workflow_id,
-                                        access_token=valid_token,
-                                        entity_id=entity_id,
-                                        marketplace_id=marketplace_id,
-                                        parameter_values=execution_parameters,
-                                        output_format=execution_parameters.get('output_format', 'CSV') if execution_parameters else 'CSV'
-                                    )
-                                else:
-                                    error_msg = create_response.get('error', '')
-                                    logger.warning(f"Failed to create workflow in AMC: {error_msg}")
-
-                                    # Check if it's a size-related error
-                                    if '400' in str(error_msg) or 'request' in error_msg.lower():
-                                        logger.info("Likely a size issue, falling back to ad-hoc execution")
-
-                                    # Fall back to ad-hoc execution with processed query
-                                    response = api_client.create_workflow_execution(
-                                        instance_id=instance_id,
-                                        sql_query=processed_sql_query,
-                                        access_token=valid_token,
-                                        entity_id=entity_id,
-                                        marketplace_id=marketplace_id,
-                                        output_format=amc_parameters.get('output_format', 'CSV')
-                                    )
-                        else:
-                            # Other error, re-raise
-                            raise
-                
-                # If we still don't have a response, use ad-hoc execution
-                if not response:
-                    logger.warning("No AMC workflow ID available, using ad-hoc execution")
-                    response = api_client.create_workflow_execution(
-                        instance_id=instance_id,
-                        sql_query=processed_sql_query,
-                        access_token=valid_token,
-                        entity_id=entity_id,
-                        marketplace_id=marketplace_id,
-                        output_format=amc_parameters.get('output_format', 'CSV')
-                    )
+                # ALWAYS use ad-hoc execution - simpler and no size limits
+                # This handles queries of any size without needing workflow management
+                logger.info(f"Executing query via ad-hoc execution (query size: {len(processed_sql_query)} chars)")
+                response = api_client.create_workflow_execution(
+                    instance_id=instance_id,
+                    sql_query=processed_sql_query,
+                    access_token=valid_token,
+                    entity_id=entity_id,
+                    marketplace_id=marketplace_id,
+                    output_format=amc_parameters.get('output_format', 'CSV')
+                )
                 
                 # Check if execution was created successfully
                 if not response.get('success'):
