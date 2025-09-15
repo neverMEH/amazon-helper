@@ -48,27 +48,38 @@ export default function QueryEditorStep({ state, setState }: QueryEditorStepProp
     const paramPattern = /\{\{(\w+)\}\}/g;
     const matches = state.sqlQuery.matchAll(paramPattern);
     const params = Array.from(matches, (m: RegExpMatchArray) => m[1]);
-    setDetectedParams([...new Set(params)]);
+    const uniqueParams = [...new Set(params)];
+    setDetectedParams(uniqueParams);
     
     // Check for hardcoded VALUES that should be parameters
     setShowConversionSuggestion(hasHardcodedValues(state.sqlQuery));
     
-    // Update parameters with defaults if new ones detected
-    const newParams = { ...state.parameters };
-    params.forEach(param => {
-      if (!(param in newParams)) {
+    // Build parameters object - ensure ALL detected parameters are present
+    const newParams: Record<string, any> = {};
+    
+    // First, add all detected parameters with smart defaults
+    uniqueParams.forEach(param => {
+      // Check if we already have a value for this parameter
+      if (state.parameters && param in state.parameters) {
+        newParams[param] = state.parameters[param];
+      } else {
         // Set default values based on parameter name
         if (param.includes('date') || param.includes('start') || param.includes('end')) {
           newParams[param] = new Date().toISOString().split('T')[0];
         } else if (param.includes('days') || param.includes('window')) {
           newParams[param] = 30;
-        } else if (param.includes('campaign')) {
-          newParams[param] = [];
+        } else if (param.includes('campaign') || param.includes('pattern')) {
+          newParams[param] = '';  // Empty string for pattern/campaign parameters
+        } else if (param.includes('asin')) {
+          newParams[param] = [];  // Empty array for ASIN lists
         } else {
           newParams[param] = '';
         }
       }
     });
+    
+    // Remove parameters that are no longer in the SQL
+    // (Don't include old parameters that aren't in the current SQL)
     
     if (JSON.stringify(newParams) !== JSON.stringify(state.parameters)) {
       setState((prev: any) => ({ ...prev, parameters: newParams }));
