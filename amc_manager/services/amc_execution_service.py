@@ -348,13 +348,34 @@ class AMCExecutionService:
                 like_colon = rf'\bLIKE\s+[\'"]?\s*:{param}\b'
                 like_dollar = rf'\bLIKE\s+[\'"]?\s*\${param}\b'
 
+                # Check if ANY LIKE clause exists followed by this parameter within 50 chars
+                # This catches cases like "s.campaign LIKE {{campaign_brand}}"
+                like_anywhere = rf'\bLIKE\s+.{{0,50}}\{{\{{{param}\}}\}}'
+                is_like_nearby = re.search(like_anywhere, sql_template, re.IGNORECASE)
+
+                # Debug logging
+                logger.info(f"Checking parameter '{param}' for LIKE context...")
+                logger.info(f"  - Parameter name check: is_pattern_param={is_pattern_param}")
+                logger.info(f"  - Checking regex patterns against SQL template...")
+                logger.info(f"  - SQL snippet: {sql_template[max(0, sql_template.find(param)-50):min(len(sql_template), sql_template.find(param)+50)]}")
+
+                if re.search(like_pattern, sql_template, re.IGNORECASE):
+                    logger.info(f"  - Matched {{{{param}}}} pattern directly after LIKE")
+                if re.search(like_colon, sql_template, re.IGNORECASE):
+                    logger.info(f"  - Matched :param pattern")
+                if re.search(like_dollar, sql_template, re.IGNORECASE):
+                    logger.info(f"  - Matched $param pattern")
+                if is_like_nearby:
+                    logger.info(f"  - Found LIKE keyword near parameter")
+
                 if (re.search(like_pattern, sql_template, re.IGNORECASE) or
                     re.search(like_colon, sql_template, re.IGNORECASE) or
                     re.search(like_dollar, sql_template, re.IGNORECASE) or
+                    is_like_nearby or
                     is_pattern_param):
                     # Add % wildcards for LIKE pattern matching
                     value_str = f"'%{value_escaped}%'"
-                    logger.info(f"Parameter {param} detected as LIKE pattern (context or name), formatting with wildcards: {value_str}")
+                    logger.info(f"✓ Parameter {param} formatted with wildcards: {value_str}")
                 else:
                     value_str = f"'{value_escaped}'"
             else:
