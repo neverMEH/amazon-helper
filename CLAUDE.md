@@ -519,3 +519,25 @@ docker run -p 8001:8001 --env-file .env recomamp
 - **Monaco Editor**: Full SQL syntax highlighting, same as VS Code
 - **TanStack Query**: Powerful caching, optimistic updates, background refetching
 - **Vite**: Fast HMR, optimized builds, TypeScript support out of the box
+
+### Recent Fixes and Enhancements
+
+#### 2025-09-15 (Auto-Generated Update)
+
+**New Features:**
+- docs: Complete query library redesign implementation documentation
+- feat: Add CampaignSelector and DateRangePicker components for Query Library
+  - New files: frontend/src/components/query-library/CampaignSelector.tsx, frontend/src/components/query-library/DateRangePicker.tsx, frontend/src/components/query-library/__tests__/CampaignSelector.test.tsx
+- feat: Implement Query Library frontend components (Tasks 4.1-4.3)
+  - New files: frontend/src/components/query-library/AsinMultiSelect.tsx, frontend/src/components/query-library/__tests__/AsinMultiSelect.test.tsx, frontend/src/components/query-library/__tests__/DateRangePicker.test.tsx
+- feat: Implement Query Library API endpoints (Task 3)
+  - New files: amc_manager/api/supabase/query_library.py
+- feat: Implement Query Library Redesign backend services (Phase 2)
+  - New files: amc_manager/services/template_parameter_service.py, amc_manager/services/template_report_service.py
+
+**Bug Fixes:**
+- fix: Fix TypeScript errors in CampaignSelector and DateRangePicker components
+- fix: Fix workflow ID handling to support both UUID and string IDs
+- fix: Remove user_id filtering - column doesn't exist in campaigns table
+- fix: Fix campaign loading issue with user filtering and trailing slash
+- fix: Fix 'Cannot read properties of undefined (reading length)' error in dashboard
