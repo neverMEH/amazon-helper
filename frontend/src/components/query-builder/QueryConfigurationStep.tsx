@@ -360,6 +360,21 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
                       className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                       rows={2}
                     />
+                  ) : (param.toLowerCase().includes('pattern') || param.toLowerCase().includes('like')) ? (
+                    <div>
+                      <input
+                        type="text"
+                        value={value as string}
+                        onChange={(e) => handleParameterChange(param, e.target.value)}
+                        placeholder="Enter pattern (will be wrapped with %...%)"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      />
+                      {value && (
+                        <p className="mt-1 text-xs text-gray-500">
+                          Will be formatted as: <code className="bg-gray-100 px-1 py-0.5 rounded">%{value}%</code>
+                        </p>
+                      )}
+                    </div>
                   ) : (
                     <input
                       type="text"

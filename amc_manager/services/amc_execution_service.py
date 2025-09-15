@@ -333,7 +333,16 @@ class AMCExecutionService:
                 for keyword in dangerous_keywords:
                     if keyword in value_escaped.upper():
                         raise ValueError(f"Dangerous SQL keyword '{keyword}' detected in parameter '{param}'")
-                value_str = f"'{value_escaped}'"
+                
+                # Check if this parameter is used in a LIKE context
+                # Look for patterns like "LIKE {{param}}" in the SQL template
+                like_pattern = rf'\bLIKE\s+\{{\{{{param}\}}\}}'
+                if re.search(like_pattern, sql_template, re.IGNORECASE):
+                    # Add % wildcards for LIKE pattern matching
+                    value_str = f"'%{value_escaped}%'"
+                    logger.debug(f"Parameter {param} detected in LIKE context, formatting as pattern: {value_str}")
+                else:
+                    value_str = f"'{value_escaped}'"
             else:
                 value_str = str(value)
             
