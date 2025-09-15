@@ -336,7 +336,7 @@ class AMCExecutionService:
                 
                 # Check if this parameter is used in a LIKE context
                 # Look for patterns like "LIKE {{param}}" in the SQL template
-                like_pattern = rf'\bLIKE\s+\{{\{{{param}\}}\}}'
+                like_pattern = rf'\bLIKE\s+\{{\{{param}\}}\}'
                 if re.search(like_pattern, sql_template, re.IGNORECASE):
                     # Add % wildcards for LIKE pattern matching
                     value_str = f"'%{value_escaped}%'"
