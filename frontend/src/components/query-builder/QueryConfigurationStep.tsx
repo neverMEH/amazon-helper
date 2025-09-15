@@ -206,7 +206,17 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
 
   const isCampaignParameter = (paramName: string): boolean => {
     const lowerParam = paramName.toLowerCase();
-    return lowerParam.includes('campaign') || lowerParam.includes('camp_id') || lowerParam.includes('campaign_id');
+    // Exclude pattern parameters - they should be text inputs for LIKE matching
+    if (lowerParam.includes('pattern') || lowerParam.includes('like')) {
+      return false;
+    }
+    // Only treat as campaign selector for actual campaign ID/name lists
+    return (lowerParam === 'campaign' ||
+            lowerParam === 'campaigns' ||
+            lowerParam === 'campaign_id' ||
+            lowerParam === 'campaign_ids' ||
+            lowerParam === 'camp_id' ||
+            lowerParam.includes('campaign_list'));
   };
 
   const getParameterType = (paramName: string): 'asin' | 'campaign' | 'date' | 'number' | 'text' => {
