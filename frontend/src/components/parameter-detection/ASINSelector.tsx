@@ -92,6 +92,28 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
       console.log('ASIN API Response:', data);
       console.log('Raw ASINs extracted:', rawAsins);
       console.log('ShowAll:', showAll, 'InstanceId:', instanceId, 'BrandId:', brandId);
+
+      // Extract and log unique brands
+      const brands = new Set<string>();
+      rawAsins.forEach((asin: ASIN) => {
+        const brand = asin.brand || asin.brand_name;
+        if (brand) brands.add(brand);
+      });
+      console.log('Unique brands in data:', Array.from(brands).sort());
+
+      // Check if supergoop exists in any variation
+      const supergoopVariations = Array.from(brands).filter(b =>
+        b.toLowerCase().includes('supergoop') ||
+        b.toLowerCase().includes('super goop')
+      );
+      if (supergoopVariations.length > 0) {
+        console.log('Found Supergoop variations:', supergoopVariations);
+      } else {
+        console.log('No Supergoop brand found in the loaded ASINs');
+      }
+
+      // Show sample of first few ASINs to see data structure
+      console.log('Sample ASINs (first 3):', rawAsins.slice(0, 3));
     }
   }, [data, rawAsins, showAll, instanceId, brandId]);
 
@@ -99,7 +121,7 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
   const asins = useMemo(() => {
     if (!searchTerm) return rawAsins;
 
-    const searchLower = searchTerm.toLowerCase();
+    const searchLower = searchTerm.toLowerCase().trim();
     const filtered = rawAsins.filter((asin: ASIN) => {
       // Check ASIN code
       if (asin.asin?.toLowerCase().includes(searchLower)) return true;
@@ -109,6 +131,14 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
       // Check brand name (handle both field names)
       const brand = asin.brand || asin.brand_name;
       if (brand?.toLowerCase().includes(searchLower)) return true;
+
+      // Also check if brand matches with spaces removed (e.g., "supergoop" matches "Super Goop")
+      if (brand) {
+        const brandNoSpaces = brand.toLowerCase().replace(/\s+/g, '');
+        const searchNoSpaces = searchLower.replace(/\s+/g, '');
+        if (brandNoSpaces.includes(searchNoSpaces)) return true;
+      }
+
       return false;
     });
 
