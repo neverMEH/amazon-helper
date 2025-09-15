@@ -44,22 +44,11 @@ export function analyzeParameterContext(sql: string, paramName: string): Paramet
   // Analyze context around each parameter occurrence
   for (const match of matches) {
     const position = match.index!;
-    const beforeContext = sql.substring(Math.max(0, position - 50), position).toUpperCase();
-    const afterContext = sql.substring(position + match[0].length, Math.min(sql.length, position + match[0].length + 50)).toUpperCase();
+    const beforeContext = sql.substring(Math.max(0, position - 50), position);
+    const afterContext = sql.substring(position + match[0].length, Math.min(sql.length, position + match[0].length + 50));
     
-    // Check for LIKE context
-    if (beforeContext.includes('LIKE')) {
-      return {
-        name: paramName,
-        type: 'pattern',
-        sqlContext: 'LIKE',
-        formatHint: 'Will be formatted as %value% for pattern matching',
-        exampleValue: '%Supergoop%',
-      };
-    }
-    
-    // Check for IN context
-    if (beforeContext.includes(' IN ') || beforeContext.includes(' IN(')) {
+    // Check for IN context (must be immediately before parameter)
+    if (beforeContext.match(/\sIN\s*$/i)) {
       return {
         name: paramName,
         type: 'list',
@@ -69,8 +58,19 @@ export function analyzeParameterContext(sql: string, paramName: string): Paramet
       };
     }
     
+    // Check for LIKE context (must be immediately before parameter)
+    if (beforeContext.match(/\sLIKE\s*$/i)) {
+      return {
+        name: paramName,
+        type: 'pattern',
+        sqlContext: 'LIKE',
+        formatHint: 'Will be formatted as %value% for pattern matching',
+        exampleValue: '%Supergoop%',
+      };
+    }
+    
     // Check for VALUES context
-    if (beforeContext.includes('VALUES') || afterContext.includes('VALUES')) {
+    if (beforeContext.toUpperCase().includes('VALUES') || afterContext.toUpperCase().includes('VALUES')) {
       return {
         name: paramName,
         type: 'list',
@@ -80,49 +80,64 @@ export function analyzeParameterContext(sql: string, paramName: string): Paramet
       };
     }
     
-    // Check for BETWEEN context
-    if (beforeContext.includes('BETWEEN')) {
+    // Check for BETWEEN context - only for the first parameter after BETWEEN
+    if (beforeContext.match(/\sBETWEEN\s*$/i)) {
       return {
         name: paramName,
-        type: 'date_range',
+        type: 'date',
         sqlContext: 'BETWEEN',
-        formatHint: 'Provide start and end values',
-        exampleValue: "'2024-01-01' AND '2024-01-31'",
+        formatHint: 'Start date for BETWEEN clause',
+        exampleValue: "'2024-01-01'",
       };
     }
     
-    // Check for comparison operators
-    const comparisonOps = ['>=', '<=', '>', '<', '=', '!=', '<>'];
-    for (const op of comparisonOps) {
-      if (beforeContext.includes(` ${op} `) || beforeContext.endsWith(` ${op}`)) {
-        // Try to infer type from column name
-        const columnMatch = beforeContext.match(/(\w+)\s*[><=!]+\s*$/);
-        if (columnMatch) {
-          const columnName = columnMatch[1].toLowerCase();
-          if (columnName.includes('date') || columnName.includes('time')) {
-            return {
-              name: paramName,
-              type: 'date',
-              sqlContext: 'COMPARISON',
-              exampleValue: '2024-01-15',
-            };
-          }
-          if (columnName.includes('count') || columnName.includes('amount') || columnName.includes('price') || columnName.includes('quantity')) {
-            return {
-              name: paramName,
-              type: 'number',
-              sqlContext: 'COMPARISON',
-              exampleValue: '100',
-            };
-          }
-        }
-        
+    // Check if this is the second parameter in BETWEEN (after AND)
+    if (beforeContext.match(/\sAND\s*$/i) && sql.toUpperCase().includes('BETWEEN')) {
+      // Look backwards to see if BETWEEN is before the AND
+      const fullBefore = sql.substring(0, position).toUpperCase();
+      if (fullBefore.lastIndexOf('BETWEEN') > fullBefore.lastIndexOf('WHERE')) {
         return {
           name: paramName,
-          type: 'text',
-          sqlContext: op === '=' ? 'EQUALS' : 'COMPARISON',
+          type: 'date',
+          sqlContext: 'BETWEEN',
+          formatHint: 'End date for BETWEEN clause',
+          exampleValue: "'2024-01-31'",
         };
       }
+    }
+    
+    // Check for comparison operators
+    const comparisonMatch = beforeContext.match(/(\w+)\s*([><=!]+)\s*$/);
+    if (comparisonMatch) {
+      const columnName = comparisonMatch[1].toLowerCase();
+      const operator = comparisonMatch[2];
+      
+      // Try to infer type from column name
+      if (columnName.includes('date') || columnName.includes('time')) {
+        return {
+          name: paramName,
+          type: 'date',
+          sqlContext: operator === '=' ? 'EQUALS' : 'COMPARISON',
+          exampleValue: '2024-01-15',
+        };
+      }
+      if (columnName.includes('count') || columnName.includes('amount') || 
+          columnName.includes('price') || columnName.includes('quantity') || 
+          columnName.includes('spend') || columnName.includes('clicks') ||
+          columnName.includes('impressions') || columnName.includes('cost')) {
+        return {
+          name: paramName,
+          type: 'number',
+          sqlContext: operator === '=' ? 'EQUALS' : 'COMPARISON',
+          exampleValue: '100',
+        };
+      }
+      
+      return {
+        name: paramName,
+        type: 'text',
+        sqlContext: operator === '=' ? 'EQUALS' : 'COMPARISON',
+      };
     }
   }
   
