@@ -46,6 +46,7 @@ export default function RunReportModal({
   const [backfillPeriod, setBackfillPeriod] = useState(7);
   const [selectedInstance, setSelectedInstance] = useState('');
   const [detectedParameters, setDetectedParameters] = useState<DetectedParameter[]>([]);
+  const [showQueryPreview, setShowQueryPreview] = useState(true);
 
   // Fetch instances
   const { data: instances = [], isLoading: loadingInstances } = useQuery({
@@ -559,6 +560,42 @@ export default function RunReportModal({
                     ))}
                   </div>
                 </div>
+              )}
+            </div>
+
+            {/* SQL Query Preview */}
+            <div className="mt-4 border-t pt-4">
+              <button
+                type="button"
+                onClick={() => setShowQueryPreview(!showQueryPreview)}
+                className="flex items-center gap-2 mb-2 w-full text-left hover:bg-gray-50 p-2 rounded-md transition-colors"
+              >
+                <ChevronRight
+                  className={`h-4 w-4 text-gray-600 transition-transform ${showQueryPreview ? 'rotate-90' : ''}`}
+                />
+                <Code className="h-4 w-4 text-gray-600" />
+                <h4 className="text-sm font-medium text-gray-700">Query Preview</h4>
+                <span className="text-xs text-gray-500 ml-auto">
+                  {showQueryPreview ? 'Click to hide' : 'Click to show'}
+                </span>
+              </button>
+
+              {showQueryPreview && (
+                <>
+                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                    <SQLEditor
+                      value={previewSQL}
+                      onChange={() => {}} // Read-only
+                      height="300px"
+                      readOnly={true}
+                      theme="light"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    This is a preview of the SQL query with your parameters injected.
+                    The actual query execution may include additional optimizations.
+                  </p>
+                </>
               )}
             </div>
           </div>
