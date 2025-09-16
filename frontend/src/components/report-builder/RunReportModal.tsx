@@ -113,7 +113,7 @@ export default function RunReportModal({
     });
 
     // Handle any remaining placeholders (parameters not yet filled)
-    sql = sql.replace(/\{\{(\w+)\}\}/g, (match, paramName) => {
+    sql = sql.replace(/\{\{(\w+)\}\}/g, (_match, paramName) => {
       return `/* Parameter: ${paramName} (not set) */`;
     });
 
@@ -588,7 +588,6 @@ export default function RunReportModal({
                       onChange={() => {}} // Read-only
                       height="300px"
                       readOnly={true}
-                      theme="light"
                     />
                   </div>
                   <p className="text-xs text-gray-500 mt-2">
