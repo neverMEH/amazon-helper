@@ -72,7 +72,7 @@ class ASINService(DatabaseService):
                 'id, asin, title, brand, marketplace, last_known_price, '
                 'monthly_estimated_units, active, updated_at'
             )
-            
+
             # Reapply filters for data query
             if active is not None:
                 query = query.eq('active', active)
@@ -83,10 +83,45 @@ class ASINService(DatabaseService):
             if search:
                 search_pattern = f"%{search}%"
                 query = query.or_(f"asin.ilike.{search_pattern},title.ilike.{search_pattern}")
-            
+
             # Apply pagination and ordering
-            result = query.order('brand', desc=False).order('asin', desc=False)\
-                .range(offset, offset + page_size - 1).execute()
+            # For large page sizes, we need to handle Supabase's 1000 row limit
+            if page_size > 1000:
+                logger.info(f"Fetching large ASIN dataset: page_size={page_size}, offset={offset}")
+                # Fetch all records in batches of 1000
+                all_items = []
+                batch_size = 1000
+                current_offset = offset
+                batch_count = 0
+
+                while len(all_items) < page_size:
+                    batch_result = query.order('brand', desc=False).order('asin', desc=False)\
+                        .range(current_offset, current_offset + batch_size - 1).execute()
+
+                    if not batch_result.data:
+                        break
+
+                    batch_count += 1
+                    all_items.extend(batch_result.data)
+                    logger.debug(f"Batch {batch_count}: fetched {len(batch_result.data)} items, total: {len(all_items)}")
+
+                    # If we got less than batch_size, we've reached the end
+                    if len(batch_result.data) < batch_size:
+                        break
+
+                    current_offset += batch_size
+
+                logger.info(f"Fetched {len(all_items)} ASINs in {batch_count} batches")
+
+                # Create a result object similar to what Supabase returns
+                class Result:
+                    def __init__(self, data):
+                        self.data = data
+
+                result = Result(all_items[:page_size])  # Limit to requested page_size
+            else:
+                result = query.order('brand', desc=False).order('asin', desc=False)\
+                    .range(offset, offset + page_size - 1).execute()
             
             pages = (total + page_size - 1) // page_size if total > 0 else 0
             
@@ -440,14 +475,36 @@ class ASINService(DatabaseService):
                 # Search in both ASIN and product title
                 query = query.or_(f"asin.ilike.%{search}%,product_title.ilike.%{search}%")
             
-            # Apply pagination
-            query = query.range(offset, offset + limit - 1)
-            
-            # Execute query
-            result = query.execute()
-            
-            items = result.data if result.data else []
-            total = result.count if hasattr(result, 'count') else len(items)
+            # For large limits, fetch in batches
+            if limit > 1000:
+                # Fetch all records in batches of 1000
+                all_items = []
+                batch_size = 1000
+                current_offset = offset
+
+                while len(all_items) < limit:
+                    batch_query = query.range(current_offset, current_offset + batch_size - 1)
+                    batch_result = batch_query.execute()
+
+                    if not batch_result.data:
+                        break
+
+                    all_items.extend(batch_result.data)
+
+                    # If we got less than batch_size, we've reached the end
+                    if len(batch_result.data) < batch_size:
+                        break
+
+                    current_offset += batch_size
+
+                items = all_items[:limit]  # Limit to requested size
+                total = len(all_items)
+            else:
+                # Apply pagination normally for smaller requests
+                query = query.range(offset, offset + limit - 1)
+                result = query.execute()
+                items = result.data if result.data else []
+                total = result.count if hasattr(result, 'count') else len(items)
             
             # Format the response
             formatted_items = []
