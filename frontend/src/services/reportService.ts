@@ -3,7 +3,7 @@ import type { Report, CreateReportRequest, ReportExecution } from '../types/repo
 
 export const reportService = {
   // Report CRUD operations
-  listReports: () => api.get<Report[]>('/reports'),
+  listReports: () => api.get<Report[]>('/reports/'),
 
   getReport: (id: string) => api.get<Report>(`/reports/${id}`),
 
