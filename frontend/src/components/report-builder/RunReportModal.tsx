@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
-import { X, ChevronLeft, ChevronRight, Play, Clock, Calendar, Database } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { X, ChevronLeft, ChevronRight, Play, Clock, Calendar, Database, Code } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import DynamicParameterForm from './DynamicParameterForm';
 import InstanceSelector from '../query-builder/InstanceSelector';
 import { UniversalParameterSelector } from '../parameter-detection';
 import { ParameterDetector } from '../../utils/parameterDetection';
 import { instanceService } from '../../services/instanceService';
+import SQLEditor from '../common/SQLEditor';
 import type { QueryTemplate } from '../../types/queryTemplate';
 import type { CreateReportRequest, ScheduleConfig } from '../../types/report';
 import type { DetectedParameter } from '../../utils/parameterDetection';
@@ -74,6 +75,49 @@ export default function RunReportModal({
       }
     }
   }, [template, isOpen]);
+
+  // Generate preview SQL with injected parameters
+  const previewSQL = useMemo(() => {
+    let sql = template.sqlTemplate || template.sql_query || '';
+
+    // Replace placeholders with actual values
+    Object.entries(parameters).forEach(([key, value]) => {
+      const placeholder = `{{${key}}}`;
+      let replacement = '';
+
+      if (Array.isArray(value)) {
+        // For arrays (like ASINs or campaigns), format as SQL list
+        if (value.length > 0) {
+          replacement = value.map(v => `'${v}'`).join(', ');
+        } else {
+          replacement = "''"; // Empty array fallback
+        }
+      } else if (typeof value === 'object' && value !== null) {
+        // For date ranges or other objects
+        if (value.start_date && value.end_date) {
+          // This is a date range, we'll need to handle it specially
+          // For now, just show the object
+          replacement = `/* Date range: ${value.start_date} to ${value.end_date} */`;
+        } else {
+          replacement = JSON.stringify(value);
+        }
+      } else {
+        // For simple values
+        replacement = typeof value === 'string' ? `'${value}'` : String(value);
+      }
+
+      // Replace all occurrences of the placeholder
+      const regex = new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+      sql = sql.replace(regex, replacement);
+    });
+
+    // Handle any remaining placeholders (parameters not yet filled)
+    sql = sql.replace(/\{\{(\w+)\}\}/g, (match, paramName) => {
+      return `/* Parameter: ${paramName} (not set) */`;
+    });
+
+    return sql;
+  }, [template, parameters]);
 
   if (!isOpen) return null;
 

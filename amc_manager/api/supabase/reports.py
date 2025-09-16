@@ -130,25 +130,25 @@ async def create_report(
     try:
         # Create report with or without dashboard
         if report_data.create_dashboard:
-            result = report_service.create_report_with_dashboard(
-                user_id=current_user["id"],
-                name=report_data.name,
-                description=report_data.description,
-                template_id=report_data.template_id,
-                instance_id=report_data.instance_id,
-                parameters=report_data.parameters,
-                frequency=report_data.frequency
-            )
+            result = report_service.create_report_with_dashboard({
+                "owner_id": current_user["id"],
+                "name": report_data.name,
+                "description": report_data.description,
+                "template_id": report_data.template_id,
+                "instance_id": report_data.instance_id,
+                "parameters": report_data.parameters,
+                "frequency": report_data.frequency
+            })
         else:
-            result = report_service.create_report(
-                user_id=current_user["id"],
-                name=report_data.name,
-                description=report_data.description,
-                template_id=report_data.template_id,
-                instance_id=report_data.instance_id,
-                parameters=report_data.parameters,
-                frequency=report_data.frequency
-            )
+            result = report_service.create_report({
+                "owner_id": current_user["id"],
+                "name": report_data.name,
+                "description": report_data.description,
+                "template_id": report_data.template_id,
+                "instance_id": report_data.instance_id,
+                "parameters": report_data.parameters,
+                "frequency": report_data.frequency
+            })
 
         return result
     except Exception as e:
