@@ -5,6 +5,7 @@ import DynamicParameterForm from './DynamicParameterForm';
 import InstanceSelector from '../query-builder/InstanceSelector';
 import { UniversalParameterSelector } from '../parameter-detection';
 import { ParameterDetector } from '../../utils/parameterDetection';
+import { ParameterProcessor } from '../../utils/parameterProcessor';
 import { instanceService } from '../../services/instanceService';
 import SQLEditor from '../common/SQLEditor';
 import type { QueryTemplate } from '../../types/queryTemplate';
@@ -77,47 +78,33 @@ export default function RunReportModal({
     }
   }, [template, isOpen]);
 
-  // Generate preview SQL with injected parameters
+  // Generate preview SQL with injected parameters using shared processor
   const previewSQL = useMemo(() => {
-    let sql = template.sqlTemplate || template.sql_query || '';
+    const sql = template.sqlTemplate || template.sql_query || '';
 
-    // Replace placeholders with actual values
-    Object.entries(parameters).forEach(([key, value]) => {
-      const placeholder = `{{${key}}}`;
-      let replacement = '';
+    try {
+      // Use the shared ParameterProcessor for consistent formatting
+      // This ensures the preview matches exactly what the backend will execute
+      const processedSQL = ParameterProcessor.processParameters(sql, parameters);
 
-      if (Array.isArray(value)) {
-        // For arrays (like ASINs or campaigns), format as SQL list
-        if (value.length > 0) {
-          replacement = value.map(v => `'${v}'`).join(', ');
-        } else {
-          replacement = "''"; // Empty array fallback
-        }
-      } else if (typeof value === 'object' && value !== null) {
-        // For date ranges or other objects
-        if (value.start_date && value.end_date) {
-          // This is a date range, we'll need to handle it specially
-          // For now, just show the object
-          replacement = `/* Date range: ${value.start_date} to ${value.end_date} */`;
-        } else {
-          replacement = JSON.stringify(value);
-        }
-      } else {
-        // For simple values
-        replacement = typeof value === 'string' ? `'${value}'` : String(value);
+      // Check for any warnings
+      const warnings = ParameterProcessor.validateParameterTypes(parameters);
+      if (Object.keys(warnings).length > 0) {
+        console.warn('Parameter warnings:', warnings);
       }
 
-      // Replace all occurrences of the placeholder
-      const regex = new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-      sql = sql.replace(regex, replacement);
-    });
+      return processedSQL;
+    } catch (error) {
+      // If there are missing parameters, show the template with placeholders
+      console.warn('Parameter processing error:', error);
 
-    // Handle any remaining placeholders (parameters not yet filled)
-    sql = sql.replace(/\{\{(\w+)\}\}/g, (_match, paramName) => {
-      return `/* Parameter: ${paramName} (not set) */`;
-    });
+      // Handle any remaining placeholders (parameters not yet filled)
+      const sqlWithPlaceholders = sql.replace(/\{\{(\w+)\}\}/g, (_match, paramName) => {
+        return `/* Parameter: ${paramName} (not set) */`;
+      });
 
-    return sql;
+      return sqlWithPlaceholders;
+    }
   }, [template, parameters]);
 
   if (!isOpen) return null;

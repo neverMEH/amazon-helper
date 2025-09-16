@@ -11,6 +11,7 @@ from ...services.report_execution_service import ReportExecutionService
 from ...services.report_schedule_service import ReportScheduleService
 from ...services.report_backfill_service import ReportBackfillService
 from ...services.query_template_service import query_template_service
+from ...utils.parameter_processor import ParameterProcessor
 from ...core.logger_simple import get_logger
 from .auth import get_current_user
 
@@ -228,16 +229,44 @@ async def execute_report(
         if report["owner_id"] != current_user["id"]:
             raise HTTPException(status_code=403, detail="Access denied")
 
-        # Execute report
+        # Get the template SQL
+        template = query_template_service.get_template(report["template_id"])
+        if not template:
+            raise HTTPException(status_code=404, detail="Template not found")
+
+        # Merge report parameters with execution parameters
+        final_parameters = {**report.get("parameters", {})}
+        if execution_data.parameters:
+            final_parameters.update(execution_data.parameters)
+
+        # Process the SQL query with parameters using shared processor
+        processed_sql = ParameterProcessor.process_sql_parameters(
+            template["sql_template"],
+            final_parameters
+        )
+
+        # Get instance details for entity_id
+        instance = report_service.get_instance_with_entity(report["instance_id"])
+        if not instance:
+            raise HTTPException(status_code=404, detail="AMC instance not found")
+
+        # Execute report with processed SQL
         execution = await execution_service.execute_report_adhoc(
             report_id=report_id,
+            instance_id=instance["instance_id"],  # AMC instance ID string
+            sql_query=processed_sql,
+            parameters=final_parameters,
             user_id=current_user["id"],
-            parameters=execution_data.parameters,
+            entity_id=instance["entity_id"],
             time_window_start=execution_data.time_window_start,
             time_window_end=execution_data.time_window_end
         )
 
         return execution
+    except ValueError as ve:
+        # Parameter processing errors
+        logger.error(f"Parameter processing error for report {report_id}: {str(ve)}")
+        raise HTTPException(status_code=400, detail=str(ve))
     except HTTPException:
         raise
     except Exception as e:
