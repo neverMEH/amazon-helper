@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, validator
 import asyncio
 
 from ..core.logger_simple import get_logger
+from ..schemas.report_builder import LookbackConfig, SegmentationConfig
 from ..services.historical_collection_service import historical_collection_service
 from ..services.reporting_database_service import reporting_db_service
 from ..services.db_service import db_service
@@ -23,11 +24,13 @@ class CollectionCreate(BaseModel):
     target_weeks: int = Field(52, ge=1, le=52, description="Number of weeks to collect")
     end_date: Optional[date] = Field(None, description="End date for collection (defaults to 14 days ago)")
     collection_type: str = Field("backfill", description="Type of collection: backfill or weekly_update")
-    
+    lookback_config: Optional[LookbackConfig] = Field(None, description="Lookback window configuration")
+    segmentation_config: Optional[SegmentationConfig] = Field(None, description="Segmentation configuration for backfill")
+
     @validator('collection_type')
     def validate_collection_type(cls, v):
-        if v not in ['backfill', 'weekly_update']:
-            raise ValueError('Collection type must be either backfill or weekly_update')
+        if v not in ['backfill', 'weekly_update', 'custom']:
+            raise ValueError('Collection type must be backfill, weekly_update, or custom')
         return v
 
 
@@ -53,6 +56,8 @@ class CollectionResponse(BaseModel):
     progress_percentage: Optional[int] = 0
     weeks_completed: Optional[int] = 0
     message: Optional[str] = None
+    lookback_config: Optional[Dict[str, Any]] = None
+    segmentation_config: Optional[Dict[str, Any]] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
