@@ -42,7 +42,7 @@ class ASINService(DatabaseService):
         try:
             # Validate pagination
             page = max(1, page)
-            page_size = min(100000, max(1, page_size))  # Allow up to 100k items
+            page_size = min(999999, max(1, page_size))  # Allow up to 999k items - effectively no limit
             offset = (page - 1) * page_size
             
             # Build query

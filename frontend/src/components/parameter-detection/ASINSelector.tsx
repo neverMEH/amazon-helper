@@ -38,6 +38,7 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedBrand, setSelectedBrand] = useState<string>('');
   const [selectedASINs, setSelectedASINs] = useState<Set<string>>(new Set());
 
   // Convert value to Set for easier manipulation
@@ -58,7 +59,7 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
       if (showAll || (!instanceId && !brandId)) {
         const params = new URLSearchParams({
           page: '1',
-          page_size: '10000',  // Load all ASINs for comprehensive client-side filtering
+          page_size: '999999',  // Load all ASINs - effectively no limit
         });
 
         // Note: We don't send searchTerm to backend anymore for better brand filtering
@@ -71,7 +72,7 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
         const params = new URLSearchParams({
           instance_id: instanceId || '',
           brand_id: brandId || '',
-          limit: '10000',  // Load all ASINs for comprehensive filtering
+          limit: '999999',  // Load all ASINs - effectively no limit
           offset: '0'
         });
 
@@ -86,65 +87,54 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
   // Handle different response structures
   const rawAsins = data?.asins || data?.items || [];
 
-  // Debug logging
-  useEffect(() => {
-    if (data) {
-      console.log('ASIN API Response:', data);
-      console.log('Raw ASINs extracted:', rawAsins);
-      console.log('ShowAll:', showAll, 'InstanceId:', instanceId, 'BrandId:', brandId);
-
-      // Extract and log unique brands
-      const brands = new Set<string>();
-      rawAsins.forEach((asin: ASIN) => {
-        const brand = asin.brand || asin.brand_name;
-        if (brand) brands.add(brand);
-      });
-      console.log('Unique brands in data:', Array.from(brands).sort());
-
-      // Check if supergoop exists in any variation
-      const supergoopVariations = Array.from(brands).filter(b =>
-        b.toLowerCase().includes('supergoop') ||
-        b.toLowerCase().includes('super goop')
-      );
-      if (supergoopVariations.length > 0) {
-        console.log('Found Supergoop variations:', supergoopVariations);
-      } else {
-        console.log('No Supergoop brand found in the loaded ASINs');
-      }
-
-      // Show sample of first few ASINs to see data structure
-      console.log('Sample ASINs (first 3):', rawAsins.slice(0, 3));
-    }
-  }, [data, rawAsins, showAll, instanceId, brandId]);
+  // Extract unique brands for dropdown
+  const uniqueBrands = useMemo(() => {
+    const brands = new Set<string>();
+    rawAsins.forEach((asin: ASIN) => {
+      const brand = asin.brand || asin.brand_name;
+      if (brand) brands.add(brand);
+    });
+    return Array.from(brands).sort();
+  }, [rawAsins]);
 
   // Filter ASINs client-side to include brand name matching
   const asins = useMemo(() => {
-    if (!searchTerm) return rawAsins;
+    let filtered = rawAsins;
 
-    const searchLower = searchTerm.toLowerCase().trim();
-    const filtered = rawAsins.filter((asin: ASIN) => {
-      // Check ASIN code
-      if (asin.asin?.toLowerCase().includes(searchLower)) return true;
-      // Check product title (handle both field names)
-      const title = asin.title || asin.product_title;
-      if (title?.toLowerCase().includes(searchLower)) return true;
-      // Check brand name (handle both field names)
-      const brand = asin.brand || asin.brand_name;
-      if (brand?.toLowerCase().includes(searchLower)) return true;
+    // Filter by selected brand first
+    if (selectedBrand) {
+      filtered = filtered.filter((asin: ASIN) => {
+        const brand = asin.brand || asin.brand_name;
+        return brand === selectedBrand;
+      });
+    }
 
-      // Also check if brand matches with spaces removed (e.g., "supergoop" matches "Super Goop")
-      if (brand) {
-        const brandNoSpaces = brand.toLowerCase().replace(/\s+/g, '');
-        const searchNoSpaces = searchLower.replace(/\s+/g, '');
-        if (brandNoSpaces.includes(searchNoSpaces)) return true;
-      }
+    // Then filter by search term
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase().trim();
+      filtered = filtered.filter((asin: ASIN) => {
+        // Check ASIN code
+        if (asin.asin?.toLowerCase().includes(searchLower)) return true;
+        // Check product title (handle both field names)
+        const title = asin.title || asin.product_title;
+        if (title?.toLowerCase().includes(searchLower)) return true;
+        // Check brand name (handle both field names)
+        const brand = asin.brand || asin.brand_name;
+        if (brand?.toLowerCase().includes(searchLower)) return true;
 
-      return false;
-    });
+        // Also check if brand matches with spaces removed (e.g., "supergoop" matches "Super Goop")
+        if (brand) {
+          const brandNoSpaces = brand.toLowerCase().replace(/\s+/g, '');
+          const searchNoSpaces = searchLower.replace(/\s+/g, '');
+          if (brandNoSpaces.includes(searchNoSpaces)) return true;
+        }
 
-    console.log('Filtered ASINs:', filtered.length, 'from', rawAsins.length, 'with search:', searchTerm);
+        return false;
+      });
+    }
+
     return filtered;
-  }, [rawAsins, searchTerm]);
+  }, [rawAsins, searchTerm, selectedBrand]);
 
   // Handle ASIN selection
   const handleToggleASIN = useCallback((asin: string) => {
@@ -225,11 +215,37 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
         </div>
       </button>
 
-      {/* Dropdown panel */}
+      {/* Dropdown panel - Made bigger */}
       {isOpen && (
-        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg">
-          {/* Search input */}
-          <div className="p-2 border-b">
+        <div className="absolute z-50 mt-1 w-full min-w-[600px] bg-white border border-gray-300 rounded-md shadow-lg">
+          {/* Search and filter inputs */}
+          <div className="p-3 border-b space-y-2">
+            {/* Brand dropdown filter */}
+            <div className="flex gap-2">
+              <select
+                value={selectedBrand}
+                onChange={(e) => setSelectedBrand(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">All Brands ({uniqueBrands.length})</option>
+                {uniqueBrands.map(brand => (
+                  <option key={brand} value={brand}>
+                    {brand} ({rawAsins.filter((a: ASIN) => (a.brand || a.brand_name) === brand).length} ASINs)
+                  </option>
+                ))}
+              </select>
+              {selectedBrand && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedBrand('')}
+                  className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200"
+                >
+                  Clear Filter
+                </button>
+              )}
+            </div>
+
+            {/* Search input */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
@@ -237,7 +253,7 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Search by ASIN, title, or brand name..."
+                placeholder="Search by ASIN or title..."
                 autoFocus
               />
             </div>
@@ -263,8 +279,8 @@ export const ASINSelector: FC<ASINSelectorProps> = ({
             </div>
           )}
 
-          {/* ASIN list */}
-          <div className="max-h-60 overflow-y-auto">
+          {/* ASIN list - Made taller */}
+          <div className="max-h-96 overflow-y-auto">
             {isLoading ? (
               <div className="p-4 text-center text-gray-500">
                 <div className="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>
