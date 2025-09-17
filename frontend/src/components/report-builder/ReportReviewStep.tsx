@@ -350,6 +350,22 @@ export default function ReportReviewStep({
         </div>
       </div>
 
+      {/* SQL Query Template */}
+      {sqlQuery && (
+        <div className="border rounded-lg p-4 bg-gray-50">
+          <div className="flex items-center mb-2">
+            <Code className="h-5 w-5 text-gray-600 mr-2" />
+            <span className="text-sm font-medium text-gray-900">SQL Query Template</span>
+          </div>
+          <div className="bg-white rounded p-3 overflow-auto max-h-48">
+            <pre className="text-xs text-gray-700 whitespace-pre-wrap font-mono">{sqlQuery}</pre>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            Template with parameter placeholders (e.g., {'{{start_date}}, {{end_date}}'})
+          </p>
+        </div>
+      )}
+
       {/* SQL Query Preview */}
       <div className="border rounded-lg">
         <button
@@ -359,7 +375,7 @@ export default function ReportReviewStep({
         >
           <div className="flex items-center">
             <Code className="h-5 w-5 text-gray-600 mr-2" />
-            <span className="text-sm font-medium text-gray-900">Query Preview</span>
+            <span className="text-sm font-medium text-gray-900">Processed Query Preview</span>
           </div>
           {showQueryPreview ? (
             <ChevronUp className="h-5 w-5 text-gray-400" />
@@ -372,7 +388,7 @@ export default function ReportReviewStep({
           <div className="border-t p-4">
             <div className="mb-2 flex items-center text-xs text-gray-500">
               <Info className="h-3 w-3 mr-1" />
-              Preview shows the SQL query with injected parameters
+              Preview shows the SQL query with injected parameters and date values
             </div>
             <SQLEditor
               value={processedSQL}
