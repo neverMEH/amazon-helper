@@ -1,18 +1,25 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { ChevronRight, Check } from 'lucide-react';
 import ReportBuilderParameters from './ReportBuilderParameters';
 import ReportScheduleSelection from './ReportScheduleSelection';
 import ReportReviewStep from './ReportReviewStep';
 import ReportSubmission from './ReportSubmission';
-import toast from 'react-hot-toast';
+// import toast from 'react-hot-toast'; // Uncomment when handleSubmit is connected
 
 export default function ReportBuilder() {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<any>({
+    // Workflow & Instance
+    workflowId: '',
+    workflowName: '',
+    instanceId: '',
+    instanceName: '',
+    sqlQuery: '',
+
     // Step 1: Template & Parameters
     templateId: null,
-    instanceId: null,
     parameters: {},
+    detectedParameters: [],
     lookbackConfig: {
       type: 'relative',
       value: 7,
@@ -36,7 +43,9 @@ export default function ReportBuilder() {
     // Step 3: Review
     name: '',
     description: '',
-    tags: []
+    tags: [],
+    estimatedCost: null,
+    validationWarnings: []
   });
 
   const steps = [
@@ -65,23 +74,39 @@ export default function ReportBuilder() {
     }));
   };
 
-  const handleSubmit = async (submissionData: any) => {
-    try {
-      // Merge submission data with existing form data
-      const finalData = {
-        ...formData,
-        ...submissionData
-      };
+  // TODO: Connect this when ReportSubmission is updated to accept onSubmit
+  // const handleSubmit = async (submissionData: any) => {
+  //   try {
+  //     // Merge submission data with existing form data
+  //     const finalData = {
+  //       ...formData,
+  //       ...submissionData
+  //     };
 
-      // TODO: Call API to create report
-      console.log('Submitting report:', finalData);
-      toast.success('Report created successfully!');
+  //     // TODO: Call API to create report
+  //     console.log('Submitting report:', finalData);
+  //     toast.success('Report created successfully!');
 
-      // Reset form or navigate away
-      setCurrentStep(1);
-      setFormData({});
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to create report');
+  //     // Reset form or navigate away
+  //     setCurrentStep(1);
+  //     setFormData({
+  //       // Reset to initial state
+  //     });
+  //   } catch (error: any) {
+  //     toast.error(error.message || 'Failed to create report');
+  //   }
+  // };
+
+  const handleEdit = (section: 'parameters' | 'lookback' | 'schedule') => {
+    // Navigate to the appropriate step for editing
+    switch (section) {
+      case 'parameters':
+      case 'lookback':
+        setCurrentStep(1);
+        break;
+      case 'schedule':
+        setCurrentStep(2);
+        break;
     }
   };
 
@@ -150,34 +175,54 @@ export default function ReportBuilder() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           {currentStep === 1 && (
             <ReportBuilderParameters
-              formData={formData}
-              onUpdate={handleUpdateFormData}
+              workflowId={formData.workflowId}
+              instanceId={formData.instanceId}
+              parameters={formData.parameters}
+              lookbackConfig={formData.lookbackConfig}
+              detectedParameters={formData.detectedParameters}
               onNext={handleNext}
+              onParametersChange={(data) => handleUpdateFormData(data)}
             />
           )}
 
           {currentStep === 2 && (
             <ReportScheduleSelection
-              formData={formData}
-              onUpdate={handleUpdateFormData}
+              workflowId={formData.workflowId}
+              instanceId={formData.instanceId}
+              scheduleConfig={formData.scheduleConfig}
+              lookbackConfig={formData.lookbackConfig}
               onNext={handleNext}
-              onBack={handleBack}
+              onPrevious={handleBack}
+              onScheduleChange={(config) => handleUpdateFormData({ scheduleConfig: config })}
             />
           )}
 
           {currentStep === 3 && (
             <ReportReviewStep
-              formData={formData}
-              onUpdate={handleUpdateFormData}
+              workflowId={formData.workflowId}
+              workflowName={formData.workflowName}
+              instanceId={formData.instanceId}
+              instanceName={formData.instanceName}
+              sqlQuery={formData.sqlQuery}
+              parameters={formData.parameters}
+              lookbackConfig={formData.lookbackConfig}
+              scheduleConfig={formData.scheduleConfig}
+              estimatedCost={formData.estimatedCost}
+              validationWarnings={formData.validationWarnings}
               onNext={handleNext}
-              onBack={handleBack}
+              onPrevious={handleBack}
+              onEdit={handleEdit}
             />
           )}
 
           {currentStep === 4 && (
             <ReportSubmission
-              formData={formData}
-              onSubmit={handleSubmit}
+              workflowId={formData.workflowId}
+              workflowName={formData.workflowName}
+              instanceId={formData.instanceId}
+              parameters={formData.parameters}
+              lookbackConfig={formData.lookbackConfig}
+              scheduleConfig={formData.scheduleConfig}
               onBack={handleBack}
             />
           )}
