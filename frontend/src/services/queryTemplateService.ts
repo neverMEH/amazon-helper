@@ -2,15 +2,16 @@ import api from './api';
 import type { QueryTemplate, QueryTemplateCreate, QueryTemplateUpdate, CreateFromWorkflow } from '../types/queryTemplate';
 
 export const queryTemplateService = {
-  async listTemplates(includePublic = true, category?: string): Promise<QueryTemplate[]> {
+  async listTemplates(includePublic = true, category?: string): Promise<{ data: { templates: QueryTemplate[] } }> {
     const params = new URLSearchParams();
     params.append('include_public', includePublic.toString());
     if (category) {
       params.append('category', category);
     }
-    
+
     const response = await api.get(`/query-templates?${params.toString()}`);
-    return response.data;
+    // Return in the format expected by the component
+    return { data: { templates: response.data } };
   },
 
   async getTemplate(templateId: string): Promise<QueryTemplate> {
@@ -57,3 +58,6 @@ export const queryTemplateService = {
     return response.data;
   }
 };
+
+// Export individual functions for backward compatibility
+export const { listTemplates } = queryTemplateService;

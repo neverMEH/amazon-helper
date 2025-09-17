@@ -13,6 +13,7 @@ from .db_service import db_service
 from .token_service import token_service
 from .token_refresh_service import token_refresh_service
 from .amc_api_client import AMCAPIClient
+from ..utils.parameter_processor import ParameterProcessor
 
 logger = get_logger(__name__)
 
@@ -270,129 +271,18 @@ class AMCExecutionService:
     def _prepare_sql_query(self, sql_template: str, parameters: Dict[str, Any]) -> str:
         """
         Prepare SQL query by substituting parameters
-        
+
+        Uses the shared ParameterProcessor for consistent handling
+
         Args:
             sql_template: SQL query with {{parameter}} placeholders
             parameters: Parameter values to substitute
-            
+
         Returns:
             SQL query with substituted values
         """
-        # Find all parameters in the template using multiple formats
-        import re
-        required_params = set()
-        
-        # Pattern for {{parameter}} format
-        mustache_params = re.findall(r'\{\{(\w+)\}\}', sql_template)
-        required_params.update(mustache_params)
-        
-        # Pattern for :parameter format  
-        colon_params = re.findall(r':(\w+)\b', sql_template)
-        required_params.update(colon_params)
-        
-        # Pattern for $parameter format
-        dollar_params = re.findall(r'\$(\w+)\b', sql_template)
-        required_params.update(dollar_params)
-        
-        required_params = list(required_params)
-        
-        # Check for missing required parameters
-        missing_params = [p for p in required_params if p not in parameters]
-        if missing_params:
-            logger.error(f"Missing required parameters: {', '.join(missing_params)}")
-            logger.error(f"Available parameters: {list(parameters.keys())}")
-            logger.error(f"SQL template preview: {sql_template[:200]}...")
-            raise ValueError(f"Missing required parameters: {', '.join(missing_params)}")
-        
-        # Substitute parameters with SQL injection prevention
-        query = sql_template
-        dangerous_keywords = ['DROP', 'DELETE FROM', 'INSERT INTO', 'UPDATE', 'ALTER', 
-                            'CREATE', 'EXEC', 'EXECUTE', 'TRUNCATE', 'GRANT', 'REVOKE']
-        
-        for param, value in parameters.items():
-            # Handle different value types
-            if isinstance(value, (list, tuple)):
-                # Validate and escape each list item
-                escaped_values = []
-                for v in value:
-                    if isinstance(v, str):
-                        # Escape single quotes
-                        v_escaped = v.replace("'", "''")
-                        # Check for dangerous SQL keywords
-                        for keyword in dangerous_keywords:
-                            if keyword in v_escaped.upper():
-                                raise ValueError(f"Dangerous SQL keyword '{keyword}' detected in parameter '{param}'")
-                        escaped_values.append(f"'{v_escaped}'")
-                    else:
-                        escaped_values.append(str(v))
-                value_str = "({})".format(','.join(escaped_values))
-            elif isinstance(value, str):
-                # Escape single quotes to prevent SQL injection
-                value_escaped = value.replace("'", "''")
-                # Check for dangerous SQL keywords
-                for keyword in dangerous_keywords:
-                    if keyword in value_escaped.upper():
-                        raise ValueError(f"Dangerous SQL keyword '{keyword}' detected in parameter '{param}'")
-                
-                # Check if this parameter is used in a LIKE context
-                # Look for patterns like "LIKE {{param}}" in the SQL template
-                # Also check if the parameter name suggests it's a pattern
-                param_lower = param.lower()
-                is_pattern_param = 'pattern' in param_lower or 'like' in param_lower
-
-                # In f-strings, we need to double the braces to escape them: {{ becomes {
-                # Allow for any amount of whitespace and potential quotes
-                like_pattern = rf'\bLIKE\s+[\'"]?\s*\{{\{{{param}\}}\}}'
-
-                # Also check for LIKE with other parameter formats
-                like_colon = rf'\bLIKE\s+[\'"]?\s*:{param}\b'
-                like_dollar = rf'\bLIKE\s+[\'"]?\s*\${param}\b'
-
-                # Check if ANY LIKE clause exists followed by this parameter within 50 chars
-                # This catches cases like "s.campaign LIKE {{campaign_brand}}"
-                like_anywhere = rf'\bLIKE\s+.{{0,50}}\{{\{{{param}\}}\}}'
-                is_like_nearby = re.search(like_anywhere, sql_template, re.IGNORECASE)
-
-                # Debug logging
-                logger.info(f"Checking parameter '{param}' for LIKE context...")
-                logger.info(f"  - Parameter name check: is_pattern_param={is_pattern_param}")
-                logger.info(f"  - Checking regex patterns against SQL template...")
-                logger.info(f"  - SQL snippet: {sql_template[max(0, sql_template.find(param)-50):min(len(sql_template), sql_template.find(param)+50)]}")
-
-                if re.search(like_pattern, sql_template, re.IGNORECASE):
-                    logger.info(f"  - Matched {{{{param}}}} pattern directly after LIKE")
-                if re.search(like_colon, sql_template, re.IGNORECASE):
-                    logger.info(f"  - Matched :param pattern")
-                if re.search(like_dollar, sql_template, re.IGNORECASE):
-                    logger.info(f"  - Matched $param pattern")
-                if is_like_nearby:
-                    logger.info(f"  - Found LIKE keyword near parameter")
-
-                if (re.search(like_pattern, sql_template, re.IGNORECASE) or
-                    re.search(like_colon, sql_template, re.IGNORECASE) or
-                    re.search(like_dollar, sql_template, re.IGNORECASE) or
-                    is_like_nearby or
-                    is_pattern_param):
-                    # Add % wildcards for LIKE pattern matching
-                    value_str = f"'%{value_escaped}%'"
-                    logger.info(f"✓ Parameter {param} formatted with wildcards: {value_str}")
-                else:
-                    value_str = f"'{value_escaped}'"
-            else:
-                value_str = str(value)
-            
-            # Replace multiple parameter formats
-            old_query = query
-            query = query.replace(f"{{{{{param}}}}}", value_str)  # {{param}} format
-            query = query.replace(f":{param}", value_str)  # :param format  
-            query = query.replace(f"${param}", value_str)  # $param format
-            
-            if old_query != query:
-                logger.debug(f"Replaced parameter {param} with value: {value_str[:50]}...")
-        
-        # Log final query for debugging
-        logger.debug(f"Final SQL after parameter substitution: {query[:300]}...")
-        return query
+        # Use the shared parameter processor for consistency
+        return ParameterProcessor.process_sql_parameters(sql_template, parameters)
     
     def _is_campaign_or_asin_param(self, param_name: str) -> bool:
         """

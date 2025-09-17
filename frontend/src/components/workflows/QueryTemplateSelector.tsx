@@ -12,20 +12,22 @@ export default function QueryTemplateSelector({ onSelectTemplate }: QueryTemplat
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
 
-  const { data: templates = [], isLoading } = useQuery({
+  const { data: templatesResponse, isLoading } = useQuery({
     queryKey: ['query-templates', selectedCategory],
     queryFn: () => queryTemplateService.listTemplates(true, selectedCategory || undefined),
   });
+
+  const templates = templatesResponse?.data?.templates || [];
 
   const { data: categories = [] } = useQuery({
     queryKey: ['query-template-categories'],
     queryFn: () => queryTemplateService.getCategories(),
   });
 
-  const filteredTemplates = templates.filter(template => 
+  const filteredTemplates = templates.filter((template: QueryTemplate) =>
     template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     template.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    template.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+    (template.tags || []).some((tag: string) => tag.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   if (isLoading) {
@@ -76,9 +78,9 @@ export default function QueryTemplateSelector({ onSelectTemplate }: QueryTemplat
             <p>No templates found</p>
           </div>
         ) : (
-          filteredTemplates.map((template) => (
+          filteredTemplates.map((template: QueryTemplate) => (
             <div
-              key={template.templateId}
+              key={template.templateId || template.id}
               onClick={() => onSelectTemplate(template)}
               className="p-4 border border-gray-200 rounded-md hover:bg-gray-50 cursor-pointer transition-colors"
             >
@@ -101,10 +103,10 @@ export default function QueryTemplateSelector({ onSelectTemplate }: QueryTemplat
                   )}
                   <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
                     <span>{template.category}</span>
-                    <span>Used {template.usageCount} times</span>
-                    {template.tags.length > 0 && (
+                    <span>Used {template.usageCount || 0} times</span>
+                    {template.tags && template.tags.length > 0 && (
                       <div className="flex gap-1">
-                        {template.tags.map((tag) => (
+                        {template.tags.map((tag: string) => (
                           <span
                             key={tag}
                             className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800"

@@ -15,10 +15,12 @@ export default function QueryTemplates() {
   const [expandedTemplates, setExpandedTemplates] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
 
-  const { data: templates = [], isLoading } = useQuery({
+  const { data: templatesResponse, isLoading } = useQuery({
     queryKey: ['query-templates', selectedCategory],
     queryFn: () => queryTemplateService.listTemplates(true, selectedCategory || undefined),
   });
+
+  const templates = templatesResponse?.data?.templates || [];
 
   const { data: categories = [] } = useQuery({
     queryKey: ['query-template-categories'],
@@ -146,23 +148,24 @@ export default function QueryTemplates() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {templates.map((template) => {
-                const isExpanded = expandedTemplates.has(template.templateId);
+              {templates.map((template: QueryTemplate) => {
+                const templateId = template.templateId || template.id;
+                const isExpanded = expandedTemplates.has(templateId);
                 return (
                   <>
-                    <tr 
-                      key={template.templateId} 
+                    <tr
+                      key={templateId}
                       className="hover:bg-gray-50 cursor-pointer"
                       onClick={(e) => {
                         // Don't toggle if clicking on action buttons
                         if (!(e.target as HTMLElement).closest('.action-buttons')) {
-                          toggleExpanded(template.templateId);
+                          toggleExpanded(templateId);
                         }
                       }}
                     >
                       <td className="px-2 py-4">
                         <button
-                          onClick={() => toggleExpanded(template.templateId)}
+                          onClick={() => toggleExpanded(templateId)}
                           className="p-1 hover:bg-gray-100 rounded"
                         >
                           {isExpanded ? (
@@ -178,9 +181,9 @@ export default function QueryTemplates() {
                       {template.description && (
                         <div className="text-sm text-gray-500">{template.description}</div>
                       )}
-                      {template.tags.length > 0 && (
+                      {template.tags && template.tags.length > 0 && (
                         <div className="mt-1 flex flex-wrap gap-1">
-                          {template.tags.map((tag) => (
+                          {template.tags.map((tag: string) => (
                             <span
                               key={tag}
                               className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800"
@@ -190,7 +193,7 @@ export default function QueryTemplates() {
                           ))}
                         </div>
                       )}
-                      {Object.keys(template.parametersSchema).length > 0 && (
+                      {template.parametersSchema && Object.keys(template.parametersSchema).length > 0 && (
                         <div className="mt-1">
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
                             {Object.keys(template.parametersSchema).length} parameter{Object.keys(template.parametersSchema).length !== 1 ? 's' : ''}
@@ -216,10 +219,10 @@ export default function QueryTemplates() {
                     )}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-900">
-                    {template.usageCount} times
+                    {template.usageCount || 0} times
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500">
-                    {formatDate(template.createdAt)}
+                    {formatDate(template.createdAt || template.created_at || '')}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2 action-buttons">
@@ -240,7 +243,7 @@ export default function QueryTemplates() {
                             <Edit2 className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => handleDelete(template.templateId)}
+                            onClick={() => handleDelete(templateId)}
                             className="text-red-600 hover:text-red-800"
                             title="Delete template"
                           >
@@ -260,7 +263,7 @@ export default function QueryTemplates() {
                           <div className="flex items-center justify-between mb-2">
                             <h4 className="text-sm font-medium text-gray-900">SQL Query</h4>
                             <button
-                              onClick={() => handleCopySQL(template.sqlTemplate)}
+                              onClick={() => handleCopySQL(template.sqlTemplate || template.sql_query || '')}
                               className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700"
                             >
                               <Copy className="h-4 w-4 mr-1" />
@@ -268,23 +271,23 @@ export default function QueryTemplates() {
                             </button>
                           </div>
                           <SQLEditor
-                            value={template.sqlTemplate}
+                            value={template.sqlTemplate || template.sql_query || ''}
                             onChange={() => {}}
                             height="300px"
                             readOnly
                           />
                           <div className="mt-2 text-sm text-gray-500">
-                            {template.sqlTemplate.split('\n').length} lines • {template.sqlTemplate.length} characters
+                            {(template.sqlTemplate || template.sql_query || '').split('\n').length} lines • {(template.sqlTemplate || template.sql_query || '').length} characters
                           </div>
                         </div>
 
                         {/* Parameters Section */}
-                        {Object.keys(template.parametersSchema).length > 0 && (
+                        {template.parametersSchema && Object.keys(template.parametersSchema).length > 0 && (
                           <div>
                             <h4 className="text-sm font-medium text-gray-900 mb-2">Parameters</h4>
                             <div className="bg-white rounded-lg border border-gray-200 p-4">
                               <div className="space-y-3">
-                                {Object.entries(template.parametersSchema).map(([key, schema]: [string, any]) => (
+                                {Object.entries(template.parametersSchema || {}).map(([key, schema]: [string, any]) => (
                                   <div key={key} className="flex items-start">
                                     <code className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
                                       {`{{${key}}}`}
@@ -296,10 +299,10 @@ export default function QueryTemplates() {
                                       {schema.description && (
                                         <div className="text-sm text-gray-500 mt-1">{schema.description}</div>
                                       )}
-                                      {template.defaultParameters[key] !== undefined && (
+                                      {template.defaultParameters && template.defaultParameters[key] !== undefined && (
                                         <div className="text-sm text-gray-500 mt-1">
                                           Default: <code className="bg-gray-100 px-1 rounded">
-                                            {JSON.stringify(template.defaultParameters[key])}
+                                            {JSON.stringify((template.defaultParameters || {})[key])}
                                           </code>
                                         </div>
                                       )}
@@ -318,19 +321,19 @@ export default function QueryTemplates() {
                             <dl className="space-y-2">
                               <div>
                                 <dt className="text-sm text-gray-500">Template ID</dt>
-                                <dd className="text-sm font-mono text-gray-900">{template.templateId}</dd>
+                                <dd className="text-sm font-mono text-gray-900">{templateId}</dd>
                               </div>
                               <div>
                                 <dt className="text-sm text-gray-500">Created</dt>
-                                <dd className="text-sm text-gray-900">{formatDate(template.createdAt)}</dd>
+                                <dd className="text-sm text-gray-900">{formatDate(template.createdAt || template.created_at || '')}</dd>
                               </div>
                               <div>
                                 <dt className="text-sm text-gray-500">Last Updated</dt>
-                                <dd className="text-sm text-gray-900">{formatDate(template.updatedAt)}</dd>
+                                <dd className="text-sm text-gray-900">{formatDate(template.updatedAt || template.updated_at || '')}</dd>
                               </div>
                               <div>
                                 <dt className="text-sm text-gray-500">Usage Count</dt>
-                                <dd className="text-sm text-gray-900">{template.usageCount} times</dd>
+                                <dd className="text-sm text-gray-900">{template.usageCount || 0} times</dd>
                               </div>
                             </dl>
                           </div>
@@ -353,7 +356,7 @@ export default function QueryTemplates() {
                               </button>
                               {template.isOwner && (
                                 <button
-                                  onClick={() => handleDelete(template.templateId)}
+                                  onClick={() => handleDelete(templateId)}
                                   className="w-full inline-flex items-center justify-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50"
                                 >
                                   <Trash2 className="h-4 w-4 mr-2" />

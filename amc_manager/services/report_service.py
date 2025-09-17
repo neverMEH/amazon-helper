@@ -224,6 +224,35 @@ class ReportService(DatabaseService):
             return None
 
     @with_connection_retry
+    def get_instance_with_entity(self, instance_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get AMC instance with entity_id from joined amc_accounts table
+
+        Args:
+            instance_id: AMC instance UUID
+
+        Returns:
+            Instance record with entity_id or None
+        """
+        try:
+            response = self.client.table('amc_instances').select(
+                '*',
+                'amc_accounts(account_id)'
+            ).eq('id', instance_id).execute()
+
+            if response.data and response.data[0].get('amc_accounts'):
+                instance = response.data[0]
+                # Add entity_id from amc_accounts.account_id
+                instance['entity_id'] = instance['amc_accounts']['account_id']
+                return instance
+
+            return None
+
+        except Exception as e:
+            logger.error(f"Error fetching instance with entity {instance_id}: {e}")
+            return None
+
+    @with_connection_retry
     def create_report_with_dashboard(self, report_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
         Create report and associated dashboard from template config

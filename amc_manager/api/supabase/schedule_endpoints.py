@@ -9,6 +9,7 @@ from ...core.logger_simple import get_logger
 from ...services.enhanced_schedule_service import EnhancedScheduleService
 from ...services.schedule_executor_service import get_schedule_executor
 from .auth import get_current_user
+from ...schemas.report_builder import ScheduleConfig, BackfillConfig
 
 logger = get_logger(__name__)
 
@@ -30,6 +31,8 @@ class ScheduleCreatePreset(BaseModel):
     execute_time: str = Field("02:00", description="Time of day to execute (HH:MM)")
     parameters: Optional[Dict[str, Any]] = Field(None, description="Default execution parameters")
     notification_config: Optional[Dict[str, Any]] = Field(None, description="Notification settings")
+    schedule_config: Optional[ScheduleConfig] = Field(None, description="Enhanced schedule configuration")
+    backfill_config: Optional[BackfillConfig] = Field(None, description="Backfill configuration for historical data")
 
 
 class ScheduleCreateCustom(BaseModel):
@@ -48,6 +51,9 @@ class ScheduleUpdate(BaseModel):
     description: Optional[str] = None
     cron_expression: Optional[str] = None
     timezone: Optional[str] = None
+    schedule_config: Optional[ScheduleConfig] = None
+    backfill_status: Optional[str] = None  # pending, in_progress, completed, failed, partial
+    backfill_collection_id: Optional[str] = None
     default_parameters: Optional[Dict[str, Any]] = None
     notification_config: Optional[Dict[str, Any]] = None
     is_active: Optional[bool] = None

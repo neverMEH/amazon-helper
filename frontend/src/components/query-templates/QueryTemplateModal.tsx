@@ -43,11 +43,11 @@ export default function QueryTemplateModal({
         name: template.name,
         description: template.description || '',
         category: template.category,
-        sqlTemplate: template.sqlTemplate,
-        isPublic: template.isPublic,
-        tags: template.tags,
-        parametersSchema: template.parametersSchema,
-        defaultParameters: template.defaultParameters,
+        sqlTemplate: template.sqlTemplate || template.sql_query || '',
+        isPublic: template.isPublic || false,
+        tags: template.tags || [],
+        parametersSchema: template.parametersSchema || {},
+        defaultParameters: template.defaultParameters || {},
       });
     }
   }, [template]);
