@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, ChevronRight, ChevronLeft, Check } from 'lucide-react';
+import { X, ChevronRight, Check } from 'lucide-react';
 import ReportBuilderParameters from './ReportBuilderParameters';
 import ReportScheduleSelection from './ReportScheduleSelection';
 import ReportReviewStep from './ReportReviewStep';
