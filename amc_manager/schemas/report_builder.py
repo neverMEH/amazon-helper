@@ -100,6 +100,31 @@ class ReportBuilderAuditCreate(ReportBuilderAudit):
     pass
 
 
+class ReportBuilderValidateRequest(BaseModel):
+    """Request for validating report builder parameters"""
+    workflow_id: str = Field(..., description="Workflow ID to validate")
+    parameters: Dict[str, Any] = Field(default_factory=dict, description="Workflow parameters")
+    lookback_config: LookbackConfig = Field(..., description="Lookback window configuration")
+
+
+class ReportBuilderPreviewRequest(BaseModel):
+    """Request for previewing schedule configuration"""
+    workflow_id: str = Field(..., description="Workflow ID")
+    instance_id: str = Field(..., description="AMC instance ID")
+    lookback_config: LookbackConfig = Field(..., description="Lookback window configuration")
+    schedule_config: ScheduleConfig = Field(..., description="Schedule configuration")
+
+
+class ReportBuilderSubmitRequest(BaseModel):
+    """Request for submitting report builder configuration"""
+    workflow_id: str = Field(..., description="Workflow ID")
+    instance_id: str = Field(..., description="AMC instance ID")
+    parameters: Dict[str, Any] = Field(default_factory=dict, description="Workflow parameters")
+    lookback_config: LookbackConfig = Field(..., description="Lookback window configuration")
+    schedule_config: ScheduleConfig = Field(..., description="Schedule configuration")
+    backfill_config: Optional[BackfillConfig] = Field(None, description="Backfill configuration if applicable")
+
+
 class ReportBuilderAuditResponse(ReportBuilderAudit):
     """Response model for Report Builder audit entry"""
     id: str
