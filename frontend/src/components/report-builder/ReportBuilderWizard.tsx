@@ -13,12 +13,40 @@ interface ReportBuilderWizardProps {
   onSuccess?: () => void;
 }
 
+// Function to extract parameters from SQL query
+function extractParametersFromSQL(sql: string): Record<string, any> {
+  const params: Record<string, any> = {};
+  const regex = /\{\{(\w+)\}\}/g;
+  let match;
+
+  while ((match = regex.exec(sql)) !== null) {
+    const paramName = match[1];
+    // Set default values based on parameter name
+    if (paramName.toLowerCase().includes('date')) {
+      params[paramName] = new Date().toISOString().split('T')[0];
+    } else if (paramName.toLowerCase().includes('asin')) {
+      params[paramName] = '';
+    } else if (paramName.toLowerCase().includes('campaign')) {
+      params[paramName] = '';
+    } else {
+      params[paramName] = '';
+    }
+  }
+
+  return params;
+}
+
 export default function ReportBuilderWizard({
   isOpen,
   onClose,
   template,
   onSuccess
 }: ReportBuilderWizardProps) {
+  // Extract parameters from template SQL if available
+  const initialParameters = template?.sql_query
+    ? extractParametersFromSQL(template.sql_query)
+    : {};
+
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<any>({
     // Workflow & Instance
@@ -30,8 +58,15 @@ export default function ReportBuilderWizard({
 
     // Step 1: Template & Parameters
     templateId: template?.id || null,
-    parameters: {},
-    detectedParameters: [],
+    parameters: initialParameters,
+    detectedParameters: Object.keys(initialParameters).map(key => ({
+      name: key,
+      type: key.toLowerCase().includes('campaign') ? 'campaigns' as const :
+            key.toLowerCase().includes('asin') ? 'asins' as const :
+            key.toLowerCase().includes('date') ? 'date' as const :
+            'string' as const,
+      defaultValue: initialParameters[key]
+    })),
     lookbackConfig: {
       type: 'relative',
       value: 7,
@@ -185,6 +220,7 @@ export default function ReportBuilderWizard({
             <ReportBuilderParameters
               workflowId={formData.workflowId}
               instanceId={formData.instanceId}
+              sqlQuery={formData.sqlQuery}
               parameters={formData.parameters}
               lookbackConfig={formData.lookbackConfig}
               detectedParameters={formData.detectedParameters}

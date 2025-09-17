@@ -14,6 +14,7 @@ interface LookbackConfig {
 interface ReportBuilderParametersProps {
   workflowId: string;
   instanceId: string;
+  sqlQuery?: string;
   parameters: Record<string, any>;
   lookbackConfig: LookbackConfig;
   detectedParameters?: DetectedParameter[];
@@ -45,6 +46,7 @@ const AMC_MAX_DAYS = AMC_MAX_MONTHS * 31; // Approximate
 export default function ReportBuilderParameters({
   workflowId: _workflowId,
   instanceId: _instanceId,
+  sqlQuery,
   parameters: initialParameters,
   lookbackConfig: initialLookback,
   detectedParameters = [],
@@ -251,6 +253,19 @@ export default function ReportBuilderParameters({
 
   const dateRange = calculateDateRange(lookbackConfig);
 
+  // Handle parameter value changes
+  const handleParameterChange = (paramName: string, value: string) => {
+    const newParams = {
+      ...parameters,
+      [paramName]: value
+    };
+    setParameters(newParams);
+    onParametersChange({
+      parameters: newParams,
+      lookbackConfig
+    });
+  };
+
   // Check if all required parameters have values
   // If there are no detected parameters, we can proceed
   const hasParameterValues = effectiveDetectedParams.length === 0 ||
@@ -275,6 +290,16 @@ export default function ReportBuilderParameters({
 
   return (
     <div className="space-y-6">
+      {/* SQL Query Display */}
+      {sqlQuery && (
+        <div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">SQL Query</h3>
+          <div className="bg-gray-50 rounded-lg p-4 overflow-auto max-h-64">
+            <pre className="text-sm text-gray-700 whitespace-pre-wrap font-mono">{sqlQuery}</pre>
+          </div>
+        </div>
+      )}
+
       {/* Lookback Window Selection */}
       <div>
         <h3 className="text-lg font-medium text-gray-900 mb-2 flex items-center">
@@ -371,32 +396,69 @@ export default function ReportBuilderParameters({
           <h3 className="text-lg font-medium text-gray-900 mb-2">Query Parameters</h3>
           <div className="space-y-4">
             {effectiveDetectedParams.map((param) => {
-              const hasValue = parameters[param.name] !== undefined && parameters[param.name] !== null;
-              // const displayValue = hasValue ? getParameterDisplay(parameters[param.name]) : 'Not set';
+              const value = parameters[param.name] || '';
 
               // Create a label for the parameter
               const paramLabel = param.name.toLowerCase().includes('campaign') ? 'Campaigns' :
                                 param.name.toLowerCase().includes('asin') ? 'ASINs' :
                                 param.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
-              const buttonId = `param-button-${param.name}`;
+              const inputId = `param-input-${param.name}`;
 
               return (
                 <div key={param.name} className="border border-gray-200 rounded-lg p-4">
                   <div className="mb-2">
                     <label
-                      htmlFor={buttonId}
+                      htmlFor={inputId}
                       className="block text-sm font-medium text-gray-700"
-                      aria-label={paramLabel}
                     >
-                      {paramLabel}
+                      {paramLabel} <span className="text-gray-500">({`{{${param.name}}}`})</span>
                     </label>
                   </div>
 
-                  {/* Simple selector for test compatibility */}
+                  {/* Input field based on parameter type */}
+                  {param.type === 'date' ? (
+                    <input
+                      id={inputId}
+                      type="date"
+                      value={value}
+                      onChange={(e) => handleParameterChange(param.name, e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  ) : param.type === 'campaigns' || param.type === 'asins' ? (
+                    <textarea
+                      id={inputId}
+                      value={value}
+                      onChange={(e) => handleParameterChange(param.name, e.target.value)}
+                      placeholder={param.type === 'asins' ?
+                        "Enter ASINs (comma-separated or one per line)" :
+                        "Enter campaign IDs or names (comma-separated or one per line)"}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      rows={3}
+                    />
+                  ) : (
+                    <input
+                      id={inputId}
+                      type="text"
+                      value={value}
+                      onChange={(e) => handleParameterChange(param.name, e.target.value)}
+                      placeholder={`Enter ${paramLabel.toLowerCase()}`}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  )}
+
+                  {/* Show current value */}
+                  {value && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      Current value: {value}
+                    </p>
+                  )}
+
+                  {/* For now, keeping the button for compatibility */}
                   <button
-                    id={buttonId}
+                    id={`param-button-${param.name}`}
                     type="button"
+                    style={{ display: 'none' }}
                     onClick={() => {
                       // In a real implementation, this would open a modal or dropdown
                       // For now, just toggle a simple test value
