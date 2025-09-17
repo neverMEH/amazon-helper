@@ -42,10 +42,26 @@ export default function ReportBuilderWizard({
   template,
   onSuccess
 }: ReportBuilderWizardProps) {
+  // Get SQL query from either field name
+  const templateSQL = template?.sql_query || template?.sqlTemplate || '';
+
+  // Debug: Log template data to see what we're receiving
+  if (template) {
+    console.log('Report Builder Wizard - Template loaded:', {
+      id: template.id,
+      name: template.name,
+      hasSQL: !!templateSQL,
+      sqlLength: templateSQL?.length,
+      extractedParams: templateSQL ? extractParametersFromSQL(templateSQL) : null,
+      defaultParams: template.defaultParameters,
+      parametersSchema: template.parametersSchema
+    });
+  }
+
   // Extract parameters from template SQL if available
-  const initialParameters = template?.sql_query
-    ? extractParametersFromSQL(template.sql_query)
-    : {};
+  const initialParameters = templateSQL
+    ? extractParametersFromSQL(templateSQL)
+    : template?.parameters || template?.defaultParameters || {};
 
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<any>({
@@ -54,7 +70,7 @@ export default function ReportBuilderWizard({
     workflowName: template?.name || '',
     instanceId: '',
     instanceName: '',
-    sqlQuery: template?.sql_query || '',
+    sqlQuery: templateSQL,
 
     // Step 1: Template & Parameters
     templateId: template?.id || null,
