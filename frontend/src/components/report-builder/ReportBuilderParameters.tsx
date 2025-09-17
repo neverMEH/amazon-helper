@@ -253,19 +253,6 @@ export default function ReportBuilderParameters({
 
   const dateRange = calculateDateRange(lookbackConfig);
 
-  // Handle parameter value changes
-  const handleParameterChange = (paramName: string, value: string) => {
-    const newParams = {
-      ...parameters,
-      [paramName]: value
-    };
-    setParameters(newParams);
-    onParametersChange({
-      parameters: newParams,
-      lookbackConfig
-    });
-  };
-
   // Check if all required parameters have values
   // If there are no detected parameters, we can proceed
   const hasParameterValues = effectiveDetectedParams.length === 0 ||
@@ -474,7 +461,7 @@ export default function ReportBuilderParameters({
                                param.name.toLowerCase().includes('asin') ? 'select asins' :
                                `select ${param.name}`}
                   >
-                    {hasValue && Array.isArray(parameters[param.name]) && parameters[param.name].length > 0
+                    {value && Array.isArray(parameters[param.name]) && parameters[param.name].length > 0
                       ? `${parameters[param.name].length} selected`
                       : `Select ${paramLabel.toLowerCase()}`}
                   </button>
