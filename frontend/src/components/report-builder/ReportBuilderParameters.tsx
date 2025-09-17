@@ -43,8 +43,8 @@ const AMC_MAX_MONTHS = 14;
 const AMC_MAX_DAYS = AMC_MAX_MONTHS * 31; // Approximate
 
 export default function ReportBuilderParameters({
-  workflowId,
-  instanceId,
+  workflowId: _workflowId,
+  instanceId: _instanceId,
   parameters: initialParameters,
   lookbackConfig: initialLookback,
   detectedParameters = [],
@@ -263,15 +263,15 @@ export default function ReportBuilderParameters({
   const canProceed = validationErrors.length === 0 && hasParameterValues;
 
   // Count selected items for display
-  const getParameterDisplay = (value: any): string => {
-    if (Array.isArray(value)) {
-      return `${value.length} selected`;
-    }
-    if (typeof value === 'object' && value !== null) {
-      return 'Configured';
-    }
-    return String(value);
-  };
+  // const getParameterDisplay = (value: any): string => {
+  //   if (Array.isArray(value)) {
+  //     return `${value.length} selected`;
+  //   }
+  //   if (typeof value === 'object' && value !== null) {
+  //     return 'Configured';
+  //   }
+  //   return String(value);
+  // };
 
   return (
     <div className="space-y-6">
@@ -372,7 +372,7 @@ export default function ReportBuilderParameters({
           <div className="space-y-4">
             {effectiveDetectedParams.map((param) => {
               const hasValue = parameters[param.name] !== undefined && parameters[param.name] !== null;
-              const displayValue = hasValue ? getParameterDisplay(parameters[param.name]) : 'Not set';
+              // const displayValue = hasValue ? getParameterDisplay(parameters[param.name]) : 'Not set';
 
               // Create a label for the parameter
               const paramLabel = param.name.toLowerCase().includes('campaign') ? 'Campaigns' :

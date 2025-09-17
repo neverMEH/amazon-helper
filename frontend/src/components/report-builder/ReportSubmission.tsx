@@ -55,7 +55,7 @@ export default function ReportSubmission({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionResult, setSubmissionResult] = useState<SubmissionResult | null>(null);
   const [backfillProgress, setBackfillProgress] = useState<BackfillProgress | null>(null);
-  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  const [pollingInterval, setPollingInterval] = useState<ReturnType<typeof setInterval> | null>(null);
 
   // Submit mutation
   const submitMutation = useMutation({

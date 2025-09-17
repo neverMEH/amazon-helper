@@ -67,9 +67,9 @@ const TIMEZONE_LABELS: Record<string, string> = {
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export default function ReportReviewStep({
-  workflowId,
+  workflowId: _workflowId,
   workflowName,
-  instanceId,
+  instanceId: _instanceId,
   instanceName,
   sqlQuery,
   parameters,

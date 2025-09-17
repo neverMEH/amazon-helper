@@ -61,10 +61,10 @@ const PARALLEL_EXECUTIONS = 5;
 const EXECUTION_TIME_MINUTES = 2; // Average per execution
 
 export default function ReportScheduleSelection({
-  workflowId,
-  instanceId,
+  workflowId: _workflowId,
+  instanceId: _instanceId,
   scheduleConfig,
-  lookbackConfig,
+  lookbackConfig: _lookbackConfig,
   onNext,
   onPrevious,
   onScheduleChange,
@@ -240,7 +240,7 @@ export default function ReportScheduleSelection({
               name="scheduleType"
               value="once"
               checked={localConfig.type === 'once'}
-              onChange={(e) => handleTypeChange('once')}
+              onChange={() => handleTypeChange('once')}
               className="mt-1 text-blue-600 focus:ring-blue-500"
               aria-label="Run Once"
             />
@@ -256,7 +256,7 @@ export default function ReportScheduleSelection({
               name="scheduleType"
               value="scheduled"
               checked={localConfig.type === 'scheduled'}
-              onChange={(e) => handleTypeChange('scheduled')}
+              onChange={() => handleTypeChange('scheduled')}
               className="mt-1 text-blue-600 focus:ring-blue-500"
               aria-label="Scheduled"
             />
@@ -272,7 +272,7 @@ export default function ReportScheduleSelection({
               name="scheduleType"
               value="backfill_with_schedule"
               checked={localConfig.type === 'backfill_with_schedule'}
-              onChange={(e) => handleTypeChange('backfill_with_schedule')}
+              onChange={() => handleTypeChange('backfill_with_schedule')}
               className="mt-1 text-blue-600 focus:ring-blue-500"
               aria-label="Backfill with Schedule"
             />
