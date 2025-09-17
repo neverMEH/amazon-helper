@@ -19,10 +19,10 @@ from ..schemas.report_builder import (
     BackfillConfig
 )
 from ..services.db_service import db_service
-from ..services.workflow_service import WorkflowService
+from ..core.supabase_client import WorkflowService
 from ..services.enhanced_schedule_service import EnhancedScheduleService
 from ..services.historical_collection_service import historical_collection_service
-from ..services.parameter_processor import ParameterProcessor
+from ..services.parameter_engine import ParameterEngine as ParameterProcessor
 from .supabase.auth import get_current_user
 
 logger = get_logger(__name__)
