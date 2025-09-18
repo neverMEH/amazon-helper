@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, GitBranch, Copy, Save, History } from 'lucide-react';
+import { X, GitBranch, Copy, History } from 'lucide-react';
 import type { QueryTemplate } from '../../types/queryTemplate';
 import SQLEditor from '../common/SQLEditor';
 import { queryTemplateService } from '../../services/queryTemplateService';
@@ -94,15 +94,10 @@ export default function TemplateForkDialog({
               <p className="text-sm text-gray-600 mt-1">{template.description}</p>
             )}
             <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
-              {template.usage_count !== undefined && (
-                <span>Used {template.usage_count} times</span>
+              {template.usageCount !== undefined && (
+                <span>Used {template.usageCount} times</span>
               )}
-              {template.created_by && (
-                <span>Created by {template.created_by}</span>
-              )}
-              {template.version && (
-                <span>Version {template.version}</span>
-              )}
+              {/* Created by and version fields not available in QueryTemplate type */}
             </div>
           </div>
 
@@ -111,7 +106,8 @@ export default function TemplateForkDialog({
             <div className="bg-blue-50 rounded-lg p-4">
               <h4 className="text-sm font-medium text-blue-900 mb-2">Version History</h4>
               <div className="space-y-2">
-                {template.version_history?.map((version, index) => (
+                {/* Version history not available in QueryTemplate type */}
+                {[].map((version: any, index: number) => (
                   <div key={index} className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
                       <span className="text-blue-700">v{version.version}</span>

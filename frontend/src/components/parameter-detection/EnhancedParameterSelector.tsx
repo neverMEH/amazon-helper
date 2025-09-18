@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import type { FC } from 'react';
 import { Calendar, Hash, List, Type, Code, AlertCircle, Info } from 'lucide-react';
 import { ASINSelector } from './ASINSelector';

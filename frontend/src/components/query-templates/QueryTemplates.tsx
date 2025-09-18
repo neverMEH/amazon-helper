@@ -17,7 +17,7 @@ export default function QueryTemplates() {
 
   const { data: templatesResponse, isLoading } = useQuery({
     queryKey: ['query-templates', selectedCategory],
-    queryFn: () => queryTemplateService.listTemplates(true, selectedCategory || undefined),
+    queryFn: () => queryTemplateService.listTemplates(true, selectedCategory ? { category: selectedCategory } : undefined),
   });
 
   const templates = templatesResponse?.data?.templates || [];

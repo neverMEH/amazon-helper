@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
-  TrendingUp, TrendingDown, Activity, Clock, Users,
-  BarChart3, Calendar, Zap, AlertCircle, CheckCircle,
-  XCircle, Timer, DollarSign, Target
+  TrendingUp, TrendingDown, Activity, Users,
+  BarChart3, AlertCircle, CheckCircle,
+  Timer, DollarSign, Target
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { queryTemplateService } from '../../services/queryTemplateService';
+// import { queryTemplateService } from '../../services/queryTemplateService';
 import type { QueryTemplate } from '../../types/queryTemplate';
 
 interface TemplatePerformanceMetricsProps {
@@ -53,7 +53,7 @@ export default function TemplatePerformanceMetrics({
       // In a real implementation, this would fetch from an API
       // For now, we'll return mock data
       const mockMetrics: PerformanceMetrics = {
-        usage_count: template.usage_count || 0,
+        usage_count: template.usageCount || 0,
         success_rate: 94.5,
         average_execution_time: 3.2,
         last_used_at: new Date().toISOString(),

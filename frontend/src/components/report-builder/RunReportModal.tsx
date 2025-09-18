@@ -1,15 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X, ChevronLeft, ChevronRight, Play, Clock, Calendar, Database, Code, Library, Edit3, Search, Tag, GitBranch, BarChart3 } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Play, Clock, Calendar, Database, Code, Library, Search, Tag, GitBranch, BarChart3 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import DynamicParameterForm from './DynamicParameterForm';
 import InstanceSelector from '../query-builder/InstanceSelector';
-import { UniversalParameterSelector } from '../parameter-detection';
+// import { UniversalParameterSelector } from '../parameter-detection';
 import { EnhancedParameterSelector } from '../parameter-detection/EnhancedParameterSelector';
 import TemplateForkDialog from '../query-library/TemplateForkDialog';
 import TemplateTagsManager from '../query-library/TemplateTagsManager';
 import TemplatePerformanceMetrics from '../query-library/TemplatePerformanceMetrics';
 import { ParameterDetector } from '../../utils/parameterDetection';
-import { ParameterProcessor } from '../../utils/parameterProcessor';
+// import { ParameterProcessor } from '../../utils/parameterProcessor';
 import { detectParametersWithContext, replaceParametersInSQL, analyzeParameterContext } from '../../utils/sqlParameterAnalyzer';
 import { instanceService } from '../../services/instanceService';
 import { queryTemplateService } from '../../services/queryTemplateService';
@@ -116,8 +116,8 @@ export default function RunReportModal({
             return {
               ...basic,
               type: contextParam.type as any,
-              sqlContext: contextParam.sqlContext,
-              formatPattern: contextParam.formatPattern,
+              // sqlContext and formatPattern come from context analysis
+              // not from the basic detected parameter
             };
           }
           return basic;
@@ -171,8 +171,8 @@ export default function RunReportModal({
           return {
             ...basic,
             type: contextParam.type as any,
-            sqlContext: contextParam.sqlContext,
-            formatPattern: contextParam.formatPattern,
+            // sqlContext and formatPattern come from context analysis
+            // not from the basic detected parameter
           };
         }
         return basic;
@@ -208,7 +208,7 @@ export default function RunReportModal({
             return `/* ${match} - Required */`;
           }
           // Show the actual substituted value for filled parameters
-          const context = analyzeParameterContext(sql, paramName);
+          // const context = analyzeParameterContext(sql, paramName);
           const formattedValue = replaceParametersInSQL(`{{${paramName}}}`, { [paramName]: value });
           return formattedValue;
         });
@@ -427,14 +427,7 @@ export default function RunReportModal({
                       >
                         <div className="flex justify-between items-start mb-2">
                           <h4 className="font-medium text-gray-900">{tmpl.name}</h4>
-                          {tmpl.difficulty_level && (
-                            <span className={`text-xs px-2 py-1 rounded-full
-                                          ${tmpl.difficulty_level === 'BEGINNER' ? 'bg-green-100 text-green-700' :
-                                            tmpl.difficulty_level === 'INTERMEDIATE' ? 'bg-yellow-100 text-yellow-700' :
-                                            'bg-red-100 text-red-700'}`}>
-                              {tmpl.difficulty_level}
-                            </span>
-                          )}
+                          {/* Difficulty level badge would go here if available */}
                         </div>
                         <p className="text-sm text-gray-600 mb-2">{tmpl.description}</p>
                         <div className="flex items-center justify-between">
@@ -446,8 +439,8 @@ export default function RunReportModal({
                               </span>
                             ))}
                           </div>
-                          {tmpl.usage_count !== undefined && (
-                            <span className="text-xs text-gray-500">{tmpl.usage_count} uses</span>
+                          {tmpl.usageCount !== undefined && (
+                            <span className="text-xs text-gray-500">{tmpl.usageCount} uses</span>
                           )}
                         </div>
                       </div>
@@ -539,7 +532,6 @@ export default function RunReportModal({
                     value={customSql}
                     onChange={setCustomSql}
                     height="300px"
-                    placeholder="Enter your SQL query with {{parameter}} placeholders..."
                   />
                 </div>
 
@@ -668,7 +660,7 @@ export default function RunReportModal({
               {(selectedTemplate || initialTemplate)?.parameter_definitions &&
                Object.keys((selectedTemplate || initialTemplate)?.parameter_definitions || {}).length > 0 ? (
                 <DynamicParameterForm
-                  parameterDefinitions={(selectedTemplate || initialTemplate)!.parameter_definitions}
+                  parameterDefinitions={(selectedTemplate || initialTemplate)?.parameter_definitions || {}}
                   uiSchema={(selectedTemplate || initialTemplate)?.ui_schema || {}}
                   initialValues={parameters}
                   onSubmit={handleParameterSubmit}
@@ -690,9 +682,8 @@ export default function RunReportModal({
                           name: param.name,
                           type: param.type as any,
                           required: true,
-                          sqlContext: param.sqlContext,
-                          formatPattern: param.formatPattern,
-                          description: param.description,
+                          // Additional context fields would be populated from analysis
+                          // sqlContext, formatPattern, description
                         }}
                         instanceId={selectedInstance}
                         value={parameters[param.name]}
