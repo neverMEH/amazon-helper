@@ -32,6 +32,8 @@ export const reportService = {
   },
 
   createReport: async (data: CreateReportRequest) => {
+    console.log('reportService.createReport called with:', data);
+
     // First create the workflow
     const workflowData = {
       name: data.name,
@@ -42,6 +44,7 @@ export const reportService = {
       template_id: data.template_id,
     };
 
+    console.log('Creating workflow with data:', workflowData);
     const workflow = await workflowService.createWorkflow(workflowData);
 
     // If it's a recurring report, create a schedule
@@ -61,6 +64,7 @@ export const reportService = {
 
     // If it's a one-time or backfill execution, run it immediately
     if (data.execution_type === 'once' || data.execution_type === 'backfill') {
+      console.log('Executing workflow immediately for:', data.execution_type);
       await workflowService.executeWorkflow(
         workflow.id,
         data.instance_id,
@@ -68,6 +72,7 @@ export const reportService = {
       );
     }
 
+    console.log('Report creation complete, returning workflow:', workflow);
     return workflow;
   },
 

@@ -24,6 +24,7 @@ interface RunReportModalProps {
   onClose: () => void;
   template?: QueryTemplate | null;
   onSubmit: (config: CreateReportRequest) => void;
+  includeTemplateStep?: boolean;
 }
 
 type ExecutionType = 'once' | 'recurring' | 'backfill';
@@ -49,6 +50,7 @@ export default function RunReportModal({
   onClose,
   template: initialTemplate,
   onSubmit,
+  includeTemplateStep: includeTemplateStepProp = false,
 }: RunReportModalProps) {
   // Template selection state
   const [selectedTemplate, setSelectedTemplate] = useState<QueryTemplate | null>(initialTemplate || null);
@@ -58,11 +60,11 @@ export default function RunReportModal({
   const [templateCategory, setTemplateCategory] = useState('');
 
   // Determine if we need the template selection step
-  const includeTemplateStep = !initialTemplate;
+  const includeTemplateStep = includeTemplateStepProp || !initialTemplate;
   const WIZARD_STEPS = getWizardSteps(includeTemplateStep);
 
   const [currentStep, setCurrentStep] = useState<WizardStep>(includeTemplateStep ? 'template' : 'parameters');
-  const [reportName, setReportName] = useState(initialTemplate ? `${initialTemplate.name} Report` : '');
+  const [reportName, setReportName] = useState(initialTemplate ? `${initialTemplate.name} Report` : 'Custom Report');
   const [reportDescription, setReportDescription] = useState(initialTemplate?.description || '');
   const [parameters, setParameters] = useState<Record<string, any>>({});
   const [executionType, setExecutionType] = useState<ExecutionType>('once');
@@ -300,14 +302,54 @@ export default function RunReportModal({
   };
 
   const handleFinalSubmit = () => {
-    const currentTemplate = selectedTemplate || initialTemplate;
-    if (!currentTemplate) return;
+    console.log('handleFinalSubmit called');
 
+    // Validate required fields
+    if (!reportName) {
+      alert('Please enter a report name');
+      return;
+    }
+
+    if (!selectedInstance) {
+      alert('Please select an AMC instance');
+      return;
+    }
+
+    const currentTemplate = selectedTemplate || initialTemplate;
+
+    // For custom reports without a template
+    if (!currentTemplate || currentTemplate.id === 'custom' || templateSelectionMode === 'custom') {
+      if (!customSql) {
+        alert('Please enter SQL query for custom report');
+        return;
+      }
+
+      const config: CreateReportRequest = {
+        name: reportName,
+        description: reportDescription,
+        template_id: undefined,
+        custom_sql: customSql,
+        instance_id: selectedInstance,
+        parameters,
+        execution_type: executionType === 'backfill' ? 'backfill' : executionType,
+        schedule_config:
+          executionType === 'recurring'
+            ? scheduleConfig
+            : executionType === 'backfill'
+            ? { ...scheduleConfig, backfill_period: backfillPeriod }
+            : undefined,
+      };
+      console.log('Submitting custom report config:', config);
+      onSubmit(config);
+      return;
+    }
+
+    // For template-based reports
     const config: CreateReportRequest = {
       name: reportName,
       description: reportDescription,
-      template_id: currentTemplate.id === 'custom' ? undefined : currentTemplate.id,
-      custom_sql: currentTemplate.id === 'custom' ? customSql : undefined,
+      template_id: currentTemplate.id,
+      custom_sql: undefined,
       instance_id: selectedInstance,
       parameters,
       execution_type: executionType === 'backfill' ? 'backfill' : executionType,
@@ -318,7 +360,7 @@ export default function RunReportModal({
           ? { ...scheduleConfig, backfill_period: backfillPeriod }
           : undefined,
     };
-
+    console.log('Submitting template report config:', config);
     onSubmit(config);
   };
 
@@ -1135,10 +1177,12 @@ export default function RunReportModal({
             {isLastStep && (
               <button
                 onClick={handleFinalSubmit}
+                disabled={!reportName || !selectedInstance}
                 className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md
-                         hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                         hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500
+                         disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Run Report
+                Create Report
               </button>
             )}
           </div>

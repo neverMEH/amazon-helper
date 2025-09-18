@@ -14,6 +14,7 @@ export default function ReportBuilder() {
   const [activeTab, setActiveTab] = useState<'reports' | 'dashboards'>('reports');
   const [selectedTemplate, setSelectedTemplate] = useState<QueryTemplate | null>(null);
   const [showRunModal, setShowRunModal] = useState(false);
+  const [showCreateCustom, setShowCreateCustom] = useState(false);
 
   // Fetch query templates
   const { data: templatesData, isLoading: loadingTemplates, error: templatesError } = useQuery({
@@ -35,16 +36,28 @@ export default function ReportBuilder() {
     setShowRunModal(true);
   };
 
+  const handleCreateReport = () => {
+    // Open modal without a template for custom report creation
+    setSelectedTemplate(null);
+    setShowCreateCustom(true);
+    setShowRunModal(true);
+    setActiveTab('reports');
+  };
+
   const handleRunReport = async (reportConfig: any) => {
+    console.log('Creating report with config:', reportConfig);
     try {
-      await reportService.createReport(reportConfig);
+      const result = await reportService.createReport(reportConfig);
+      console.log('Report created successfully:', result);
       toast.success('Report created successfully');
       setShowRunModal(false);
       setSelectedTemplate(null);
+      setShowCreateCustom(false);
       refetchReports();
       setActiveTab('dashboards');
     } catch (error: any) {
-      toast.error(error.message || 'Failed to create report');
+      console.error('Failed to create report:', error);
+      toast.error(error.response?.data?.detail || error.message || 'Failed to create report');
     }
   };
 
@@ -111,7 +124,7 @@ export default function ReportBuilder() {
             </p>
           </div>
           <button
-            onClick={() => setActiveTab('reports')}
+            onClick={handleCreateReport}
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600
                      hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
@@ -189,15 +202,17 @@ export default function ReportBuilder() {
       </div>
 
       {/* Run Report Modal */}
-      {showRunModal && selectedTemplate && (
+      {showRunModal && (
         <RunReportModal
           isOpen={showRunModal}
           onClose={() => {
             setShowRunModal(false);
             setSelectedTemplate(null);
+            setShowCreateCustom(false);
           }}
           template={selectedTemplate}
           onSubmit={handleRunReport}
+          includeTemplateStep={showCreateCustom}
         />
       )}
     </div>
