@@ -245,6 +245,11 @@ async def execute_report(
             final_parameters
         )
 
+        logger.info(f"Executing report {report_id}")
+        logger.info(f"Template SQL length: {len(template.get('sql_template', ''))}")
+        logger.info(f"Processed SQL length: {len(processed_sql) if processed_sql else 0}")
+        logger.info(f"Time window: {execution_data.time_window_start} to {execution_data.time_window_end}")
+
         # Get instance details for entity_id
         instance = report_service.get_instance_with_entity(report["instance_id"])
         if not instance:

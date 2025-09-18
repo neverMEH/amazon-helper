@@ -55,6 +55,10 @@ class ReportExecutionService(DatabaseService):
             Execution record or None if failed
         """
         try:
+            logger.info(f"execute_report_adhoc called with report_id={report_id}, instance_id={instance_id}")
+            logger.info(f"SQL query length: {len(sql_query) if sql_query else 'None'}")
+            logger.info(f"Time window: {time_window_start} to {time_window_end}")
+
             # Generate execution ID
             execution_id = f"exec_{uuid.uuid4().hex[:8]}"
 
@@ -91,13 +95,26 @@ class ReportExecutionService(DatabaseService):
             # Execute via AMC API (ad-hoc, no workflow creation)
             try:
                 # Call AMC API with sql_query only (no workflow)
+                # Build parameters for AMC API - include time window in parameter_values
+                amc_params = {}
+                if time_window_start:
+                    amc_params['timeWindowStart'] = self._format_amc_date(time_window_start)
+                if time_window_end:
+                    amc_params['timeWindowEnd'] = self._format_amc_date(time_window_end)
+
+                # Add any other parameters passed
+                if parameters:
+                    amc_params.update(parameters)
+
+                logger.info(f"Executing ad-hoc report with SQL length: {len(sql_query) if sql_query else 0}")
+                logger.info(f"Parameters being passed: {amc_params}")
+
                 amc_result = await self.amc_client.create_workflow_execution(
                     instance_id=instance_id,
                     user_id=user_id,
                     entity_id=entity_id,
                     sql_query=sql_query,
-                    time_window_start=self._format_amc_date(time_window_start),
-                    time_window_end=self._format_amc_date(time_window_end)
+                    parameter_values=amc_params if amc_params else None
                 )
 
                 # Update execution with AMC execution ID
