@@ -234,19 +234,44 @@ async def execute_report(
         if not template:
             raise HTTPException(status_code=404, detail="Template not found")
 
+        # Debug logging for template
+        logger.info(f"Template ID: {report.get('template_id')}")
+        logger.info(f"Template found: {template is not None}")
+        logger.info(f"Template keys: {list(template.keys()) if template else 'None'}")
+
+        # Check for sql_template or sql_query field
+        sql_query = template.get("sql_template") or template.get("sql_query") or ""
+        logger.info(f"SQL field name check - sql_template: {template.get('sql_template') is not None}, sql_query: {template.get('sql_query') is not None}")
+        logger.info(f"Raw SQL query length: {len(sql_query)}")
+
+        if not sql_query:
+            logger.error(f"Template {report['template_id']} has no SQL query!")
+            logger.error(f"Template data: {template}")
+            raise HTTPException(status_code=500, detail="Template has no SQL query")
+
         # Merge report parameters with execution parameters
         final_parameters = {**report.get("parameters", {})}
         if execution_data.parameters:
             final_parameters.update(execution_data.parameters)
 
+        logger.info(f"Final parameters: {final_parameters}")
+
         # Process the SQL query with parameters using shared processor
-        processed_sql = ParameterProcessor.process_sql_parameters(
-            template["sql_template"],
-            final_parameters
-        )
+        try:
+            processed_sql = ParameterProcessor.process_sql_parameters(
+                sql_query,
+                final_parameters
+            )
+            logger.info(f"ParameterProcessor returned SQL of length: {len(processed_sql) if processed_sql else 0}")
+            if processed_sql:
+                logger.info(f"First 200 chars of processed SQL: {processed_sql[:200]}")
+        except Exception as e:
+            logger.error(f"Error processing SQL parameters: {e}")
+            processed_sql = sql_query  # Fall back to raw SQL
+            logger.info(f"Falling back to raw SQL due to parameter processing error")
 
         logger.info(f"Executing report {report_id}")
-        logger.info(f"Template SQL length: {len(template.get('sql_template', ''))}")
+        logger.info(f"Template SQL length: {len(sql_query)}")
         logger.info(f"Processed SQL length: {len(processed_sql) if processed_sql else 0}")
         logger.info(f"Time window: {execution_data.time_window_start} to {execution_data.time_window_end}")
 
