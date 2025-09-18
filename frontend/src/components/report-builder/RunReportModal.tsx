@@ -1,12 +1,19 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X, ChevronLeft, ChevronRight, Play, Clock, Calendar, Database, Code } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Play, Clock, Calendar, Database, Code, Library, Edit3, Search, Tag, GitBranch, BarChart3 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import DynamicParameterForm from './DynamicParameterForm';
 import InstanceSelector from '../query-builder/InstanceSelector';
 import { UniversalParameterSelector } from '../parameter-detection';
+import { EnhancedParameterSelector } from '../parameter-detection/EnhancedParameterSelector';
+import TemplateForkDialog from '../query-library/TemplateForkDialog';
+import TemplateTagsManager from '../query-library/TemplateTagsManager';
+import TemplatePerformanceMetrics from '../query-library/TemplatePerformanceMetrics';
 import { ParameterDetector } from '../../utils/parameterDetection';
 import { ParameterProcessor } from '../../utils/parameterProcessor';
+import { detectParametersWithContext, replaceParametersInSQL, analyzeParameterContext } from '../../utils/sqlParameterAnalyzer';
 import { instanceService } from '../../services/instanceService';
+import { queryTemplateService } from '../../services/queryTemplateService';
+import toast from 'react-hot-toast';
 import SQLEditor from '../common/SQLEditor';
 import type { QueryTemplate } from '../../types/queryTemplate';
 import type { CreateReportRequest, ScheduleConfig } from '../../types/report';
@@ -15,29 +22,48 @@ import type { DetectedParameter } from '../../utils/parameterDetection';
 interface RunReportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  template: QueryTemplate;
+  template?: QueryTemplate | null;
   onSubmit: (config: CreateReportRequest) => void;
 }
 
 type ExecutionType = 'once' | 'recurring' | 'backfill';
-type WizardStep = 'parameters' | 'execution' | 'schedule' | 'review';
+type WizardStep = 'template' | 'parameters' | 'execution' | 'schedule' | 'review';
+type TemplateSelectionMode = 'library' | 'custom';
 
-const WIZARD_STEPS: { id: WizardStep; label: string; icon: any }[] = [
-  { id: 'parameters', label: 'Parameters', icon: Play },
-  { id: 'execution', label: 'Execution Type', icon: Clock },
-  { id: 'schedule', label: 'Schedule', icon: Calendar },
-  { id: 'review', label: 'Review', icon: Database },
-];
+const getWizardSteps = (includeTemplate: boolean): { id: WizardStep; label: string; icon: any }[] => {
+  const steps = [];
+  if (includeTemplate) {
+    steps.push({ id: 'template' as WizardStep, label: 'Template Selection', icon: Library });
+  }
+  steps.push(
+    { id: 'parameters' as WizardStep, label: 'Parameters', icon: Play },
+    { id: 'execution' as WizardStep, label: 'Execution Type', icon: Clock },
+    { id: 'schedule' as WizardStep, label: 'Schedule', icon: Calendar },
+    { id: 'review' as WizardStep, label: 'Review', icon: Database }
+  );
+  return steps;
+};
 
 export default function RunReportModal({
   isOpen,
   onClose,
-  template,
+  template: initialTemplate,
   onSubmit,
 }: RunReportModalProps) {
-  const [currentStep, setCurrentStep] = useState<WizardStep>('parameters');
-  const [reportName, setReportName] = useState(`${template.name} Report`);
-  const [reportDescription, setReportDescription] = useState(template.description || '');
+  // Template selection state
+  const [selectedTemplate, setSelectedTemplate] = useState<QueryTemplate | null>(initialTemplate || null);
+  const [templateSelectionMode, setTemplateSelectionMode] = useState<TemplateSelectionMode>('library');
+  const [customSql, setCustomSql] = useState('');
+  const [templateSearch, setTemplateSearch] = useState('');
+  const [templateCategory, setTemplateCategory] = useState('');
+
+  // Determine if we need the template selection step
+  const includeTemplateStep = !initialTemplate;
+  const WIZARD_STEPS = getWizardSteps(includeTemplateStep);
+
+  const [currentStep, setCurrentStep] = useState<WizardStep>(includeTemplateStep ? 'template' : 'parameters');
+  const [reportName, setReportName] = useState(initialTemplate ? `${initialTemplate.name} Report` : '');
+  const [reportDescription, setReportDescription] = useState(initialTemplate?.description || '');
   const [parameters, setParameters] = useState<Record<string, any>>({});
   const [executionType, setExecutionType] = useState<ExecutionType>('once');
   const [scheduleConfig, setScheduleConfig] = useState<ScheduleConfig>({
@@ -48,6 +74,9 @@ export default function RunReportModal({
   const [selectedInstance, setSelectedInstance] = useState('');
   const [detectedParameters, setDetectedParameters] = useState<DetectedParameter[]>([]);
   const [showQueryPreview, setShowQueryPreview] = useState(true);
+  const [showForkDialog, setShowForkDialog] = useState(false);
+  const [showMetrics, setShowMetrics] = useState(false);
+  const [templateToFork, setTemplateToFork] = useState<QueryTemplate | null>(null);
 
   // Fetch instances
   const { data: instances = [], isLoading: loadingInstances } = useQuery({
@@ -56,56 +85,142 @@ export default function RunReportModal({
     enabled: isOpen,
   });
 
-  // Detect parameters from the SQL query
-  useEffect(() => {
-    if (template && isOpen) {
-      const sqlQuery = template.sqlTemplate || template.sql_query || '';
-      if (sqlQuery) {
-        const detected = ParameterDetector.detectParameters(sqlQuery);
-        setDetectedParameters(detected);
+  // Fetch templates for selection
+  const { data: templatesData, isLoading: loadingTemplates } = useQuery({
+    queryKey: ['queryTemplates', templateCategory, templateSearch],
+    queryFn: () => queryTemplateService.listTemplates(true, {
+      category: templateCategory || undefined,
+      search: templateSearch || undefined,
+      include_public: true,
+      sort_by: 'usage_count',
+    }),
+    enabled: isOpen && includeTemplateStep && currentStep === 'template',
+  });
 
-        // Initialize parameters with defaults if they exist
+  const templates = templatesData?.data?.templates || [];
+
+  // Detect parameters from the SQL query with enhanced context awareness
+  useEffect(() => {
+    const currentTemplate = selectedTemplate || initialTemplate;
+    if (currentTemplate && isOpen) {
+      const sqlQuery = currentTemplate.sqlTemplate || currentTemplate.sql_query || '';
+      if (sqlQuery) {
+        // Use both detection methods for maximum compatibility
+        const basicDetected = ParameterDetector.detectParameters(sqlQuery);
+        const contextDetected = detectParametersWithContext(sqlQuery);
+
+        // Merge detection results, preferring context-aware detection
+        const mergedDetection = basicDetected.map(basic => {
+          const contextParam = contextDetected.find(c => c.name === basic.name);
+          if (contextParam) {
+            return {
+              ...basic,
+              type: contextParam.type as any,
+              sqlContext: contextParam.sqlContext,
+              formatPattern: contextParam.formatPattern,
+            };
+          }
+          return basic;
+        });
+
+        setDetectedParameters(mergedDetection);
+
+        // Initialize parameters with smart defaults based on type
         const defaultParams: Record<string, any> = {};
-        detected.forEach(param => {
-          if (template.defaultParameters?.[param.name] !== undefined) {
-            defaultParams[param.name] = template.defaultParameters[param.name];
-          } else if (template.parameters?.[param.name] !== undefined) {
-            defaultParams[param.name] = template.parameters[param.name];
+        mergedDetection.forEach(param => {
+          if (currentTemplate.defaultParameters?.[param.name] !== undefined) {
+            defaultParams[param.name] = currentTemplate.defaultParameters[param.name];
+          } else if (currentTemplate.parameters?.[param.name] !== undefined) {
+            defaultParams[param.name] = currentTemplate.parameters[param.name];
+          } else {
+            // Set intelligent defaults based on parameter type
+            const context = analyzeParameterContext(sqlQuery, param.name);
+            if (context.type === 'date') {
+              const today = new Date();
+              const thirtyDaysAgo = new Date(today);
+              thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+              // Check if this is a start or end date
+              if (param.name.toLowerCase().includes('start')) {
+                defaultParams[param.name] = thirtyDaysAgo.toISOString().split('T')[0];
+              } else if (param.name.toLowerCase().includes('end')) {
+                defaultParams[param.name] = today.toISOString().split('T')[0];
+              } else {
+                defaultParams[param.name] = today.toISOString().split('T')[0];
+              }
+            } else if (context.type === 'number') {
+              defaultParams[param.name] = 100;
+            } else if (context.type === 'list' || param.type === 'asin_list' || param.type === 'campaign_list') {
+              defaultParams[param.name] = [];
+            } else {
+              defaultParams[param.name] = '';
+            }
           }
         });
         setParameters(defaultParams);
       }
-    }
-  }, [template, isOpen]);
+    } else if (customSql && templateSelectionMode === 'custom') {
+      // Real-time parameter detection for custom SQL
+      const contextDetected = detectParametersWithContext(customSql);
+      const basicDetected = ParameterDetector.detectParameters(customSql);
 
-  // Generate preview SQL with injected parameters using shared processor
-  const previewSQL = useMemo(() => {
-    const sql = template.sqlTemplate || template.sql_query || '';
-
-    try {
-      // Use the shared ParameterProcessor for consistent formatting
-      // This ensures the preview matches exactly what the backend will execute
-      const processedSQL = ParameterProcessor.processParameters(sql, parameters);
-
-      // Check for any warnings
-      const warnings = ParameterProcessor.validateParameterTypes(parameters);
-      if (Object.keys(warnings).length > 0) {
-        console.warn('Parameter warnings:', warnings);
-      }
-
-      return processedSQL;
-    } catch (error) {
-      // If there are missing parameters, show the template with placeholders
-      console.warn('Parameter processing error:', error);
-
-      // Handle any remaining placeholders (parameters not yet filled)
-      const sqlWithPlaceholders = sql.replace(/\{\{(\w+)\}\}/g, (_match, paramName) => {
-        return `/* Parameter: ${paramName} (not set) */`;
+      // Merge with context awareness
+      const mergedDetection = basicDetected.map(basic => {
+        const contextParam = contextDetected.find(c => c.name === basic.name);
+        if (contextParam) {
+          return {
+            ...basic,
+            type: contextParam.type as any,
+            sqlContext: contextParam.sqlContext,
+            formatPattern: contextParam.formatPattern,
+          };
+        }
+        return basic;
       });
 
-      return sqlWithPlaceholders;
+      setDetectedParameters(mergedDetection);
     }
-  }, [template, parameters]);
+  }, [selectedTemplate, initialTemplate, customSql, templateSelectionMode, isOpen]);
+
+  // Generate preview SQL with context-aware parameter substitution
+  const previewSQL = useMemo(() => {
+    const currentTemplate = selectedTemplate || initialTemplate;
+    const sql = templateSelectionMode === 'custom' ? customSql :
+                (currentTemplate?.sqlTemplate || currentTemplate?.sql_query || '');
+
+    if (!sql) return '';
+
+    try {
+      // Check if all required parameters are provided
+      const hasAllParams = detectedParameters.every(param =>
+        parameters[param.name] !== undefined && parameters[param.name] !== '' &&
+        (Array.isArray(parameters[param.name]) ? parameters[param.name].length > 0 : true)
+      );
+
+      if (hasAllParams) {
+        // Use context-aware replacement for accurate preview
+        return replaceParametersInSQL(sql, parameters);
+      } else {
+        // Show SQL with highlighted parameters that need values
+        return sql.replace(/\{\{(\w+)\}\}/g, (match, paramName) => {
+          const value = parameters[paramName];
+          if (value === undefined || value === '' || (Array.isArray(value) && value.length === 0)) {
+            return `/* ${match} - Required */`;
+          }
+          // Show the actual substituted value for filled parameters
+          const context = analyzeParameterContext(sql, paramName);
+          const formattedValue = replaceParametersInSQL(`{{${paramName}}}`, { [paramName]: value });
+          return formattedValue;
+        });
+      }
+    } catch (error) {
+      console.warn('Parameter processing error:', error);
+      // Fallback to showing placeholders
+      return sql.replace(/\{\{(\w+)\}\}/g, (_match, paramName) => {
+        return `/* Parameter: ${paramName} (not set) */`;
+      });
+    }
+  }, [selectedTemplate, initialTemplate, customSql, templateSelectionMode, parameters, detectedParameters]);
 
   if (!isOpen) return null;
 
@@ -150,11 +265,49 @@ export default function RunReportModal({
     }));
   };
 
+  const handleTemplateSelect = async (template: QueryTemplate) => {
+    setSelectedTemplate(template);
+    setReportName(`${template.name} Report`);
+    setReportDescription(template.description || '');
+
+    // Increment usage count
+    try {
+      await queryTemplateService.incrementUsage(template.id);
+    } catch (error) {
+      console.error('Failed to increment template usage:', error);
+    }
+  };
+
+  const handleCustomSqlSubmit = () => {
+    // Create a pseudo-template from custom SQL
+    const customTemplate: QueryTemplate = {
+      id: 'custom',
+      name: 'Custom Query',
+      description: reportDescription,
+      sqlTemplate: customSql,
+      sql_query: customSql,
+      category: 'custom',
+      report_type: 'custom',
+      parameters: {},
+      parameter_definitions: {},
+      ui_schema: {},
+      instance_types: [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    setSelectedTemplate(customTemplate);
+    goToNextStep();
+  };
+
   const handleFinalSubmit = () => {
+    const currentTemplate = selectedTemplate || initialTemplate;
+    if (!currentTemplate) return;
+
     const config: CreateReportRequest = {
       name: reportName,
       description: reportDescription,
-      template_id: template.id,
+      template_id: currentTemplate.id === 'custom' ? undefined : currentTemplate.id,
+      custom_sql: currentTemplate.id === 'custom' ? customSql : undefined,
       instance_id: selectedInstance,
       parameters,
       execution_type: executionType === 'backfill' ? 'backfill' : executionType,
@@ -171,6 +324,294 @@ export default function RunReportModal({
 
   const renderStepContent = () => {
     switch (currentStep) {
+      case 'template':
+        return (
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Select Query Template</h3>
+              <p className="text-sm text-gray-500">
+                Choose from the Query Library or write your own custom SQL query.
+              </p>
+            </div>
+
+            {/* Template Mode Selection */}
+            <div className="flex gap-4">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="templateMode"
+                  value="library"
+                  checked={templateSelectionMode === 'library'}
+                  onChange={(e) => setTemplateSelectionMode(e.target.value as TemplateSelectionMode)}
+                  className="text-indigo-600 focus:ring-indigo-500"
+                />
+                <span className="ml-2 text-sm font-medium text-gray-900">Choose from Query Library</span>
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="templateMode"
+                  value="custom"
+                  checked={templateSelectionMode === 'custom'}
+                  onChange={(e) => setTemplateSelectionMode(e.target.value as TemplateSelectionMode)}
+                  className="text-indigo-600 focus:ring-indigo-500"
+                />
+                <span className="ml-2 text-sm font-medium text-gray-900">Write Custom SQL</span>
+              </label>
+            </div>
+
+            {/* Template Library Selection */}
+            {templateSelectionMode === 'library' && (
+              <div className="space-y-4">
+                {/* Search and Filters */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="template-search" className="sr-only">Search templates</label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <input
+                        id="template-search"
+                        type="text"
+                        value={templateSearch}
+                        onChange={(e) => setTemplateSearch(e.target.value)}
+                        placeholder="Search templates..."
+                        className="pl-10 pr-3 py-2 w-full border border-gray-300 rounded-md text-sm
+                                 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="category" className="sr-only">Category</label>
+                    <select
+                      id="category"
+                      value={templateCategory}
+                      onChange={(e) => setTemplateCategory(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm
+                               focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                      <option value="">All Categories</option>
+                      <option value="performance">Performance Analysis</option>
+                      <option value="attribution">Attribution</option>
+                      <option value="audience">Audience Building</option>
+                      <option value="incrementality">Incrementality</option>
+                      <option value="cross-channel">Cross-Channel</option>
+                      <option value="optimization">Optimization</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Template Grid */}
+                {loadingTemplates ? (
+                  <div className="text-center py-8">
+                    <div className="inline-flex items-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                      <span className="ml-2 text-sm text-gray-500">Loading templates...</span>
+                    </div>
+                  </div>
+                ) : templates.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No templates found. Try adjusting your search or filters.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
+                    {templates.map((tmpl) => (
+                      <div
+                        key={tmpl.id}
+                        role="button"
+                        onClick={() => handleTemplateSelect(tmpl)}
+                        className={`p-4 border rounded-lg cursor-pointer transition-all
+                                   ${selectedTemplate?.id === tmpl.id
+                                     ? 'border-indigo-500 bg-indigo-50'
+                                     : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'}`}
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="font-medium text-gray-900">{tmpl.name}</h4>
+                          {tmpl.difficulty_level && (
+                            <span className={`text-xs px-2 py-1 rounded-full
+                                          ${tmpl.difficulty_level === 'BEGINNER' ? 'bg-green-100 text-green-700' :
+                                            tmpl.difficulty_level === 'INTERMEDIATE' ? 'bg-yellow-100 text-yellow-700' :
+                                            'bg-red-100 text-red-700'}`}>
+                              {tmpl.difficulty_level}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-600 mb-2">{tmpl.description}</p>
+                        <div className="flex items-center justify-between">
+                          <div className="flex gap-2">
+                            {tmpl.tags?.slice(0, 2).map((tag) => (
+                              <span key={tag} className="inline-flex items-center gap-1 text-xs text-gray-500">
+                                <Tag className="h-3 w-3" />
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                          {tmpl.usage_count !== undefined && (
+                            <span className="text-xs text-gray-500">{tmpl.usage_count} uses</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* SQL Preview for Selected Template */}
+                {selectedTemplate && templateSelectionMode === 'library' && (
+                  <div className="border-t pt-4 space-y-4">
+                    {/* Template Actions */}
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowMetrics(!showMetrics)}
+                        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md
+                                 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      >
+                        <BarChart3 className="h-4 w-4" />
+                        {showMetrics ? 'Hide' : 'Show'} Metrics
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTemplateToFork(selectedTemplate);
+                          setShowForkDialog(true);
+                        }}
+                        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md
+                                 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      >
+                        <GitBranch className="h-4 w-4" />
+                        Fork Template
+                      </button>
+                    </div>
+
+                    {/* Performance Metrics */}
+                    {showMetrics && (
+                      <div className="border border-gray-200 rounded-lg p-4">
+                        <TemplatePerformanceMetrics
+                          template={selectedTemplate}
+                          templateId={selectedTemplate.id}
+                          showDetails={true}
+                        />
+                      </div>
+                    )}
+
+                    {/* Tags Display */}
+                    <div className="border border-gray-200 rounded-lg p-4">
+                      <TemplateTagsManager
+                        template={selectedTemplate}
+                        onUpdate={() => {}}
+                        readOnly={true}
+                      />
+                    </div>
+
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">SQL Preview</h4>
+                      <div className="border border-gray-200 rounded-lg overflow-hidden">
+                        <SQLEditor
+                          value={selectedTemplate.sqlTemplate || selectedTemplate.sql_query || ''}
+                          onChange={() => {}}
+                          height="200px"
+                          readOnly={true}
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => goToNextStep()}
+                      disabled={!selectedTemplate}
+                      className="w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md
+                               hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500
+                               disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Use This Template
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Custom SQL Editor */}
+            {templateSelectionMode === 'custom' && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Custom SQL Query</label>
+                  <SQLEditor
+                    value={customSql}
+                    onChange={setCustomSql}
+                    height="300px"
+                    placeholder="Enter your SQL query with {{parameter}} placeholders..."
+                  />
+                </div>
+
+                {/* Detected Parameters with Context */}
+                {detectedParameters.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">
+                      Detected Parameters ({detectedParameters.length})
+                    </h4>
+                    <div className="space-y-2">
+                      {detectedParameters.map((param) => {
+                        const context = analyzeParameterContext(customSql, param.name);
+                        return (
+                          <div key={param.name} className="flex items-start gap-2">
+                            <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 text-sm">
+                              <Code className="h-3 w-3 mr-1" />
+                              {param.name}
+                            </span>
+                            <div className="flex-1 text-xs text-gray-500">
+                              <span className="font-medium">Type:</span> {param.type || context.type}
+                              {context.formatHint && (
+                                <span className="ml-2">• {context.formatHint}</span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Report Name and Description */}
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Report Name</label>
+                    <input
+                      type="text"
+                      value={reportName}
+                      onChange={(e) => setReportName(e.target.value)}
+                      placeholder="Enter report name..."
+                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm
+                               focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Description</label>
+                    <textarea
+                      value={reportDescription}
+                      onChange={(e) => setReportDescription(e.target.value)}
+                      placeholder="Describe your report..."
+                      rows={2}
+                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm
+                               focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleCustomSqlSubmit}
+                  disabled={!customSql.trim() || !reportName.trim()}
+                  className="w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md
+                           hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500
+                           disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Continue with Custom Query
+                </button>
+              </div>
+            )}
+          </div>
+        );
+
       case 'parameters':
         return (
           <div className="space-y-4">
@@ -224,10 +665,11 @@ export default function RunReportModal({
 
             <div className="border-t pt-4">
               {/* If template has predefined parameter definitions, use DynamicParameterForm */}
-              {template.parameter_definitions && Object.keys(template.parameter_definitions).length > 0 ? (
+              {(selectedTemplate || initialTemplate)?.parameter_definitions &&
+               Object.keys((selectedTemplate || initialTemplate)?.parameter_definitions || {}).length > 0 ? (
                 <DynamicParameterForm
-                  parameterDefinitions={template.parameter_definitions}
-                  uiSchema={template.ui_schema || {}}
+                  parameterDefinitions={(selectedTemplate || initialTemplate)!.parameter_definitions}
+                  uiSchema={(selectedTemplate || initialTemplate)?.ui_schema || {}}
                   initialValues={parameters}
                   onSubmit={handleParameterSubmit}
                   submitLabel="Next"
@@ -243,11 +685,18 @@ export default function RunReportModal({
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         {param.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                       </label>
-                      <UniversalParameterSelector
-                        parameter={param}
+                      <EnhancedParameterSelector
+                        parameter={{
+                          name: param.name,
+                          type: param.type as any,
+                          required: true,
+                          sqlContext: param.sqlContext,
+                          formatPattern: param.formatPattern,
+                          description: param.description,
+                        }}
+                        instanceId={selectedInstance}
                         value={parameters[param.name]}
                         onChange={(value) => handleParameterChange(param.name, value)}
-                        instanceId={selectedInstance}
                       />
                     </div>
                   ))}
@@ -496,7 +945,9 @@ export default function RunReportModal({
 
               <div>
                 <div className="text-sm font-medium text-gray-700">Template:</div>
-                <div className="text-sm text-gray-900">{template.name}</div>
+                <div className="text-sm text-gray-900">
+                  {(selectedTemplate || initialTemplate)?.name || 'Custom Query'}
+                </div>
               </div>
 
               <div>
@@ -599,7 +1050,9 @@ export default function RunReportModal({
         <div className="flex-shrink-0 px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-gray-900">
-              Run Report: {template.name}
+              {includeTemplateStep && !selectedTemplate
+                ? 'Create New Report'
+                : `Run Report: ${(selectedTemplate || initialTemplate)?.name || 'Custom Query'}`}
             </h2>
             <button
               onClick={onClose}
@@ -700,6 +1153,23 @@ export default function RunReportModal({
           </div>
         </div>
       </div>
+
+      {/* Fork Dialog */}
+      {templateToFork && (
+        <TemplateForkDialog
+          isOpen={showForkDialog}
+          onClose={() => {
+            setShowForkDialog(false);
+            setTemplateToFork(null);
+          }}
+          template={templateToFork}
+          onForked={(forkedTemplate) => {
+            // Switch to the forked template
+            setSelectedTemplate(forkedTemplate);
+            toast.success('Now using your forked template');
+          }}
+        />
+      )}
     </div>
   );
 }

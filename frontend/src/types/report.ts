@@ -40,7 +40,8 @@ export interface ReportExecution {
 export interface CreateReportRequest {
   name: string;
   description?: string;
-  template_id: string;
+  template_id?: string;
+  custom_sql?: string;
   instance_id: string;
   parameters: Record<string, any>;
   execution_type: 'once' | 'recurring' | 'backfill';
