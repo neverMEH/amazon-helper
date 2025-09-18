@@ -25,6 +25,8 @@ from amc_manager.services.token_refresh_service import token_refresh_service
 from amc_manager.services.execution_status_poller import execution_status_poller
 from amc_manager.services.schedule_executor_service import get_schedule_executor
 from amc_manager.services.collection_executor_service import get_collection_executor
+from amc_manager.services.report_scheduler_executor_service import report_scheduler_executor
+from amc_manager.services.report_backfill_executor_service import report_backfill_executor
 
 logger = get_logger(__name__)
 
@@ -67,7 +69,15 @@ async def lifespan(app: FastAPI):
     collection_executor = get_collection_executor()
     asyncio.create_task(collection_executor.start())
     logger.info("✓ Collection executor service started")
-    
+
+    # Start report scheduler executor service
+    asyncio.create_task(report_scheduler_executor.run())
+    logger.info("✓ Report scheduler executor service started")
+
+    # Start report backfill executor service
+    asyncio.create_task(report_backfill_executor.run())
+    logger.info("✓ Report backfill executor service started")
+
     # Load only users with valid tokens for token refresh tracking
     try:
         users_response = client.table('users').select('id, auth_tokens').execute()
