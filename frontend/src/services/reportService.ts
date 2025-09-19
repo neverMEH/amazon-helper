@@ -2,7 +2,6 @@ import api from './api';
 import type { Report, CreateReportRequest } from '../types/report';
 import { workflowService } from './workflowService';
 import { scheduleService } from './scheduleService';
-import { reportApiService } from './reportApiService';
 
 export const reportService = {
   // Report CRUD operations - Using workflows API
