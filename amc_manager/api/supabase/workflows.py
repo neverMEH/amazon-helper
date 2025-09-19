@@ -204,15 +204,65 @@ async def create_workflow(
 
             # Use provided parameters or empty defaults for workflow creation
             # This creates a valid SQL for AMC workflow creation
-            params_to_use = workflow.parameters or {}
+            params_to_use = {}
+            provided_params = workflow.parameters or {}
 
             # Add default values for common parameters if not provided
             param_pattern = r'\{\{(\w+)\}\}'
             param_names = list(set(re.findall(param_pattern, sql_query)))
 
             for param_name in param_names:
-                if param_name not in params_to_use:
-                    # Provide sensible defaults
+                # Check if this parameter is marked for SQL injection (frontend sends _sqlInject flag)
+                param_value = provided_params.get(param_name)
+
+                # Handle SQL injection parameters - check for _sqlInject flag in parameter structure
+                if param_value and isinstance(param_value, dict):
+                    logger.info(f"Parameter {param_name} is a dict with keys: {param_value.keys()}")
+                    if param_value.get('_sqlInject'):
+                        logger.info(f"Parameter {param_name} has _sqlInject flag - using dummy values")
+                        # This is a SQL injection parameter from frontend
+                        # Use dummy values for workflow creation - the actual values will be injected during execution
+                        if 'asin' in param_name.lower():
+                            params_to_use[param_name] = ['B00DUMMY01']  # Dummy ASIN
+                        elif 'campaign' in param_name.lower():
+                            params_to_use[param_name] = ['dummy_campaign']  # Dummy campaign
+                        else:
+                            params_to_use[param_name] = ['dummy_value']  # Generic dummy
+                    elif 'value' in param_value:
+                        # Parameter has a value field - extract it
+                        actual_value = param_value.get('value')
+                        if actual_value is not None and actual_value != '':
+                            # Check if the value itself has _sqlInject flag
+                            if isinstance(actual_value, dict) and actual_value.get('_sqlInject'):
+                                # Nested _sqlInject flag
+                                if 'asin' in param_name.lower():
+                                    params_to_use[param_name] = ['B00DUMMY01']
+                                elif 'campaign' in param_name.lower():
+                                    params_to_use[param_name] = ['dummy_campaign']
+                                else:
+                                    params_to_use[param_name] = ['dummy_value']
+                            else:
+                                # Use the actual value
+                                params_to_use[param_name] = actual_value
+                        else:
+                            # Empty value - check if this needs SQL injection
+                            if any(k in param_name.lower() for k in ['campaign', 'asin', 'brand']):
+                                if 'asin' in param_name.lower():
+                                    params_to_use[param_name] = ['B00DUMMY01']
+                                elif 'campaign' in param_name.lower():
+                                    params_to_use[param_name] = ['dummy_campaign']
+                                else:
+                                    params_to_use[param_name] = ['dummy_brand']
+                            else:
+                                params_to_use[param_name] = ''
+                    else:
+                        # Dictionary without _sqlInject or value - use as is
+                        params_to_use[param_name] = param_value
+                elif param_name in provided_params:
+                    # Use the provided value if it's not a SQL injection parameter
+                    params_to_use[param_name] = provided_params[param_name]
+                else:
+                    # Provide sensible defaults for missing parameters
                     if 'date' in param_name.lower() or 'time' in param_name.lower():
                         # Use a date from 30 days ago (within AMC data availability)
                         from datetime import datetime, timedelta
