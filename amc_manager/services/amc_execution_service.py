@@ -447,20 +447,36 @@ class AMCExecutionService:
 
                 # Step 3: Apply SQL injection parameters
                 for param_name, param_value in sql_injection_params.items():
+                    param_pattern = f"{{{{{param_name}}}}}"
+
+                    # Check if VALUES keyword already exists before the parameter
+                    # This handles templates like: WITH cte AS (VALUES {{param}})
+                    import re
+                    values_before_param = re.search(rf'VALUES\s*\n?\s*\{{\{{{param_name}\}}\}}', processed_sql_query, re.IGNORECASE)
+
                     if isinstance(param_value, dict) and param_value.get('_sqlInject'):
                         # Apply SQL injection to query
                         values_clause = param_value.get('_valuesClause', '')
                         if values_clause:
-                            # Replace parameter placeholder with VALUES clause
-                            param_pattern = f"{{{{{param_name}}}}}"
-                            processed_sql_query = processed_sql_query.replace(param_pattern, f"VALUES\n{values_clause}")
-                            logger.info(f"Applied SQL injection for {param_name}: replaced {param_pattern} with VALUES clause")
+                            if values_before_param:
+                                # VALUES already exists, just replace parameter with values
+                                processed_sql_query = processed_sql_query.replace(param_pattern, f"\n{values_clause}")
+                                logger.info(f"Applied SQL injection for {param_name}: replaced {param_pattern} with values (VALUES already present)")
+                            else:
+                                # No VALUES keyword, add it
+                                processed_sql_query = processed_sql_query.replace(param_pattern, f"VALUES\n{values_clause}")
+                                logger.info(f"Applied SQL injection for {param_name}: replaced {param_pattern} with VALUES clause")
                     elif isinstance(param_value, list):
                         # Convert legacy array to SQL injection
                         values_clause = '\n'.join([f"    ('{value}')" for value in param_value])
-                        param_pattern = f"{{{{{param_name}}}}}"
-                        processed_sql_query = processed_sql_query.replace(param_pattern, f"VALUES\n{values_clause}")
-                        logger.info(f"Applied SQL injection for legacy parameter {param_name}: replaced {param_pattern} with VALUES clause")
+                        if values_before_param:
+                            # VALUES already exists, just replace parameter with values
+                            processed_sql_query = processed_sql_query.replace(param_pattern, f"\n{values_clause}")
+                            logger.info(f"Applied SQL injection for legacy parameter {param_name}: replaced {param_pattern} with values (VALUES already present)")
+                        else:
+                            # No VALUES keyword, add it
+                            processed_sql_query = processed_sql_query.replace(param_pattern, f"VALUES\n{values_clause}")
+                            logger.info(f"Applied SQL injection for legacy parameter {param_name}: replaced {param_pattern} with VALUES clause")
 
             # Step 4: Validate no placeholders remain
             import re
