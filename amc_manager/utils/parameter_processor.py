@@ -5,6 +5,7 @@ Handles parameter substitution, LIKE pattern detection, and array formatting
 import re
 from typing import Dict, Any, List, Tuple, Optional
 import logging
+from .query_logger import QueryLogger
 
 logger = logging.getLogger(__name__)
 
@@ -17,9 +18,13 @@ class ParameterProcessor:
 
     # Dangerous SQL keywords to check for injection prevention
     DANGEROUS_KEYWORDS = [
-        'DROP', 'DELETE FROM', 'INSERT INTO', 'UPDATE', 'ALTER',
+        'DROP', 'DELETE', 'INSERT INTO', 'UPDATE', 'ALTER',
         'CREATE', 'EXEC', 'EXECUTE', 'TRUNCATE', 'GRANT', 'REVOKE'
     ]
+
+    # AMC API limits
+    AMC_MAX_IN_CLAUSE_ITEMS = 1000  # Maximum items in an IN clause
+    AMC_MAX_QUERY_LENGTH = 102400  # Maximum query length in bytes (100KB)
 
     # Parameter patterns we need to identify
     PARAM_PATTERNS = {
@@ -42,7 +47,7 @@ class ParameterProcessor:
 
     @classmethod
     def process_sql_parameters(cls, sql_template: str, parameters: Dict[str, Any],
-                             validate_all: bool = True) -> str:
+                             validate_all: bool = True, query_id: Optional[str] = None) -> str:
         """
         Process SQL template with parameter substitution
 
@@ -51,6 +56,7 @@ class ParameterProcessor:
             parameters: Parameter values to substitute
             validate_all: If True, validate all required params are present.
                          If False, only substitute provided params (useful for partial processing)
+            query_id: Optional query ID for tracking through logging
 
         Returns:
             SQL query with substituted values
@@ -58,15 +64,52 @@ class ParameterProcessor:
         Raises:
             ValueError: If required parameters are missing (when validate_all=True) or dangerous SQL detected
         """
+        # Generate query ID if not provided
+        if not query_id:
+            query_id = QueryLogger.generate_query_id(sql_template)
+
+        # Log template stage
+        QueryLogger.log_query_stage(
+            query_id,
+            QueryLogger.STAGE_TEMPLATE,
+            sql_template,
+            parameters,
+            metadata={"validate_all": validate_all}
+        )
+
         # Find all required parameters
         required_params = cls._find_required_parameters(sql_template)
+
+        # Log parameter extraction
+        QueryLogger.log_query_stage(
+            query_id,
+            QueryLogger.STAGE_PARAMETER_EXTRACTION,
+            sql_template,
+            parameters,
+            metadata={"required_params": required_params}
+        )
 
         # Validate required parameters are present (only if validate_all is True)
         if validate_all:
             cls._validate_parameters(required_params, parameters)
+            QueryLogger.log_validation_result(
+                query_id,
+                "parameter_presence",
+                True,
+                {"all_params_present": True}
+            )
 
         # Substitute parameters
-        query = cls._substitute_parameters(sql_template, parameters)
+        query = cls._substitute_parameters(sql_template, parameters, query_id)
+
+        # Log final substitution
+        QueryLogger.log_query_stage(
+            query_id,
+            QueryLogger.STAGE_PARAMETER_SUBSTITUTION,
+            query,
+            parameters,
+            metadata={"final_length": len(query)}
+        )
 
         logger.debug(f"Processed SQL query: {query[:500]}...")
         return query
@@ -93,7 +136,8 @@ class ParameterProcessor:
             raise ValueError(f"Missing required parameters: {', '.join(missing_params)}")
 
     @classmethod
-    def _substitute_parameters(cls, sql_template: str, parameters: Dict[str, Any]) -> str:
+    def _substitute_parameters(cls, sql_template: str, parameters: Dict[str, Any],
+                             query_id: Optional[str] = None) -> str:
         """Substitute all parameters in SQL template"""
         query = sql_template
 
@@ -102,6 +146,17 @@ class ParameterProcessor:
             formatted_value = cls._format_parameter_value(
                 param_name, value, sql_template
             )
+
+            # Log parameter processing if query_id provided
+            if query_id:
+                is_large = isinstance(value, list) and len(value) > cls.AMC_MAX_IN_CLAUSE_ITEMS
+                QueryLogger.log_parameter_processing(
+                    query_id,
+                    param_name,
+                    value,
+                    formatted_value,
+                    is_large_list=is_large
+                )
 
             # Replace all parameter formats
             query = cls._replace_parameter_formats(query, param_name, formatted_value)
@@ -118,8 +173,11 @@ class ParameterProcessor:
         - Strings in LIKE context: Add wildcards %value%
         - Regular strings: Escape and quote
         - Numbers/booleans: Convert to string
+        - None: Convert to SQL NULL
         """
-        if isinstance(value, (list, tuple)):
+        if value is None:
+            return 'NULL'
+        elif isinstance(value, (list, tuple)):
             return cls._format_array_parameter(param_name, value)
         elif isinstance(value, str):
             return cls._format_string_parameter(param_name, value, sql_template)
@@ -131,7 +189,18 @@ class ParameterProcessor:
 
     @classmethod
     def _format_array_parameter(cls, param_name: str, values: List[Any]) -> str:
-        """Format array parameter as SQL IN clause"""
+        """
+        Format array parameter as SQL IN clause
+        Handles large lists by using VALUES clause approach if needed
+        """
+        # Check if this is a large list that needs special handling
+        if len(values) > cls.AMC_MAX_IN_CLAUSE_ITEMS:
+            logger.warning(
+                f"Parameter '{param_name}' has {len(values)} items, "
+                f"exceeding AMC limit of {cls.AMC_MAX_IN_CLAUSE_ITEMS}. "
+                "Consider using VALUES clause approach or batching."
+            )
+
         escaped_values = []
 
         for val in values:
@@ -151,8 +220,8 @@ class ParameterProcessor:
         # Escape the value first
         escaped_value = cls._escape_string_value(value, param_name)
 
-        # Check if this parameter is used in a LIKE context
-        if cls._is_like_parameter(param_name, sql_template):
+        # Check if this parameter is used in a LIKE context (but not for empty strings)
+        if value and cls._is_like_parameter(param_name, sql_template):
             # Add wildcards for LIKE pattern matching
             logger.info(f"✓ Parameter '{param_name}' formatted with wildcards for LIKE clause")
             return f"'%{escaped_value}%'"
@@ -296,3 +365,115 @@ class ParameterProcessor:
             param_info[param] = info
 
         return param_info
+
+    @classmethod
+    def format_as_values_clause(cls, values: List[Any], column_name: str = "column1") -> str:
+        """
+        Format a list of values as a VALUES clause for use in CTEs
+        This is useful for large lists that exceed IN clause limits
+
+        Args:
+            values: List of values to format
+            column_name: Name for the column in VALUES clause
+
+        Returns:
+            VALUES clause formatted string
+
+        Example:
+            Input: ["val1", "val2"], "campaign_id"
+            Output: "(VALUES ('val1'), ('val2')) AS t(campaign_id)"
+        """
+        if not values:
+            # Return empty VALUES clause
+            return f"(VALUES (NULL)) AS t({column_name}) WHERE 1=0"
+
+        formatted_values = []
+        for val in values:
+            if isinstance(val, str):
+                # Escape single quotes
+                escaped = val.replace("'", "''")
+                formatted_values.append(f"('{escaped}')")
+            elif val is None:
+                formatted_values.append("(NULL)")
+            else:
+                formatted_values.append(f"({val})")
+
+        values_clause = f"(VALUES {', '.join(formatted_values)}) AS t({column_name})"
+        return values_clause
+
+    @classmethod
+    def create_large_list_cte(cls, param_name: str, values: List[Any],
+                            column_name: Optional[str] = None) -> str:
+        """
+        Create a CTE (Common Table Expression) for handling large lists
+
+        Args:
+            param_name: Parameter name (e.g., "campaign_ids")
+            values: List of values
+            column_name: Column name for the CTE (defaults to param_name without 's')
+
+        Returns:
+            CTE definition string
+
+        Example:
+            Input: "campaign_ids", ["c1", "c2", "c3"]
+            Output: "WITH campaign_ids_filter AS (SELECT column1 as campaign_id FROM (VALUES ('c1'), ('c2'), ('c3')) AS t(column1))"
+        """
+        if not column_name:
+            # Try to infer column name from param name
+            if param_name.endswith('_ids'):
+                column_name = param_name[:-1]  # Remove 's' from ids
+            elif param_name.endswith('_list'):
+                column_name = param_name[:-5]  # Remove '_list'
+            elif param_name.endswith('s') and len(param_name) > 1 and param_name != 'status':
+                # Only remove plural 's' if it makes sense (not for words like "status")
+                column_name = param_name[:-1]  # Remove plural 's'
+            else:
+                column_name = param_name
+
+        cte_name = f"{param_name}_filter"
+        values_clause = cls.format_as_values_clause(values, "column1")
+
+        cte = f"WITH {cte_name} AS (SELECT column1 as {column_name} FROM {values_clause})"
+        return cte
+
+    @classmethod
+    def check_query_length(cls, query: str, query_id: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Check if query length is within AMC limits
+
+        Args:
+            query: SQL query to check
+            query_id: Optional query ID for tracking
+
+        Returns:
+            Dict with length info and warnings
+        """
+        query_bytes = len(query.encode('utf-8'))
+
+        result = {
+            'length_bytes': query_bytes,
+            'length_chars': len(query),
+            'within_limits': query_bytes <= cls.AMC_MAX_QUERY_LENGTH,
+            'limit_bytes': cls.AMC_MAX_QUERY_LENGTH
+        }
+
+        # Log validation result if query_id provided
+        if query_id:
+            QueryLogger.log_validation_result(
+                query_id,
+                "query_length",
+                result['within_limits'],
+                result,
+                error_message=result.get('warning')
+            )
+
+        if not result['within_limits']:
+            result['warning'] = (
+                f"Query exceeds AMC limit: {query_bytes} bytes "
+                f"(limit: {cls.AMC_MAX_QUERY_LENGTH} bytes). "
+                "Consider using VALUES clause approach or reducing parameters."
+            )
+            logger.warning(result['warning'])
+
+        return result

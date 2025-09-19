@@ -18,26 +18,26 @@ Based on the review of the current implementation, here are the tasks to ensure 
   - [x] 1.4 Validate the workflow payload structure for ad-hoc executions
   - [x] 1.5 Verify all tests pass for ad-hoc execution validation
 
-- [ ] 2. Fix Time Window Handling for AMC Requirements
-  - [ ] 2.1 Write tests for date format handling (no 'Z' suffix requirement)
-  - [ ] 2.2 Update date formatting to ensure AMC-compatible format (YYYY-MM-DDTHH:MM:SS)
-  - [ ] 2.3 Implement 14-day data lag adjustment for end dates
-  - [ ] 2.4 Fix time window parameter extraction from various parameter key formats
-  - [ ] 2.5 Verify all date handling tests pass
+- [x] 2. Fix Time Window Handling for AMC Requirements
+  - [x] 2.1 Write tests for date format handling (no 'Z' suffix requirement)
+  - [x] 2.2 Update date formatting to ensure AMC-compatible format (YYYY-MM-DDTHH:MM:SS)
+  - [x] 2.3 Implement 14-day data lag adjustment for end dates
+  - [x] 2.4 Fix time window parameter extraction from various parameter key formats
+  - [x] 2.5 Verify all date handling tests pass
 
-- [ ] 3. Enhance SQL Query Parameter Processing
-  - [ ] 3.1 Write tests for parameter replacement in SQL queries
-  - [ ] 3.2 Implement parameter replacement for large lists (campaigns, ASINs) using VALUES clause injection
-  - [ ] 3.3 Add parameter length validation to avoid AMC API limits
-  - [ ] 3.4 Ensure SQL query is properly populated from templates
-  - [ ] 3.5 Verify all parameter processing tests pass
+- [x] 3. Enhance SQL Query Parameter Processing
+  - [x] 3.1 Write tests for parameter replacement in SQL queries
+  - [x] 3.2 Implement parameter replacement for large lists (campaigns, ASINs) using VALUES clause injection
+  - [x] 3.3 Add parameter length validation to avoid AMC API limits
+  - [x] 3.4 Ensure SQL query is properly populated from templates
+  - [x] 3.5 Verify all parameter processing tests pass
 
-- [ ] 4. Improve Error Handling and Monitoring
-  - [ ] 4.1 Write tests for AMC API error response handling
-  - [ ] 4.2 Add proper logging for SQL query content at each stage
-  - [ ] 4.3 Implement retry logic for transient AMC API failures
-  - [ ] 4.4 Add execution status polling for ad-hoc workflows
-  - [ ] 4.5 Verify all error handling tests pass
+- [x] 4. Improve Error Handling and Monitoring
+  - [x] 4.1 Write tests for AMC API error response handling
+  - [x] 4.2 Add proper logging for SQL query content at each stage
+  - [x] 4.3 Implement retry logic for transient AMC API failures
+  - [x] 4.4 Add execution status polling for ad-hoc workflows (existing)
+  - [x] 4.5 Verify all error handling tests pass
 
 - [ ] 5. Create Comprehensive Documentation
   - [x] 5.1 Document AMC ad-hoc execution limitations in reference-docs/amc-ad-hoc-execution.md
