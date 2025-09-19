@@ -263,9 +263,8 @@ async def create_workflow(
             "amc_synced_at": datetime.now(timezone.utc).isoformat()
         }
 
-        # Add template_id if this workflow was created from a template
-        if workflow.template_id:
-            workflow_data["template_id"] = workflow.template_id
+        # Note: template_id field doesn't exist in workflows table yet
+        # Could be added in a future migration if needed to track template usage
         
         # Use sync version
         created = db_service.create_workflow_sync(workflow_data)
