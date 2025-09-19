@@ -154,6 +154,19 @@ class AMCAPIClient:
                     payload["parameterValues"] = workflow_params
         else:
             # Ad-hoc execution with SQL query
+            logger.info(f"Building ad-hoc execution payload")
+            logger.info(f"SQL query provided: {sql_query is not None}")
+            logger.info(f"SQL query length: {len(sql_query) if sql_query else 0}")
+            if sql_query:
+                logger.info(f"First 100 chars of SQL: {sql_query[:100] if sql_query else 'None'}")
+
+            if not sql_query:
+                logger.error("No SQL query provided for ad-hoc execution! Returning error.")
+                return {
+                    "success": False,
+                    "error": "No SQL query provided for ad-hoc execution"
+                }
+
             payload = {
                 "workflow": {
                     "query": {

@@ -52,7 +52,7 @@ class SearchResponse(BaseModel):
 @router.get("/", response_model=ASINListResponse)
 async def list_asins(
     page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(100, ge=1, le=1000, description="Items per page"),
+    page_size: int = Query(100, ge=1, le=999999, description="Items per page"),
     brand: Optional[str] = Query(None, description="Filter by brand"),
     marketplace: Optional[str] = Query(None, description="Filter by marketplace"),
     search: Optional[str] = Query(None, description="Search in ASIN and title"),
@@ -236,7 +236,7 @@ async def list_asins_by_instance_brand(
     instance_id: str = Query(..., description="AMC instance ID"),
     brand_id: str = Query(..., description="Brand ID"),
     search: Optional[str] = Query(None, description="Search term for ASIN or product title"),
-    limit: int = Query(100, ge=1, le=1000, description="Maximum results to return"),
+    limit: int = Query(100, ge=1, le=999999, description="Maximum results to return"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
     current_user: dict = Depends(get_current_user)
 ) -> Dict[str, Any]:

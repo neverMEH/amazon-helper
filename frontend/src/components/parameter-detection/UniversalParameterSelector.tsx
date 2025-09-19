@@ -3,7 +3,6 @@ import type { FC, ReactNode } from 'react';
 import type { DetectedParameter } from '../../utils/parameterDetection';
 import { ASINSelector } from './ASINSelector';
 import { DateRangeSelector } from './DateRangeSelector';
-import { CampaignSelector } from './CampaignSelector';
 import { AlertCircle } from 'lucide-react';
 
 interface UniversalParameterSelectorProps {
@@ -71,16 +70,14 @@ export const UniversalParameterSelector: FC<UniversalParameterSelectorProps> = (
         );
       
       case 'campaign':
+        // Use a simple text input for campaign parameters
         return (
-          <CampaignSelector
-            instanceId={instanceId}
-            brandId={brandId}
-            value={value}
-            onChange={handleChange}
-            placeholder={`Select campaigns for ${parameter.name}`}
-            campaignType={parameter.campaign_type}
-            valueType={parameter.value_type}
-            showAll={showAll}
+          <input
+            type="text"
+            value={value || ''}
+            onChange={(e) => handleChange(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            placeholder={`Enter campaign value for ${parameter.name}`}
           />
         );
       

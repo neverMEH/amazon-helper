@@ -1,18 +1,27 @@
 export interface QueryTemplate {
   id: string;
-  templateId: string;
+  templateId?: string;
   name: string;
   description?: string;
   category: string;
-  sqlTemplate: string;
-  parametersSchema: Record<string, any>;
-  defaultParameters: Record<string, any>;
-  isPublic: boolean;
-  tags: string[];
-  usageCount: number;
-  isOwner: boolean;
-  createdAt: string;
-  updatedAt: string;
+  sqlTemplate?: string;
+  sql_query?: string; // Added for compatibility
+  parametersSchema?: Record<string, any>;
+  parameter_definitions?: Record<string, any>; // Added for report builder
+  defaultParameters?: Record<string, any>;
+  parameters?: Record<string, any>; // Added for compatibility
+  ui_schema?: Record<string, any>; // Added for report builder
+  report_type?: string; // Added for report categorization
+  report_config?: Record<string, any>; // Added for report configuration
+  instance_types?: string[]; // Added for instance compatibility
+  isPublic?: boolean;
+  tags?: string[];
+  usageCount?: number;
+  isOwner?: boolean;
+  created_at?: string; // Alternative naming
+  createdAt?: string;
+  updated_at?: string; // Alternative naming
+  updatedAt?: string;
 }
 
 export interface QueryTemplateCreate {

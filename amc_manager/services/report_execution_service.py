@@ -55,6 +55,15 @@ class ReportExecutionService(DatabaseService):
             Execution record or None if failed
         """
         try:
+            logger.info(f"execute_report_adhoc called with report_id={report_id}, instance_id={instance_id}")
+            logger.info(f"SQL query received: {'Yes' if sql_query else 'No'}")
+            logger.info(f"SQL query length: {len(sql_query) if sql_query else 0}")
+            if sql_query:
+                logger.info(f"SQL query first 200 chars: {sql_query[:200]}")
+            else:
+                logger.error("WARNING: SQL query is None or empty!")
+            logger.info(f"Time window: {time_window_start} to {time_window_end}")
+
             # Generate execution ID
             execution_id = f"exec_{uuid.uuid4().hex[:8]}"
 
@@ -91,13 +100,33 @@ class ReportExecutionService(DatabaseService):
             # Execute via AMC API (ad-hoc, no workflow creation)
             try:
                 # Call AMC API with sql_query only (no workflow)
+                # Build parameters for AMC API - include time window in parameter_values
+                amc_params = {}
+                if time_window_start:
+                    amc_params['timeWindowStart'] = self._format_amc_date(time_window_start)
+                if time_window_end:
+                    amc_params['timeWindowEnd'] = self._format_amc_date(time_window_end)
+
+                # Add any other parameters passed
+                if parameters:
+                    amc_params.update(parameters)
+
+                logger.info(f"Executing ad-hoc report with SQL length: {len(sql_query) if sql_query else 0}")
+                logger.info(f"Parameters being passed: {amc_params}")
+
+                # Final check before AMC call
+                if not sql_query:
+                    logger.error("CRITICAL: SQL query is None/empty right before AMC API call!")
+                    raise ValueError("SQL query is required for ad-hoc execution")
+                else:
+                    logger.info(f"SQL query confirmed present, length: {len(sql_query)}")
+
                 amc_result = await self.amc_client.create_workflow_execution(
                     instance_id=instance_id,
                     user_id=user_id,
                     entity_id=entity_id,
                     sql_query=sql_query,
-                    time_window_start=self._format_amc_date(time_window_start),
-                    time_window_end=self._format_amc_date(time_window_end)
+                    parameter_values=amc_params if amc_params else None
                 )
 
                 # Update execution with AMC execution ID

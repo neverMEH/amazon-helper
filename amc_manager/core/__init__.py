@@ -3,10 +3,13 @@
 # Import and re-export commonly used classes and functions
 from .api_client import AMCAPIClient, AMCAPIEndpoints
 from .logger import get_logger
+from .supabase_client import SupabaseManager, CampaignMappingService
 
 # Make exports available at package level
 __all__ = [
     'AMCAPIClient',
     'AMCAPIEndpoints', 
-    'get_logger'
+    'get_logger',
+    'SupabaseManager',
+    'CampaignMappingService'
 ]

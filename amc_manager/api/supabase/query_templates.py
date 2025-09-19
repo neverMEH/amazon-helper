@@ -264,10 +264,10 @@ def use_template(
         template = query_template_service.get_template(template_id, current_user['id'])
         if not template:
             raise HTTPException(status_code=404, detail="Template not found or access denied")
-        
+
         # Increment usage
         query_template_service.increment_usage(template_id)
-        
+
         return {
             "templateId": template_id,
             "usageCount": template.get('usage_count', 0) + 1
@@ -276,6 +276,32 @@ def use_template(
         raise
     except Exception as e:
         logger.error(f"Error marking template as used: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update usage count")
+
+
+@router.post("/{template_id}/increment-usage")
+def increment_template_usage(
+    template_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """Increment template usage count (alias for /use endpoint)"""
+    try:
+        # Verify access first
+        template = query_template_service.get_template(template_id, current_user['id'])
+        if not template:
+            raise HTTPException(status_code=404, detail="Template not found or access denied")
+
+        # Increment usage
+        query_template_service.increment_usage(template_id)
+
+        return {
+            "templateId": template_id,
+            "usageCount": template.get('usage_count', 0) + 1
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error incrementing template usage: {e}")
         raise HTTPException(status_code=500, detail="Failed to update usage count")
 
 

@@ -1473,6 +1473,327 @@ Content-Type: application/json
 }
 ```
 
+## Report Builder Routes (2025-09-15)
+
+The Report Builder API provides comprehensive report management with direct AMC execution, scheduling, and dashboard integration.
+
+### Report CRUD Operations
+
+#### GET /api/reports/
+List all reports for the current user with filtering and pagination.
+
+```http
+GET /api/reports/?instance_id={instance_id}&is_active={bool}&page={num}&page_size={num}
+Authorization: Bearer {jwt_token}
+```
+
+**Query Parameters:**
+- `instance_id` (optional): Filter by AMC instance ID
+- `is_active` (optional): Filter by active status (true/false)
+- `page` (optional): Page number (default: 1)
+- `page_size` (optional): Items per page (default: 20, max: 100)
+
+**Response:**
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "report_id": "rpt_abc12345",
+      "name": "Campaign Performance Report",
+      "description": "Weekly campaign metrics",
+      "template_id": "uuid",
+      "instance_id": "uuid",
+      "frequency": "weekly",
+      "is_active": true,
+      "dashboard_id": "uuid",
+      "execution_count": 15,
+      "created_at": "2025-09-15T10:00:00Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "page_size": 20,
+    "total": 45,
+    "total_pages": 3
+  }
+}
+```
+
+#### POST /api/reports/
+Create a new report definition.
+
+```http
+POST /api/reports/
+Authorization: Bearer {jwt_token}
+Content-Type: application/json
+
+{
+  "name": "Campaign Performance Report",
+  "description": "Weekly campaign metrics analysis",
+  "template_id": "template-uuid",
+  "instance_id": "instance-uuid",
+  "parameters": {
+    "date_range": "last_7_days",
+    "campaigns": ["campaign1", "campaign2"]
+  },
+  "frequency": "weekly",
+  "create_dashboard": true
+}
+```
+
+**Response:** `201 Created`
+```json
+{
+  "id": "uuid",
+  "report_id": "rpt_abc12345",
+  "name": "Campaign Performance Report",
+  "template": {...},
+  "instance": {...},
+  "dashboard": {...} // if create_dashboard: true
+}
+```
+
+#### GET /api/reports/{report_id}
+Get detailed report information including template and instance details.
+
+**Response:**
+```json
+{
+  "id": "uuid",
+  "report_id": "rpt_abc12345",
+  "name": "Campaign Performance Report",
+  "template": {
+    "id": "uuid",
+    "name": "Campaign Analysis Template",
+    "category": "performance"
+  },
+  "instance": {
+    "id": "uuid",
+    "instance_id": "amcibersblt",
+    "name": "Main AMC Instance"
+  },
+  "schedules": [...],
+  "recent_executions": [...]
+}
+```
+
+#### PUT /api/reports/{report_id}
+Update report configuration.
+
+```http
+PUT /api/reports/{report_id}
+Authorization: Bearer {jwt_token}
+
+{
+  "name": "Updated Report Name",
+  "parameters": {...},
+  "is_active": false
+}
+```
+
+#### DELETE /api/reports/{report_id}
+Delete a report and all associated data.
+
+**Response:** `204 No Content`
+
+### Report Execution
+
+#### POST /api/reports/{report_id}/execute
+Execute a report ad-hoc with optional parameter overrides.
+
+```http
+POST /api/reports/{report_id}/execute
+Authorization: Bearer {jwt_token}
+
+{
+  "parameters": {
+    "date_range": "yesterday"
+  },
+  "time_window_start": "2025-09-14T00:00:00",
+  "time_window_end": "2025-09-14T23:59:59"
+}
+```
+
+**Response:** `202 Accepted`
+```json
+{
+  "id": "uuid",
+  "execution_id": "exec_xyz98765",
+  "status": "pending",
+  "amc_execution_id": "amc-exec-12345",
+  "started_at": "2025-09-15T10:00:00Z"
+}
+```
+
+#### GET /api/reports/{report_id}/executions
+List executions for a specific report.
+
+```http
+GET /api/reports/{report_id}/executions?status=completed&limit=10
+```
+
+#### GET /api/reports/executions/{execution_id}
+Get detailed execution information including results.
+
+```json
+{
+  "id": "uuid",
+  "execution_id": "exec_xyz98765",
+  "status": "completed",
+  "output_location": "s3://bucket/path/results.csv",
+  "row_count": 1234,
+  "size_bytes": 567890,
+  "started_at": "2025-09-15T10:00:00Z",
+  "completed_at": "2025-09-15T10:05:30Z"
+}
+```
+
+#### POST /api/reports/executions/{execution_id}/cancel
+Cancel a pending or running execution.
+
+**Response:**
+```json
+{
+  "message": "Execution cancelled"
+}
+```
+
+### Schedule Management
+
+#### POST /api/reports/{report_id}/schedules
+Create a recurring schedule for a report.
+
+```http
+POST /api/reports/{report_id}/schedules
+Authorization: Bearer {jwt_token}
+
+{
+  "schedule_type": "weekly",
+  "cron_expression": "0 9 * * 1",
+  "timezone": "America/New_York",
+  "default_parameters": {
+    "date_range": "last_7_days"
+  },
+  "is_active": true
+}
+```
+
+**Response:** `201 Created`
+
+#### GET /api/reports/{report_id}/schedules
+List all schedules for a report.
+
+#### POST /api/reports/schedules/{schedule_id}/pause
+Pause a recurring schedule.
+
+#### POST /api/reports/schedules/{schedule_id}/resume
+Resume a paused schedule.
+
+#### DELETE /api/reports/schedules/{schedule_id}
+Delete a schedule permanently.
+
+### Template Integration
+
+#### GET /api/reports/templates/
+List available report templates with filtering.
+
+```http
+GET /api/reports/templates/?category=performance&report_type=analysis
+```
+
+#### GET /api/reports/templates/{template_id}
+Get template details with report-specific configuration.
+
+### Dashboard Integration
+
+#### POST /api/reports/{report_id}/dashboard
+Link an existing dashboard to a report.
+
+```http
+POST /api/reports/{report_id}/dashboard
+
+{
+  "dashboard_id": "dashboard-uuid"
+}
+```
+
+#### DELETE /api/reports/{report_id}/dashboard
+Unlink dashboard from report.
+
+### Backfill Operations
+
+#### POST /api/reports/{report_id}/backfill
+Create a historical data backfill job.
+
+```http
+POST /api/reports/{report_id}/backfill
+
+{
+  "start_date": "2025-08-01",
+  "end_date": "2025-09-14",
+  "segment_type": "weekly",
+  "parameters": {
+    "campaigns": ["specific-campaign"]
+  }
+}
+```
+
+**Response:** `202 Accepted`
+
+#### GET /api/reports/backfill/{backfill_id}
+Get backfill progress and status.
+
+```json
+{
+  "id": "uuid",
+  "status": "running",
+  "progress": {
+    "total_segments": 6,
+    "completed_segments": 4,
+    "failed_segments": 0,
+    "progress_percentage": 67
+  },
+  "estimated_completion": "2025-09-15T11:30:00Z"
+}
+```
+
+### Metadata Services
+
+#### GET /api/reports/overview
+Get comprehensive overview of user's reports.
+
+```json
+{
+  "total_reports": 12,
+  "active_reports": 8,
+  "total_executions": 145,
+  "recent_executions": [...],
+  "scheduled_reports": 5,
+  "next_scheduled_run": "2025-09-16T09:00:00Z"
+}
+```
+
+#### GET /api/reports/stats
+Get execution statistics over time.
+
+```http
+GET /api/reports/stats?days=30
+```
+
+**Response:**
+```json
+{
+  "period": "30_days",
+  "total_executions": 89,
+  "successful_executions": 83,
+  "failed_executions": 6,
+  "success_rate": 93.3,
+  "avg_execution_time": "4.2_minutes",
+  "execution_trend": [...]
+}
+```
+
 ## Error Responses
 
 ### Common HTTP Status Codes

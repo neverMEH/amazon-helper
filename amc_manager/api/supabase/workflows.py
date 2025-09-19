@@ -50,7 +50,7 @@ class WorkflowUpdate(BaseModel):
 #     is_active: Optional[bool] = None
 
 
-@router.get("")
+@router.get("/")
 def list_workflows(
     instance_id: Optional[str] = None,
     current_user: Dict[str, Any] = Depends(get_current_user)
@@ -148,34 +148,59 @@ async def create_workflow(
         account = instance.get('amc_accounts')
         if not account:
             raise HTTPException(status_code=404, detail="AMC account not found")
-        
+
         entity_id = account['account_id']
         marketplace_id = account['marketplace_id']
-        
-        # Generate unique workflow ID for AMC
+
+        # Import needed modules at the top
         import uuid
         import re
+
+        # If template_id is provided and sql_query is empty, fetch SQL from template
+        sql_query = workflow.sql_query
+        if workflow.template_id and not sql_query:
+            from ...services.query_template_service import query_template_service
+            template = query_template_service.get_template(workflow.template_id, current_user['id'])
+            if template:
+                # Get the template SQL but DON'T substitute parameters here
+                # AMC has a 1024 char limit for SQL in ad-hoc execution
+                # Parameters will be substituted at execution time
+                sql_query = template.get('sql_template') or template.get('sql_query') or ''
+                logger.info(f"Fetched SQL from template {workflow.template_id}, length: {len(sql_query)}")
+
+                # Log that we're keeping placeholders
+                logger.info(f"Keeping template placeholders for execution-time substitution (avoids AMC 1024 char limit)")
+            else:
+                logger.warning(f"Template {workflow.template_id} not found or access denied")
+
+        if not sql_query:
+            raise HTTPException(status_code=400, detail="SQL query is required")
+
+        # Generate unique workflow ID for AMC
         base_workflow_id = f"wf_{uuid.uuid4().hex[:8]}"
         amc_workflow_id = re.sub(r'[^a-zA-Z0-9._-]', '_', base_workflow_id)
-        
-        # Extract parameters from SQL query
+
+        # Extract parameters from SQL query (deduplicated)
+        # For templates, we now keep the placeholders for execution-time substitution
         param_pattern = r'\{\{(\w+)\}\}'
-        param_names = re.findall(param_pattern, workflow.sql_query)
-        
+        param_names = list(set(re.findall(param_pattern, sql_query)))  # Use set to remove duplicates
+
         # Create input parameter definitions for AMC
-        input_parameters = []
-        for param_name in param_names:
-            param_type = 'STRING'
-            if 'date' in param_name.lower() or 'time' in param_name.lower():
-                param_type = 'TIMESTAMP'
-            elif 'count' in param_name.lower() or 'number' in param_name.lower() or 'id' in param_name.lower():
-                param_type = 'INTEGER'
-            
-            input_parameters.append({
-                'name': param_name,
-                'type': param_type,
-                'required': True
-            })
+        input_parameters = None
+        if param_names:
+            input_parameters = []
+            for param_name in param_names:
+                param_type = 'STRING'
+                if 'date' in param_name.lower() or 'time' in param_name.lower():
+                    param_type = 'TIMESTAMP'
+                elif 'count' in param_name.lower() or 'number' in param_name.lower() or 'id' in param_name.lower():
+                    param_type = 'INTEGER'
+
+                input_parameters.append({
+                    'name': param_name,
+                    'type': param_type,
+                    'required': True
+                })
         
         # Create workflow in AMC first
         from ...services.amc_api_client import AMCAPIClient
@@ -184,7 +209,7 @@ async def create_workflow(
         amc_response = api_client.create_workflow(
             instance_id=instance['instance_id'],
             workflow_id=amc_workflow_id,
-            sql_query=workflow.sql_query,
+            sql_query=sql_query,
             access_token=valid_token,
             entity_id=entity_id,
             marketplace_id=marketplace_id,
@@ -210,7 +235,7 @@ async def create_workflow(
             "name": workflow.name,
             "description": workflow.description,
             "instance_id": instance['id'],  # Use internal UUID
-            "sql_query": workflow.sql_query,
+            "sql_query": sql_query,  # Use the substituted SQL, not the original empty one
             "parameters": workflow.parameters,
             "tags": workflow.tags,
             "user_id": current_user['id'],
@@ -220,6 +245,9 @@ async def create_workflow(
             "amc_sync_status": "synced",
             "amc_synced_at": datetime.now(timezone.utc).isoformat()
         }
+
+        # Note: template_id field doesn't exist in workflows table yet
+        # Could be added in a future migration if needed to track template usage
         
         # Use sync version
         created = db_service.create_workflow_sync(workflow_data)
@@ -230,6 +258,7 @@ async def create_workflow(
             raise HTTPException(status_code=500, detail="Failed to create workflow in backend")
         
         return {
+            "id": created['workflow_id'],  # Frontend expects 'id' field
             "workflow_id": created['workflow_id'],
             "name": created['name'],
             "description": created.get('description'),

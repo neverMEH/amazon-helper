@@ -39,6 +39,7 @@ import ASINManagement from './pages/ASINManagement';
 
 // Reports & Analytics imports
 import DataCollections from './components/reports/DataCollections';
+import ReportBuilder from './components/report-builder/ReportBuilder';
 
 
 const queryClient = new QueryClient({
@@ -102,6 +103,7 @@ function App() {
               
               {/* Reports & Analytics routes */}
               <Route path="/data-collections" element={<DataCollections />} />
+              <Route path="/report-builder" element={<ReportBuilder />} />
               
               
               {/* Profile route */}

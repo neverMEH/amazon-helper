@@ -1,0 +1,3 @@
+# Spec Summary (Lite)
+
+Integrate the Query Library template system into the first step of the Report Builder wizard, providing template browsing, selection, and customization with context-aware parameter detection and intelligent input components. Users can select from existing query templates or write custom SQL, both benefiting from advanced parameter analysis that automatically determines parameter types and suggests appropriate input components based on SQL context (LIKE, IN, VALUES, BETWEEN patterns). This transforms Report Builder into a template-driven reporting system leveraging the full Query Library ecosystem.
