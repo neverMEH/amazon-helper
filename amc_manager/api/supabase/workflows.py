@@ -156,12 +156,12 @@ async def create_workflow(
         sql_query = workflow.sql_query
         if workflow.template_id and not sql_query:
             from ...services.query_template_service import query_template_service
-            template = query_template_service.get_template(workflow.template_id)
+            template = query_template_service.get_template(workflow.template_id, current_user['id'])
             if template:
                 sql_query = template.get('sql_template') or template.get('sql_query') or ''
                 logger.info(f"Fetched SQL from template {workflow.template_id}, length: {len(sql_query)}")
             else:
-                logger.warning(f"Template {workflow.template_id} not found")
+                logger.warning(f"Template {workflow.template_id} not found or access denied")
 
         if not sql_query:
             raise HTTPException(status_code=400, detail="SQL query is required")
