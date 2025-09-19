@@ -272,6 +272,7 @@ async def create_workflow(
             raise HTTPException(status_code=500, detail="Failed to create workflow in backend")
         
         return {
+            "id": created['workflow_id'],  # Frontend expects 'id' field
             "workflow_id": created['workflow_id'],
             "name": created['name'],
             "description": created.get('description'),
