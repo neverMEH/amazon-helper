@@ -41,25 +41,29 @@ class ParameterProcessor:
     ]
 
     @classmethod
-    def process_sql_parameters(cls, sql_template: str, parameters: Dict[str, Any]) -> str:
+    def process_sql_parameters(cls, sql_template: str, parameters: Dict[str, Any],
+                             validate_all: bool = True) -> str:
         """
         Process SQL template with parameter substitution
 
         Args:
             sql_template: SQL query with parameter placeholders
             parameters: Parameter values to substitute
+            validate_all: If True, validate all required params are present.
+                         If False, only substitute provided params (useful for partial processing)
 
         Returns:
             SQL query with substituted values
 
         Raises:
-            ValueError: If required parameters are missing or dangerous SQL detected
+            ValueError: If required parameters are missing (when validate_all=True) or dangerous SQL detected
         """
         # Find all required parameters
         required_params = cls._find_required_parameters(sql_template)
 
-        # Validate required parameters are present
-        cls._validate_parameters(required_params, parameters)
+        # Validate required parameters are present (only if validate_all is True)
+        if validate_all:
+            cls._validate_parameters(required_params, parameters)
 
         # Substitute parameters
         query = cls._substitute_parameters(sql_template, parameters)

@@ -425,8 +425,11 @@ class AMCExecutionService:
                 if template_params:
                     logger.info(f"Processing {len(template_params)} template parameters: {list(template_params.keys())}")
                     try:
-                        # Use the existing _prepare_sql_query method for template substitution
-                        processed_sql_query = self._prepare_sql_query(processed_sql_query, template_params)
+                        # Use ParameterProcessor with validate_all=False for partial processing
+                        # This allows SQL injection params to be handled separately
+                        processed_sql_query = ParameterProcessor.process_sql_parameters(
+                            processed_sql_query, template_params, validate_all=False
+                        )
                         logger.info("Successfully replaced template placeholders")
                     except ValueError as e:
                         logger.error(f"Failed to substitute template parameters: {e}")
