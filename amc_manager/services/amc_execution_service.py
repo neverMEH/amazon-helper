@@ -400,19 +400,51 @@ class AMCExecutionService:
             marketplace_id = instance['amc_accounts'].get('marketplace_id', 'ATVPDKIKX0DER')
             
             logger.info(f"Executing on instance {instance_id} with entity {entity_id}")
-            
-            # Process SQL injection parameters - apply them to the SQL query
+
+            # Process all parameters - both template placeholders and SQL injection
             processed_sql_query = sql_query
-            amc_parameters = {}
+            template_params = {}
             sql_injection_params = {}
-            
+
             if execution_parameters:
+                # Step 1: Categorize parameters
                 for param_name, param_value in execution_parameters.items():
                     # Check if this is a SQL injection parameter (campaigns/ASINs)
                     if isinstance(param_value, dict) and param_value.get('_sqlInject'):
                         sql_injection_params[param_name] = param_value
                         logger.info(f"SQL injection parameter detected: {param_name} with {len(param_value.get('_values', []))} values")
-                        
+                    # Check if this is a legacy array parameter that should be converted to SQL injection
+                    elif isinstance(param_value, list) and self._is_campaign_or_asin_param(param_name):
+                        sql_injection_params[param_name] = param_value
+                        logger.info(f"Converting legacy array parameter {param_name} to SQL injection with {len(param_value)} values")
+                    else:
+                        # Regular template parameters that need substitution
+                        template_params[param_name] = param_value
+
+                # Step 2: Apply template parameter substitution FIRST
+                if template_params:
+                    logger.info(f"Processing {len(template_params)} template parameters: {list(template_params.keys())}")
+                    try:
+                        # Use the existing _prepare_sql_query method for template substitution
+                        processed_sql_query = self._prepare_sql_query(processed_sql_query, template_params)
+                        logger.info("Successfully replaced template placeholders")
+                    except ValueError as e:
+                        logger.error(f"Failed to substitute template parameters: {e}")
+                        # Return error to user instead of sending invalid SQL to AMC
+                        self._update_execution_completed(
+                            execution_id=execution_id,
+                            amc_execution_id=execution_id,
+                            row_count=0,
+                            error_message=f"Parameter substitution failed: {str(e)}"
+                        )
+                        return {
+                            "status": "failed",
+                            "error": f"Parameter substitution failed: {str(e)}"
+                        }
+
+                # Step 3: Apply SQL injection parameters
+                for param_name, param_value in sql_injection_params.items():
+                    if isinstance(param_value, dict) and param_value.get('_sqlInject'):
                         # Apply SQL injection to query
                         values_clause = param_value.get('_valuesClause', '')
                         if values_clause:
@@ -420,25 +452,41 @@ class AMCExecutionService:
                             param_pattern = f"{{{{{param_name}}}}}"
                             processed_sql_query = processed_sql_query.replace(param_pattern, f"VALUES\n{values_clause}")
                             logger.info(f"Applied SQL injection for {param_name}: replaced {param_pattern} with VALUES clause")
-                    # Check if this is a legacy array parameter that should be converted to SQL injection
-                    elif isinstance(param_value, list) and self._is_campaign_or_asin_param(param_name):
+                    elif isinstance(param_value, list):
                         # Convert legacy array to SQL injection
-                        sql_injection_params[param_name] = param_value
-                        logger.info(f"Converting legacy array parameter {param_name} to SQL injection with {len(param_value)} values")
-                        
-                        # Apply SQL injection to query
                         values_clause = '\n'.join([f"    ('{value}')" for value in param_value])
                         param_pattern = f"{{{{{param_name}}}}}"
                         processed_sql_query = processed_sql_query.replace(param_pattern, f"VALUES\n{values_clause}")
                         logger.info(f"Applied SQL injection for legacy parameter {param_name}: replaced {param_pattern} with VALUES clause")
-                    else:
-                        # Regular parameters (dates, etc.)
-                        amc_parameters[param_name] = param_value
-            
-            logger.info(f"AMC parameters: {list(amc_parameters.keys())}")
-            logger.info(f"SQL injection parameters: {list(sql_injection_params.keys())}")
-            if processed_sql_query != sql_query:
-                logger.info(f"SQL query modified by injection parameters")
+
+            # Step 4: Validate no placeholders remain
+            import re
+            placeholder_pattern = r'\{\{(\w+)\}\}'
+            remaining_placeholders = re.findall(placeholder_pattern, processed_sql_query)
+
+            if remaining_placeholders:
+                error_msg = f"Missing parameter values for: {', '.join(remaining_placeholders)}"
+                logger.error(f"Unresolved template placeholders found: {remaining_placeholders}")
+
+                # Update execution as failed
+                self._update_execution_completed(
+                    execution_id=execution_id,
+                    amc_execution_id=execution_id,
+                    row_count=0,
+                    error_message=error_msg
+                )
+
+                return {
+                    "status": "failed",
+                    "error": error_msg,
+                    "missing_parameters": remaining_placeholders
+                }
+
+            logger.info(f"Template parameters substituted: {list(template_params.keys())}")
+            logger.info(f"SQL injection parameters applied: {list(sql_injection_params.keys())}")
+            logger.info(f"Final SQL query ready for AMC (length: {len(processed_sql_query)} chars)")
+            # Log first 500 chars of SQL for debugging (without sensitive data)
+            logger.debug(f"SQL preview: {processed_sql_query[:500]}...")
             
             # Create workflow execution via AMC API
             # Initialize API client with correct service
