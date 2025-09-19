@@ -252,7 +252,7 @@ async def create_workflow(
             "name": workflow.name,
             "description": workflow.description,
             "instance_id": instance['id'],  # Use internal UUID
-            "sql_query": workflow.sql_query,
+            "sql_query": sql_query,  # Use the substituted SQL, not the original empty one
             "parameters": workflow.parameters,
             "tags": workflow.tags,
             "user_id": current_user['id'],
@@ -262,6 +262,10 @@ async def create_workflow(
             "amc_sync_status": "synced",
             "amc_synced_at": datetime.now(timezone.utc).isoformat()
         }
+
+        # Add template_id if this workflow was created from a template
+        if workflow.template_id:
+            workflow_data["template_id"] = workflow.template_id
         
         # Use sync version
         created = db_service.create_workflow_sync(workflow_data)
