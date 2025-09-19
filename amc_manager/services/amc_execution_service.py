@@ -71,8 +71,10 @@ class AMCExecutionService:
                 logger.info(f"Found instance: {instance['instance_name']} (id: {instance['id']})")
                 
                 # Verify user has access to this instance
-                logger.info(f"Checking user {user_id} access to instance {instance_id}")
-                if not self.db.user_has_instance_access_sync(user_id, instance_id):
+                # Use the instance UUID for access check
+                instance_uuid = instance['id']
+                logger.info(f"Checking user {user_id} access to instance {instance_id} (UUID: {instance_uuid})")
+                if not self.db.user_has_instance_access_sync(user_id, instance_uuid):
                     logger.error(f"User {user_id} does not have access to instance {instance_id}")
                     raise ValueError(f"Access denied to instance {instance_id}")
                 logger.info(f"User has access to instance {instance_id}")
@@ -237,23 +239,33 @@ class AMCExecutionService:
     def _get_instance(self, instance_id: str) -> Optional[Dict[str, Any]]:
         """Get instance details by instance_id (can be UUID or AMC instance_id)"""
         try:
+            import uuid
             client = SupabaseManager.get_client(use_service_role=True)
-            
-            # First try to find by UUID (id field)
-            response = client.table('amc_instances')\
-                .select('*, amc_accounts(*)')\
-                .eq('id', instance_id)\
-                .execute()
-            
-            if response.data:
-                return response.data[0]
-            
-            # If not found, try by AMC instance_id
+
+            # Check if instance_id is a valid UUID
+            try:
+                # Try to parse as UUID
+                uuid.UUID(instance_id)
+                is_uuid = True
+            except (ValueError, AttributeError):
+                is_uuid = False
+
+            if is_uuid:
+                # Try to find by UUID (id field)
+                response = client.table('amc_instances')\
+                    .select('*, amc_accounts(*)')\
+                    .eq('id', instance_id)\
+                    .execute()
+
+                if response.data:
+                    return response.data[0]
+
+            # Try by AMC instance_id (string)
             response = client.table('amc_instances')\
                 .select('*, amc_accounts(*)')\
                 .eq('instance_id', instance_id)\
                 .execute()
-            
+
             return response.data[0] if response.data else None
         except Exception as e:
             logger.error(f"Error fetching instance {instance_id}: {e}")
