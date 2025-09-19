@@ -80,6 +80,17 @@ export default function RunReportModal({
   const [showMetrics, setShowMetrics] = useState(false);
   const [templateToFork, setTemplateToFork] = useState<QueryTemplate | null>(null);
 
+  // Date range state for ad-hoc execution
+  const [dateRange, setDateRange] = useState<{ start: string; end: string }>(() => {
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    return {
+      start: thirtyDaysAgo.toISOString().split('T')[0],
+      end: today.toISOString().split('T')[0]
+    };
+  });
+
   // Fetch instances
   const { data: instances = [], isLoading: loadingInstances } = useQuery({
     queryKey: ['instances'],
@@ -338,6 +349,9 @@ export default function RunReportModal({
             : executionType === 'backfill'
             ? { ...scheduleConfig, backfill_period: backfillPeriod }
             : undefined,
+        // Add date range for ad-hoc execution
+        time_window_start: executionType === 'once' ? dateRange.start : undefined,
+        time_window_end: executionType === 'once' ? dateRange.end : undefined,
       };
       console.log('Submitting custom report config:', config);
       onSubmit(config);
@@ -359,6 +373,9 @@ export default function RunReportModal({
           : executionType === 'backfill'
           ? { ...scheduleConfig, backfill_period: backfillPeriod }
           : undefined,
+      // Add date range for ad-hoc execution
+      time_window_start: executionType === 'once' ? dateRange.start : undefined,
+      time_window_end: executionType === 'once' ? dateRange.end : undefined,
     };
     console.log('Submitting template report config:', config);
     onSubmit(config);
@@ -826,6 +843,43 @@ export default function RunReportModal({
                 </div>
               </label>
             </div>
+
+            {/* Date Range Selection for Run Once */}
+            {executionType === 'once' && (
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                <h4 className="text-sm font-medium text-gray-900 mb-3">Date Range</h4>
+                <p className="text-xs text-gray-500 mb-3">
+                  Select the date range for this ad-hoc execution. Note: AMC has a 14-day data lag.
+                </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="start-date" className="block text-sm font-medium text-gray-700">
+                      Start Date
+                    </label>
+                    <input
+                      type="date"
+                      id="start-date"
+                      value={dateRange.start}
+                      onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm sm:text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="end-date" className="block text-sm font-medium text-gray-700">
+                      End Date
+                    </label>
+                    <input
+                      type="date"
+                      id="end-date"
+                      value={dateRange.end}
+                      onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                      min={dateRange.start}
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm sm:text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         );
 
@@ -1005,6 +1059,15 @@ export default function RunReportModal({
                 <div>
                   <div className="text-sm font-medium text-gray-700">Backfill Period:</div>
                   <div className="text-sm text-gray-900">{backfillPeriod} days</div>
+                </div>
+              )}
+
+              {executionType === 'once' && (
+                <div>
+                  <div className="text-sm font-medium text-gray-700">Date Range:</div>
+                  <div className="text-sm text-gray-900">
+                    {dateRange.start} to {dateRange.end}
+                  </div>
                 </div>
               )}
 

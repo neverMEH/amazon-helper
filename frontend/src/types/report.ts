@@ -46,6 +46,8 @@ export interface CreateReportRequest {
   parameters: Record<string, any>;
   execution_type: 'once' | 'recurring' | 'backfill';
   schedule_config?: ScheduleConfig;
+  time_window_start?: string; // ISO date string for ad-hoc execution
+  time_window_end?: string; // ISO date string for ad-hoc execution
 }
 
 export interface ParameterDefinition {
