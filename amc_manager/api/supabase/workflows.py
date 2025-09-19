@@ -221,7 +221,14 @@ async def create_workflow(
                         else:
                             params_to_use[param_name] = (datetime.utcnow() - timedelta(days=15)).strftime('%Y-%m-%d')
                     elif any(k in param_name.lower() for k in ['campaign', 'asin', 'brand']):
-                        params_to_use[param_name] = []  # Empty list for array parameters
+                        # Use a dummy value for workflow creation to avoid SQL syntax errors
+                        # The actual values will be provided during execution
+                        if 'asin' in param_name.lower():
+                            params_to_use[param_name] = ['B00DUMMY01']  # Dummy ASIN
+                        elif 'campaign' in param_name.lower():
+                            params_to_use[param_name] = ['dummy_campaign']  # Dummy campaign
+                        else:
+                            params_to_use[param_name] = ['dummy_brand']  # Dummy brand
                     else:
                         params_to_use[param_name] = ''  # Empty string for other parameters
 
