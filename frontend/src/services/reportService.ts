@@ -35,53 +35,64 @@ export const reportService = {
   createReport: async (data: CreateReportRequest) => {
     console.log('reportService.createReport called with:', data);
 
-    // For Report Builder, we need to use the report API endpoints
-    // First create the report definition
-    const reportData = {
+    // For now, we need to use the existing workflow-based approach
+    // until we implement proper ad-hoc report execution in the backend
+
+    // First create the workflow (which acts as our report)
+    const workflowData = {
       name: data.name,
       description: data.description,
-      template_id: data.template_id || '',
       instance_id: data.instance_id,
+      sql_query: data.custom_sql || '',  // Will be populated from template if template_id provided
       parameters: data.parameters,
+      template_id: data.template_id,
     };
 
-    console.log('Creating report definition with data:', reportData);
-    const report = await reportApiService.createReport(reportData);
-    const reportId = report.data.id;
+    console.log('Creating workflow with data:', workflowData);
+    const workflow = await workflowService.createWorkflow(workflowData);
 
-    // Handle different execution types
-    if (data.execution_type === 'once') {
-      // Execute immediately with date range
-      console.log('Executing report immediately with date range:', data.time_window_start, 'to', data.time_window_end);
-      await reportApiService.executeReport(reportId, {
-        parameters: data.parameters,
-        time_window_start: data.time_window_start,
-        time_window_end: data.time_window_end,
-      });
-    } else if (data.execution_type === 'recurring' && data.schedule_config) {
-      // Create a schedule
+    // If it's a recurring report, create a schedule
+    if (data.execution_type === 'recurring' && data.schedule_config) {
       const scheduleData = {
+        instance_id: data.instance_id,
         frequency: data.schedule_config.frequency,
         time_of_day: data.schedule_config.time,
         day_of_week: data.schedule_config.day_of_week,
         day_of_month: data.schedule_config.day_of_month,
         timezone: data.schedule_config.timezone || 'UTC',
         is_active: true,
-        parameters: data.parameters,
+        execution_parameters: data.parameters,
       };
-      await reportApiService.createSchedule(reportId, scheduleData);
-    } else if (data.execution_type === 'backfill') {
-      // Create a backfill collection
-      const backfillData = {
-        start_date: data.time_window_start || '',
-        end_date: data.time_window_end || '',
-        frequency: 'weekly' as const,
-      };
-      await reportApiService.createBackfill(reportId, backfillData);
+      await scheduleService.createSchedulePreset(workflow.id, scheduleData as any);
     }
 
-    console.log('Report creation complete, returning report:', report.data);
-    return report.data;
+    // If it's a one-time execution, run it immediately with date parameters
+    if (data.execution_type === 'once') {
+      console.log('Executing workflow immediately with date range:', data.time_window_start, 'to', data.time_window_end);
+
+      // Include the date range in the parameters for execution
+      const executionParams = {
+        ...data.parameters,
+        timeWindowStart: data.time_window_start,
+        timeWindowEnd: data.time_window_end
+      };
+
+      await workflowService.executeWorkflow(
+        workflow.id,
+        data.instance_id,
+        executionParams
+      );
+    } else if (data.execution_type === 'backfill') {
+      // For backfill, also execute with date parameters
+      await workflowService.executeWorkflow(
+        workflow.id,
+        data.instance_id,
+        data.parameters
+      );
+    }
+
+    console.log('Report creation complete, returning workflow:', workflow);
+    return workflow;
   },
 
   updateReport: async (id: string, data: Partial<Report>) => {
