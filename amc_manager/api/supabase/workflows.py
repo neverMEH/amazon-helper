@@ -152,6 +152,10 @@ async def create_workflow(
         entity_id = account['account_id']
         marketplace_id = account['marketplace_id']
 
+        # Import needed modules at the top
+        import uuid
+        import re
+
         # If template_id is provided and sql_query is empty, fetch SQL from template
         sql_query = workflow.sql_query
         if workflow.template_id and not sql_query:
@@ -160,6 +164,27 @@ async def create_workflow(
             if template:
                 sql_query = template.get('sql_template') or template.get('sql_query') or ''
                 logger.info(f"Fetched SQL from template {workflow.template_id}, length: {len(sql_query)}")
+
+                # Replace template placeholders with parameter values
+                if workflow.parameters:
+                    for key, value in workflow.parameters.items():
+                        placeholder = f"{{{{{key}}}}}"  # {{parameter_name}}
+                        if placeholder in sql_query:
+                            # Handle different value types
+                            if isinstance(value, list):
+                                # For lists (e.g., campaign IDs), create SQL IN clause
+                                value_str = ", ".join(f"'{v}'" if isinstance(v, str) else str(v) for v in value)
+                                sql_query = sql_query.replace(placeholder, value_str)
+                            elif isinstance(value, str):
+                                # For strings, add quotes if not already present
+                                if not (value.startswith("'") and value.endswith("'")):
+                                    sql_query = sql_query.replace(placeholder, f"'{value}'")
+                                else:
+                                    sql_query = sql_query.replace(placeholder, value)
+                            else:
+                                # For numbers and other types
+                                sql_query = sql_query.replace(placeholder, str(value))
+                    logger.info(f"Replaced template parameters, final SQL length: {len(sql_query)}")
             else:
                 logger.warning(f"Template {workflow.template_id} not found or access denied")
 
@@ -167,29 +192,32 @@ async def create_workflow(
             raise HTTPException(status_code=400, detail="SQL query is required")
 
         # Generate unique workflow ID for AMC
-        import uuid
-        import re
         base_workflow_id = f"wf_{uuid.uuid4().hex[:8]}"
         amc_workflow_id = re.sub(r'[^a-zA-Z0-9._-]', '_', base_workflow_id)
 
-        # Extract parameters from SQL query (deduplicated)
-        param_pattern = r'\{\{(\w+)\}\}'
-        param_names = list(set(re.findall(param_pattern, sql_query)))  # Use set to remove duplicates
+        # Only extract parameters if we're NOT using a template (templates have values substituted)
+        # For templates, the parameters are already replaced with actual values
+        input_parameters = None
+        if not workflow.template_id:
+            # Extract parameters from SQL query (deduplicated) for non-template queries
+            param_pattern = r'\{\{(\w+)\}\}'
+            param_names = list(set(re.findall(param_pattern, sql_query)))  # Use set to remove duplicates
 
-        # Create input parameter definitions for AMC
-        input_parameters = []
-        for param_name in param_names:
-            param_type = 'STRING'
-            if 'date' in param_name.lower() or 'time' in param_name.lower():
-                param_type = 'TIMESTAMP'
-            elif 'count' in param_name.lower() or 'number' in param_name.lower() or 'id' in param_name.lower():
-                param_type = 'INTEGER'
+            # Create input parameter definitions for AMC
+            if param_names:
+                input_parameters = []
+                for param_name in param_names:
+                    param_type = 'STRING'
+                    if 'date' in param_name.lower() or 'time' in param_name.lower():
+                        param_type = 'TIMESTAMP'
+                    elif 'count' in param_name.lower() or 'number' in param_name.lower() or 'id' in param_name.lower():
+                        param_type = 'INTEGER'
 
-            input_parameters.append({
-                'name': param_name,
-                'type': param_type,
-                'required': True
-            })
+                    input_parameters.append({
+                        'name': param_name,
+                        'type': param_type,
+                        'required': True
+                    })
         
         # Create workflow in AMC first
         from ...services.amc_api_client import AMCAPIClient
