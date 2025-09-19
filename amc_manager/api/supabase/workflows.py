@@ -148,19 +148,33 @@ async def create_workflow(
         account = instance.get('amc_accounts')
         if not account:
             raise HTTPException(status_code=404, detail="AMC account not found")
-        
+
         entity_id = account['account_id']
         marketplace_id = account['marketplace_id']
-        
+
+        # If template_id is provided and sql_query is empty, fetch SQL from template
+        sql_query = workflow.sql_query
+        if workflow.template_id and not sql_query:
+            from ...services.query_template_service import query_template_service
+            template = query_template_service.get_template(workflow.template_id)
+            if template:
+                sql_query = template.get('sql_template') or template.get('sql_query') or ''
+                logger.info(f"Fetched SQL from template {workflow.template_id}, length: {len(sql_query)}")
+            else:
+                logger.warning(f"Template {workflow.template_id} not found")
+
+        if not sql_query:
+            raise HTTPException(status_code=400, detail="SQL query is required")
+
         # Generate unique workflow ID for AMC
         import uuid
         import re
         base_workflow_id = f"wf_{uuid.uuid4().hex[:8]}"
         amc_workflow_id = re.sub(r'[^a-zA-Z0-9._-]', '_', base_workflow_id)
-        
+
         # Extract parameters from SQL query
         param_pattern = r'\{\{(\w+)\}\}'
-        param_names = re.findall(param_pattern, workflow.sql_query)
+        param_names = re.findall(param_pattern, sql_query)
         
         # Create input parameter definitions for AMC
         input_parameters = []
@@ -184,7 +198,7 @@ async def create_workflow(
         amc_response = api_client.create_workflow(
             instance_id=instance['instance_id'],
             workflow_id=amc_workflow_id,
-            sql_query=workflow.sql_query,
+            sql_query=sql_query,
             access_token=valid_token,
             entity_id=entity_id,
             marketplace_id=marketplace_id,
