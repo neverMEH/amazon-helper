@@ -34,7 +34,26 @@ class AMCAPIClient:
     ) -> Dict[str, Any]:
         """
         Create a new AMC workflow execution
-        
+
+        EXECUTION MODES (Mutually Exclusive):
+        -------------------------------------
+        1. AD-HOC EXECUTION (sql_query parameter):
+           - Pass sql_query containing the full SQL to execute
+           - Do NOT pass workflow_id
+           - SQL is executed directly without creating a workflow
+           - SQL must be valid (no template placeholders like {{param}})
+           - Each execution is independent
+           - Used for: Report Builder, one-time queries, dynamic SQL
+
+        2. SAVED WORKFLOW EXECUTION (workflow_id parameter):
+           - Pass workflow_id of an existing AMC workflow
+           - Do NOT pass sql_query
+           - References a workflow created with create_workflow()
+           - Can pass parameter_values for workflow parameters
+           - Used for: Scheduled runs, recurring reports
+
+        AMC API REQUIREMENT: You must pass exactly ONE of sql_query or workflow_id
+
         Args:
             instance_id: AMC instance ID
             access_token: Amazon OAuth access token
@@ -44,16 +63,17 @@ class AMCAPIClient:
             workflow_id: Workflow ID for saved workflow execution (mutually exclusive with sql_query)
             parameter_values: Parameter values for saved workflow execution
             output_format: Output format (CSV, JSON, PARQUET)
-            
+
         Returns:
             Execution details including execution ID
         """
         
         # Validate that either sql_query or workflow_id is provided, but not both
+        # This is a CRITICAL AMC API requirement - these parameters are mutually exclusive
         if not sql_query and not workflow_id:
             raise ValueError("Either sql_query or workflow_id must be provided")
         if sql_query and workflow_id:
-            raise ValueError("Cannot provide both sql_query and workflow_id")
+            raise ValueError("Cannot provide both sql_query and workflow_id - they are mutually exclusive")
         url = f"{self.base_url}/amc/reporting/{instance_id}/workflowExecutions"
         
         headers = {
@@ -214,8 +234,16 @@ class AMCAPIClient:
                 time_window_end = end_date.strftime('%Y-%m-%dT%H:%M:%S')
         
         # Build payload based on execution mode
+        # CRITICAL DISTINCTION: Ad-hoc vs Saved Workflow Execution
+        # --------------------------------------------------------
+        # AMC API requires EITHER workflow_id OR sql_query, never both
+        # These are mutually exclusive execution modes
         if workflow_id:
-            # Saved workflow execution
+            # SAVED WORKFLOW EXECUTION MODE
+            # - References a previously created workflow by its ID
+            # - The workflow already contains the SQL query
+            # - We only provide execution parameters and time window
+            # - Used for: Scheduled runs, recurring reports
             payload = {
                 "workflowId": workflow_id,
                 "timeWindowType": "EXPLICIT",  # Use explicit time window
@@ -233,7 +261,11 @@ class AMCAPIClient:
                 if workflow_params:
                     payload["parameterValues"] = workflow_params
         else:
-            # Ad-hoc execution with SQL query
+            # AD-HOC EXECUTION MODE
+            # - SQL query is provided directly (no workflow created)
+            # - Each execution is independent
+            # - SQL must be fully processed (no {{placeholders}})
+            # - Used for: Report Builder, one-time queries, dynamic SQL
             logger.info(f"Building ad-hoc execution payload")
             logger.info(f"SQL query provided: {sql_query is not None}")
             logger.info(f"SQL query length: {len(sql_query) if sql_query else 0}")

@@ -113,6 +113,28 @@ class AMCAPIClientWithRetry:
     ) -> Dict[str, Any]:
         """
         Create a workflow execution with automatic token refresh
+
+        CRITICAL: Ad-hoc vs Saved Workflow Execution
+        --------------------------------------------
+        This method supports BOTH execution modes:
+
+        1. AD-HOC EXECUTION (sql_query parameter):
+           - Pass sql_query with the full SQL to execute
+           - Do NOT pass workflow_id
+           - Each execution is independent
+           - SQL must be fully processed (no {{placeholders}})
+           - Used by: Report Builder, one-time queries
+
+        2. SAVED WORKFLOW EXECUTION (workflow_id parameter):
+           - Pass workflow_id of a previously created workflow
+           - Do NOT pass sql_query
+           - References an existing AMC workflow
+           - Parameters can be provided via parameter_values
+           - Used by: Scheduled workflows, recurring reports
+
+        AMC API REQUIREMENT: sql_query and workflow_id are MUTUALLY EXCLUSIVE
+        - You must pass exactly ONE of these parameters
+        - Passing both or neither will result in an error
         """
         return await self._execute_with_retry(
             self.api_client.create_workflow_execution,

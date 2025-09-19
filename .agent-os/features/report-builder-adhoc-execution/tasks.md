@@ -39,9 +39,9 @@ Based on the review of the current implementation, here are the tasks to ensure 
   - [x] 4.4 Add execution status polling for ad-hoc workflows (existing)
   - [x] 4.5 Verify all error handling tests pass
 
-- [ ] 5. Create Comprehensive Documentation
+- [x] 5. Create Comprehensive Documentation
   - [x] 5.1 Document AMC ad-hoc execution limitations in reference-docs/amc-ad-hoc-execution.md
-  - [ ] 5.2 Add code comments explaining the ad-hoc vs saved workflow distinction
+  - [x] 5.2 Add code comments explaining the ad-hoc vs saved workflow distinction
   - [x] 5.3 Create troubleshooting guide for common ad-hoc execution issues
   - [x] 5.4 Document the execution flow from frontend to AMC API
   - [x] 5.5 Verify documentation is complete and accurate

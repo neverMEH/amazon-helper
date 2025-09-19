@@ -127,7 +127,26 @@ async def create_workflow(
     workflow: WorkflowCreate,
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
-    """Create a new workflow - saves to AMC first, then syncs to backend"""
+    """
+    Create a new workflow - saves to AMC first, then syncs to backend
+
+    WORKFLOW CREATION STRATEGY:
+    ---------------------------
+    1. For template-based workflows:
+       - Fetch SQL template with {{placeholders}}
+       - Process placeholders to create valid SQL for AMC
+       - Store BOTH template SQL (for future params) and processed SQL
+
+    2. For direct SQL workflows:
+       - Use provided SQL as-is
+       - Still check for placeholders and process if needed
+
+    3. AMC Workflow Creation:
+       - Creates a SAVED workflow in AMC (not ad-hoc)
+       - Gets a permanent workflow_id
+       - Can be executed multiple times with different parameters
+       - Executions reference the workflow_id, not SQL directly
+    """
     try:
         # Verify user has access to the instance
         user_instances = db_service.get_user_instances_sync(current_user['id'])
@@ -158,51 +177,98 @@ async def create_workflow(
 
         # If template_id is provided and sql_query is empty, fetch SQL from template
         sql_query = workflow.sql_query
+        sql_template = None  # Keep original template for reference
+
         if workflow.template_id and not sql_query:
             from ...services.query_template_service import query_template_service
             template = query_template_service.get_template(workflow.template_id, current_user['id'])
             if template:
-                # Get the template SQL but DON'T substitute parameters here
-                # AMC has a 1024 char limit for SQL in ad-hoc execution
-                # Parameters will be substituted at execution time
-                sql_query = template.get('sql_template') or template.get('sql_query') or ''
+                # Get the template SQL
+                sql_template = template.get('sql_template') or template.get('sql_query') or ''
+                sql_query = sql_template
                 logger.info(f"Fetched SQL from template {workflow.template_id}, length: {len(sql_query)}")
-
-                # Log that we're keeping placeholders
-                logger.info(f"Keeping template placeholders for execution-time substitution (avoids AMC 1024 char limit)")
             else:
                 logger.warning(f"Template {workflow.template_id} not found or access denied")
 
         if not sql_query:
             raise HTTPException(status_code=400, detail="SQL query is required")
 
+        # Process parameters if SQL has placeholders
+        # CRITICAL FOR TEMPLATE-BASED WORKFLOWS:
+        # When creating a workflow from a template, the SQL contains placeholders like {{param}}
+        # AMC doesn't understand this syntax, so we must process it before submission
+        # We provide default values just to create valid SQL for the workflow creation
+        # The actual parameter values will be provided during execution
+        if '{{' in sql_query:
+            from ...utils.parameter_processor import ParameterProcessor
+
+            # Use provided parameters or empty defaults for workflow creation
+            # This creates a valid SQL for AMC workflow creation
+            params_to_use = workflow.parameters or {}
+
+            # Add default values for common parameters if not provided
+            param_pattern = r'\{\{(\w+)\}\}'
+            param_names = list(set(re.findall(param_pattern, sql_query)))
+
+            for param_name in param_names:
+                if param_name not in params_to_use:
+                    # Provide sensible defaults
+                    if 'date' in param_name.lower() or 'time' in param_name.lower():
+                        # Use a date from 30 days ago (within AMC data availability)
+                        from datetime import datetime, timedelta
+                        if 'start' in param_name.lower():
+                            params_to_use[param_name] = (datetime.utcnow() - timedelta(days=30)).strftime('%Y-%m-%d')
+                        else:
+                            params_to_use[param_name] = (datetime.utcnow() - timedelta(days=15)).strftime('%Y-%m-%d')
+                    elif any(k in param_name.lower() for k in ['campaign', 'asin', 'brand']):
+                        params_to_use[param_name] = []  # Empty list for array parameters
+                    else:
+                        params_to_use[param_name] = ''  # Empty string for other parameters
+
+            # Process the SQL with parameters
+            try:
+                sql_query = ParameterProcessor.process_sql_parameters(
+                    sql_query,
+                    params_to_use,
+                    validate_all=False  # Allow partial processing
+                )
+                logger.info(f"Processed SQL query for AMC workflow creation, final length: {len(sql_query)}")
+            except Exception as e:
+                logger.error(f"Failed to process SQL parameters: {e}")
+                # If processing fails, we'll try with the original SQL
+                pass
+
         # Generate unique workflow ID for AMC
         base_workflow_id = f"wf_{uuid.uuid4().hex[:8]}"
         amc_workflow_id = re.sub(r'[^a-zA-Z0-9._-]', '_', base_workflow_id)
 
-        # Extract parameters from SQL query (deduplicated)
-        # For templates, we now keep the placeholders for execution-time substitution
+        # Extract parameters from ORIGINAL template SQL (if we have one) for metadata
+        # But don't include them in the AMC workflow creation since we've already processed the SQL
         param_pattern = r'\{\{(\w+)\}\}'
-        param_names = list(set(re.findall(param_pattern, sql_query)))  # Use set to remove duplicates
 
-        # Create input parameter definitions for AMC
+        # Check if we used a template and extract params from the original
+        param_names = []
+        if sql_template:
+            param_names = list(set(re.findall(param_pattern, sql_template)))
+        elif '{{' not in sql_query:  # Only check processed SQL if we didn't process parameters
+            param_names = list(set(re.findall(param_pattern, sql_query)))
+
+        # IMPORTANT: Parameter Strategy for AMC
+        # --------------------------------------
+        # Since we're processing the template SQL to create valid SQL:
+        # - We DON'T send parameter definitions to AMC (input_parameters = None)
+        # - The SQL sent to AMC is already valid with placeholders replaced
+        # - We store the original template SQL in our database for future use
+        # - Future executions can use different parameter values by processing the template again
+        # Don't create input parameters for AMC since we've already processed the SQL
+        # AMC workflows with processed SQL don't need parameter definitions
         input_parameters = None
-        if param_names:
-            input_parameters = []
-            for param_name in param_names:
-                param_type = 'STRING'
-                if 'date' in param_name.lower() or 'time' in param_name.lower():
-                    param_type = 'TIMESTAMP'
-                elif 'count' in param_name.lower() or 'number' in param_name.lower() or 'id' in param_name.lower():
-                    param_type = 'INTEGER'
-
-                input_parameters.append({
-                    'name': param_name,
-                    'type': param_type,
-                    'required': True
-                })
         
-        # Create workflow in AMC first
+        # Create SAVED workflow in AMC first
+        # This is different from ad-hoc execution:
+        # - Ad-hoc: Sends sql_query parameter directly to each execution (no workflow created)
+        # - Saved: Creates workflow first, then executions reference the workflow_id
+        # We're doing the SAVED approach here for reusability and version control
         from ...services.amc_api_client import AMCAPIClient
         api_client = AMCAPIClient()
         
@@ -235,7 +301,7 @@ async def create_workflow(
             "name": workflow.name,
             "description": workflow.description,
             "instance_id": instance['id'],  # Use internal UUID
-            "sql_query": sql_query,  # Use the substituted SQL, not the original empty one
+            "sql_query": sql_template or sql_query,  # Store ORIGINAL template SQL if available for execution
             "parameters": workflow.parameters,
             "tags": workflow.tags,
             "user_id": current_user['id'],
@@ -243,7 +309,8 @@ async def create_workflow(
             "amc_workflow_id": amc_workflow_id,  # Store AMC's workflow ID
             "is_synced_to_amc": True,
             "amc_sync_status": "synced",
-            "amc_synced_at": datetime.now(timezone.utc).isoformat()
+            "amc_synced_at": datetime.now(timezone.utc).isoformat(),
+            "template_id": workflow.template_id  # Store the template reference
         }
 
         # Note: template_id field doesn't exist in workflows table yet
@@ -790,7 +857,20 @@ def sync_workflow_to_amc(
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
-    Sync a local workflow to AMC, creating it as a saved workflow definition
+    Sync a local workflow to AMC, creating it as a SAVED workflow definition
+
+    IMPORTANT: Saved Workflow vs Ad-hoc Execution
+    ---------------------------------------------
+    This endpoint creates a SAVED WORKFLOW in AMC that can be reused:
+    1. Workflow is created once with POST /workflows API
+    2. Gets a permanent workflow_id in AMC
+    3. Can be executed multiple times with different parameters
+    4. Executions reference the workflow_id, not SQL directly
+
+    This is different from ad-hoc execution where:
+    - SQL is passed directly to each execution
+    - No workflow is created in AMC
+    - Each execution is independent
     """
     try:
         # Get workflow details

@@ -15,7 +15,34 @@ logger = get_logger(__name__)
 
 
 class ReportExecutionService(DatabaseService):
-    """Service for executing reports via ad-hoc AMC API calls"""
+    """
+    Service for executing reports via ad-hoc AMC API calls
+
+    IMPORTANT DISTINCTION: Ad-hoc vs Saved Workflows
+    ------------------------------------------------
+    This service handles AD-HOC execution of SQL queries directly through AMC API.
+
+    Ad-hoc Execution (This Service):
+    - SQL query is sent directly to AMC's createWorkflowExecution API with sql_query parameter
+    - No workflow is created or stored in AMC
+    - Each execution is independent with its own SQL and parameters
+    - Used for: Report Builder, one-time queries, dynamic SQL generation
+    - AMC API call: POST /workflowExecutions with {sql_query: "...", parameter_values: {...}}
+
+    Saved Workflow Execution (WorkflowService):
+    - Workflow is first created in AMC with createWorkflow API
+    - Workflow has a permanent ID and can be reused
+    - Executions reference the workflow_id, not SQL directly
+    - Used for: Scheduled workflows, recurring reports, version-controlled queries
+    - AMC API calls:
+        1. POST /workflows to create (one-time)
+        2. POST /workflowExecutions with {workflow_id: "...", parameter_values: {...}}
+
+    Key Differences:
+    - Ad-hoc: sql_query parameter is REQUIRED, workflow_id is NOT ALLOWED
+    - Saved: workflow_id parameter is REQUIRED, sql_query is NOT ALLOWED
+    - These parameters are mutually exclusive in AMC API
+    """
 
     def __init__(self):
         super().__init__()
@@ -98,6 +125,9 @@ class ReportExecutionService(DatabaseService):
             execution_uuid = exec_response.data[0]['id']
 
             # Execute via AMC API (ad-hoc, no workflow creation)
+            # CRITICAL: This is an AD-HOC execution - we pass sql_query directly
+            # We do NOT create a workflow first, and do NOT pass workflow_id
+            # The AMC API requires either sql_query OR workflow_id, never both
             try:
                 # Call AMC API with sql_query only (no workflow)
                 # Build parameters for AMC API - include time window in parameter_values
@@ -111,6 +141,9 @@ class ReportExecutionService(DatabaseService):
                 if parameters:
                     amc_params.update(parameters)
 
+                # Ad-hoc execution: SQL query is passed directly to AMC
+                # The SQL must be fully processed (no template placeholders like {{param}})
+                # because AMC doesn't understand template syntax
                 logger.info(f"Executing ad-hoc report with SQL length: {len(sql_query) if sql_query else 0}")
                 logger.info(f"Parameters being passed: {amc_params}")
 
@@ -121,11 +154,15 @@ class ReportExecutionService(DatabaseService):
                 else:
                     logger.info(f"SQL query confirmed present, length: {len(sql_query)}")
 
+                # AD-HOC EXECUTION: Pass sql_query parameter (not workflow_id)
+                # The AMC API will execute this SQL directly without creating a workflow
+                # This is different from saved workflows which reference a workflow_id
                 amc_result = await self.amc_client.create_workflow_execution(
                     instance_id=instance_id,
                     user_id=user_id,
                     entity_id=entity_id,
-                    sql_query=sql_query,
+                    sql_query=sql_query,  # Ad-hoc: SQL passed directly
+                    # workflow_id=None,   # Ad-hoc: NO workflow_id
                     parameter_values=amc_params if amc_params else None
                 )
 
