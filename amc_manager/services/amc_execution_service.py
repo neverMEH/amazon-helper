@@ -502,13 +502,19 @@ class AMCExecutionService:
                 # ALWAYS use ad-hoc execution - simpler and no size limits
                 # This handles queries of any size without needing workflow management
                 logger.info(f"Executing query via ad-hoc execution (query size: {len(processed_sql_query)} chars)")
+
+                # Pass the template parameters (which include timeWindowStart/End) to AMC
+                # These are needed for BUILT_IN_PARAMETER functions in the SQL
+                logger.info(f"Template parameters for AMC execution: {template_params}")
+
                 response = api_client.create_workflow_execution(
                     instance_id=instance_id,
                     sql_query=processed_sql_query,
                     access_token=valid_token,
                     entity_id=entity_id,
                     marketplace_id=marketplace_id,
-                    output_format=amc_parameters.get('output_format', 'CSV')
+                    parameter_values=template_params,  # Pass the date parameters for BUILT_IN_PARAMETER
+                    output_format=execution_parameters.get('output_format', 'CSV') if execution_parameters else 'CSV'
                 )
                 
                 # Check if execution was created successfully
