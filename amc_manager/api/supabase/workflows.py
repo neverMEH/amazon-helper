@@ -172,10 +172,10 @@ async def create_workflow(
         base_workflow_id = f"wf_{uuid.uuid4().hex[:8]}"
         amc_workflow_id = re.sub(r'[^a-zA-Z0-9._-]', '_', base_workflow_id)
 
-        # Extract parameters from SQL query
+        # Extract parameters from SQL query (deduplicated)
         param_pattern = r'\{\{(\w+)\}\}'
-        param_names = re.findall(param_pattern, sql_query)
-        
+        param_names = list(set(re.findall(param_pattern, sql_query)))  # Use set to remove duplicates
+
         # Create input parameter definitions for AMC
         input_parameters = []
         for param_name in param_names:
@@ -184,7 +184,7 @@ async def create_workflow(
                 param_type = 'TIMESTAMP'
             elif 'count' in param_name.lower() or 'number' in param_name.lower() or 'id' in param_name.lower():
                 param_type = 'INTEGER'
-            
+
             input_parameters.append({
                 'name': param_name,
                 'type': param_type,
