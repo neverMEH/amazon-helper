@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, Depends, Body
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel
 from datetime import datetime, timezone, timedelta
+import re
 
 from ...services.db_service import db_service
 from ...services.token_service import token_service
@@ -202,98 +203,174 @@ async def create_workflow(
         if '{{' in sql_query:
             from ...utils.parameter_processor import ParameterProcessor
 
+            def _infer_expected_column_count(sql_text: str, placeholder: str) -> int:
+                """Best-effort detection of how many columns a VALUES/INSERT placeholder expects."""
+                column_patterns = [
+                    # Derived table alias e.g. (VALUES {{param}}) AS t(col1,col2)
+                    re.compile(
+                        rf"VALUES\s*\{{\{{{placeholder}\}}\}}\s*\)\s*AS\s+[^()]+\(([^)]+)\)",
+                        re.IGNORECASE | re.DOTALL,
+                    ),
+                    # INSERT INTO table (col1,col2) VALUES {{param}}
+                    re.compile(
+                        rf"INSERT\s+INTO\s+[^()]+\(([^)]+)\)\s*VALUES\s*\{{\{{{placeholder}\}}\}}",
+                        re.IGNORECASE,
+                    ),
+                    # Multi-column IN clause e.g. (col1,col2) IN {{param}}
+                    re.compile(
+                        rf"\(([^)]+)\)\s*IN\s*\{{\{{{placeholder}\}}\}}",
+                        re.IGNORECASE,
+                    ),
+                ]
+
+                for pattern in column_patterns:
+                    match = pattern.search(sql_text)
+                    if match:
+                        columns = [c.strip() for c in match.group(1).split(',') if c.strip()]
+                        if columns:
+                            return len(columns)
+                return 1
+
+            def _default_values_for(param_name: str) -> list[str]:
+                lower = param_name.lower()
+                if 'asin' in lower:
+                    return ['B00DUMMY01']
+                if 'campaign' in lower:
+                    return ['dummy_campaign']
+                if 'brand' in lower:
+                    return ['dummy_brand']
+                if 'date' in lower or 'time' in lower:
+                    from datetime import datetime, timedelta
+
+                    if 'start' in lower:
+                        return [(datetime.utcnow() - timedelta(days=30)).strftime('%Y-%m-%d')]
+                    return [(datetime.utcnow() - timedelta(days=15)).strftime('%Y-%m-%d')]
+                return ['dummy_value']
+
+            def _build_values_clause(param_name: str, raw_value: Any, sql_text: str) -> str:
+                """Produce a VALUES body similar to the frontend preview logic."""
+                # Prefer explicit clause provided by frontend
+                if isinstance(raw_value, dict):
+                    clause = raw_value.get('_valuesClause')
+                    if clause:
+                        return clause.strip()
+                    candidate_values = raw_value.get('_values')
+                elif isinstance(raw_value, list):
+                    clause = None
+                    candidate_values = raw_value
+                elif raw_value:
+                    clause = None
+                    candidate_values = [raw_value]
+                else:
+                    clause = None
+                    candidate_values = None
+
+                if clause:
+                    return clause.strip()
+
+                values = candidate_values if candidate_values else _default_values_for(param_name)
+                column_count = max(1, _infer_expected_column_count(sql_text, param_name))
+
+                rows = []
+                for index, value in enumerate(values or ['dummy_value']):
+                    base = str(value)
+                    row_values = [base]
+                    if column_count > 1:
+                        # Generate filler values for additional columns so column counts align
+                        for col_index in range(1, column_count):
+                            row_values.append(f"{base}_col{col_index + 1}")
+                    row = f"({', '.join(f"'{v}'" for v in row_values)})"
+                    rows.append(row)
+
+                return ',\n'.join(f"    {row}" for row in rows)
+
+            def _apply_sql_injection(sql_text: str, param_name: str, param_value: Any) -> str:
+                """Replace SQL injection placeholder with an inline VALUES clause."""
+                values_clause_body = _build_values_clause(param_name, param_value, sql_text)
+                placeholder_regex = re.compile(rf"\{{\{{{param_name}\}}\}}")
+
+                # Determine whether VALUES keyword already precedes the placeholder
+                values_keyword_pattern = re.compile(
+                    rf"VALUES\s*\{{\{{{param_name}\}}\}}",
+                    re.IGNORECASE,
+                )
+
+                if values_keyword_pattern.search(sql_text):
+                    replacement = f"\n{values_clause_body}"
+                else:
+                    replacement = f"VALUES\n{values_clause_body}"
+
+                return placeholder_regex.sub(replacement, sql_text)
+
             # Use provided parameters or empty defaults for workflow creation
             # This creates a valid SQL for AMC workflow creation
             params_to_use = {}
             provided_params = workflow.parameters or {}
 
-            # Add default values for common parameters if not provided
             param_pattern = r'\{\{(\w+)\}\}'
             param_names = list(set(re.findall(param_pattern, sql_query)))
+            sql_injection_params = set()
 
             for param_name in param_names:
-                # Check if this parameter is marked for SQL injection (frontend sends _sqlInject flag)
                 param_value = provided_params.get(param_name)
-
-                # Handle SQL injection parameters - check for _sqlInject flag in parameter structure
-                if param_value and isinstance(param_value, dict):
-                    logger.info(f"Parameter {param_name} is a dict with keys: {param_value.keys()}")
-                    if param_value.get('_sqlInject'):
-                        logger.info(f"Parameter {param_name} has _sqlInject flag - using dummy values")
-                        # This is a SQL injection parameter from frontend
-                        # Use dummy values for workflow creation - the actual values will be injected during execution
-                        if 'asin' in param_name.lower():
-                            params_to_use[param_name] = ['B00DUMMY01']  # Dummy ASIN
-                        elif 'campaign' in param_name.lower():
-                            params_to_use[param_name] = ['dummy_campaign']  # Dummy campaign
-                        else:
-                            params_to_use[param_name] = ['dummy_value']  # Generic dummy
-                    elif 'value' in param_value:
-                        # Parameter has a value field - extract it
-                        actual_value = param_value.get('value')
-                        if actual_value is not None and actual_value != '':
-                            # Check if the value itself has _sqlInject flag
-                            if isinstance(actual_value, dict) and actual_value.get('_sqlInject'):
-                                # Nested _sqlInject flag
-                                if 'asin' in param_name.lower():
-                                    params_to_use[param_name] = ['B00DUMMY01']
-                                elif 'campaign' in param_name.lower():
-                                    params_to_use[param_name] = ['dummy_campaign']
-                                else:
-                                    params_to_use[param_name] = ['dummy_value']
-                            else:
-                                # Use the actual value
-                                params_to_use[param_name] = actual_value
-                        else:
-                            # Empty value - check if this needs SQL injection
-                            if any(k in param_name.lower() for k in ['campaign', 'asin', 'brand']):
-                                if 'asin' in param_name.lower():
-                                    params_to_use[param_name] = ['B00DUMMY01']
-                                elif 'campaign' in param_name.lower():
-                                    params_to_use[param_name] = ['dummy_campaign']
-                                else:
-                                    params_to_use[param_name] = ['dummy_brand']
-                            else:
-                                params_to_use[param_name] = ''
-                    else:
-                        # Dictionary without _sqlInject or value - use as is
-                        params_to_use[param_name] = param_value
-                elif param_name in provided_params:
-                    # Use the provided value if it's not a SQL injection parameter
-                    params_to_use[param_name] = provided_params[param_name]
-                else:
-                    # Provide sensible defaults for missing parameters
-                    if 'date' in param_name.lower() or 'time' in param_name.lower():
-                        # Use a date from 30 days ago (within AMC data availability)
-                        from datetime import datetime, timedelta
-                        if 'start' in param_name.lower():
-                            params_to_use[param_name] = (datetime.utcnow() - timedelta(days=30)).strftime('%Y-%m-%d')
-                        else:
-                            params_to_use[param_name] = (datetime.utcnow() - timedelta(days=15)).strftime('%Y-%m-%d')
-                    elif any(k in param_name.lower() for k in ['campaign', 'asin', 'brand']):
-                        # Use a dummy value for workflow creation to avoid SQL syntax errors
-                        # The actual values will be provided during execution
-                        if 'asin' in param_name.lower():
-                            params_to_use[param_name] = ['B00DUMMY01']  # Dummy ASIN
-                        elif 'campaign' in param_name.lower():
-                            params_to_use[param_name] = ['dummy_campaign']  # Dummy campaign
-                        else:
-                            params_to_use[param_name] = ['dummy_brand']  # Dummy brand
-                    else:
-                        params_to_use[param_name] = ''  # Empty string for other parameters
-
-            # Process the SQL with parameters
-            try:
-                sql_query = ParameterProcessor.process_sql_parameters(
+                values_context = re.search(
+                    rf"VALUES\s*\{{\{{{param_name}\}}\}}",
                     sql_query,
-                    params_to_use,
-                    validate_all=False  # Allow partial processing
+                    re.IGNORECASE,
                 )
-                logger.info(f"Processed SQL query for AMC workflow creation, final length: {len(sql_query)}")
-            except Exception as e:
-                logger.error(f"Failed to process SQL parameters: {e}")
-                # If processing fails, we'll try with the original SQL
-                pass
+
+                is_sql_inject = bool(
+                    (isinstance(param_value, dict) and param_value.get('_sqlInject'))
+                    or values_context
+                )
+
+                if is_sql_inject:
+                    sql_injection_params.add(param_name)
+                    sql_query = _apply_sql_injection(sql_query, param_name, param_value)
+                    logger.info(f"Applied SQL injection default for {param_name}")
+                    continue
+
+                if param_value and isinstance(param_value, dict) and 'value' in param_value:
+                    actual_value = param_value.get('value')
+                    if isinstance(actual_value, dict) and actual_value.get('_sqlInject'):
+                        sql_injection_params.add(param_name)
+                        sql_query = _apply_sql_injection(sql_query, param_name, actual_value)
+                        logger.info(f"Applied nested SQL injection default for {param_name}")
+                        continue
+                    if actual_value not in (None, ''):
+                        params_to_use[param_name] = actual_value
+                        continue
+
+                if param_name in provided_params and param_name not in params_to_use:
+                    params_to_use[param_name] = provided_params[param_name]
+                    continue
+
+                # Provide sensible defaults for missing parameters
+                default_values = _default_values_for(param_name)
+                if len(default_values) == 1:
+                    params_to_use[param_name] = default_values[0]
+                else:
+                    params_to_use[param_name] = default_values
+
+            # Remove injection placeholders from params_to_use to avoid accidental substitution
+            for injection_param in sql_injection_params:
+                params_to_use.pop(injection_param, None)
+
+            # Process the SQL with standard template parameters
+            if params_to_use:
+                try:
+                    sql_query = ParameterProcessor.process_sql_parameters(
+                        sql_query,
+                        params_to_use,
+                        validate_all=False,  # Allow partial processing
+                    )
+                    logger.info(
+                        f"Processed SQL query for AMC workflow creation, final length: {len(sql_query)}"
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to process SQL parameters: {e}")
+                    # If processing fails, we'll try with the original SQL
+                    pass
 
         # Generate unique workflow ID for AMC
         base_workflow_id = f"wf_{uuid.uuid4().hex[:8]}"
