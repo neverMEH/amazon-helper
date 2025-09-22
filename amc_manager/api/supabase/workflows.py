@@ -247,6 +247,12 @@ async def create_workflow(
                     return [(datetime.utcnow() - timedelta(days=15)).strftime('%Y-%m-%d')]
                 return ['dummy_value']
 
+            def _quote_sql_value(raw: Any) -> str:
+                if raw is None:
+                    return 'NULL'
+                text = str(raw).replace("'", "''")
+                return f"'{text}'"
+
             def _build_values_clause(param_name: str, raw_value: Any, sql_text: str) -> str:
                 """Produce a VALUES body similar to the frontend preview logic."""
                 # Prefer explicit clause provided by frontend
@@ -272,14 +278,14 @@ async def create_workflow(
                 column_count = max(1, _infer_expected_column_count(sql_text, param_name))
 
                 rows = []
-                for index, value in enumerate(values or ['dummy_value']):
+                for value in values or ['dummy_value']:
                     base = str(value)
                     row_values = [base]
                     if column_count > 1:
                         # Generate filler values for additional columns so column counts align
                         for col_index in range(1, column_count):
                             row_values.append(f"{base}_col{col_index + 1}")
-                    row = f"({', '.join(f"'{v}'" for v in row_values)})"
+                    row = '(' + ', '.join(_quote_sql_value(v) for v in row_values) + ')'
                     rows.append(row)
 
                 return ',\n'.join(f"    {row}" for row in rows)
