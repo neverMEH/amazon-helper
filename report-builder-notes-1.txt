@@ -1,0 +1,30 @@
+ 1. Scheduler Background Service:
+    - Should the scheduler run as a background task similar to the existing schedule_executor_service.py (for workflows)?
+    - How often should it check for due schedules (e.g., every minute)?
+    - Should it use the same deduplication logic to prevent duplicate runs?
+  2. Backfill Background Service:
+    - Should backfill execute segments in parallel (e.g., 5-10 concurrent executions) or sequentially?
+    - Should there be rate limiting to avoid overwhelming AMC API?
+    - How should we handle failures - retry individual segments or fail the entire backfill?
+  3. Parameter Handling:
+    - The reports use dynamic parameters (campaigns, ASINs, date ranges). How should the scheduler/backfill pass these?
+    - Should schedules store default parameters that can be overridden?
+    - For backfill, should each segment get the same parameters except for date ranges?
+  4. Integration Points:
+    - Should we create new background services or modify existing ones?
+    - Do we need new API endpoints to trigger/monitor these executions?
+    - Should the services be registered in main_supabase.py to run on startup?
+  5. Database Schema:
+    - Do we need to modify the existing report_schedules and report_data_collections tables?
+    - Should execution records link back to schedules/backfills for tracking?
+
+1. yes have it run like the schedule_executor_service.py. It should check for sexhdules every minute. Yes use the same dedup method to prevent duplicate runs
+2. lets have them run sequentially. yes no more than 100 calls per minute. have it retry 3 times before exiting, do not fail the entire backfill.
+3. should pass everything the same way outside the date range, the schedule should fill these out for the date range it will be running, same with the backfill.
+- i think the schedules will use the same schedule parameters as we have for the schdules feature - use that as a standard - aside from the workflow part.
+- yes to the backfill question
+4. whichever is easiest and better for sucess/scaling
+- depends on the first question path
+- as long as it doesnt slow down the platform
+5. you tell me - can the existing be used?
+- yes link back if possible
