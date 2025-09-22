@@ -450,11 +450,10 @@ async def create_workflow(
             "is_synced_to_amc": True,
             "amc_sync_status": "synced",
             "amc_synced_at": datetime.now(timezone.utc).isoformat(),
-            "template_id": workflow.template_id  # Store the template reference
         }
 
-        # Note: template_id field doesn't exist in workflows table yet
-        # Could be added in a future migration if needed to track template usage
+        # Note: template_id column isn't present in workflows table yet, so we avoid persisting it here.
+        # Add a migration before storing template references directly in the workflows row.
         
         # Use sync version
         created = db_service.create_workflow_sync(workflow_data)
