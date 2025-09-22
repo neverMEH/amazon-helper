@@ -519,3 +519,18 @@ docker run -p 8001:8001 --env-file .env recomamp
 - **Monaco Editor**: Full SQL syntax highlighting, same as VS Code
 - **TanStack Query**: Powerful caching, optimistic updates, background refetching
 - **Vite**: Fast HMR, optimized builds, TypeScript support out of the box
+
+### Recent Fixes and Enhancements
+
+#### 2025-09-22 (Auto-Generated Update)
+
+**New Features:**
+- feat: Implement AMC Report Builder backend services and database schema
+  - New files: .agent-os/specs/2025-09-15-amc-report-builder/spec-lite.md, .agent-os/specs/2025-09-15-amc-report-builder/spec.md, .agent-os/specs/2025-09-15-amc-report-builder/sub-specs/api-spec.md
+
+**Bug Fixes:**
+- fix: Handle large SQL queries by skipping workflow creation for queries over 50KB
+- fix: Enhanced LIKE pattern detection to handle indirect parameter references
+- fix: Auto-format LIKE pattern parameters with % wildcards
+- fix: Ensure campaign_pattern uses text input and fix duplicate VALUES for ASINs
+- fix: Fix Python f-string syntax error in LIKE pattern regex
