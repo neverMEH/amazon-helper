@@ -7,7 +7,7 @@ import logging
 import hashlib
 from typing import Any, Dict, Optional
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ class QueryLogger:
         """Generate a unique ID for tracking a query through its lifecycle"""
         # Use first 8 chars of hash for readability
         hash_obj = hashlib.md5(sql_query.encode())
-        timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+        timestamp = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')
         return f"query_{timestamp}_{hash_obj.hexdigest()[:8]}"
 
     @classmethod
@@ -57,7 +57,7 @@ class QueryLogger:
         log_entry = {
             "query_id": query_id,
             "stage": stage,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "sql_preview": cls._truncate_sql(sql_query, 500),
             "sql_length": len(sql_query),
             "parameter_count": len(parameters) if parameters else 0
@@ -149,7 +149,7 @@ class QueryLogger:
             "query_id": query_id,
             "validation_type": validation_type,
             "is_valid": is_valid,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
 
         if details:
@@ -194,7 +194,7 @@ class QueryLogger:
             "instance_id": instance_id,
             "entity_id": entity_id,
             "sql_length": len(sql_query),
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
 
         if response_status:
@@ -232,7 +232,7 @@ class QueryLogger:
             "query_id": query_id,
             "execution_id": execution_id,
             "status": status,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
 
         if duration_seconds:

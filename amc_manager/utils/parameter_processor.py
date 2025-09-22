@@ -170,7 +170,8 @@ class ParameterProcessor:
         Format parameter value based on type and context
 
         Handles:
-        - Arrays/lists: Format as SQL IN clause ('item1','item2')
+        - Arrays/lists in VALUES context: Format as VALUES clause rows
+        - Arrays/lists in IN context: Format as SQL IN clause ('item1','item2')
         - Strings in LIKE context: Add wildcards %value%
         - Regular strings: Escape and quote
         - Numbers/booleans: Convert to string
@@ -179,7 +180,13 @@ class ParameterProcessor:
         if value is None:
             return 'NULL'
         elif isinstance(value, (list, tuple)):
-            return cls._format_array_parameter(param_name, value)
+            # Check if this parameter is used in a VALUES context
+            if cls._is_values_parameter(param_name, sql_template):
+                # Format as VALUES clause with each item in its own row
+                return cls._format_values_parameter(param_name, value)
+            else:
+                # Format as IN clause
+                return cls._format_array_parameter(param_name, value)
         elif isinstance(value, str):
             return cls._format_string_parameter(param_name, value, sql_template)
         elif isinstance(value, bool):
@@ -243,6 +250,60 @@ class ParameterProcessor:
                 )
 
         return escaped
+
+    @classmethod
+    def _is_values_parameter(cls, param_name: str, sql_template: str) -> bool:
+        """
+        Detect if parameter is used in a VALUES context
+
+        Checks if the parameter appears directly after VALUES keyword
+        in various template formats.
+        """
+        # Check for VALUES keyword near parameter in various formats
+        patterns_to_check = [
+            # Direct VALUES patterns
+            rf'\bVALUES\s*\{{\{{{param_name}\}}\}}',  # VALUES {{param}}
+            rf'\bVALUES\s*:{param_name}\b',           # VALUES :param
+            rf'\bVALUES\s*\${param_name}\b',          # VALUES $param
+            # VALUES with parentheses
+            rf'\bVALUES\s*\(\s*\{{\{{{param_name}\}}\}}\s*\)',  # VALUES ({{param}})
+            rf'\bVALUES\s*\(\s*:{param_name}\b\s*\)',           # VALUES (:param)
+            rf'\bVALUES\s*\(\s*\${param_name}\b\s*\)',          # VALUES ($param)
+        ]
+
+        for pattern in patterns_to_check:
+            if re.search(pattern, sql_template, re.IGNORECASE):
+                logger.debug(f"Parameter '{param_name}' found in VALUES context")
+                return True
+
+        return False
+
+    @classmethod
+    def _format_values_parameter(cls, param_name: str, values: List[Any]) -> str:
+        """
+        Format array parameter as VALUES clause rows
+        Each value gets its own row: ('val1'), ('val2'), ('val3')
+        """
+        if not values:
+            # Return a VALUES clause that produces no rows
+            return "(NULL) WHERE FALSE"
+
+        escaped_values = []
+
+        for val in values:
+            if val is None:
+                escaped_values.append("(NULL)")
+            elif isinstance(val, str):
+                # Escape single quotes and check for injection
+                escaped_val = cls._escape_string_value(val, param_name)
+                escaped_values.append(f"('{escaped_val}')")
+            elif isinstance(val, bool):
+                escaped_values.append(f"({('TRUE' if val else 'FALSE')})")
+            else:
+                escaped_values.append(f"({val})")
+
+        # Return formatted as VALUES clause rows
+        return ', '.join(escaped_values)
 
     @classmethod
     def _is_like_parameter(cls, param_name: str, sql_template: str) -> bool:
