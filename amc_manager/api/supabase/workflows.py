@@ -224,26 +224,66 @@ async def create_workflow(
                         param_name,
                         explicit_values,
                     )
+
                 logger.debug(
                     "Generated VALUES clause for %s (%d rows)",
                     param_name,
                     values_clause_body.count("\n") + 1,
                 )
 
-                placeholder_regex = re.compile(rf"\{{\{{{param_name}\}}\}}")
-
-                # Determine whether VALUES keyword already precedes the placeholder
-                values_keyword_pattern = re.compile(
-                    rf"VALUES\s*\{{\{{{param_name}\}}\}}",
+                values_pattern = re.compile(
+                    rf'(VALUES\s*)\{{\{{{param_name}\}}\}}',
                     re.IGNORECASE,
                 )
 
-                if values_keyword_pattern.search(sql_text):
-                    replacement = f"\n{values_clause_body}"
-                else:
-                    replacement = f"VALUES\n{values_clause_body}"
+                match = values_pattern.search(sql_text)
+                if match:
+                    line_start = sql_text.rfind('\n', 0, match.start()) + 1
+                    indent = sql_text[line_start:match.start()]
 
-                return placeholder_regex.sub(replacement, sql_text)
+                    cte_pattern = re.compile(
+                        rf'([A-Za-z_][\w]*)\s*\(([^)]+)\)\s*AS\s*\(\s*VALUES\s*\{{\{{{param_name}\}}\}}',
+                        re.IGNORECASE,
+                    )
+                    cte_match = cte_pattern.search(sql_text)
+                    cte_columns = []
+                    if cte_match:
+                        cte_columns = [c.strip() for c in cte_match.group(2).split(',') if c.strip()]
+
+                    column_count = max(
+                        len(cte_columns) or 1,
+                        ParameterProcessor._infer_placeholder_column_count(sql_text, param_name),
+                    )
+
+                    internal_columns = [f"col{i+1}" for i in range(column_count)]
+                    if not cte_columns:
+                        cte_columns = [f"{param_name}_{i+1}" for i in range(column_count)]
+
+                    select_assignments = ', '.join(
+                        f"{internal_columns[i]} AS {cte_columns[i]}"
+                        if i < len(cte_columns)
+                        else internal_columns[i]
+                        for i in range(column_count)
+                    )
+
+                    clause_lines = values_clause_body.splitlines()
+                    indented_clause = '\n'.join(
+                        indent + '        ' + line.strip()
+                        for line in clause_lines
+                    )
+
+                    replacement = (
+                        f"SELECT {select_assignments}\n"
+                        f"{indent}FROM (\n"
+                        f"{indent}    VALUES\n"
+                        f"{indented_clause}\n"
+                        f"{indent}) AS __values_{param_name}({', '.join(internal_columns)})"
+                    )
+
+                    return values_pattern.sub(replacement, sql_text, count=1)
+
+                placeholder_regex = re.compile(rf"\{{\{{{param_name}\}}\}}")
+                return placeholder_regex.sub(f"VALUES\n{values_clause_body}", sql_text)
 
             # Use provided parameters or empty defaults for workflow creation
             # This creates a valid SQL for AMC workflow creation

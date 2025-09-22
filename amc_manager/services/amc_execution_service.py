@@ -467,8 +467,60 @@ class AMCExecutionService:
                             "Values clause for %s (dict) length=%d", param_name, len(values_clause)
                         )
                         if values_before_param:
-                            processed_sql_query = processed_sql_query.replace(param_pattern, f"\n{values_clause}")
-                            logger.info(f"Applied SQL injection for {param_name}: replaced {param_pattern} with provided values (VALUES already present)")
+                            replacement_pattern = re.compile(
+                                rf'(VALUES\s*)\{{\{{{param_name}\}}\}}',
+                                re.IGNORECASE,
+                            )
+                            cte_pattern = re.compile(
+                                rf'([A-Za-z_][\w]*)\s*\(([^)]+)\)\s*AS\s*\(\s*VALUES\s*\{{\{{{param_name}\}}\}}',
+                                re.IGNORECASE,
+                            )
+                            cte_match = cte_pattern.search(processed_sql_query)
+                            cte_columns = []
+                            if cte_match:
+                                cte_columns = [c.strip() for c in cte_match.group(2).split(',') if c.strip()]
+
+                            column_count = max(
+                                len(cte_columns) or 1,
+                                ParameterProcessor._infer_placeholder_column_count(processed_sql_query, param_name),
+                            )
+
+                            internal_columns = [f"col{i+1}" for i in range(column_count)]
+                            if not cte_columns:
+                                cte_columns = [f"{param_name}_{i+1}" for i in range(column_count)]
+
+                            select_assignments = ', '.join(
+                                f"{internal_columns[i]} AS {cte_columns[i]}"
+                                if i < len(cte_columns)
+                                else internal_columns[i]
+                                for i in range(column_count)
+                            )
+
+                            line_start = processed_sql_query.rfind('\n', 0, values_before_param.start()) + 1
+                            indent = processed_sql_query[line_start:values_before_param.start()]
+
+                            clause_lines = values_clause.splitlines()
+                            indented_clause = '\n'.join(
+                                indent + '        ' + line.strip()
+                                for line in clause_lines
+                            )
+
+                            replacement_text = (
+                                f"SELECT {select_assignments}\n"
+                                f"{indent}FROM (\n"
+                                f"{indent}    VALUES\n"
+                                f"{indented_clause}\n"
+                                f"{indent}) AS __values_{param_name}({', '.join(internal_columns)})"
+                            )
+
+                            processed_sql_query = replacement_pattern.sub(
+                                replacement_text,
+                                processed_sql_query,
+                                count=1,
+                            )
+                            logger.info(
+                                f"Applied SQL injection for {param_name}: replaced VALUES block with SELECT wrapper"
+                            )
                         else:
                             processed_sql_query = processed_sql_query.replace(param_pattern, f"VALUES\n{values_clause}")
                             logger.info(f"Applied SQL injection for {param_name}: inserted VALUES clause")
@@ -482,8 +534,60 @@ class AMCExecutionService:
                             "Values clause for %s (list) length=%d", param_name, len(values_clause)
                         )
                         if values_before_param:
-                            processed_sql_query = processed_sql_query.replace(param_pattern, f"\n{values_clause}")
-                            logger.info(f"Applied SQL injection for legacy parameter {param_name}: replaced placeholder (VALUES already present)")
+                            replacement_pattern = re.compile(
+                                rf'(VALUES\s*)\{{\{{{param_name}\}}\}}',
+                                re.IGNORECASE,
+                            )
+                            cte_pattern = re.compile(
+                                rf'([A-Za-z_][\w]*)\s*\(([^)]+)\)\s*AS\s*\(\s*VALUES\s*\{{\{{{param_name}\}}\}}',
+                                re.IGNORECASE,
+                            )
+                            cte_match = cte_pattern.search(processed_sql_query)
+                            cte_columns = []
+                            if cte_match:
+                                cte_columns = [c.strip() for c in cte_match.group(2).split(',') if c.strip()]
+
+                            column_count = max(
+                                len(cte_columns) or 1,
+                                ParameterProcessor._infer_placeholder_column_count(processed_sql_query, param_name),
+                            )
+
+                            internal_columns = [f"col{i+1}" for i in range(column_count)]
+                            if not cte_columns:
+                                cte_columns = [f"{param_name}_{i+1}" for i in range(column_count)]
+
+                            select_assignments = ', '.join(
+                                f"{internal_columns[i]} AS {cte_columns[i]}"
+                                if i < len(cte_columns)
+                                else internal_columns[i]
+                                for i in range(column_count)
+                            )
+
+                            line_start = processed_sql_query.rfind('\n', 0, values_before_param.start()) + 1
+                            indent = processed_sql_query[line_start:values_before_param.start()]
+
+                            clause_lines = values_clause.splitlines()
+                            indented_clause = '\n'.join(
+                                indent + '        ' + line.strip()
+                                for line in clause_lines
+                            )
+
+                            replacement_text = (
+                                f"SELECT {select_assignments}\n"
+                                f"{indent}FROM (\n"
+                                f"{indent}    VALUES\n"
+                                f"{indented_clause}\n"
+                                f"{indent}) AS __values_{param_name}({', '.join(internal_columns)})"
+                            )
+
+                            processed_sql_query = replacement_pattern.sub(
+                                replacement_text,
+                                processed_sql_query,
+                                count=1,
+                            )
+                            logger.info(
+                                f"Applied SQL injection for legacy parameter {param_name}: replaced VALUES block with SELECT wrapper"
+                            )
                         else:
                             processed_sql_query = processed_sql_query.replace(param_pattern, f"VALUES\n{values_clause}")
                             logger.info(f"Applied SQL injection for legacy parameter {param_name}: inserted VALUES clause")
