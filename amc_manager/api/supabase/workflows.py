@@ -224,6 +224,11 @@ async def create_workflow(
                         param_name,
                         explicit_values,
                     )
+                logger.debug(
+                    "Generated VALUES clause for %s (%d rows)",
+                    param_name,
+                    values_clause_body.count("\n") + 1,
+                )
 
                 placeholder_regex = re.compile(rf"\{{\{{{param_name}\}}\}}")
 

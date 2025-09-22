@@ -502,7 +502,16 @@ class ParameterProcessor:
             quoted_values = [cls._quote_sql_literal(param_name, value) for value in row_values]
             rows.append(f"({', '.join(quoted_values)})")
 
-        return ',\n'.join(f"    {row}" for row in rows)
+        clause = ',\n'.join(f"    {row}" for row in rows)
+        logger.debug(
+            "Built VALUES clause for %s: %d rows, %d columns",
+            param_name,
+            len(rows),
+            column_count,
+        )
+        sample = '\n'.join(clause.splitlines()[:3])
+        logger.debug("VALUES clause sample:\n%s", sample)
+        return clause
 
     @classmethod
     def create_large_list_cte(cls, param_name: str, values: List[Any],

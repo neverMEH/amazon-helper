@@ -1069,7 +1069,9 @@ class AMCAPIClient:
             body['inputParameters'] = input_parameters
         
         logger.info(f"Updating workflow {workflow_id} in instance {instance_id}")
-        
+        logger.debug(f"SQL Query length: {len(sql_query)} characters")
+        logger.debug(f"SQL Query preview (first 500 chars): {sql_query[:500]}")
+
         try:
             response = requests.put(
                 url,

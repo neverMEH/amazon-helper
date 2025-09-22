@@ -463,6 +463,9 @@ class AMCExecutionService:
                                 param_name,
                                 explicit_values,
                             )
+                        logger.debug(
+                            "Values clause for %s (dict) length=%d", param_name, len(values_clause)
+                        )
                         if values_before_param:
                             processed_sql_query = processed_sql_query.replace(param_pattern, f"\n{values_clause}")
                             logger.info(f"Applied SQL injection for {param_name}: replaced {param_pattern} with provided values (VALUES already present)")
@@ -474,6 +477,9 @@ class AMCExecutionService:
                             processed_sql_query,
                             param_name,
                             param_value,
+                        )
+                        logger.debug(
+                            "Values clause for %s (list) length=%d", param_name, len(values_clause)
                         )
                         if values_before_param:
                             processed_sql_query = processed_sql_query.replace(param_pattern, f"\n{values_clause}")
@@ -509,7 +515,7 @@ class AMCExecutionService:
             logger.info(f"SQL injection parameters applied: {list(sql_injection_params.keys())}")
             logger.info(f"Final SQL query ready for AMC (length: {len(processed_sql_query)} chars)")
             # Log first 500 chars of SQL for debugging (without sensitive data)
-            logger.debug(f"SQL preview: {processed_sql_query[:500]}...")
+            logger.debug(f"SQL preview: {processed_sql_query[:1500]}...")
             
             # Create workflow execution via AMC API
             # Initialize API client with correct service
