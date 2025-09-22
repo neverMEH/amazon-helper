@@ -694,8 +694,14 @@ async def execute_workflow(
     try:
         # Extract instance_id and parameters from body
         instance_id = body.get('instance_id')
-        parameters = {k: v for k, v in body.items() if k != 'instance_id'}
-        
+        parameters = {k: v for k, v in body.items() if k not in {'instance_id', 'execution_parameters'}}
+
+        # Support new payload shape where parameters are nested under execution_parameters
+        nested_parameters = body.get('execution_parameters')
+        if isinstance(nested_parameters, dict):
+            # Nested values take precedence over top-level duplicates
+            parameters = {**parameters, **nested_parameters}
+
         logger.info(f"Executing workflow {workflow_id} with instance_id: {instance_id}, parameters: {parameters}")
         
         # The workflow_id parameter here is actually the workflow_id field (e.g., "wf_883e6982")
