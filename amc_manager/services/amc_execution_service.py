@@ -515,24 +515,72 @@ class AMCExecutionService:
             self._update_execution_progress(execution_id, 'running', 10)
 
             try:
-                # ALWAYS use ad-hoc execution - simpler and no size limits
-                # This handles queries of any size without needing workflow management
-                logger.info(f"Executing query via ad-hoc execution (query size: {len(processed_sql_query)} chars)")
+                output_format = execution_parameters.get('output_format', 'CSV') if execution_parameters else 'CSV'
+                sql_length = len(processed_sql_query)
+                logger.info(f"Prepared SQL length: {sql_length} characters")
 
-                # Pass the template parameters (which include timeWindowStart/End) to AMC
-                # These are needed for BUILT_IN_PARAMETER functions in the SQL
-                logger.info(f"Template parameters for AMC execution: {template_params}")
+                # AMC enforces a ~1KB limit on ad-hoc SQL payloads. Anything larger must run via saved workflow.
+                AD_HOC_SQL_LIMIT = 1024
+                use_ad_hoc_mode = sql_length <= AD_HOC_SQL_LIMIT
 
-                response = api_client.create_workflow_execution(
-                    instance_id=instance_id,
-                    sql_query=processed_sql_query,
-                    access_token=valid_token,
-                    entity_id=entity_id,
-                    marketplace_id=marketplace_id,
-                    parameter_values=template_params,  # Pass the date parameters for BUILT_IN_PARAMETER
-                    output_format=execution_parameters.get('output_format', 'CSV') if execution_parameters else 'CSV'
-                )
-                
+                if not use_ad_hoc_mode and not amc_workflow_id:
+                    logger.warning(
+                        "SQL length exceeds ad-hoc limit but workflow lacks AMC workflow ID; falling back to ad-hoc and expect failure"
+                    )
+                    use_ad_hoc_mode = True
+
+                if use_ad_hoc_mode:
+                    logger.info(
+                        f"Executing query via ad-hoc execution (query size: {sql_length} chars; limit {AD_HOC_SQL_LIMIT})"
+                    )
+                    logger.info(f"Template parameters for AMC execution: {template_params}")
+
+                    response = api_client.create_workflow_execution(
+                        instance_id=instance_id,
+                        sql_query=processed_sql_query,
+                        access_token=valid_token,
+                        entity_id=entity_id,
+                        marketplace_id=marketplace_id,
+                        parameter_values=template_params,
+                        output_format=output_format
+                    )
+                else:
+                    logger.info(
+                        f"SQL length {sql_length} exceeds ad-hoc limit {AD_HOC_SQL_LIMIT}; updating saved workflow {amc_workflow_id}"
+                    )
+
+                    # Ensure the saved workflow definition matches the processed SQL
+                    update_response = api_client.update_workflow(
+                        instance_id=instance_id,
+                        workflow_id=amc_workflow_id,
+                        sql_query=processed_sql_query,
+                        access_token=valid_token,
+                        entity_id=entity_id,
+                        marketplace_id=marketplace_id,
+                        output_format=output_format
+                    )
+
+                    if not update_response.get('success'):
+                        error_msg = update_response.get('error', 'Failed to update AMC workflow with latest SQL')
+                        logger.error(f"Unable to update saved workflow {amc_workflow_id}: {error_msg}")
+                        return {
+                            "status": "failed",
+                            "error": error_msg
+                        }
+
+                    logger.info(f"Saved workflow {amc_workflow_id} updated; triggering execution via workflowId")
+                    logger.info(f"Template parameters for AMC execution: {template_params}")
+
+                    response = api_client.create_workflow_execution(
+                        instance_id=instance_id,
+                        workflow_id=amc_workflow_id,
+                        access_token=valid_token,
+                        entity_id=entity_id,
+                        marketplace_id=marketplace_id,
+                        parameter_values=template_params,
+                        output_format=output_format
+                    )
+
                 # Check if execution was created successfully
                 if not response.get('success'):
                     error_msg = response.get('error', 'Failed to create workflow execution')
