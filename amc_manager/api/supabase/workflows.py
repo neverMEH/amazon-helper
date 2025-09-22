@@ -203,96 +203,28 @@ async def create_workflow(
         if '{{' in sql_query:
             from ...utils.parameter_processor import ParameterProcessor
 
-            def _infer_expected_column_count(sql_text: str, placeholder: str) -> int:
-                """Best-effort detection of how many columns a VALUES/INSERT placeholder expects."""
-                column_patterns = [
-                    # Derived table alias e.g. (VALUES {{param}}) AS t(col1,col2)
-                    re.compile(
-                        rf"VALUES\s*\{{\{{{placeholder}\}}\}}\s*\)\s*AS\s+[^()]+\(([^)]+)\)",
-                        re.IGNORECASE | re.DOTALL,
-                    ),
-                    # INSERT INTO table (col1,col2) VALUES {{param}}
-                    re.compile(
-                        rf"INSERT\s+INTO\s+[^()]+\(([^)]+)\)\s*VALUES\s*\{{\{{{placeholder}\}}\}}",
-                        re.IGNORECASE,
-                    ),
-                    # Multi-column IN clause e.g. (col1,col2) IN {{param}}
-                    re.compile(
-                        rf"\(([^)]+)\)\s*IN\s*\{{\{{{placeholder}\}}\}}",
-                        re.IGNORECASE,
-                    ),
-                ]
-
-                for pattern in column_patterns:
-                    match = pattern.search(sql_text)
-                    if match:
-                        columns = [c.strip() for c in match.group(1).split(',') if c.strip()]
-                        if columns:
-                            return len(columns)
-                return 1
-
-            def _default_values_for(param_name: str) -> list[str]:
-                lower = param_name.lower()
-                if 'asin' in lower:
-                    return ['B00DUMMY01']
-                if 'campaign' in lower:
-                    return ['dummy_campaign']
-                if 'brand' in lower:
-                    return ['dummy_brand']
-                if 'date' in lower or 'time' in lower:
-                    from datetime import datetime, timedelta
-
-                    if 'start' in lower:
-                        return [(datetime.utcnow() - timedelta(days=30)).strftime('%Y-%m-%d')]
-                    return [(datetime.utcnow() - timedelta(days=15)).strftime('%Y-%m-%d')]
-                return ['dummy_value']
-
-            def _quote_sql_value(raw: Any) -> str:
-                if raw is None:
-                    return 'NULL'
-                text = str(raw).replace("'", "''")
-                return f"'{text}'"
-
-            def _build_values_clause(param_name: str, raw_value: Any, sql_text: str) -> str:
-                """Produce a VALUES body similar to the frontend preview logic."""
-                # Prefer explicit clause provided by frontend
-                if isinstance(raw_value, dict):
-                    clause = raw_value.get('_valuesClause')
-                    if clause:
-                        return clause.strip()
-                    candidate_values = raw_value.get('_values')
-                elif isinstance(raw_value, list):
-                    clause = None
-                    candidate_values = raw_value
-                elif raw_value:
-                    clause = None
-                    candidate_values = [raw_value]
-                else:
-                    clause = None
-                    candidate_values = None
-
-                if clause:
-                    return clause.strip()
-
-                values = candidate_values if candidate_values else _default_values_for(param_name)
-                column_count = max(1, _infer_expected_column_count(sql_text, param_name))
-
-                rows = []
-                for value in values or ['dummy_value']:
-                    base = str(value)
-                    row_values = [base]
-                    if column_count > 1:
-                        # Generate filler values for additional columns so column counts align
-                        for col_index in range(1, column_count):
-                            row_values.append(f"{base}_col{col_index + 1}")
-                    row = '(' + ', '.join(_quote_sql_value(v) for v in row_values) + ')'
-                    rows.append(row)
-
-                return ',\n'.join(f"    {row}" for row in rows)
-
             def _apply_sql_injection(sql_text: str, param_name: str, param_value: Any) -> str:
                 """Replace SQL injection placeholder with an inline VALUES clause."""
-                values_clause_body = _build_values_clause(param_name, param_value, sql_text)
+                values_clause_body = None
+                explicit_values = None
+
+                if isinstance(param_value, dict):
+                    values_clause_body = param_value.get('_valuesClause')
+                    explicit_values = param_value.get('_values')
+                    if values_clause_body:
+                        values_clause_body = values_clause_body.strip()
+                elif isinstance(param_value, list):
+                    explicit_values = param_value
+                elif param_value not in (None, ''):
+                    explicit_values = [param_value]
+
+                if not values_clause_body:
+                    values_clause_body = ParameterProcessor.build_values_clause(
+                        sql_text,
+                        param_name,
+                        explicit_values,
+                    )
+
                 placeholder_regex = re.compile(rf"\{{\{{{param_name}\}}\}}")
 
                 # Determine whether VALUES keyword already precedes the placeholder
@@ -352,7 +284,7 @@ async def create_workflow(
                     continue
 
                 # Provide sensible defaults for missing parameters
-                default_values = _default_values_for(param_name)
+                default_values = ParameterProcessor.default_values_for(param_name)
                 if len(default_values) == 1:
                     params_to_use[param_name] = default_values[0]
                 else:

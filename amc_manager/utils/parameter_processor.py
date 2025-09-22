@@ -3,6 +3,7 @@ Shared parameter processing utility for AMC SQL queries
 Handles parameter substitution, LIKE pattern detection, and array formatting
 """
 import re
+from datetime import datetime, timedelta
 from typing import Dict, Any, List, Tuple, Optional
 import logging
 from .query_logger import QueryLogger
@@ -400,6 +401,108 @@ class ParameterProcessor:
 
         values_clause = f"(VALUES {', '.join(formatted_values)}) AS t({column_name})"
         return values_clause
+
+    @classmethod
+    def default_values_for(cls, param_name: str) -> List[Any]:
+        """Provide sensible default values for parameters when none are supplied."""
+        lower = param_name.lower()
+        if 'asin' in lower:
+            return ['B00DUMMY01']
+        if 'campaign' in lower:
+            return ['dummy_campaign']
+        if 'brand' in lower:
+            return ['dummy_brand']
+        if 'date' in lower or 'time' in lower:
+            if 'start' in lower:
+                return [(datetime.utcnow() - timedelta(days=30)).strftime('%Y-%m-%d')]
+            return [(datetime.utcnow() - timedelta(days=15)).strftime('%Y-%m-%d')]
+        return ['dummy_value']
+
+    @classmethod
+    def _quote_sql_literal(cls, param_name: str, value: Any) -> str:
+        """Quote and escape a Python value for inclusion in a SQL VALUES clause."""
+        if value is None:
+            return 'NULL'
+        if isinstance(value, bool):
+            return 'TRUE' if value else 'FALSE'
+        if isinstance(value, (int, float)):
+            return str(value)
+        return f"'{cls._escape_string_value(str(value), param_name)}'"
+
+    @classmethod
+    def _infer_placeholder_column_count(cls, sql_template: str, param_name: str) -> int:
+        """Best-effort detection of how many columns a VALUES placeholder feeds."""
+        escaped = re.escape(param_name)
+
+        patterns = [
+            # Alias defined before VALUES: foo(col1, col2) AS (VALUES {{param}})
+            re.compile(
+                rf"[A-Za-z0-9_]+\s*\(([^)]+)\)\s*AS\s*\(\s*VALUES\s*\{{\{{{escaped}\}}\}}",
+                re.IGNORECASE | re.DOTALL,
+            ),
+            # Alias defined after VALUES: VALUES {{param}} AS t(col1,col2)
+            re.compile(
+                rf"VALUES\s*\{{\{{{escaped}\}}\}}\s*AS\s+[^()]+\(([^)]+)\)",
+                re.IGNORECASE | re.DOTALL,
+            ),
+            # Closing parenthesis before alias
+            re.compile(
+                rf"VALUES\s*\{{\{{{escaped}\}}\}}\s*\)\s*AS\s+[^()]+\(([^)]+)\)",
+                re.IGNORECASE | re.DOTALL,
+            ),
+            # Tuple IN clause e.g. (col1,col2) IN {{param}}
+            re.compile(
+                rf"\(([^)]+)\)\s*IN\s*\{{\{{{escaped}\}}\}}",
+                re.IGNORECASE,
+            ),
+        ]
+
+        for pattern in patterns:
+            match = pattern.search(sql_template)
+            if match:
+                columns = [c.strip() for c in match.group(1).split(',') if c.strip()]
+                if columns:
+                    return len(columns)
+
+        return 1
+
+    @classmethod
+    def build_values_clause(
+        cls,
+        sql_template: str,
+        param_name: str,
+        values: Optional[List[Any]] = None,
+    ) -> str:
+        """Construct a VALUES clause body aligned with the placeholder's expected column count."""
+        candidate_values: List[Any]
+        if values is None:
+            candidate_values = cls.default_values_for(param_name)
+        else:
+            candidate_values = list(values) if isinstance(values, list) else [values]
+
+        if not candidate_values:
+            candidate_values = cls.default_values_for(param_name)
+
+        column_count = max(1, cls._infer_placeholder_column_count(sql_template, param_name))
+
+        rows: List[str] = []
+        for raw in candidate_values:
+            if isinstance(raw, (list, tuple)):
+                row_values = list(raw)
+            else:
+                row_values = [raw]
+
+            if column_count > len(row_values):
+                base = str(row_values[0]) if row_values else param_name
+                for idx in range(len(row_values), column_count):
+                    row_values.append(f"{base}_col{idx + 1}")
+            elif column_count < len(row_values):
+                row_values = row_values[:column_count]
+
+            quoted_values = [cls._quote_sql_literal(param_name, value) for value in row_values]
+            rows.append(f"({', '.join(quoted_values)})")
+
+        return ',\n'.join(f"    {row}" for row in rows)
 
     @classmethod
     def create_large_list_cte(cls, param_name: str, values: List[Any],
