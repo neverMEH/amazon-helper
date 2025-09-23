@@ -190,8 +190,18 @@ class ParameterProcessor:
         elif isinstance(value, str):
             # Check if the placeholder is already within quotes in the template
             if cls._is_placeholder_in_quotes(param_name, sql_template):
-                # Don't add quotes, just escape the value
-                return cls._escape_string_value(value, param_name)
+                # Placeholder is already in quotes in the template
+                # Check if the value itself is also pre-quoted
+                if value.startswith("'") and value.endswith("'"):
+                    # Value is pre-quoted and placeholder is in quotes
+                    # Return the inner value without any quotes
+                    inner_value = value[1:-1]
+                    # Still escape any internal quotes for safety
+                    return inner_value.replace("'", "''")
+                else:
+                    # Value is not pre-quoted but placeholder is in quotes
+                    # Just escape the value without adding quotes
+                    return cls._escape_string_value(value, param_name)
             else:
                 return cls._format_string_parameter(param_name, value, sql_template)
         elif isinstance(value, bool):
