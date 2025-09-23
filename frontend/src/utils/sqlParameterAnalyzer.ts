@@ -257,8 +257,8 @@ export function detectParametersWithContext(sql: string): ParameterDefinition[] 
       type = 'pattern';
     } else if (lowerName.includes('asin')) {
       type = 'asin_list';
-    } else if (lowerName.includes('campaign') && context.sqlContext !== 'LIKE') {
-      // Only set to campaign_list if NOT using LIKE
+    } else if (lowerName.includes('campaign')) {
+      // Only set to campaign_list if NOT using LIKE (already checked above)
       type = 'campaign_list';
     } else if (context.type === 'date') {
       type = 'date';
