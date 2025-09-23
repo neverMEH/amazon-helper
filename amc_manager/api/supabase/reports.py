@@ -256,6 +256,14 @@ async def execute_report(
 
         logger.info(f"Final parameters: {final_parameters}")
 
+        # DEBUG: Check parameter values for quotes
+        for key, value in final_parameters.items():
+            if isinstance(value, str):
+                if value.startswith("'") and value.endswith("'"):
+                    logger.warning(f"PARAMETER DEBUG: '{key}' is pre-quoted: {repr(value)}")
+                if value.startswith("''") or value.endswith("''"):
+                    logger.error(f"PARAMETER ERROR: '{key}' has double quotes: {repr(value)}")
+
         # Process the SQL query with parameters using shared processor
         try:
             processed_sql = ParameterProcessor.process_sql_parameters(
@@ -265,6 +273,15 @@ async def execute_report(
             logger.info(f"ParameterProcessor returned SQL of length: {len(processed_sql) if processed_sql else 0}")
             if processed_sql:
                 logger.info(f"First 200 chars of processed SQL: {processed_sql[:200]}")
+
+                # DEBUG: Check for double quotes in processed SQL
+                import re
+                date_patterns = re.findall(r"event_date\s*[><=]+\s*'[^']*'", processed_sql)
+                if date_patterns:
+                    logger.info(f"DATE PATTERN DEBUG: Found date clauses: {date_patterns}")
+                    for pattern in date_patterns:
+                        if "''" in pattern:
+                            logger.error(f"DOUBLE QUOTE ERROR in processed SQL: {pattern}")
         except Exception as e:
             logger.error(f"Error processing SQL parameters: {e}")
             processed_sql = sql_query  # Fall back to raw SQL
