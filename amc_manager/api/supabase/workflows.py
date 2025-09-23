@@ -382,6 +382,7 @@ async def create_workflow(
             (r':(\w+)(?=\s|,|\)|;|$)', 'colon'), # :param - AMC named parameter (with lookahead to avoid time formats)
             (r'\$\{(\w+)\}', 'dollar_brace'),   # ${param} - AMC variable format
             (r'\$(\w+)\b', 'dollar'),           # $param - alternative format
+            (r"CUSTOM_PARAMETER\s*\(\s*'([^']+)'\s*\)", 'custom_parameter'),  # CUSTOM_PARAMETER('param') - AMC native syntax
         ]
 
         # Find all remaining parameter references in any format
@@ -412,9 +413,9 @@ async def create_workflow(
                     param_type = 'DECIMAL'
                 elif 'id' in param_lower and 'product' not in param_lower:
                     param_type = 'STRING'
-                # Special case for ad_product_type
-                elif param_name == 'ad_product_type':
-                    param_type = 'STRING'
+                # Special case for ad_product_type and tracked_asin - these are arrays in AMC
+                elif param_name == 'ad_product_type' or param_name == 'tracked_asin':
+                    param_type = 'ARRAY<STRING>'
 
                 input_parameters.append({
                     'name': param_name,
