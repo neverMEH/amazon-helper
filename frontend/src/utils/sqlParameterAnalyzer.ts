@@ -251,12 +251,14 @@ export function detectParametersWithContext(sql: string): ParameterDefinition[] 
     
     // Determine specific type based on context and name
     let type: ParameterDefinition['type'] = 'text';
-    
+
+    // LIKE context should always take precedence for pattern matching
     if (context.sqlContext === 'LIKE') {
       type = 'pattern';
     } else if (lowerName.includes('asin')) {
       type = 'asin_list';
-    } else if (lowerName.includes('campaign')) {
+    } else if (lowerName.includes('campaign') && context.sqlContext !== 'LIKE') {
+      // Only set to campaign_list if NOT using LIKE
       type = 'campaign_list';
     } else if (context.type === 'date') {
       type = 'date';
