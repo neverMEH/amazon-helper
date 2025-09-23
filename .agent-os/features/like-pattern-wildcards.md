@@ -90,7 +90,47 @@ Successfully tested with:
 - Multiple parameter formats
 - Various SQL formatting styles
 
+## Recent Changes (2025-09-23)
+
+### Enhanced LIKE Pattern Parameter Handling
+Completed major improvements to LIKE pattern parameter handling for campaign filtering, addressing issues where users couldn't use pattern matching with campaign parameters.
+
+**Problem Solved**: Campaign parameters with LIKE patterns were incorrectly treated as dropdown lists instead of text inputs, causing SQL errors due to improper quote and wildcard handling.
+
+**Key Improvements**:
+
+#### Frontend Parameter Detection Enhancement
+- **UniversalParameterSelector**: Now properly shows pattern input with wildcard help for campaign parameters
+- **Parameter Type Detection**: Enhanced to recognize LIKE context even with quotes and wildcards (e.g., `'%{{param}}%'`)
+- **Context Prioritization**: Fixed sqlParameterAnalyzer to prioritize LIKE context over name-based classification
+- **Campaign Parameter Handling**: Campaign parameters with LIKE now correctly show as 'pattern' type instead of 'campaign_list'
+
+#### Frontend Parameter Formatting Improvements
+- **Wildcard Detection**: Detects when wildcards are already present in SQL template
+- **Double-Wrapping Prevention**: Prevents `'%'%value%'%'` errors by returning plain values when template has quotes/wildcards
+- **Quote Management**: Proper handling of pre-quoted parameters in SQL templates
+
+#### Backend Parameter Processing Enhancement
+- **Template Pattern Detection**: Updated ParameterProcessor to detect `'%{{param}}%'` patterns in templates
+- **Conditional Formatting**: When wildcards are already in template, returns escaped value without adding quotes
+- **SQL Error Prevention**: Fixes "Column 'value' not found" errors due to missing quotes
+
+**Example Use Case**: Users can now write queries like:
+```sql
+WHERE campaign LIKE '%{{campaign_pattern}}%'
+```
+When entering "Nike", it correctly generates: `WHERE campaign LIKE '%Nike%'`
+
+**Files Modified Today**:
+- `frontend/src/components/parameter-detection/UniversalParameterSelector.tsx`
+- `frontend/src/utils/parameterDetection.ts`
+- `frontend/src/utils/sqlParameterAnalyzer.ts`
+- `amc_manager/utils/parameter_processor.py`
+
 ## Related Commits
 - `f020068` - Initial LIKE pattern auto-formatting
 - `142f56f` - Fix: Auto-format LIKE pattern parameters with % wildcards
 - `b273e4e` - Fix: Enhanced LIKE pattern detection to handle indirect parameter references
+- `8675cbf` - Fix: Improve LIKE pattern detection to handle quotes and wildcards (2025-09-23)
+- `3241a47` - Fix: Handle LIKE patterns with wildcards already in SQL template (2025-09-23)
+- `ac6eb91` - Fix: Backend handling of LIKE patterns with wildcards in template (2025-09-23)
