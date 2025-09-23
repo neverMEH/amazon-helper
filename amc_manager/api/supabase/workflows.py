@@ -200,6 +200,10 @@ async def create_workflow(
         # AMC doesn't understand this syntax, so we must process it before submission
         # We provide default values just to create valid SQL for the workflow creation
         # The actual parameter values will be provided during execution
+
+        # Initialize params_to_use outside the if block so it's available later
+        params_to_use = {}
+
         if '{{' in sql_query:
             from ...utils.parameter_processor import ParameterProcessor
 
@@ -287,7 +291,6 @@ async def create_workflow(
 
             # Use provided parameters or empty defaults for workflow creation
             # This creates a valid SQL for AMC workflow creation
-            params_to_use = {}
             provided_params = workflow.parameters or {}
 
             param_pattern = r'\{\{(\w+)\}\}'
