@@ -4,6 +4,62 @@
 
 The AMC Report Builder is a comprehensive new feature that replaces the traditional workflow-based system with direct ad-hoc execution for AMC queries. This represents a major architectural shift in RecomAMP, eliminating workflow overhead and providing streamlined report generation capabilities with enhanced performance and agency-focused features.
 
+## Recent Changes (2025-09-23)
+
+### Double-Quoting Fix for SQL Parameter Placeholders
+- **Frontend Fix**: Enhanced `sqlParameterAnalyzer.ts` to detect when placeholders are already within quotes in SQL templates
+- **Backend Fix**: Improved `parameter_processor.py` to handle pre-quoted values with quoted placeholders correctly
+- **Issue Resolved**: Fixed Report Builder SQL previews showing `''2025-08-01''` instead of `'2025-08-01'` for date parameters
+- **Coverage**: Applied fixes to both parameter replacement and preview generation functions
+
+#### Technical Details of Double-Quoting Fix (2025-09-23)
+
+**Problem**: SQL templates containing placeholders within quotes (e.g., `WHERE event_date >= '{{start_date}}'`) were being double-quoted when parameter values were already pre-quoted, resulting in incorrect SQL like `WHERE event_date >= '''2025-08-01'''`.
+
+**Root Cause**:
+- Query templates often include placeholders within quotes for proper SQL syntax
+- Parameter processing logic was adding quotes to values without checking if the placeholder was already quoted in the template
+- Report Builder date parameters were arriving pre-quoted from the frontend
+
+**Frontend Solution** (`frontend/src/utils/sqlParameterAnalyzer.ts`):
+```typescript
+// Detect quoted placeholders in template
+const quotedPlaceholderPattern = new RegExp(`'\\s*\\{\\{${paramName}\\}\\}\\s*'`, 'g');
+const isPlaceholderInQuotes = quotedPlaceholderPattern.test(sql);
+
+// Remove outer quotes if placeholder is already quoted in template
+if (isPlaceholderInQuotes && formattedValue.startsWith("'") && formattedValue.endsWith("'")) {
+  formattedValue = formattedValue.slice(1, -1);
+}
+```
+
+**Backend Solution** (`amc_manager/utils/parameter_processor.py`):
+```python
+# Check if placeholder is within quotes in template
+if cls._is_placeholder_in_quotes(param_name, sql_template):
+    if value.startswith("'") and value.endswith("'"):
+        # Extract inner value and escape safely
+        inner_value = value[1:-1]
+        return inner_value.replace("'", "''")
+    else:
+        # Just escape without adding quotes
+        return cls._escape_string_value(value, param_name)
+```
+
+**Key Scenarios Handled**:
+1. **Quoted placeholder + pre-quoted value**: `'{{date}}'` with `'2025-08-01'` → `'2025-08-01'`
+2. **Quoted placeholder + plain value**: `'{{date}}'` with `2025-08-01` → `'2025-08-01'`
+3. **Unquoted placeholder + pre-quoted value**: `{{date}}` with `'2025-08-01'` → `'2025-08-01'`
+4. **Unquoted placeholder + plain value**: `{{date}}` with `2025-08-01` → `'2025-08-01'`
+
+**Functions Enhanced**:
+- `replaceParametersInSQL()`: Used for actual parameter substitution
+- `generatePreviewSQL()`: Used for SQL preview generation
+- `_format_parameter_value()`: Backend parameter formatting logic
+- `_is_placeholder_in_quotes()`: New utility to detect quoted placeholders
+
+**Impact**: Report Builder SQL previews now correctly display date parameters and other quoted values without the double-quoting artifacts that were causing user confusion and potential query execution issues.
+
 ## Recent Changes (2025-09-18)
 
 ### Report Builder Query Integration Complete

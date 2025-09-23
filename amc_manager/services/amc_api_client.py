@@ -281,13 +281,7 @@ class AMCAPIClient:
 
             payload = {
                 "workflow": {
-                    "query": {
-                        "operations": [
-                            {
-                                "sql": sql_query
-                            }
-                        ]
-                    }
+                    "sqlQuery": sql_query  # According to AMC API docs, ad-hoc execution uses sqlQuery directly
                 },
                 "timeWindowType": "EXPLICIT",  # Use explicit time window
                 "timeWindowStart": time_window_start,
