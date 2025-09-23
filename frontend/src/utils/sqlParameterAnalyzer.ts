@@ -58,8 +58,8 @@ export function analyzeParameterContext(sql: string, paramName: string): Paramet
       };
     }
     
-    // Check for LIKE context (must be immediately before parameter)
-    if (beforeContext.match(/\sLIKE\s*$/i)) {
+    // Check for LIKE context (can have quotes and % wildcards between LIKE and parameter)
+    if (beforeContext.match(/\sLIKE\s*['"]?%?$/i)) {
       return {
         name: paramName,
         type: 'pattern',
