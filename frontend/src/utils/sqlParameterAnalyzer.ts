@@ -301,8 +301,9 @@ export function replaceParametersInSQL(sql: string, parameters: Record<string, a
 
     // If placeholder is already in quotes with wildcards (like '%{{param}}%')
     if (isPlaceholderInQuotes && context.sqlContext === 'LIKE') {
-      // Just return the plain value without quotes or wildcards
-      // since the template already has '%{{param}}%'
+      // The template has quotes and wildcards, but we need to escape the value properly
+      // Remove any quotes from the value and return it plain
+      // The template is like: '%{{param}}%' so we just need the value part
       formattedValue = value.toString().replace(/^['"%]+|['"%]+$/g, '');
     } else if (isPlaceholderInQuotes && formattedValue.startsWith("'") && formattedValue.endsWith("'")) {
       // Remove the quotes we would have added since the template already has them

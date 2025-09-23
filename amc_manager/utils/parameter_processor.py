@@ -279,9 +279,17 @@ class ParameterProcessor:
 
         # Check if this parameter is used in a LIKE context (but not for empty strings)
         if value and cls._is_like_parameter(param_name, sql_template):
-            # Add wildcards for LIKE pattern matching
-            logger.info(f"✓ Parameter '{param_name}' formatted with wildcards for LIKE clause")
-            return f"'%{escaped_value}%'"
+            # Check if the template already has wildcards around the parameter
+            wildcard_pattern = rf"'%\s*\{{\{{{param_name}\}}\}}\s*%'"
+            if re.search(wildcard_pattern, sql_template):
+                # Template already has '%{{param}}%', just return the escaped value without quotes
+                # The quotes and wildcards are already in the template
+                logger.info(f"✓ Parameter '{param_name}' used in LIKE with wildcards already in template")
+                return escaped_value
+            else:
+                # Add wildcards for LIKE pattern matching
+                logger.info(f"✓ Parameter '{param_name}' formatted with wildcards for LIKE clause")
+                return f"'%{escaped_value}%'"
         else:
             return f"'{escaped_value}'"
 
@@ -313,6 +321,7 @@ class ParameterProcessor:
         # Check various patterns where placeholder might be within quotes
         patterns = [
             rf"'\s*\{{\{{{param_name}\}}\}}\s*'",  # '{{param}}'
+            rf"'%\s*\{{\{{{param_name}\}}\}}\s*%'", # '%{{param}}%' for LIKE patterns
             rf"'\s*:{param_name}\s*'",              # ':param'
             rf"'\s*\${param_name}\s*'",             # '$param'
             rf"'\s*\$\{{{param_name}\}}\s*'",       # '${param}'
