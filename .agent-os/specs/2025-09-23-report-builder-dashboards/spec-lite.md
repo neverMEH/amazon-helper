@@ -1,0 +1,3 @@
+# Spec Summary (Lite)
+
+Enable queries from the query library to generate interactive visual dashboards with charts, graphs, and AI-powered insights, transforming raw AMC execution data into comprehensive reports. Users can toggle "Enable Reports" on queries, trigger historical data collection, and access query-specific dashboards featuring multiple visualization types, automated insights, and PDF export capabilities. The system automatically updates dashboards when new execution data becomes available from scheduled or manual runs.
