@@ -390,19 +390,18 @@ async def create_workflow(
 
         # Find all remaining parameter references in any format
         all_remaining_params = set()
-        has_custom_parameters = False
+        custom_params = set()
         for pattern_regex, pattern_type in amc_param_patterns:
             matches = re.findall(pattern_regex, sql_query, re.IGNORECASE)
             # Filter out false positives (like :00 in timestamps)
             filtered_matches = [m for m in matches if not m.isdigit() and m != 'values']
             if filtered_matches:
                 logger.info(f"Found {len(filtered_matches)} {pattern_type} format parameters: {filtered_matches}")
-                # Don't add CUSTOM_PARAMETER matches to remaining params - they're already declared
+                # Track CUSTOM_PARAMETER matches separately for special handling
                 if pattern_type == 'custom_parameter':
-                    has_custom_parameters = True
-                    logger.info("CUSTOM_PARAMETER syntax detected - these don't need input parameter declarations")
-                else:
-                    all_remaining_params.update(filtered_matches)
+                    custom_params.update(filtered_matches)
+                    logger.info("CUSTOM_PARAMETER syntax detected - will declare as STRING parameters")
+                all_remaining_params.update(filtered_matches)
 
         remaining_placeholders = list(all_remaining_params)
 
@@ -410,18 +409,24 @@ async def create_workflow(
             # Create input parameter declarations for any remaining parameter references
             input_parameters = []
             for param_name in remaining_placeholders:
-                # Determine parameter type based on name
-                param_type = 'STRING'  # Default type
-                param_lower = param_name.lower()
-
-                if 'date' in param_lower or 'time' in param_lower:
-                    param_type = 'DATE'
-                elif 'count' in param_lower or 'number' in param_lower or 'qty' in param_lower:
-                    param_type = 'INTEGER'
-                elif 'price' in param_lower or 'cost' in param_lower or 'amount' in param_lower:
-                    param_type = 'DECIMAL'
-                elif 'id' in param_lower and 'product' not in param_lower:
+                # For CUSTOM_PARAMETER, always use STRING type
+                # AMC's CUSTOM_PARAMETER function handles type coercion internally
+                if param_name in custom_params:
                     param_type = 'STRING'
+                    logger.debug(f"Parameter '{param_name}' from CUSTOM_PARAMETER will be declared as STRING")
+                else:
+                    # Determine parameter type based on name for other formats
+                    param_type = 'STRING'  # Default type
+                    param_lower = param_name.lower()
+
+                    if 'date' in param_lower or 'time' in param_lower:
+                        param_type = 'DATE'
+                    elif 'count' in param_lower or 'number' in param_lower or 'qty' in param_lower:
+                        param_type = 'INTEGER'
+                    elif 'price' in param_lower or 'cost' in param_lower or 'amount' in param_lower:
+                        param_type = 'DECIMAL'
+                    elif 'id' in param_lower and 'product' not in param_lower:
+                        param_type = 'STRING'
 
                 input_parameters.append({
                     'name': param_name,
@@ -434,10 +439,7 @@ async def create_workflow(
         else:
             # No remaining parameter references, no need for input parameters
             input_parameters = None
-            if has_custom_parameters:
-                logger.info("Using CUSTOM_PARAMETER syntax - no additional input parameters needed for AMC")
-            else:
-                logger.info("All parameter references processed, no input parameters needed for AMC")
+            logger.info("All parameter references processed, no input parameters needed for AMC")
         
         # Create SAVED workflow in AMC first
         # This is different from ad-hoc execution:
