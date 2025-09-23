@@ -372,14 +372,34 @@ async def create_workflow(
 
         # IMPORTANT: Parameter Strategy for AMC
         # --------------------------------------
-        # Check if there are still any unprocessed placeholders in the SQL
-        # If yes, we need to declare them as input parameters for AMC
-        remaining_placeholders = re.findall(param_pattern, sql_query)
+        # Check if there are still any unprocessed parameter references in the SQL
+        # AMC recognizes multiple parameter formats, not just {{param}}
+        # We need to check for ALL possible formats and declare them as input parameters
+
+        # Define all parameter patterns that AMC might recognize
+        amc_param_patterns = [
+            (r'\{\{(\w+)\}\}', 'mustache'),     # {{param}} - our template format
+            (r':(\w+)(?=\s|,|\)|;|$)', 'colon'), # :param - AMC named parameter (with lookahead to avoid time formats)
+            (r'\$\{(\w+)\}', 'dollar_brace'),   # ${param} - AMC variable format
+            (r'\$(\w+)\b', 'dollar'),           # $param - alternative format
+        ]
+
+        # Find all remaining parameter references in any format
+        all_remaining_params = set()
+        for pattern_regex, pattern_type in amc_param_patterns:
+            matches = re.findall(pattern_regex, sql_query, re.IGNORECASE)
+            # Filter out false positives (like :00 in timestamps)
+            filtered_matches = [m for m in matches if not m.isdigit() and m != 'values']
+            if filtered_matches:
+                logger.info(f"Found {len(filtered_matches)} {pattern_type} format parameters: {filtered_matches}")
+                all_remaining_params.update(filtered_matches)
+
+        remaining_placeholders = list(all_remaining_params)
 
         if remaining_placeholders:
-            # Create input parameter declarations for any remaining placeholders
+            # Create input parameter declarations for any remaining parameter references
             input_parameters = []
-            for param_name in set(remaining_placeholders):
+            for param_name in remaining_placeholders:
                 # Determine parameter type based on name
                 param_type = 'STRING'  # Default type
                 param_lower = param_name.lower()
@@ -403,11 +423,11 @@ async def create_workflow(
                     'defaultValue': params_to_use.get(param_name, '')
                 })
 
-            logger.info(f"Found {len(remaining_placeholders)} unprocessed placeholders, creating input parameters for AMC")
+            logger.info(f"Found {len(remaining_placeholders)} unprocessed parameter references in various formats, creating input parameters for AMC")
         else:
-            # No remaining placeholders, no need for input parameters
+            # No remaining parameter references, no need for input parameters
             input_parameters = None
-            logger.info("All placeholders processed, no input parameters needed for AMC")
+            logger.info("All parameter references processed, no input parameters needed for AMC")
         
         # Create SAVED workflow in AMC first
         # This is different from ad-hoc execution:
