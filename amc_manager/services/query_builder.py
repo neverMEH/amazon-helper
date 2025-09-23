@@ -106,7 +106,7 @@ class AMCQueryBuilder:
                     LEFT JOIN (
                         SELECT user_id, order_id, conversion_event_dt
                         FROM amazon_attributed_events_by_conversion_time
-                        WHERE conversion_event_dt < DATE_ADD('day', -365, CURRENT_DATE)
+                        WHERE conversion_event_dt < (CURRENT_DATE - INTERVAL '365' DAY)
                             AND brand = '{{brand_name}}'
                     ) p ON c.user_id = p.user_id
                     WHERE c.conversion_event_dt >= '{{start_date}}'
@@ -144,7 +144,7 @@ class AMCQueryBuilder:
                         user_id,
                         asin,
                         add_to_cart_event_dt,
-                        DATE_ADD('day', {{attribution_window}}, add_to_cart_event_dt) AS attribution_end
+                        (add_to_cart_event_dt + INTERVAL '{{attribution_window}}' DAY) AS attribution_end
                     FROM amazon_ads_add_to_cart
                     WHERE add_to_cart_event_dt >= '{{start_date}}'
                         AND add_to_cart_event_dt <= '{{end_date}}'
@@ -157,7 +157,7 @@ class AMCQueryBuilder:
                         conversion_event_dt
                     FROM amazon_attributed_events_by_conversion_time
                     WHERE conversion_event_dt >= '{{start_date}}'
-                        AND conversion_event_dt <= DATE_ADD('day', {{attribution_window}}, '{{end_date}}')
+                        AND conversion_event_dt <= (CAST('{{end_date}}' AS DATE) + INTERVAL '{{attribution_window}}' DAY)
                 )
                 SELECT
                     ce.asin,

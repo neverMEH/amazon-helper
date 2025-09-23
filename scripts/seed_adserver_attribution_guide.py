@@ -340,7 +340,7 @@ SELECT
 FROM
   adserver_traffic
 WHERE
-  event_dt_utc >= DATE_ADD('day', -{{lookback_days}}, CURRENT_DATE)
+  event_dt_utc >= (CURRENT_DATE - INTERVAL '{{lookback_days}}' DAY)
 GROUP BY
   advertiser,
   advertiser_id,
@@ -379,7 +379,7 @@ FROM
   conversions c
 WHERE
   c.user_id IS NOT NULL
-  AND event_dt_utc >= DATE_ADD('day', -{{lookback_days}}, CURRENT_DATE)
+  AND event_dt_utc >= (CURRENT_DATE - INTERVAL '{{lookback_days}}' DAY)
   AND event_subtype IN ({{conversion_types}})
 GROUP BY
   tracked_item,

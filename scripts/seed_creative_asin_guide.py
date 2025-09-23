@@ -164,7 +164,7 @@ WITH creative_asin_summary AS (
     FROM sponsored_ads_traffic
     WHERE 
         creative_asin IS NOT NULL
-        AND event_dt >= DATE_ADD('day', -{{lookback_days}}, CURRENT_DATE)
+        AND event_dt >= (CURRENT_DATE - INTERVAL '{{lookback_days}}' DAY)
     GROUP BY 
         campaign_id,
         campaign_name,
@@ -210,7 +210,7 @@ WITH exposed_users AS (
     FROM sponsored_ads_traffic
     WHERE 
         creative_asin IS NOT NULL
-        AND event_dt >= DATE_ADD('day', -{{lookback_days}}, CURRENT_DATE)
+        AND event_dt >= (CURRENT_DATE - INTERVAL '{{lookback_days}}' DAY)
         AND campaign_type IN ({{campaign_types}})
     GROUP BY 
         creative_asin,
@@ -235,7 +235,7 @@ purchase_behavior AS (
     INNER JOIN amazon_attributed_events_by_traffic_time aae
         ON eu.user_id = aae.user_id
         AND aae.event_dt >= eu.first_exposure_date
-        AND aae.event_dt <= DATE_ADD('day', {{attribution_window}}, eu.first_exposure_date)
+        AND aae.event_dt <= (eu.first_exposure_date + INTERVAL '{{attribution_window}}' DAY)
     WHERE 
         aae.conversion_asin IS NOT NULL
         AND aae.purchase_flag = 1

@@ -674,7 +674,7 @@ WITH display_campaigns AS (
         MAX(impression_dt) as last_impression
     FROM dsp_impressions
     WHERE 
-        impression_dt >= DATE_ADD('day', -30, CURRENT_DATE)
+        impression_dt >= (CURRENT_DATE - INTERVAL '30' DAY)
     GROUP BY 
         campaign_id,
         campaign_name
@@ -692,7 +692,7 @@ sp_campaigns AS (
     FROM sponsored_ads_traffic
     WHERE 
         ad_product_type = 'sponsored_products'
-        AND event_dt >= DATE_ADD('day', -30, CURRENT_DATE)
+        AND event_dt >= (CURRENT_DATE - INTERVAL '30' DAY)
     GROUP BY 
         campaign_id,
         campaign

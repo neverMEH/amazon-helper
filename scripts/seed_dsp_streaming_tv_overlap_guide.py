@@ -811,7 +811,7 @@ WITH campaign_summary AS (
         MAX(impression_dt) AS end_date
     FROM dsp_impressions
     WHERE 
-        impression_dt >= DATE_ADD('day', -90, CURRENT_DATE)
+        impression_dt >= (CURRENT_DATE - INTERVAL '90' DAY)
         AND impressions > 0
     GROUP BY 
         campaign_id,

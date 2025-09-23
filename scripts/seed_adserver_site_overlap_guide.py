@@ -743,7 +743,7 @@ SELECT
 FROM
   adserver_traffic
 WHERE
-  event_dt >= DATE_ADD('day', -{{lookback_days}}, CURRENT_DATE)
+  event_dt >= (CURRENT_DATE - INTERVAL '{{lookback_days}}' DAY)
 GROUP BY
   1, 2, 3, 4, 5
 ORDER BY 
@@ -778,7 +778,7 @@ SELECT
 FROM
   adserver_conversions
 WHERE
-  event_dt >= DATE_ADD('day', -{{lookback_days}}, CURRENT_DATE)
+  event_dt >= (CURRENT_DATE - INTERVAL '{{lookback_days}}' DAY)
 GROUP BY
   1, 2, 3, 4
 ORDER BY 

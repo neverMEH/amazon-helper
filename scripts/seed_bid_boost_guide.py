@@ -172,7 +172,7 @@ WITH campaign_bid_summary AS (
         MAX(event_dt) as last_impression
     FROM sponsored_ads_traffic
     WHERE 
-        event_dt >= DATE_ADD('day', -{{lookback_days}}, CURRENT_DATE)
+        event_dt >= (CURRENT_DATE - INTERVAL '{{lookback_days}}' DAY)
         AND bid_plus_multiplier IS NOT NULL
         AND campaign_type IN ({{campaign_types}})
     GROUP BY 
@@ -250,7 +250,7 @@ WITH campaign_traffic AS (
     FROM sponsored_ads_traffic
     WHERE 
         campaign_type IN ({{campaign_types}})
-        AND event_dt >= DATE_ADD('day', -{{lookback_days}}, CURRENT_DATE)
+        AND event_dt >= (CURRENT_DATE - INTERVAL '{{lookback_days}}' DAY)
         AND bid_plus_multiplier IS NOT NULL
     GROUP BY 
         campaign_id,
@@ -271,10 +271,10 @@ conversions AS (
     INNER JOIN amazon_attributed_events_by_traffic_time aae
         ON sat.user_id = aae.user_id
         AND aae.event_dt >= sat.event_dt
-        AND aae.event_dt <= DATE_ADD('day', {{attribution_window}}, sat.event_dt)
+        AND aae.event_dt <= (sat.event_dt + INTERVAL '{{attribution_window}}' DAY)
     WHERE 
         sat.campaign_type IN ({{campaign_types}})
-        AND sat.event_dt >= DATE_ADD('day', -{{lookback_days}}, CURRENT_DATE)
+        AND sat.event_dt >= (CURRENT_DATE - INTERVAL '{{lookback_days}}' DAY)
         AND aae.purchase_flag = 1
     GROUP BY 
         sat.campaign_id,
@@ -381,11 +381,11 @@ WITH placement_performance AS (
     LEFT JOIN amazon_attributed_events_by_traffic_time aae
         ON sat.user_id = aae.user_id
         AND aae.event_dt >= sat.event_dt
-        AND aae.event_dt <= DATE_ADD('day', {{attribution_window}}, sat.event_dt)
+        AND aae.event_dt <= (sat.event_dt + INTERVAL '{{attribution_window}}' DAY)
         AND aae.purchase_flag = 1
     WHERE 
         sat.campaign_type IN ({{campaign_types}})
-        AND sat.event_dt >= DATE_ADD('day', -{{lookback_days}}, CURRENT_DATE)
+        AND sat.event_dt >= (CURRENT_DATE - INTERVAL '{{lookback_days}}' DAY)
         AND sat.bid_plus_multiplier IS NOT NULL
         AND sat.placement IS NOT NULL
     GROUP BY 
