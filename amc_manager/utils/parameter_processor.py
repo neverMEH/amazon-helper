@@ -477,6 +477,12 @@ class ParameterProcessor:
             if 'start' in lower:
                 return [(datetime.utcnow() - timedelta(days=30)).strftime('%Y-%m-%d')]
             return [(datetime.utcnow() - timedelta(days=15)).strftime('%Y-%m-%d')]
+        # Handle ad_product_type specifically - common AMC parameter
+        if param_name == 'ad_product_type' or 'product_type' in lower:
+            return ['sponsored_products']  # Valid AMC ad product type
+        # Handle other common AMC parameters
+        if 'type' in lower:
+            return ['default_type']
         return ['dummy_value']
 
     @classmethod

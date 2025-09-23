@@ -372,14 +372,42 @@ async def create_workflow(
 
         # IMPORTANT: Parameter Strategy for AMC
         # --------------------------------------
-        # Since we're processing the template SQL to create valid SQL:
-        # - We DON'T send parameter definitions to AMC (input_parameters = None)
-        # - The SQL sent to AMC is already valid with placeholders replaced
-        # - We store the original template SQL in our database for future use
-        # - Future executions can use different parameter values by processing the template again
-        # Don't create input parameters for AMC since we've already processed the SQL
-        # AMC workflows with processed SQL don't need parameter definitions
-        input_parameters = None
+        # Check if there are still any unprocessed placeholders in the SQL
+        # If yes, we need to declare them as input parameters for AMC
+        remaining_placeholders = re.findall(param_pattern, sql_query)
+
+        if remaining_placeholders:
+            # Create input parameter declarations for any remaining placeholders
+            input_parameters = []
+            for param_name in set(remaining_placeholders):
+                # Determine parameter type based on name
+                param_type = 'STRING'  # Default type
+                param_lower = param_name.lower()
+
+                if 'date' in param_lower or 'time' in param_lower:
+                    param_type = 'DATE'
+                elif 'count' in param_lower or 'number' in param_lower or 'qty' in param_lower:
+                    param_type = 'INTEGER'
+                elif 'price' in param_lower or 'cost' in param_lower or 'amount' in param_lower:
+                    param_type = 'DECIMAL'
+                elif 'id' in param_lower and 'product' not in param_lower:
+                    param_type = 'STRING'
+                # Special case for ad_product_type
+                elif param_name == 'ad_product_type':
+                    param_type = 'STRING'
+
+                input_parameters.append({
+                    'name': param_name,
+                    'dataType': param_type,
+                    'required': False,
+                    'defaultValue': params_to_use.get(param_name, '')
+                })
+
+            logger.info(f"Found {len(remaining_placeholders)} unprocessed placeholders, creating input parameters for AMC")
+        else:
+            # No remaining placeholders, no need for input parameters
+            input_parameters = None
+            logger.info("All placeholders processed, no input parameters needed for AMC")
         
         # Create SAVED workflow in AMC first
         # This is different from ad-hoc execution:
