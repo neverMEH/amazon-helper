@@ -188,11 +188,19 @@ class ParameterProcessor:
                 # Format as IN clause
                 return cls._format_array_parameter(param_name, value)
         elif isinstance(value, str):
-            return cls._format_string_parameter(param_name, value, sql_template)
+            # Check if the placeholder is already within quotes in the template
+            if cls._is_placeholder_in_quotes(param_name, sql_template):
+                # Don't add quotes, just escape the value
+                return cls._escape_string_value(value, param_name)
+            else:
+                return cls._format_string_parameter(param_name, value, sql_template)
         elif isinstance(value, bool):
             return 'TRUE' if value else 'FALSE'
         else:
             # Numbers and other types
+            # Check if placeholder is in quotes (for numbers in INTERVAL clauses)
+            if cls._is_placeholder_in_quotes(param_name, sql_template):
+                return str(value)  # Return unquoted
             return str(value)
 
     @classmethod
@@ -281,6 +289,31 @@ class ParameterProcessor:
                 )
 
         return escaped
+
+    @classmethod
+    def _is_placeholder_in_quotes(cls, param_name: str, sql_template: str) -> bool:
+        """
+        Check if the parameter placeholder is already within quotes in the template
+
+        Examples:
+        - INTERVAL '{{days}}' DAY  -> True (placeholder is within quotes)
+        - WHERE date = {{date}}    -> False (placeholder is not within quotes)
+        - VALUES ('{{value}}')     -> True
+        """
+        # Check various patterns where placeholder might be within quotes
+        patterns = [
+            rf"'\s*\{{\{{{param_name}\}}\}}\s*'",  # '{{param}}'
+            rf"'\s*:{param_name}\s*'",              # ':param'
+            rf"'\s*\${param_name}\s*'",             # '$param'
+            rf"'\s*\$\{{{param_name}\}}\s*'",       # '${param}'
+        ]
+
+        for pattern in patterns:
+            if re.search(pattern, sql_template):
+                logger.debug(f"Parameter '{param_name}' found within quotes in template")
+                return True
+
+        return False
 
     @classmethod
     def _is_values_parameter(cls, param_name: str, sql_template: str) -> bool:
