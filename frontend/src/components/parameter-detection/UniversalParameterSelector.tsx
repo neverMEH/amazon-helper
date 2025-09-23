@@ -70,15 +70,21 @@ export const UniversalParameterSelector: FC<UniversalParameterSelectorProps> = (
         );
       
       case 'campaign':
-        // Use a simple text input for campaign parameters
+        // For campaign parameters, use a pattern input for LIKE queries
+        // This allows wildcards like %brand% to filter campaigns
         return (
-          <input
-            type="text"
-            value={value || ''}
-            onChange={(e) => handleChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-            placeholder={`Enter campaign value for ${parameter.name}`}
-          />
+          <div className="space-y-1">
+            <input
+              type="text"
+              value={value || ''}
+              onChange={(e) => handleChange(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              placeholder={`Enter campaign pattern (e.g., %brand% for LIKE queries)`}
+            />
+            <p className="text-xs text-gray-500">
+              Use % for wildcard matching (e.g., %Nike% matches all campaigns with "Nike" in the name)
+            </p>
+          </div>
         );
       
       case 'unknown':
