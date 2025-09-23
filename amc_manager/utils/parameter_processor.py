@@ -213,9 +213,22 @@ class ParameterProcessor:
 
         for val in values:
             if isinstance(val, str):
-                # Escape single quotes and check for injection
-                escaped_val = cls._escape_string_value(val, param_name)
-                escaped_values.append(f"'{escaped_val}'")
+                # Check if the value is already quoted
+                if val.startswith("'") and val.endswith("'"):
+                    # Already quoted, just escape internal quotes
+                    inner_value = val[1:-1]
+                    escaped_val = inner_value.replace("'", "''")
+                    # Check for dangerous keywords
+                    for keyword in cls.DANGEROUS_KEYWORDS:
+                        if keyword in escaped_val.upper():
+                            raise ValueError(
+                                f"Dangerous SQL keyword '{keyword}' detected in parameter '{param_name}'"
+                            )
+                    escaped_values.append(f"'{escaped_val}'")
+                else:
+                    # Not quoted, process normally
+                    escaped_val = cls._escape_string_value(val, param_name)
+                    escaped_values.append(f"'{escaped_val}'")
             else:
                 escaped_values.append(str(val))
 
@@ -225,6 +238,24 @@ class ParameterProcessor:
     @classmethod
     def _format_string_parameter(cls, param_name: str, value: str, sql_template: str) -> str:
         """Format string parameter with proper escaping and wildcard detection"""
+        # Check if the value is already a properly quoted SQL literal
+        # (starts and ends with single quotes, like '2025-08-01')
+        if value and value.startswith("'") and value.endswith("'"):
+            # This is already a quoted SQL literal, just escape any internal quotes
+            inner_value = value[1:-1]  # Remove outer quotes
+            escaped_inner = inner_value.replace("'", "''")  # Escape internal quotes
+
+            # Check for dangerous SQL keywords in the inner value
+            for keyword in cls.DANGEROUS_KEYWORDS:
+                if keyword in escaped_inner.upper():
+                    raise ValueError(
+                        f"Dangerous SQL keyword '{keyword}' detected in parameter '{param_name}'"
+                    )
+
+            # Return the value with proper quotes (no double-quoting)
+            return f"'{escaped_inner}'"
+
+        # Not a pre-quoted value, process normally
         # Escape the value first
         escaped_value = cls._escape_string_value(value, param_name)
 
@@ -294,9 +325,22 @@ class ParameterProcessor:
             if val is None:
                 escaped_values.append("(NULL)")
             elif isinstance(val, str):
-                # Escape single quotes and check for injection
-                escaped_val = cls._escape_string_value(val, param_name)
-                escaped_values.append(f"('{escaped_val}')")
+                # Check if the value is already quoted
+                if val.startswith("'") and val.endswith("'"):
+                    # Already quoted, just escape internal quotes
+                    inner_value = val[1:-1]
+                    escaped_val = inner_value.replace("'", "''")
+                    # Check for dangerous keywords
+                    for keyword in cls.DANGEROUS_KEYWORDS:
+                        if keyword in escaped_val.upper():
+                            raise ValueError(
+                                f"Dangerous SQL keyword '{keyword}' detected in parameter '{param_name}'"
+                            )
+                    escaped_values.append(f"('{escaped_val}')")
+                else:
+                    # Not quoted, process normally
+                    escaped_val = cls._escape_string_value(val, param_name)
+                    escaped_values.append(f"('{escaped_val}')")
             elif isinstance(val, bool):
                 escaped_values.append(f"({('TRUE' if val else 'FALSE')})")
             else:
@@ -494,7 +538,23 @@ class ParameterProcessor:
             return 'TRUE' if value else 'FALSE'
         if isinstance(value, (int, float)):
             return str(value)
-        return f"'{cls._escape_string_value(str(value), param_name)}'"
+
+        # Convert to string and check if already quoted
+        str_value = str(value)
+        if str_value.startswith("'") and str_value.endswith("'"):
+            # Already quoted, just escape internal quotes
+            inner_value = str_value[1:-1]
+            escaped_val = inner_value.replace("'", "''")
+            # Check for dangerous keywords
+            for keyword in cls.DANGEROUS_KEYWORDS:
+                if keyword in escaped_val.upper():
+                    raise ValueError(
+                        f"Dangerous SQL keyword '{keyword}' detected in parameter '{param_name}'"
+                    )
+            return f"'{escaped_val}'"
+        else:
+            # Not quoted, process normally
+            return f"'{cls._escape_string_value(str_value, param_name)}'"
 
     @classmethod
     def _infer_placeholder_column_count(cls, sql_template: str, param_name: str) -> int:
