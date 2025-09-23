@@ -284,14 +284,26 @@ export function detectParametersWithContext(sql: string): ParameterDefinition[] 
  */
 export function replaceParametersInSQL(sql: string, parameters: Record<string, any>): string {
   let result = sql;
-  
+
   for (const [paramName, value] of Object.entries(parameters)) {
     const context = analyzeParameterContext(sql, paramName);
-    const formattedValue = formatParameterValue(value, context);
+
+    // Check if the placeholder is already within quotes in the template
+    const quotedPlaceholderPattern = new RegExp(`'\\s*\\{\\{${paramName}\\}\\}\\s*'`, 'g');
+    const isPlaceholderInQuotes = quotedPlaceholderPattern.test(sql);
+
+    let formattedValue = formatParameterValue(value, context);
+
+    // If placeholder is already in quotes and we're adding quotes, remove the outer quotes
+    if (isPlaceholderInQuotes && formattedValue.startsWith("'") && formattedValue.endsWith("'")) {
+      // Remove the quotes we would have added since the template already has them
+      formattedValue = formattedValue.slice(1, -1);
+    }
+
     const paramPattern = new RegExp(`\\{\\{${paramName}\\}\\}`, 'g');
     result = result.replace(paramPattern, formattedValue);
   }
-  
+
   return result;
 }
 
@@ -300,10 +312,20 @@ export function replaceParametersInSQL(sql: string, parameters: Record<string, a
  */
 export function generatePreviewSQL(sql: string, parameters: ParameterDefinition[]): string {
   let previewSQL = sql;
-  
+
   parameters.forEach(param => {
     const context = analyzeParameterContext(sql, param.name);
-    const sampleValue = getSampleValue(param, context);
+    let sampleValue = getSampleValue(param, context);
+
+    // Check if the placeholder is already within quotes in the template
+    const quotedPlaceholderPattern = new RegExp(`'\\s*\\{\\{${param.name}\\}\\}\\s*'`, 'g');
+    const isPlaceholderInQuotes = quotedPlaceholderPattern.test(sql);
+
+    // If placeholder is already in quotes and sample value has quotes, remove the outer quotes
+    if (isPlaceholderInQuotes && sampleValue.startsWith("'") && sampleValue.endsWith("'")) {
+      sampleValue = sampleValue.slice(1, -1);
+    }
+
     const paramPattern = new RegExp(`\\{\\{${param.name}\\}\\}`, 'g');
     previewSQL = previewSQL.replace(paramPattern, sampleValue);
   });
