@@ -111,11 +111,14 @@ export const CampaignSelector: FC<CampaignSelectorProps> = ({
         if (campaignType) {
           const typeMapping: Record<string, string> = {
             'sp': 'sponsored_products',
-            'sb': 'sponsored_brands', 
+            'sb': 'sponsored_brands',
             'sd': 'sponsored_display',
             'dsp': 'dsp'
           };
-          params.append('campaign_type', typeMapping[campaignType] || campaignType);
+          // Ensure campaignType is definitely defined for TypeScript
+          const type = campaignType as string;
+          const mappedType = typeMapping[type] || type;
+          params.append('campaign_type', mappedType);
         }
 
         const response = await api.get(`/campaigns/by-instance-brand/list?${params.toString()}`);
