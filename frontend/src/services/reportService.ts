@@ -79,8 +79,8 @@ export const reportService = {
       await workflowService.executeWorkflow(
         workflow.id,
         data.instance_id,
-        executionParams,
         {
+          ...executionParams,
           snowflake_enabled: data.snowflake_enabled,
           snowflake_table_name: data.snowflake_table_name,
           snowflake_schema_name: data.snowflake_schema_name
@@ -91,8 +91,8 @@ export const reportService = {
       await workflowService.executeWorkflow(
         workflow.id,
         data.instance_id,
-        data.parameters,
         {
+          ...data.parameters,
           snowflake_enabled: data.snowflake_enabled,
           snowflake_table_name: data.snowflake_table_name,
           snowflake_schema_name: data.snowflake_schema_name
