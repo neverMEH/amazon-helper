@@ -84,8 +84,7 @@ export const reportService = {
           snowflake_enabled: data.snowflake_enabled,
           snowflake_table_name: data.snowflake_table_name,
           snowflake_schema_name: data.snowflake_schema_name
-        }
-      );
+        });
     } else if (data.execution_type === 'backfill') {
       // For backfill, also execute with date parameters
       await workflowService.executeWorkflow(
@@ -96,8 +95,7 @@ export const reportService = {
           snowflake_enabled: data.snowflake_enabled,
           snowflake_table_name: data.snowflake_table_name,
           snowflake_schema_name: data.snowflake_schema_name
-        }
-      );
+        });
     }
 
     console.log('Report creation complete, returning workflow:', workflow);
