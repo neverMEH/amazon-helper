@@ -21,16 +21,16 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 1.9 Set up Row Level Security (RLS) policies for new tables
   - [x] 1.10 Verify all migrations run successfully
 
-- [ ] 2. Backend Services Layer
-  - [ ] 2.1 Write unit tests for ReportConfigurationService
-  - [ ] 2.2 Implement ReportConfigurationService with CRUD operations
-  - [ ] 2.3 Create DashboardViewService for dashboard data management
-  - [ ] 2.4 Implement DashboardInsightService for AI insights storage
-  - [ ] 2.5 Create ReportExportService for export management
-  - [ ] 2.6 Add service-level caching with Redis
-  - [ ] 2.7 Implement service error handling and logging
-  - [ ] 2.8 Add service metrics and monitoring hooks
-  - [ ] 2.9 Verify all service tests pass
+- [x] 2. Backend Services Layer
+  - [x] 2.1 Write unit tests for ReportConfigurationService
+  - [x] 2.2 Implement ReportConfigurationService with CRUD operations
+  - [x] 2.3 Create DashboardViewService for dashboard data management
+  - [x] 2.4 Implement DashboardInsightService for AI insights storage
+  - [x] 2.5 Create ReportExportService for export management
+  - [x] 2.6 Add service-level caching with Redis
+  - [x] 2.7 Implement service error handling and logging
+  - [x] 2.8 Add service metrics and monitoring hooks
+  - [x] 2.9 Verify all service tests pass
 
 - [ ] 3. API Endpoints Implementation
   - [ ] 3.1 Write API integration tests for report endpoints
