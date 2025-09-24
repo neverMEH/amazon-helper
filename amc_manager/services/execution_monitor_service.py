@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from ..core.supabase_client import SupabaseManager
 from .amc_api_client import AMCAPIClient
 from .token_service import TokenService
+from .snowflake_service import SnowflakeService
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,7 @@ class ExecutionMonitorService:
     def __init__(self):
         self.api_client = AMCAPIClient()
         self.token_service = TokenService()
+        self.snowflake_service = SnowflakeService()
         self.monitoring_tasks = {}
         
     async def start_monitoring(self, execution_id: str, amc_execution_id: str, instance_id: str, user_id: str):
@@ -197,6 +199,9 @@ class ExecutionMonitorService:
             # Store results in database
             self._update_execution_completed(execution_id, results)
             
+            # Upload to Snowflake if enabled
+            await self._upload_to_snowflake_if_enabled(execution_id, results, user_id)
+            
         except Exception as e:
             logger.error(f"Error fetching results for {execution_id}: {e}")
             self._update_execution_completed(execution_id, None, error_message=str(e))
@@ -285,6 +290,58 @@ class ExecutionMonitorService:
     def _update_execution_failed(self, execution_id: str, error_message: str):
         """Update execution as failed"""
         self._update_execution_completed(execution_id, None, error_message)
+
+    async def _upload_to_snowflake_if_enabled(self, execution_id: str, results: Dict[str, Any], user_id: str):
+        """
+        Upload results to Snowflake if enabled for this execution
+        
+        Args:
+            execution_id: Execution ID
+            results: Execution results
+            user_id: User ID
+        """
+        try:
+            # Check if Snowflake is enabled for this execution
+            client = SupabaseManager.get_client(use_service_role=True)
+            response = client.table('workflow_executions')\
+                .select('snowflake_enabled, snowflake_table_name, snowflake_schema_name')\
+                .eq('execution_id', execution_id)\
+                .execute()
+                
+            if not response.data:
+                logger.warning(f"No execution found with ID {execution_id}")
+                return
+                
+            execution = response.data[0]
+            
+            if not execution.get('snowflake_enabled'):
+                logger.info(f"Snowflake upload not enabled for execution {execution_id}")
+                return
+                
+            # Generate table name if not provided
+            table_name = execution.get('snowflake_table_name')
+            if not table_name:
+                # Generate table name from execution ID and timestamp
+                timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+                table_name = f"execution_{execution_id}_{timestamp}"
+                
+            logger.info(f"Uploading execution {execution_id} results to Snowflake table {table_name}")
+            
+            # Upload to Snowflake
+            upload_result = self.snowflake_service.upload_execution_results(
+                execution_id=execution_id,
+                results=results,
+                table_name=table_name,
+                user_id=user_id
+            )
+            
+            if upload_result['success']:
+                logger.info(f"Successfully uploaded {upload_result['row_count']} rows to Snowflake")
+            else:
+                logger.error(f"Failed to upload to Snowflake: {upload_result['error']}")
+                
+        except Exception as e:
+            logger.error(f"Error uploading to Snowflake: {e}")
 
 
 # Singleton instance

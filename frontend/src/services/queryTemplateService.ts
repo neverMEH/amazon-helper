@@ -120,22 +120,22 @@ export const queryTemplateService = {
 
   // Parameter management methods
   async getTemplateParameters(templateId: string): Promise<any[]> {
-    const response = await api.get(`/query-templates/${templateId}/parameters`);
+    const response = await api.get(`/query-library/templates/${templateId}/parameters`);
     return response.data;
   },
 
   async createTemplateParameter(templateId: string, parameter: any): Promise<any> {
-    const response = await api.post(`/query-templates/${templateId}/parameters`, parameter);
+    const response = await api.post(`/query-library/templates/${templateId}/parameters`, parameter);
     return response.data;
   },
 
   async updateTemplateParameter(templateId: string, parameterId: string, updates: any): Promise<any> {
-    const response = await api.put(`/query-templates/${templateId}/parameters/${parameterId}`, updates);
+    const response = await api.put(`/query-library/templates/${templateId}/parameters/${parameterId}`, updates);
     return response.data;
   },
 
   async deleteTemplateParameter(templateId: string, parameterId: string): Promise<void> {
-    await api.delete(`/query-templates/${templateId}/parameters/${parameterId}`);
+    await api.delete(`/query-library/templates/${templateId}/parameters/${parameterId}`);
   },
 
   async updateTemplateWithParameters(templateId: string, template: QueryTemplateUpdate, parameters?: any[]): Promise<any> {

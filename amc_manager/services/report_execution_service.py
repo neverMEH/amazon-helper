@@ -60,7 +60,10 @@ class ReportExecutionService(DatabaseService):
         schedule_id: Optional[str] = None,
         collection_id: Optional[str] = None,
         time_window_start: Optional[datetime] = None,
-        time_window_end: Optional[datetime] = None
+        time_window_end: Optional[datetime] = None,
+        snowflake_enabled: bool = False,
+        snowflake_table_name: Optional[str] = None,
+        snowflake_schema_name: Optional[str] = None
     ) -> Optional[Dict[str, Any]]:
         """
         Execute a report directly via AMC ad-hoc API
@@ -77,6 +80,9 @@ class ReportExecutionService(DatabaseService):
             collection_id: Optional collection UUID
             time_window_start: Optional time window start
             time_window_end: Optional time window end
+            snowflake_enabled: Whether to upload results to Snowflake
+            snowflake_table_name: Optional custom table name for Snowflake
+            snowflake_schema_name: Optional custom schema name for Snowflake
 
         Returns:
             Execution record or None if failed
@@ -107,7 +113,12 @@ class ReportExecutionService(DatabaseService):
                 'parameters_snapshot': parameters,
                 'time_window_start': time_window_start.isoformat() if time_window_start else None,
                 'time_window_end': time_window_end.isoformat() if time_window_end else None,
-                'started_at': datetime.utcnow().isoformat()
+                'started_at': datetime.utcnow().isoformat(),
+                # Snowflake configuration
+                'snowflake_enabled': snowflake_enabled,
+                'snowflake_table_name': snowflake_table_name,
+                'snowflake_schema_name': snowflake_schema_name,
+                'snowflake_status': 'pending' if snowflake_enabled else None
             }
 
             # Get template ID from report

@@ -48,6 +48,10 @@ export interface CreateReportRequest {
   schedule_config?: ScheduleConfig;
   time_window_start?: string; // ISO date string for ad-hoc execution
   time_window_end?: string; // ISO date string for ad-hoc execution
+  // Snowflake integration options
+  snowflake_enabled?: boolean;
+  snowflake_table_name?: string;
+  snowflake_schema_name?: string;
 }
 
 export interface ParameterDefinition {
@@ -60,4 +64,27 @@ export interface ParameterDefinition {
   min?: number;
   max?: number;
   pattern?: string;
+}
+
+export interface SnowflakeConfiguration {
+  id: string;
+  user_id: string;
+  account_identifier: string;
+  warehouse: string;
+  database: string;
+  schema: string;
+  role?: string;
+  username?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SnowflakeTable {
+  name: string;
+  type: string;
+  row_count: number;
+  size_bytes: number;
+  created: string;
+  last_altered: string;
 }
