@@ -458,3 +458,15 @@ class DashboardViewService(DatabaseService):
             'stacked-bar', 'map', 'bubble', 'waterfall'
         ]
         return chart_type in valid_types
+
+    def get_views_for_configuration(self, config_id: str) -> List[Dict[str, Any]]:
+        """
+        Get all dashboard views for a specific report configuration (alias for get_views_for_report)
+
+        Args:
+            config_id: Report configuration ID
+
+        Returns:
+            List of dashboard views
+        """
+        return self.get_views_for_report(config_id)

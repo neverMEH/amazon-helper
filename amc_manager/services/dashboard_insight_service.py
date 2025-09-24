@@ -408,6 +408,87 @@ class DashboardInsightService(DatabaseService):
         valid_types = ['trend', 'anomaly', 'recommendation', 'summary', 'comparison']
         return insight_type in valid_types
 
+    @with_connection_retry
+    def get_insights_for_configuration(self, config_id: str, insight_type: Optional[str] = None, limit: int = 10) -> List[Dict[str, Any]]:
+        """
+        Get insights for a report configuration
+
+        Args:
+            config_id: Report configuration ID
+            insight_type: Filter by insight type (optional)
+            limit: Maximum number of insights to return
+
+        Returns:
+            List of insights
+        """
+        try:
+            # First, get all views for this configuration
+            views_response = self.client.table('dashboard_views')\
+                .select('id')\
+                .eq('report_configuration_id', config_id)\
+                .execute()
+
+            if not views_response.data:
+                return []
+
+            view_ids = [view['id'] for view in views_response.data]
+
+            # Get insights for all views
+            query = self.client.table('dashboard_insights')\
+                .select('*')\
+                .in_('dashboard_view_id', view_ids)\
+                .order('confidence_score', desc=True)\
+                .limit(limit)
+
+            if insight_type:
+                query = query.eq('insight_type', insight_type)
+
+            response = query.execute()
+
+            return response.data if response.data else []
+
+        except Exception as e:
+            logger.error(f"Error fetching insights for configuration {config_id}: {e}")
+            return []
+
+    async def generate_insights_async(self, config_id: str, task_id: str, force_refresh: bool = False, insight_types: Optional[List[str]] = None):
+        """
+        Asynchronously generate insights for a report configuration
+
+        Args:
+            config_id: Report configuration ID
+            task_id: Task ID for tracking progress
+            force_refresh: Force regeneration even if recent insights exist
+            insight_types: Specific insight types to generate
+
+        Note: This is a placeholder for async insight generation.
+        Actual implementation would connect to AI service.
+        """
+        try:
+            logger.info(f"Starting async insight generation for config {config_id}, task {task_id}")
+
+            # In a real implementation, this would:
+            # 1. Fetch data for the configuration
+            # 2. Send to AI service for analysis
+            # 3. Store generated insights
+            # 4. Update task status
+
+            # For now, just log the operation
+            logger.info(f"Insight generation would process config {config_id} with types {insight_types}")
+
+            if force_refresh:
+                logger.info("Force refresh enabled - clearing existing insights")
+
+            # Simulate async processing
+            import asyncio
+            await asyncio.sleep(2)
+
+            logger.info(f"Completed async insight generation for task {task_id}")
+
+        except Exception as e:
+            logger.error(f"Error in async insight generation: {e}")
+            raise
+
     def format_insight_for_display(self, insight: Dict[str, Any]) -> Dict[str, Any]:
         """
         Format an insight for display in the UI

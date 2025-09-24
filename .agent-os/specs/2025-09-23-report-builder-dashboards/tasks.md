@@ -32,15 +32,15 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 2.8 Add service metrics and monitoring hooks
   - [x] 2.9 Verify all service tests pass
 
-- [ ] 3. API Endpoints Implementation
-  - [ ] 3.1 Write API integration tests for report endpoints
-  - [ ] 3.2 Implement POST /api/reports/configure endpoint
-  - [ ] 3.3 Implement GET /api/reports/configurations endpoint
-  - [ ] 3.4 Implement PUT /api/reports/configure/{id} endpoint
-  - [ ] 3.5 Add request validation with Pydantic schemas
-  - [ ] 3.6 Implement rate limiting for report endpoints
-  - [ ] 3.7 Add OpenAPI documentation for new endpoints
-  - [ ] 3.8 Verify all API tests pass
+- [x] 3. API Endpoints Implementation
+  - [x] 3.1 Write API integration tests for report endpoints
+  - [x] 3.2 Implement POST /api/reports/configure endpoint
+  - [x] 3.3 Implement GET /api/reports/configurations endpoint
+  - [x] 3.4 Implement PUT /api/reports/configure/{id} endpoint
+  - [x] 3.5 Add request validation with Pydantic schemas
+  - [x] 3.6 Implement rate limiting for report endpoints
+  - [x] 3.7 Add OpenAPI documentation for new endpoints
+  - [x] 3.8 Verify all API tests pass
 
 ### Phase 2: Frontend Integration & UI Components
 

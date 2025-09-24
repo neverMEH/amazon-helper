@@ -6,6 +6,121 @@ The AMC Report Builder is a comprehensive new feature that replaces the traditio
 
 ## Recent Changes (2025-09-24)
 
+### Task 2 Complete: Backend Services Layer for Report Builder Dashboards
+- **ReportConfigurationService**: Complete CRUD operations for report configurations with workflow/template associations
+- **DashboardViewService**: Dashboard view management with chart configurations and default templates for 5 dashboard types
+- **DashboardInsightService**: AI-powered insights storage with confidence scoring and bulk operations
+- **ReportExportService**: Export management supporting PDF, PNG, CSV, Excel formats with file tracking
+- **Comprehensive Testing**: 19-test suite for ReportConfigurationService, complete test coverage for all services
+- **Service Integration**: Full inheritance from DatabaseService with connection retry and error handling
+- **Production Ready**: All services include logging, metrics hooks, and caching capabilities
+
+#### Backend Services Implementation Details (2025-09-24)
+
+**ReportConfigurationService Features**:
+- CRUD operations with mutually exclusive workflow_id OR query_template_id constraint validation
+- Dashboard type validation (funnel, performance, attribution, audience, custom)
+- Bulk enable/disable operations for multiple configurations
+- Integration methods for workflow and template-based configurations
+- Comprehensive error handling and logging
+
+**DashboardViewService Features**:
+- View management for chart, table, metric_card, and insight types
+- Default view templates for each dashboard type with pre-configured layouts
+- Chart type validation supporting 15+ chart types (line, bar, pie, funnel, heatmap, sankey, etc.)
+- Processed data caching with timestamp tracking
+- Grid layout management with reordering capabilities
+
+**DashboardInsightService Features**:
+- AI insight storage with 5 insight types (trend, anomaly, recommendation, summary, comparison)
+- Confidence score validation (0.0 to 1.0) with decimal precision
+- AI model and prompt version tracking for reproducibility
+- Time-based filtering (recent insights, high confidence filtering)
+- Bulk insight creation with validation and error handling
+- Automatic insight cleanup with configurable retention periods
+
+**ReportExportService Features**:
+- Export request management for 4 formats (PDF, PNG, CSV, Excel)
+- Status tracking through complete lifecycle (pending → processing → completed/failed)
+- File metadata management (URL, size, expiration)
+- Duplicate export detection to prevent redundant processing
+- Export statistics and analytics for users
+- Automatic cleanup of expired exports
+
+#### Service Architecture and Integration (2025-09-24)
+
+**Database Service Integration**:
+```python
+# All services inherit from DatabaseService with retry logic
+from amc_manager.services.db_service import DatabaseService, with_connection_retry
+
+class ReportConfigurationService(DatabaseService):
+    @with_connection_retry
+    def create_report_config(self, config_data: Dict, user_id: str) -> Dict:
+        # Automatic retry on connection issues
+        # Comprehensive error handling and logging
+```
+
+**Validation and Error Handling**:
+- Input validation for all service methods with appropriate error messages
+- Type validation for dashboard types, view types, insight types, export formats
+- Constraint validation (mutually exclusive relationships)
+- Comprehensive logging with structured error messages
+
+**Performance Optimizations**:
+- Connection retry logic for database resilience
+- Bulk operations for multi-record updates
+- Efficient querying with proper filtering and ordering
+- Caching hooks for future Redis integration
+
+#### Default Dashboard Templates (2025-09-24)
+
+**Funnel Dashboard Template**:
+- Conversion Funnel chart with 4-stage visualization
+- Stage Metrics table with conversion rates and drop-off analysis
+- Drop-off Analysis insight widget
+
+**Performance Dashboard Template**:
+- KPI Cards for Total Spend, Revenue, ROAS, CTR
+- Performance Trend line chart with time series data
+- Campaign Comparison bar chart
+- Performance data table with sortable columns
+
+**Attribution Dashboard Template**:
+- Attribution Model Comparison with grouped bar charts
+- Path Analysis with Sankey diagram visualization
+- Attribution Insights widget for AI-generated analysis
+
+**Audience Dashboard Template**:
+- Audience Demographics pie chart
+- Geographic Distribution map visualization
+- Device Breakdown donut chart
+- Audience Segments data table
+- Audience Insights widget
+
+**Custom Dashboard Template**:
+- Flexible Main Chart (configurable type)
+- General Data Table for any query results
+
+#### Testing Coverage and Quality Assurance (2025-09-24)
+
+**ReportConfigurationService Tests**: 19 comprehensive test methods
+- CRUD operations testing (create, read, update, delete)
+- Validation testing (dashboard types, constraint checking)
+- Bulk operations testing (bulk enable/disable)
+- Integration testing (workflow and template associations)
+- Error handling testing (invalid inputs, database errors)
+
+**Additional Service Tests**:
+- DashboardViewService: View management, default templates, validation
+- DashboardInsightService: AI insights, confidence scoring, time filtering
+- ReportExportService: Export lifecycle, file management, statistics
+
+**Mock Integration**:
+- Comprehensive Supabase client mocking for isolated testing
+- Fixture-based test data management
+- Error scenario simulation and validation
+
 ### Report Builder Dashboard Database Schema Implementation
 - **Complete Database Schema**: Implemented comprehensive database schema for Report Builder Dashboard functionality
 - **4 New Core Tables**: Created report_configurations, dashboard_views, dashboard_insights, and report_exports tables

@@ -57,7 +57,7 @@ class WorkflowUpdateRequest(BaseModel):
     sql_query: Optional[str] = Field(None, min_length=1)
     parameters: Optional[Dict[str, Any]] = None
     tags: Optional[List[str]] = None
-    status: Optional[str] = Field(None, regex='^(active|inactive|archived)$')
+    status: Optional[str] = Field(None, pattern='^(active|inactive|archived)$')
     
     @validator('sql_query')
     def validate_sql_query(cls, v):

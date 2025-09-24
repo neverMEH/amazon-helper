@@ -116,6 +116,69 @@ export const queryTemplateService = {
   async getTemplateVersionHistory(templateId: string): Promise<any[]> {
     const response = await api.get(`/query-templates/${templateId}/versions`);
     return response.data;
+  },
+
+  // Parameter management methods
+  async getTemplateParameters(templateId: string): Promise<any[]> {
+    const response = await api.get(`/query-templates/${templateId}/parameters`);
+    return response.data;
+  },
+
+  async createTemplateParameter(templateId: string, parameter: any): Promise<any> {
+    const response = await api.post(`/query-templates/${templateId}/parameters`, parameter);
+    return response.data;
+  },
+
+  async updateTemplateParameter(templateId: string, parameterId: string, updates: any): Promise<any> {
+    const response = await api.put(`/query-templates/${templateId}/parameters/${parameterId}`, updates);
+    return response.data;
+  },
+
+  async deleteTemplateParameter(templateId: string, parameterId: string): Promise<void> {
+    await api.delete(`/query-templates/${templateId}/parameters/${parameterId}`);
+  },
+
+  async updateTemplateWithParameters(templateId: string, template: QueryTemplateUpdate, parameters?: any[]): Promise<any> {
+    // Update the template first
+    const templateResponse = await api.put(`/query-templates/${templateId}`, template);
+
+    // If parameters are provided, update them too
+    if (parameters && parameters.length > 0) {
+      // Get existing parameters
+      const existingParams = await this.getTemplateParameters(templateId);
+
+      // Create a map of existing parameters by name
+      const existingMap = new Map(existingParams.map(p => [p.parameterName, p]));
+
+      // Update or create parameters
+      for (const param of parameters) {
+        const existing = existingMap.get(param.name);
+        if (existing) {
+          // Update existing parameter
+          await this.updateTemplateParameter(templateId, existing.parameterId, {
+            description: param.description,
+            required: param.required,
+            default_value: param.defaultValue,
+            parameter_type: param.type,
+            validation_rules: param.validation,
+            display_name: param.displayName || param.name
+          });
+        } else {
+          // Create new parameter
+          await this.createTemplateParameter(templateId, {
+            parameter_name: param.name,
+            parameter_type: param.type,
+            description: param.description,
+            required: param.required,
+            default_value: param.defaultValue,
+            validation_rules: param.validation,
+            display_name: param.displayName || param.name
+          });
+        }
+      }
+    }
+
+    return templateResponse.data;
   }
 };
 

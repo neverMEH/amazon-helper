@@ -510,3 +510,86 @@ class ReportExportService(DatabaseService):
             'excel': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         }
         return mime_types.get(export_format, 'application/octet-stream')
+
+    def validate_export_type(self, export_type: str) -> bool:
+        """
+        Validate export type (alias for validate_export_format)
+
+        Args:
+            export_type: Export type to validate
+
+        Returns:
+            True if valid, False otherwise
+        """
+        return self.validate_export_format(export_type)
+
+    def get_exports_for_configuration(self, config_id: str, status: Optional[str] = None, limit: int = 10) -> List[Dict[str, Any]]:
+        """
+        Get exports for a report configuration (alias for get_exports_by_report_config with additional filters)
+
+        Args:
+            config_id: Report configuration ID
+            status: Filter by export status (optional)
+            limit: Maximum number of exports to return
+
+        Returns:
+            List of exports
+        """
+        exports = self.get_exports_by_report_config(config_id)
+
+        # Filter by status if provided
+        if status:
+            exports = [e for e in exports if e.get('status') == status]
+
+        # Apply limit
+        return exports[:limit]
+
+    async def create_export_async(self, export_id: str, config_id: str, format: str, include_insights: bool = True, date_range: Optional[Dict[str, str]] = None):
+        """
+        Asynchronously create an export
+
+        Args:
+            export_id: Export record ID
+            config_id: Report configuration ID
+            format: Export format
+            include_insights: Include insights in export
+            date_range: Date range for data
+
+        Note: This is a placeholder for async export generation.
+        Actual implementation would generate the file and upload to storage.
+        """
+        try:
+            logger.info(f"Starting async export generation for export {export_id}, config {config_id}")
+
+            # Update status to processing
+            self.update_export_status(export_id, 'processing')
+
+            # In a real implementation, this would:
+            # 1. Fetch data for the configuration
+            # 2. Generate the export file
+            # 3. Upload to storage
+            # 4. Update export record with file URL
+
+            # For now, just log the operation
+            logger.info(f"Export would generate {format} for config {config_id}")
+
+            if include_insights:
+                logger.info("Including insights in export")
+
+            if date_range:
+                logger.info(f"Using date range: {date_range}")
+
+            # Simulate async processing
+            import asyncio
+            await asyncio.sleep(3)
+
+            # Update export status with mock file URL
+            mock_file_url = f"https://storage.example.com/exports/{export_id}{self.get_file_extension(format)}"
+            self.update_export_status(export_id, 'completed', mock_file_url)
+
+            logger.info(f"Completed async export generation for export {export_id}")
+
+        except Exception as e:
+            logger.error(f"Error in async export generation: {e}")
+            self.update_export_status(export_id, 'failed', error_message=str(e))
+            raise

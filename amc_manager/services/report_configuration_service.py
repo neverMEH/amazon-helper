@@ -373,3 +373,47 @@ class ReportConfigurationService(DatabaseService):
         # For now, just check that it's a dictionary
         # Can add more specific validation logic here
         return isinstance(settings, dict)
+
+    def toggle_report_config(self, config_id: str, user_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Toggle the enabled status of a report configuration (alias for toggle_enabled)
+
+        Args:
+            config_id: Report configuration ID
+            user_id: User ID for authorization
+
+        Returns:
+            Updated report configuration or None if not found
+        """
+        return self.toggle_enabled(config_id, user_id)
+
+    def batch_update_status(self, config_ids: List[str], is_enabled: bool, user_id: str) -> Dict[str, Any]:
+        """
+        Batch update the enabled status for multiple report configurations
+
+        Args:
+            config_ids: List of configuration IDs
+            is_enabled: New enabled status
+            user_id: User ID for authorization
+
+        Returns:
+            Dictionary with update results
+        """
+        updated = self.bulk_update_enabled(config_ids, is_enabled, user_id)
+        return {
+            'updated': len(updated),
+            'failed': len(config_ids) - len(updated),
+            'errors': None if len(updated) == len(config_ids) else [
+                {'id': id, 'error': 'Update failed'}
+                for id in config_ids if id not in [u['id'] for u in updated]
+            ]
+        }
+
+    def generate_task_id(self) -> str:
+        """
+        Generate a unique task ID for async operations
+
+        Returns:
+            UUID string for task identification
+        """
+        return str(uuid4())
