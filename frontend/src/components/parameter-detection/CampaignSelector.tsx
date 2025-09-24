@@ -76,11 +76,13 @@ export const CampaignSelector: FC<CampaignSelectorProps> = ({
           // Map to the 'type' field used by main campaigns endpoint
           const typeMapping: Record<string, string> = {
             'sp': 'sp',
-            'sb': 'sb', 
+            'sb': 'sb',
             'sd': 'sd',
             'dsp': 'dsp'
           };
-          params.append('type', typeMapping[campaignType] || campaignType);
+          // Ensure campaignType is definitely defined for TypeScript
+          const type = campaignType as string;
+          params.append('type', typeMapping[type] || type);
         }
         
         const response = await api.get(`/campaigns/?${params.toString()}`);
