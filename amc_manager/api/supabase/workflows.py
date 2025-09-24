@@ -729,15 +729,25 @@ async def execute_workflow(
 ) -> Dict[str, Any]:
     """Execute a workflow on AMC instance"""
     try:
-        # Extract instance_id and parameters from body
+        # Extract instance_id and Snowflake configuration from body
         instance_id = body.get('instance_id')
-        parameters = {k: v for k, v in body.items() if k not in {'instance_id', 'execution_parameters'}}
+        snowflake_enabled = body.get('snowflake_enabled', False)
+        snowflake_table_name = body.get('snowflake_table_name')
+        snowflake_schema_name = body.get('snowflake_schema_name')
+
+        # Extract parameters, excluding system fields
+        excluded_fields = {'instance_id', 'execution_parameters', 'snowflake_enabled',
+                          'snowflake_table_name', 'snowflake_schema_name'}
+        parameters = {k: v for k, v in body.items() if k not in excluded_fields}
 
         # Support new payload shape where parameters are nested under execution_parameters
         nested_parameters = body.get('execution_parameters')
         if isinstance(nested_parameters, dict):
+            # Remove Snowflake fields from nested parameters if they exist
+            filtered_nested = {k: v for k, v in nested_parameters.items()
+                             if k not in {'snowflake_enabled', 'snowflake_table_name', 'snowflake_schema_name'}}
             # Nested values take precedence over top-level duplicates
-            parameters = {**parameters, **nested_parameters}
+            parameters = {**parameters, **filtered_nested}
 
         logger.info(f"Executing workflow {workflow_id} with instance_id: {instance_id}, parameters: {parameters}")
         
@@ -761,12 +771,16 @@ async def execute_workflow(
         
         # Execute workflow using AMC execution service
         logger.info(f"Calling execution service with workflow UUID: {workflow['id']}")
+        logger.info(f"Snowflake config - enabled: {snowflake_enabled}, table: {snowflake_table_name}, schema: {snowflake_schema_name}")
         result = await amc_execution_service.execute_workflow(
             workflow_id=workflow['id'],  # Use internal UUID
             user_id=current_user['id'],
             execution_parameters=parameters,
             triggered_by="manual",
-            instance_id=instance_id  # Pass instance_id if provided
+            instance_id=instance_id,  # Pass instance_id if provided
+            snowflake_enabled=snowflake_enabled,
+            snowflake_table_name=snowflake_table_name,
+            snowflake_schema_name=snowflake_schema_name
         )
         
         return result

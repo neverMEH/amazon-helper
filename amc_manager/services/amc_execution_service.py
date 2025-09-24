@@ -32,7 +32,10 @@ class AMCExecutionService:
         user_id: str,
         execution_parameters: Optional[Dict[str, Any]] = None,
         triggered_by: str = "manual",
-        instance_id: Optional[str] = None
+        instance_id: Optional[str] = None,
+        snowflake_enabled: bool = False,
+        snowflake_table_name: Optional[str] = None,
+        snowflake_schema_name: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Execute a workflow on an AMC instance
@@ -188,7 +191,12 @@ class AMCExecutionService:
                 "triggered_by": triggered_by,
                 "started_at": datetime.now(timezone.utc).isoformat(),
                 "execution_mode": execution_mode,
-                "amc_workflow_id": amc_workflow_id  # Use the potentially auto-created ID
+                "amc_workflow_id": amc_workflow_id,  # Use the potentially auto-created ID
+                # Snowflake configuration
+                "snowflake_enabled": snowflake_enabled,
+                "snowflake_table_name": snowflake_table_name,
+                "snowflake_schema_name": snowflake_schema_name,
+                "snowflake_status": "pending" if snowflake_enabled else None
             }
             
             # Only add version ID if versioning is available
@@ -634,7 +642,7 @@ class AMCExecutionService:
                 logger.info(f"Prepared SQL length: {sql_length} characters")
 
                 # AMC enforces a ~1KB limit on ad-hoc SQL payloads. Anything larger must run via saved workflow.
-                AD_HOC_SQL_LIMIT = 1024
+                AD_HOC_SQL_LIMIT = 65536  # 64KB - reasonable limit for ad-hoc SQL
                 use_ad_hoc_mode = sql_length <= AD_HOC_SQL_LIMIT
 
                 if not use_ad_hoc_mode and not amc_workflow_id:
