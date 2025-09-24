@@ -9,17 +9,17 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 
 ### Phase 1: Database Foundation & Core Infrastructure
 
-- [ ] 1. Database Schema and Migrations
-  - [ ] 1.1 Write tests for database schema validation
-  - [ ] 1.2 Create migration for report_configurations table with indexes
-  - [ ] 1.3 Create migration for dashboard_views table with JSONB columns
-  - [ ] 1.4 Create migration for dashboard_insights table with AI metadata
-  - [ ] 1.5 Create migration for report_exports table with file tracking
-  - [ ] 1.6 Add report_enabled and report_config_id columns to workflows table
-  - [ ] 1.7 Add default_dashboard_type to query_templates table
-  - [ ] 1.8 Create composite indexes for performance optimization
-  - [ ] 1.9 Set up Row Level Security (RLS) policies for new tables
-  - [ ] 1.10 Verify all migrations run successfully
+- [x] 1. Database Schema and Migrations
+  - [x] 1.1 Write tests for database schema validation
+  - [x] 1.2 Create migration for report_configurations table with indexes
+  - [x] 1.3 Create migration for dashboard_views table with JSONB columns
+  - [x] 1.4 Create migration for dashboard_insights table with AI metadata
+  - [x] 1.5 Create migration for report_exports table with file tracking
+  - [x] 1.6 Add report_enabled and report_config_id columns to workflows table
+  - [x] 1.7 Add default_dashboard_type to query_templates table
+  - [x] 1.8 Create composite indexes for performance optimization
+  - [x] 1.9 Set up Row Level Security (RLS) policies for new tables
+  - [x] 1.10 Verify all migrations run successfully
 
 - [ ] 2. Backend Services Layer
   - [ ] 2.1 Write unit tests for ReportConfigurationService
