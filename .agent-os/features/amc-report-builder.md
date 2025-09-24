@@ -4,6 +4,168 @@
 
 The AMC Report Builder is a comprehensive new feature that replaces the traditional workflow-based system with direct ad-hoc execution for AMC queries. This represents a major architectural shift in RecomAMP, eliminating workflow overhead and providing streamlined report generation capabilities with enhanced performance and agency-focused features.
 
+## Recent Changes (2025-09-24)
+
+### Report Builder Dashboard Database Schema Implementation
+- **Complete Database Schema**: Implemented comprehensive database schema for Report Builder Dashboard functionality
+- **4 New Core Tables**: Created report_configurations, dashboard_views, dashboard_insights, and report_exports tables
+- **Extended Existing Tables**: Added report-related columns to workflows and query_templates tables
+- **Performance Optimizations**: Implemented 13 optimized indexes including composite indexes for complex queries
+- **Row Level Security**: Full RLS policy implementation for all new tables with user-based access control
+- **Comprehensive Testing**: 20-test validation suite covering all schema elements (all tests passing)
+- **Migration Infrastructure**: Production-ready migration scripts with error handling and rollback capabilities
+
+#### Database Schema Details (2025-09-24)
+
+**New Core Tables Created**:
+
+1. **`report_configurations`** - Primary configuration table for report dashboard generation:
+   - Links to either workflows or query_templates (mutually exclusive constraint)
+   - Dashboard type classification (funnel, performance, attribution, audience, custom)
+   - JSONB fields for visualization_settings, data_aggregation_settings, export_settings
+   - Boolean is_enabled flag with conditional indexing
+   - Auto-updating updated_at timestamp with trigger
+
+2. **`dashboard_views`** - Individual dashboard view components:
+   - References report_configurations with cascade delete
+   - View type classification (chart, table, metric_card, insight)
+   - JSONB fields for chart_configurations, filter_settings, layout_settings
+   - Processed_data JSONB for caching computation results
+   - last_updated timestamp for data freshness tracking
+
+3. **`dashboard_insights`** - AI-generated insights and recommendations:
+   - References dashboard_views with cascade delete
+   - Insight type classification (trend, anomaly, recommendation, summary, comparison)
+   - Confidence scoring with decimal constraint (0.00 to 1.00)
+   - AI model and prompt version tracking for reproducibility
+   - Source_data JSONB for insight generation context
+
+4. **`report_exports`** - File export and download management:
+   - Export format support (pdf, png, csv, excel)
+   - Status tracking (pending, processing, completed, failed)
+   - File metadata (URL, size, expiration)
+   - User-scoped with direct user_id reference
+   - Error message capture for failed exports
+
+**Extended Existing Tables**:
+
+- **`workflows`** table additions:
+  - `report_enabled` BOOLEAN flag to enable dashboard generation
+  - `report_config_id` UUID reference to report_configurations
+  - Conditional indexing for performance optimization
+
+- **`query_templates`** table additions:
+  - `default_dashboard_type` VARCHAR(50) with check constraints
+  - Integration with report configuration system
+
+**Performance Optimizations**:
+- **13 Optimized Indexes** including conditional and composite indexes:
+  - Conditional indexes for enabled/active records only
+  - Composite indexes for common query patterns
+  - Foreign key indexes for join optimization
+  - Timestamp indexes for temporal queries
+
+**Row Level Security Implementation**:
+- **Complete RLS Coverage**: All 4 new tables protected with user-based policies
+- **Hierarchical Security**: dashboard_views inherits from report_configurations, dashboard_insights inherits from dashboard_views
+- **Template Access**: Query template-based reports accessible to all users (configurable)
+- **Export Security**: report_exports strictly scoped to owning user
+
+**Migration Infrastructure**:
+- **Production-Ready Scripts**: Comprehensive migration execution with error handling
+- **Rollback Capabilities**: Safe migration with rollback procedures
+- **Validation Testing**: 20-test suite validates all schema elements
+- **Documentation**: Complete migration guide with troubleshooting
+
+#### Technical Implementation Highlights (2025-09-24)
+
+**Advanced Database Features**:
+```sql
+-- Mutually exclusive constraint ensures proper configuration linking
+CONSTRAINT workflow_or_template CHECK (
+    (workflow_id IS NOT NULL AND query_template_id IS NULL) OR
+    (workflow_id IS NULL AND query_template_id IS NOT NULL)
+)
+
+-- Confidence score validation for AI insights
+confidence_score DECIMAL(3, 2) CHECK (confidence_score >= 0 AND confidence_score <= 1)
+
+-- Auto-updating timestamp trigger
+CREATE TRIGGER update_report_configurations_updated_at
+    BEFORE UPDATE ON report_configurations
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
+```
+
+**Performance Index Strategy**:
+```sql
+-- Conditional indexing for active records only
+CREATE INDEX idx_report_configurations_enabled
+    ON report_configurations(is_enabled)
+    WHERE is_enabled = true;
+
+-- Composite indexes for complex queries
+CREATE INDEX idx_dashboard_views_config_type
+    ON dashboard_views(report_configuration_id, view_type);
+```
+
+**Row Level Security Policies**:
+```sql
+-- Hierarchical security inheritance
+CREATE POLICY "Users can view dashboard views" ON dashboard_views
+    FOR SELECT USING (
+        report_configuration_id IN (
+            SELECT id FROM report_configurations WHERE
+            workflow_id IN (SELECT id FROM workflows WHERE user_id = auth.uid())
+        )
+    );
+```
+
+#### Integration with Existing Systems (2025-09-24)
+
+**Query Template Library Integration**:
+- Templates can specify `default_dashboard_type` for automatic dashboard generation
+- Report configurations can reference templates directly without workflow creation
+- Template-based reports inherit visualization settings from template metadata
+
+**Workflow System Integration**:
+- Existing workflows can be enhanced with `report_enabled` flag
+- Workflows link to report_configurations for dashboard generation
+- Backward compatibility maintained with existing workflow executions
+
+**Dashboard System Integration**:
+- Seamless integration with existing dashboard infrastructure
+- Widget configurations stored in dashboard_views table
+- AI insights feed into dashboard insight widgets
+
+**Export System Integration**:
+- Supports multiple export formats (PDF, PNG, CSV, Excel)
+- File lifecycle management with expiration tracking
+- Status-based processing pipeline for large exports
+
+#### Future Roadmap Integration (2025-09-24)
+
+**Phase 1 Complete**: Database schema and infrastructure foundation
+- ✅ All tables, indexes, and constraints implemented
+- ✅ RLS policies active for security
+- ✅ Migration scripts and testing complete
+
+**Phase 2 Next**: Service layer and API endpoints
+- Backend services for report configuration management
+- RESTful API endpoints for CRUD operations
+- Integration with AMC execution pipeline
+
+**Phase 3 Following**: Frontend dashboard builder interface
+- Visual dashboard configuration interface
+- Real-time preview and chart configuration
+- Template-based dashboard generation
+
+**Phase 4 Final**: AI insights and advanced export features
+- AI-powered insight generation pipeline
+- Advanced export functionality with custom formatting
+- Automated insight delivery and notifications
+
+This database schema implementation establishes the foundational infrastructure for transforming RecomAMP's query execution system into a comprehensive business intelligence and reporting platform, enabling users to create sophisticated visual dashboards and gain AI-powered insights from their Amazon Marketing Cloud data.
+
 ## Recent Changes (2025-09-23)
 
 ### Double-Quoting Fix for SQL Parameter Placeholders
