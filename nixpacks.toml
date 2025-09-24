@@ -1,12 +1,13 @@
 [phases.setup]
-nixPkgs = ["python311", "python311Packages.pip", "nodejs_18"]
+nixPkgs = ["python311", "python311Packages.pip", "python311Packages.virtualenv", "nodejs_18"]
 
 [phases.install]
 cmds = [
-    "python3.11 -m ensurepip --upgrade",
-    "python3.11 -m pip install -r requirements.txt",
+    "python3.11 -m venv /opt/venv",
+    "/opt/venv/bin/pip install --upgrade pip",
+    "/opt/venv/bin/pip install -r requirements.txt",
     "cd frontend && npm install && npm run build && cd .."
 ]
 
 [start]
-cmd = "python3.11 main_supabase.py"
+cmd = "/opt/venv/bin/python main_supabase.py"
