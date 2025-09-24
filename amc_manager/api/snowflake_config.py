@@ -15,7 +15,7 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/api/snowflake", tags=["Snowflake Configuration"])
 
 # Initialize service
-snowflake_service = SnowflakeService()
+# snowflake_service = SnowflakeService()  # Comment out to avoid initialization at import time
 
 
 # Pydantic models
@@ -114,6 +114,7 @@ async def create_snowflake_config(
         config_dict = config_data.dict(exclude_unset=True)
         
         # Create the configuration
+        snowflake_service = SnowflakeService()  # Lazy initialization
         result = snowflake_service.create_snowflake_config(
             config_data=config_dict,
             user_id=current_user["id"]
@@ -148,6 +149,7 @@ async def get_snowflake_config(
 ) -> Optional[SnowflakeConfigResponse]:
     """Get active Snowflake configuration for current user"""
     try:
+        snowflake_service = SnowflakeService()  # Lazy initialization
         config = snowflake_service.get_user_snowflake_config(current_user["id"])
         
         if not config:
@@ -180,6 +182,7 @@ async def update_snowflake_config(
     """Update Snowflake configuration"""
     try:
         # Get existing configuration
+        snowflake_service = SnowflakeService()  # Lazy initialization
         existing_config = snowflake_service.get_user_snowflake_config(current_user["id"])
         if not existing_config:
             raise HTTPException(
@@ -225,6 +228,7 @@ async def delete_snowflake_config(
     """Delete Snowflake configuration"""
     try:
         # Get existing configuration
+        snowflake_service = SnowflakeService()  # Lazy initialization
         existing_config = snowflake_service.get_user_snowflake_config(current_user["id"])
         if not existing_config:
             raise HTTPException(
@@ -270,6 +274,7 @@ async def test_snowflake_connection(
         config_dict = test_data.dict(exclude_unset=True)
         
         # Test connection
+        snowflake_service = SnowflakeService()  # Lazy initialization
         result = snowflake_service.test_connection(config_dict)
         
         return SnowflakeTestResponse(
@@ -295,6 +300,7 @@ async def list_snowflake_tables(
 ) -> List[SnowflakeTableResponse]:
     """List tables in Snowflake database/schema"""
     try:
+        snowflake_service = SnowflakeService()  # Lazy initialization
         tables = snowflake_service.list_user_tables(
             user_id=current_user["id"],
             database=database,
