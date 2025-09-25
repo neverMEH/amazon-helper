@@ -27,6 +27,7 @@ from amc_manager.services.schedule_executor_service import get_schedule_executor
 from amc_manager.services.collection_executor_service import get_collection_executor
 from amc_manager.services.report_scheduler_executor_service import report_scheduler_executor
 from amc_manager.services.report_backfill_executor_service import report_backfill_executor
+from amc_manager.services.universal_snowflake_sync_service import universal_snowflake_sync_service
 
 logger = get_logger(__name__)
 
@@ -78,6 +79,10 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(report_backfill_executor.run())
     logger.info("✓ Report backfill executor service started")
 
+    # Start universal Snowflake sync service
+    asyncio.create_task(universal_snowflake_sync_service.start())
+    logger.info("✓ Universal Snowflake sync service started")
+
     # Load only users with valid tokens for token refresh tracking
     try:
         users_response = client.table('users').select('id, auth_tokens').execute()
@@ -100,6 +105,7 @@ async def lifespan(app: FastAPI):
     await execution_status_poller.stop()
     await schedule_executor.stop()
     await collection_executor.stop()
+    await universal_snowflake_sync_service.stop()
 
 
 # Create FastAPI app
@@ -201,6 +207,7 @@ from amc_manager.api.data_collections import router as data_collections_router
 from amc_manager.api.dashboards import router as dashboards_router
 from amc_manager.api.report_dashboard import router as report_dashboard_router
 from amc_manager.api.snowflake_config import router as snowflake_router
+from amc_manager.api.snowflake_sync_monitoring import router as snowflake_sync_router
 
 # Add redirect for misconfigured callback URL (must be before router includes)
 @app.get("/api/auth/callback")
@@ -232,6 +239,7 @@ app.include_router(schedules_router, prefix="/api", tags=["Schedules"])
 app.include_router(build_guides_router, prefix="/api", tags=["Build Guides"])
 app.include_router(asin_router, prefix="/api", tags=["ASINs"])
 app.include_router(snowflake_router)  # Already has prefix in router definition
+app.include_router(snowflake_sync_router, prefix="/api", tags=["Snowflake Sync"])
 
 # Apply rate limiting to specific endpoints
 for route in app.routes:
