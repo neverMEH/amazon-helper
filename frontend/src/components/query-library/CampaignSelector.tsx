@@ -85,7 +85,7 @@ export const CampaignSelector: FC<CampaignSelectorProps> = ({
       if (showAll || (!instanceId && !brandId)) {
         const params = new URLSearchParams({
           page: '1',
-          page_size: '200',
+          page_size: '100',  // Maximum allowed by API
           show_all_states: 'false',
         });
         

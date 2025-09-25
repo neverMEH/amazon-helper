@@ -64,7 +64,7 @@ export const CampaignSelector: FC<CampaignSelectorProps> = ({
       if (true) {  // Always use main campaigns endpoint for better data access
         const params = new URLSearchParams({
           page: '1',
-          page_size: '200',  // Get more campaigns when showing all
+          page_size: '100',  // Maximum allowed by API (was 200, causing 422 error)
           show_all_states: 'false',  // Still only show ENABLED campaigns
         });
         
