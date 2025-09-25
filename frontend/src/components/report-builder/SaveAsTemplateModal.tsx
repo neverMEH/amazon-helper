@@ -52,28 +52,15 @@ export default function SaveAsTemplateModal({
   };
 
   const handleSave = async () => {
-    console.log('=== Starting template save ===');
-    console.log('Template name:', templateName);
-    console.log('Execution data:', execution);
-
     if (!templateName.trim()) {
-      console.error('Template name is empty');
       toast.error('Please provide a template name');
       return;
     }
 
     if (!execution.sqlQuery) {
-      console.error('No SQL query found');
-      console.error('Execution object:', execution);
       toast.error('No SQL query found in the execution');
       return;
     }
-
-    console.log('SQL Query length:', execution.sqlQuery.length);
-    console.log('First 200 chars of SQL:', execution.sqlQuery.substring(0, 200));
-    console.log('Tags:', tags);
-    console.log('Category:', category);
-    console.log('Is Public:', isPublic);
 
     setIsSaving(true);
     try {
