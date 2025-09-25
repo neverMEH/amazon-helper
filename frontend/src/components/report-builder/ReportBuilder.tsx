@@ -1,26 +1,17 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, FileText, LayoutDashboard } from 'lucide-react';
-import TemplateGrid from './TemplateGrid';
+import ExecutionsGrid from './ExecutionsGrid';
 import DashboardsTable from './DashboardsTable';
 import RunReportModal from './RunReportModal';
-import { queryTemplateService } from '../../services/queryTemplateService';
 import { reportService } from '../../services/reportService';
-import type { QueryTemplate } from '../../types/queryTemplate';
 import type { Report } from '../../types/report';
 import toast from 'react-hot-toast';
 
 export default function ReportBuilder() {
   const [activeTab, setActiveTab] = useState<'reports' | 'dashboards'>('reports');
-  const [selectedTemplate, setSelectedTemplate] = useState<QueryTemplate | null>(null);
   const [showRunModal, setShowRunModal] = useState(false);
   const [showCreateCustom, setShowCreateCustom] = useState(false);
-
-  // Fetch query templates
-  const { data: templatesData, isLoading: loadingTemplates, error: templatesError } = useQuery({
-    queryKey: ['queryTemplates', 'report'],
-    queryFn: () => queryTemplateService.listTemplates(true),
-  });
 
   // Fetch reports
   const { data: reportsData, isLoading: loadingReports, refetch: refetchReports } = useQuery({
@@ -28,17 +19,10 @@ export default function ReportBuilder() {
     queryFn: () => reportService.listReports(),
   });
 
-  const templates = templatesData?.data?.templates || [];
   const reports = reportsData?.data || [];
-
-  const handleTemplateSelect = (template: QueryTemplate) => {
-    setSelectedTemplate(template);
-    setShowRunModal(true);
-  };
 
   const handleCreateReport = () => {
     // Open modal without a template for custom report creation
-    setSelectedTemplate(null);
     setShowCreateCustom(true);
     setShowRunModal(true);
     setActiveTab('reports');
@@ -51,7 +35,6 @@ export default function ReportBuilder() {
       console.log('Report created successfully:', result);
       toast.success('Report created successfully');
       setShowRunModal(false);
-      setSelectedTemplate(null);
       setShowCreateCustom(false);
       refetchReports();
       setActiveTab('dashboards');
@@ -170,20 +153,7 @@ export default function ReportBuilder() {
       <div className="flex-1 overflow-auto bg-gray-50">
         {activeTab === 'reports' ? (
           <div className="p-6">
-            {loadingTemplates ? (
-              <div className="flex items-center justify-center h-64">
-                <div className="text-gray-500">Loading templates...</div>
-              </div>
-            ) : templatesError ? (
-              <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                <p className="text-red-800">Error loading templates: {(templatesError as Error).message}</p>
-              </div>
-            ) : (
-              <TemplateGrid
-                templates={templates}
-                onSelect={handleTemplateSelect}
-              />
-            )}
+            <ExecutionsGrid />
           </div>
         ) : (
           <div className="p-6">
@@ -207,10 +177,9 @@ export default function ReportBuilder() {
           isOpen={showRunModal}
           onClose={() => {
             setShowRunModal(false);
-            setSelectedTemplate(null);
             setShowCreateCustom(false);
           }}
-          template={selectedTemplate}
+          template={null}
           onSubmit={handleRunReport}
           includeTemplateStep={showCreateCustom}
         />

@@ -108,12 +108,13 @@ class ExecutionMonitorService:
                 if amc_status in ['SUCCEEDED', 'COMPLETED']:
                     # Fetch and store results
                     await self._fetch_and_store_results(
-                        execution_id, 
-                        amc_execution_id, 
-                        instance_id, 
+                        execution_id,
+                        amc_execution_id,
+                        instance_id,
                         valid_token,
                         account['account_id'],
-                        account['marketplace_id']
+                        account['marketplace_id'],
+                        user_id
                     )
                     break
                 elif amc_status in ['FAILED', 'CANCELLED']:
@@ -140,13 +141,14 @@ class ExecutionMonitorService:
             logger.info(f"Stopped monitoring execution {execution_id}")
             
     async def _fetch_and_store_results(
-        self, 
-        execution_id: str, 
-        amc_execution_id: str, 
+        self,
+        execution_id: str,
+        amc_execution_id: str,
         instance_id: str,
         access_token: str,
         entity_id: str,
-        marketplace_id: str
+        marketplace_id: str,
+        user_id: str
     ):
         """
         Fetch results from AMC and store in database
@@ -253,7 +255,7 @@ class ExecutionMonitorService:
                 started_at = started_at.replace(tzinfo=timezone.utc)
             
             completed_at = datetime.now(timezone.utc)
-            duration = (completed_at - started_at).total_seconds()
+            duration = int((completed_at - started_at).total_seconds())
             
             # Prepare update data
             update_data = {
