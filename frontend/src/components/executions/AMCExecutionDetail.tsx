@@ -435,7 +435,7 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                                     </span>
                                     {(execution.snowflake_row_count || execution.snowflakeRowCount) && (
                                       <span className="text-xs text-gray-600">
-                                        ({(execution.snowflake_row_count || execution.snowflakeRowCount).toLocaleString()} rows)
+                                        ({(execution.snowflake_row_count || execution.snowflakeRowCount || 0).toLocaleString()} rows)
                                       </span>
                                     )}
                                   </div>
