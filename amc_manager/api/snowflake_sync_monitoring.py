@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from typing import Dict, Any, List
 from pydantic import BaseModel
 
-from ..core.auth import get_current_user
+from .supabase.auth import get_current_user
 from ..core.supabase_client import SupabaseManager
 from ..core.logger_simple import get_logger
 from ..services.universal_snowflake_sync_service import universal_snowflake_sync_service
