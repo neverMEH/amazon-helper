@@ -50,11 +50,20 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
       // Import api service
       const { default: api } = await import('../../services/api');
       
-      // Execute with the same parameters
-      const response = await api.post(`/workflows/${workflowId}/execute`, {
+      // Execute with the same parameters, including Snowflake settings if they were enabled
+      const requestBody: any = {
         parameters: execution.executionParameters || {},
         instance_id: instanceId
-      });
+      };
+
+      // Preserve Snowflake configuration if it was enabled
+      if (execution.snowflake_enabled || execution.snowflakeEnabled) {
+        requestBody.snowflake_enabled = true;
+        requestBody.snowflake_table_name = execution.snowflake_table_name || execution.snowflakeTableName;
+        requestBody.snowflake_schema_name = execution.snowflake_schema_name || execution.snowflakeSchemaName;
+      }
+
+      const response = await api.post(`/workflows/${workflowId}/execute`, requestBody);
       
       return response.data;
     },
@@ -125,6 +134,13 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
           <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-6xl sm:p-6">
             <div className="absolute right-0 top-0 hidden pr-4 pt-4 sm:block">
               <div className="flex items-center space-x-2">
+                {/* Show Snowflake indicator if enabled */}
+                {(execution?.snowflake_enabled || execution?.snowflakeEnabled) && (
+                  <div className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded-md" title="Snowflake export is enabled for this query">
+                    <Database className="h-3 w-3 mr-1" />
+                    Snowflake
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={handleRefresh}
@@ -138,7 +154,7 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                   onClick={handleRerun}
                   disabled={isRerunning || (!execution?.workflowId && !execution?.workflowInfo?.id)}
                   className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                  title="Rerun with same parameters"
+                  title={`Rerun with same parameters${(execution?.snowflake_enabled || execution?.snowflakeEnabled) ? ' (includes Snowflake export)' : ''}`}
                 >
                   {isRerunning ? (
                     <>
