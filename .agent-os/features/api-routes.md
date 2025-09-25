@@ -582,7 +582,7 @@ Authorization: Bearer <jwt_token>
 ## Campaign Routes
 
 ### GET /api/campaigns/
-List campaigns with filtering. **Updated 2025-09-11**: Fixed routing issue, user-level filtering pending database migration.
+List campaigns with filtering. **Updated 2025-09-25**: Fixed campaign selector pagination limits to prevent 422 validation errors. **Updated 2025-09-11**: Fixed routing issue, user-level filtering pending database migration.
 
 ```http
 GET /api/campaigns/?instance_id=instance-uuid&campaign_type=sponsoredProducts&state=ENABLED
@@ -596,6 +596,7 @@ Authorization: Bearer <jwt_token>
 - `search` (optional): Search campaign names
 - `min_spend` (optional): Minimum spend filter
 - `max_acos` (optional): Maximum ACoS filter
+- `page_size` (optional): Results per page (max: 100, default: 50) **Updated 2025-09-25**: Fixed to respect API limits
 
 **Security**: Authentication required. User-level data filtering not yet implemented (requires adding `user_id` column to campaigns table).
 
@@ -927,7 +928,7 @@ Authorization: Bearer <jwt_token>
 ```
 
 #### POST /api/query-library/templates
-Create new template with automatic parameter detection.
+Create new template with automatic parameter detection. **Updated 2025-09-25**: Fixed trailing slash endpoint consistency.
 
 ```http
 POST /api/query-library/templates
