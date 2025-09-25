@@ -30,9 +30,9 @@ interface QueryBuilderState {
   };
 
   // Snowflake integration
-  snowflakeEnabled: boolean;
-  snowflakeTableName: string;
-  snowflakeSchemaName: string;
+  snowflakeEnabled?: boolean;
+  snowflakeTableName?: string;
+  snowflakeSchemaName?: string;
 
   // Parameters extracted from query
   parameters: Record<string, unknown>;
