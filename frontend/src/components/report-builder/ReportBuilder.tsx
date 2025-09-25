@@ -213,6 +213,7 @@ export default function ReportBuilder() {
       {/* Execution Detail Modal */}
       {selectedExecution && (
         <AMCExecutionDetail
+          isOpen={!!selectedExecution}
           instanceId={selectedExecution.instanceId}
           executionId={selectedExecution.executionId}
           onClose={handleExecutionClose}

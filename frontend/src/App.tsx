@@ -7,7 +7,6 @@ import Dashboard from './components/Dashboard';
 import Instances from './components/instances/Instances';
 import InstanceDetail from './components/instances/InstanceDetail';
 import Campaigns from './components/campaigns/Campaigns';
-import WorkflowDetail from './components/workflows/WorkflowDetail';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import { AuthCallback } from './pages/AuthCallback';
 import Profile from './pages/Profile';
