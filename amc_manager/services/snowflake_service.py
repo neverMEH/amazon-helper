@@ -13,7 +13,6 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime
 import logging
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.serialization import pkcs1
 import base64
 
 from ..services.db_service import DatabaseService, with_connection_retry
