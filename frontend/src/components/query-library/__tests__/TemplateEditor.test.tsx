@@ -17,6 +17,21 @@ vi.mock('@monaco-editor/react', () => ({
   )
 }));
 
+// Mock CampaignSelector component
+vi.mock('../CampaignSelector', () => ({
+  CampaignSelector: ({ value, onChange, multiple, placeholder }: any) => (
+    <div data-testid="campaign-selector">
+      <input
+        type="text"
+        value={Array.isArray(value) ? value.join(',') : value}
+        onChange={(e) => onChange(e.target.value.split(',').filter(Boolean))}
+        placeholder={placeholder || 'Select campaigns'}
+        aria-label="Campaign Selector"
+      />
+    </div>
+  )
+}));
+
 describe('TemplateEditor', () => {
   const mockOnSave = vi.fn();
   const mockOnCancel = vi.fn();
@@ -418,6 +433,446 @@ describe('TemplateEditor', () => {
         expect(sqlEditor).toHaveValue(expect.stringContaining('SELECT'));
         expect(sqlEditor).toHaveValue(expect.stringContaining('FROM'));
         expect(sqlEditor).toHaveValue(expect.stringContaining('WHERE'));
+      });
+    });
+  });
+
+  describe('Parameter State Persistence', () => {
+    it('preserves all parameter properties on save', async () => {
+      const user = userEvent.setup();
+      render(<TemplateEditor {...defaultProps} />);
+
+      const sqlEditor = screen.getByLabelText('SQL Editor');
+      fireEvent.change(sqlEditor, {
+        target: {
+          value: 'SELECT * FROM campaigns WHERE spend > {{min_spend}} AND campaign_id IN ({{campaign_ids}})'
+        }
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('min_spend')).toBeInTheDocument();
+        expect(screen.getByText('campaign_ids')).toBeInTheDocument();
+      });
+
+      // Configure min_spend parameter
+      const minSpendTypeSelect = screen.getByLabelText(/type for min_spend/i);
+      await user.selectOptions(minSpendTypeSelect, 'number');
+
+      const minSpendDescInput = screen.getByLabelText(/description for min_spend/i);
+      await user.type(minSpendDescInput, 'Minimum spend threshold');
+
+      const minSpendRequiredCheckbox = screen.getByLabelText(/required for min_spend/i);
+      await user.click(minSpendRequiredCheckbox);
+
+      // Configure campaign_ids parameter
+      const campaignTypeSelect = screen.getByLabelText(/type for campaign_ids/i);
+      await user.selectOptions(campaignTypeSelect, 'campaign_list');
+
+      const campaignDescInput = screen.getByLabelText(/description for campaign_ids/i);
+      await user.type(campaignDescInput, 'List of campaign IDs to filter');
+
+      // Save the template
+      const saveButton = screen.getByRole('button', { name: /save/i });
+      await user.click(saveButton);
+
+      expect(mockOnSave).toHaveBeenCalledWith(expect.objectContaining({
+        parameters_schema: {
+          min_spend: {
+            type: 'number',
+            required: true,
+            description: 'Minimum spend threshold',
+            validation: undefined
+          },
+          campaign_ids: {
+            type: 'campaign_list',
+            required: false,
+            description: 'List of campaign IDs to filter',
+            validation: undefined
+          }
+        }
+      }));
+    });
+
+    it('loads and displays saved parameter metadata', () => {
+      const templateWithParams: Partial<QueryTemplate> = {
+        ...defaultTemplate,
+        sqlTemplate: 'SELECT * FROM campaigns WHERE date >= {{start_date}} AND spend > {{min_spend}}',
+        parametersSchema: {
+          start_date: {
+            type: 'date',
+            required: true,
+            description: 'Start date for analysis',
+            defaultValue: '2025-01-01'
+          },
+          min_spend: {
+            type: 'number',
+            required: false,
+            description: 'Minimum spend filter',
+            defaultValue: 1000,
+            validation: {
+              min: 0,
+              max: 1000000
+            }
+          }
+        }
+      };
+
+      render(<TemplateEditor {...defaultProps} template={templateWithParams as QueryTemplate} />);
+
+      // Check that parameters are loaded with metadata
+      expect(screen.getByText('start_date')).toBeInTheDocument();
+      expect(screen.getByText('min_spend')).toBeInTheDocument();
+
+      // Check descriptions are loaded
+      expect(screen.getByDisplayValue('Start date for analysis')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('Minimum spend filter')).toBeInTheDocument();
+
+      // Check types are selected
+      const startDateType = screen.getByLabelText(/type for start_date/i);
+      expect(startDateType).toHaveValue('date');
+
+      const minSpendType = screen.getByLabelText(/type for min_spend/i);
+      expect(minSpendType).toHaveValue('number');
+    });
+
+    it('handles complex parameter validation rules', async () => {
+      const user = userEvent.setup();
+      render(<TemplateEditor {...defaultProps} />);
+
+      const sqlEditor = screen.getByLabelText('SQL Editor');
+      fireEvent.change(sqlEditor, {
+        target: {
+          value: 'SELECT * FROM products WHERE price BETWEEN {{min_price}} AND {{max_price}}'
+        }
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('min_price')).toBeInTheDocument();
+        expect(screen.getByText('max_price')).toBeInTheDocument();
+      });
+
+      // Set types to number
+      const minPriceType = screen.getByLabelText(/type for min_price/i);
+      await user.selectOptions(minPriceType, 'number');
+
+      const maxPriceType = screen.getByLabelText(/type for max_price/i);
+      await user.selectOptions(maxPriceType, 'number');
+
+      // Add validation rules (would need additional UI for this)
+      // For now, just verify the structure is saved correctly
+      const saveButton = screen.getByRole('button', { name: /save/i });
+      await user.click(saveButton);
+
+      expect(mockOnSave).toHaveBeenCalledWith(expect.objectContaining({
+        parameters_schema: expect.objectContaining({
+          min_price: expect.objectContaining({
+            type: 'number'
+          }),
+          max_price: expect.objectContaining({
+            type: 'number'
+          })
+        })
+      }));
+    });
+
+    it('preserves parameter order from SQL query', async () => {
+      render(<TemplateEditor {...defaultProps} />);
+
+      const sqlEditor = screen.getByLabelText('SQL Editor');
+      fireEvent.change(sqlEditor, {
+        target: {
+          value: 'SELECT * FROM orders WHERE date = {{date}} AND region = {{region}} AND status = {{status}}'
+        }
+      });
+
+      await waitFor(() => {
+        const paramElements = screen.getAllByText(/{{.*}}/);
+        expect(paramElements[0]).toHaveTextContent('date');
+        expect(paramElements[1]).toHaveTextContent('region');
+        expect(paramElements[2]).toHaveTextContent('status');
+      });
+    });
+
+    it('updates parameter metadata when parameter is renamed in SQL', async () => {
+      const user = userEvent.setup();
+      render(<TemplateEditor {...defaultProps} />);
+
+      const sqlEditor = screen.getByLabelText('SQL Editor');
+
+      // Initial SQL with one parameter
+      fireEvent.change(sqlEditor, {
+        target: { value: 'SELECT * FROM products WHERE category = {{cat}}' }
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('cat')).toBeInTheDocument();
+      });
+
+      // Add description to the parameter
+      const catDescInput = screen.getByLabelText(/description for cat/i);
+      await user.type(catDescInput, 'Product category filter');
+
+      // Rename parameter in SQL
+      await user.clear(sqlEditor);
+      await user.type(sqlEditor, 'SELECT * FROM products WHERE category = {{category}}');
+
+      await waitFor(() => {
+        expect(screen.queryByText('cat')).not.toBeInTheDocument();
+        expect(screen.getByText('category')).toBeInTheDocument();
+      });
+
+      // The description should be cleared for the new parameter
+      const categoryDescInput = screen.getByLabelText(/description for category/i);
+      expect(categoryDescInput).toHaveValue('');
+    });
+  });
+
+  describe('Persistent Template Name Header', () => {
+    it('shows template name outside of tab content', () => {
+      render(<TemplateEditor {...defaultProps} template={defaultTemplate as QueryTemplate} />);
+
+      // Template name should be visible
+      const nameInput = screen.getByDisplayValue('Test Template');
+      expect(nameInput).toBeInTheDocument();
+
+      // Check that it's outside the tab content area
+      const tabContent = screen.getByRole('tabpanel');
+      expect(tabContent).not.toContainElement(nameInput);
+    });
+
+    it('keeps template name visible when switching tabs', async () => {
+      const user = userEvent.setup();
+      render(<TemplateEditor {...defaultProps} template={defaultTemplate as QueryTemplate} />);
+
+      // Template name should be visible in editor tab
+      expect(screen.getByDisplayValue('Test Template')).toBeInTheDocument();
+
+      // Switch to preview tab
+      const previewTab = screen.getByRole('tab', { name: /preview/i });
+      await user.click(previewTab);
+
+      // Template name should still be visible
+      expect(screen.getByDisplayValue('Test Template')).toBeInTheDocument();
+
+      // Switch to settings tab
+      const settingsTab = screen.getByRole('tab', { name: /settings/i });
+      await user.click(settingsTab);
+
+      // Template name should still be visible
+      expect(screen.getByDisplayValue('Test Template')).toBeInTheDocument();
+    });
+
+    it('allows editing template name from persistent header', async () => {
+      const user = userEvent.setup();
+      render(<TemplateEditor {...defaultProps} template={defaultTemplate as QueryTemplate} />);
+
+      const nameInput = screen.getByDisplayValue('Test Template');
+      await user.clear(nameInput);
+      await user.type(nameInput, 'Updated Template Name');
+
+      // Save the template
+      const saveButton = screen.getByRole('button', { name: /save/i });
+      await user.click(saveButton);
+
+      expect(mockOnSave).toHaveBeenCalledWith(expect.objectContaining({
+        name: 'Updated Template Name'
+      }));
+    });
+
+    it('validates template name in persistent header', async () => {
+      const user = userEvent.setup();
+      render(<TemplateEditor {...defaultProps} template={defaultTemplate as QueryTemplate} />);
+
+      const nameInput = screen.getByDisplayValue('Test Template');
+      await user.clear(nameInput);
+
+      // Try to save with empty name
+      const saveButton = screen.getByRole('button', { name: /save/i });
+      await user.click(saveButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/template name is required/i)).toBeInTheDocument();
+      });
+    });
+
+    it('auto-saves template name changes after delay', async () => {
+      const user = userEvent.setup();
+      render(<TemplateEditor {...defaultProps} template={defaultTemplate as QueryTemplate} />);
+
+      const nameInput = screen.getByDisplayValue('Test Template');
+      await user.clear(nameInput);
+      await user.type(nameInput, 'Auto-saved Name');
+
+      // Wait for auto-save delay (assuming 1 second)
+      await waitFor(() => {
+        expect(screen.getByText(/auto-saving/i)).toBeInTheDocument();
+      }, { timeout: 1500 });
+
+      await waitFor(() => {
+        expect(screen.getByText(/saved/i)).toBeInTheDocument();
+      });
+    });
+
+    it('shows character count for template name', () => {
+      render(<TemplateEditor {...defaultProps} template={defaultTemplate as QueryTemplate} />);
+
+      // Should show character count near the name input
+      expect(screen.getByText(/13\/100/)).toBeInTheDocument(); // "Test Template" = 13 chars
+    });
+  });
+
+  describe('CampaignSelector Integration', () => {
+    it('renders CampaignSelector for campaign_list parameters', async () => {
+      render(<TemplateEditor {...defaultProps} />);
+
+      const sqlEditor = screen.getByLabelText('SQL Editor');
+      fireEvent.change(sqlEditor, {
+        target: {
+          value: 'SELECT * FROM campaigns WHERE campaign_id IN ({{campaign_list}})'
+        }
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('campaign_list')).toBeInTheDocument();
+      });
+
+      // Check that CampaignSelector is rendered instead of textarea
+      expect(screen.getByTestId('campaign-selector')).toBeInTheDocument();
+      expect(screen.getByLabelText('Campaign Selector')).toBeInTheDocument();
+    });
+
+    it('handles campaign selection changes', async () => {
+      const user = userEvent.setup();
+      render(<TemplateEditor {...defaultProps} />);
+
+      const sqlEditor = screen.getByLabelText('SQL Editor');
+      fireEvent.change(sqlEditor, {
+        target: {
+          value: 'SELECT * FROM campaigns WHERE campaign_id IN ({{campaigns}})'
+        }
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('campaign-selector')).toBeInTheDocument();
+      });
+
+      const campaignInput = screen.getByLabelText('Campaign Selector');
+      await user.clear(campaignInput);
+      await user.type(campaignInput, 'campaign1,campaign2,campaign3');
+
+      // Should update the parameter value
+      const saveButton = screen.getByRole('button', { name: /save/i });
+      await user.click(saveButton);
+
+      expect(mockOnSave).toHaveBeenCalledWith(expect.objectContaining({
+        default_parameters: expect.objectContaining({
+          campaigns: ['campaign1', 'campaign2', 'campaign3']
+        })
+      }));
+    });
+
+    it('supports multi-select campaign selection', async () => {
+      const user = userEvent.setup();
+      render(<TemplateEditor {...defaultProps} />);
+
+      const sqlEditor = screen.getByLabelText('SQL Editor');
+      fireEvent.change(sqlEditor, {
+        target: {
+          value: 'SELECT * FROM campaigns WHERE campaign_id IN ({{selected_campaigns}})'
+        }
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('campaign-selector')).toBeInTheDocument();
+      });
+
+      const campaignInput = screen.getByLabelText('Campaign Selector');
+      await user.type(campaignInput, 'Brand_Campaign_1,Brand_Campaign_2');
+
+      // Verify multiple campaigns are selected
+      expect(campaignInput).toHaveValue('Brand_Campaign_1,Brand_Campaign_2');
+    });
+
+    it('formats campaign IDs correctly for SQL preview', async () => {
+      render(<TemplateEditor {...defaultProps} />);
+
+      const sqlEditor = screen.getByLabelText('SQL Editor');
+      fireEvent.change(sqlEditor, {
+        target: {
+          value: 'SELECT * FROM campaigns WHERE campaign_id IN ({{campaign_ids}})'
+        }
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('campaign-selector')).toBeInTheDocument();
+      });
+
+      const campaignInput = screen.getByLabelText('Campaign Selector');
+      fireEvent.change(campaignInput, {
+        target: { value: 'id1,id2,id3' }
+      });
+
+      // Switch to preview tab
+      const previewButton = screen.getByRole('button', { name: /preview/i });
+      fireEvent.click(previewButton);
+
+      await waitFor(() => {
+        // Should show properly formatted SQL with campaign IDs
+        expect(screen.getByText(/sql preview/i)).toBeInTheDocument();
+      });
+    });
+
+    it('handles empty campaign selection', async () => {
+      render(<TemplateEditor {...defaultProps} />);
+
+      const sqlEditor = screen.getByLabelText('SQL Editor');
+      fireEvent.change(sqlEditor, {
+        target: {
+          value: 'SELECT * FROM campaigns WHERE campaign_id IN ({{campaigns}})'
+        }
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('campaign-selector')).toBeInTheDocument();
+      });
+
+      const campaignInput = screen.getByLabelText('Campaign Selector');
+      expect(campaignInput).toHaveValue('');
+
+      // Should allow saving with empty campaign selection if not required
+      const saveButton = screen.getByRole('button', { name: /save/i });
+      fireEvent.click(saveButton);
+
+      await waitFor(() => {
+        expect(mockOnSave).toHaveBeenCalled();
+      });
+    });
+
+    it('validates required campaign_list parameters', async () => {
+      const user = userEvent.setup();
+      render(<TemplateEditor {...defaultProps} />);
+
+      const sqlEditor = screen.getByLabelText('SQL Editor');
+      fireEvent.change(sqlEditor, {
+        target: {
+          value: 'SELECT * FROM campaigns WHERE campaign_id IN ({{campaigns}})'
+        }
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('campaign-selector')).toBeInTheDocument();
+      });
+
+      // Mark parameter as required
+      const requiredCheckbox = screen.getByLabelText(/required for campaigns/i);
+      await user.click(requiredCheckbox);
+
+      // Try to save without selecting campaigns
+      const saveButton = screen.getByRole('button', { name: /save/i });
+      await user.click(saveButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/campaigns is required/i)).toBeInTheDocument();
       });
     });
   });

@@ -3,12 +3,13 @@ import { Save, X, Wand2, Eye, Code, Settings, Tag, AlertCircle, Check, Info } fr
 import SQLEditor from '../common/SQLEditor';
 import { toast } from 'react-hot-toast';
 import type { QueryTemplate } from '../../types/queryTemplate';
-import { 
-  detectParametersWithContext, 
+import {
+  detectParametersWithContext,
   generatePreviewSQL,
   type ParameterDefinition as AnalyzerParameterDef
 } from '../../utils/sqlParameterAnalyzer';
 import AsinMultiSelect from './AsinMultiSelect';
+import { CampaignSelector } from './CampaignSelector';
 
 interface TemplateEditorProps {
   template?: QueryTemplate;
@@ -56,6 +57,72 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState<'editor' | 'preview' | 'settings'>('editor');
   const [isSaving, setIsSaving] = useState(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [autoSaveTimer, setAutoSaveTimer] = useState<NodeJS.Timeout | null>(null);
+
+  // Load parameters from template on mount/template change
+  useEffect(() => {
+    if (template?.parametersSchema) {
+      const loadedParams: ParameterDefinition[] = [];
+      Object.entries(template.parametersSchema).forEach(([name, schema]: [string, any]) => {
+        loadedParams.push({
+          name,
+          type: schema.type || 'text',
+          required: schema.required || false,
+          description: schema.description || '',
+          defaultValue: schema.default_value || schema.defaultValue,
+          validation: schema.validation,
+          userValue: template.defaultParameters?.[name],
+          // These will be filled by context detection
+          sqlContext: 'EQUALS',
+          isPlaceholderInQuotes: false,
+        });
+      });
+      setParameters(loadedParams);
+    }
+  }, [template]);
+
+  // Auto-save template name after delay
+  useEffect(() => {
+    // Only auto-save if we have a template (edit mode) and name has changed
+    if (template && formData.name && formData.name !== template.name && formData.name.trim()) {
+      // Clear existing timer
+      if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer);
+      }
+
+      // Set new timer for auto-save
+      const timer = setTimeout(async () => {
+        setAutoSaveStatus('saving');
+        try {
+          // Only save the name change
+          await onSave({
+            ...template,
+            name: formData.name.trim(),
+            // Convert to snake_case
+            sql_template: template.sqlTemplate,
+            parameters_schema: template.parametersSchema || {},
+            default_parameters: template.defaultParameters || {},
+            is_public: template.isPublic ?? true,
+          });
+          setAutoSaveStatus('saved');
+          // Reset to idle after a delay
+          setTimeout(() => setAutoSaveStatus('idle'), 2000);
+        } catch (error) {
+          console.error('Auto-save failed:', error);
+          setAutoSaveStatus('idle');
+        }
+      }, 1000); // 1 second delay
+
+      setAutoSaveTimer(timer);
+    }
+
+    return () => {
+      if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer);
+      }
+    };
+  }, [formData.name]);
 
   // Detect parameters in SQL query with context awareness
   useEffect(() => {
@@ -138,6 +205,11 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
       if (!param.description?.trim()) {
         newErrors[`param_${index}`] = 'Parameter description is required';
       }
+
+      // If parameter is marked as required, ensure it has a default value or user value
+      if (param.required && !param.defaultValue && !param.userValue) {
+        newErrors[`param_${index}_value`] = `Required parameter ${param.name} needs a default value`;
+      }
     });
 
     setErrors(newErrors);
@@ -172,7 +244,10 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
           return acc;
         }, {} as Record<string, any>),
         default_parameters: parameters.reduce((acc, param) => {
-          if (param.defaultValue !== undefined) {
+          // Use userValue (test value) as the default if provided, otherwise use defaultValue
+          if (param.userValue !== undefined && param.userValue !== '') {
+            acc[param.name] = param.userValue;
+          } else if (param.defaultValue !== undefined) {
             acc[param.name] = param.defaultValue;
           }
           return acc;
@@ -208,6 +283,58 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
           >
             <X className="w-5 h-5" />
           </button>
+        </div>
+
+        {/* Persistent Template Name Section */}
+        <div className="px-6 py-4 bg-gray-50 border-b">
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Template Name *
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  className={`w-full px-3 py-2 border rounded-lg ${
+                    errors.name ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="e.g., Campaign Performance Analysis"
+                  maxLength={100}
+                />
+                <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
+                  {autoSaveStatus === 'saving' && (
+                    <span className="text-xs text-blue-600">Auto-saving...</span>
+                  )}
+                  {autoSaveStatus === 'saved' && (
+                    <span className="text-xs text-green-600 flex items-center">
+                      <Check className="w-3 h-3 mr-1" />
+                      Saved
+                    </span>
+                  )}
+                  <span className="text-xs text-gray-400">{formData.name.length}/100</span>
+                </div>
+              </div>
+              {errors.name && (
+                <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+              )}
+            </div>
+            <div className="flex items-center space-x-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Category
+              </label>
+              <select
+                value={formData.category}
+                onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                className="px-3 py-2 border border-gray-300 rounded-lg"
+              >
+                {CATEGORIES.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
 
         {/* Tabs */}
@@ -257,41 +384,6 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
         <div className="flex-1 overflow-auto p-6">
           {activeTab === 'editor' && (
             <div className="space-y-6">
-              {/* Basic Info */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Template Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    className={`w-full px-3 py-2 border rounded-lg ${
-                      errors.name ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    placeholder="e.g., Campaign Performance Analysis"
-                  />
-                  {errors.name && (
-                    <p className="mt-1 text-sm text-red-600">{errors.name}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Category
-                  </label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  >
-                    {CATEGORIES.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
 
               {/* Description */}
               <div>
@@ -417,13 +509,20 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
                               )}
                             </div>
                           ) : param.type === 'campaign_list' ? (
-                            <textarea
-                              value={param.userValue || ''}
-                              onChange={(e) => updateParameter(index, 'userValue', e.target.value)}
-                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
-                              placeholder="Enter campaign names/IDs, comma-separated"
-                              rows={2}
-                            />
+                            <div className="space-y-2">
+                              <CampaignSelector
+                                value={param.userValue || []}
+                                onChange={(campaigns) => updateParameter(index, 'userValue', campaigns)}
+                                multiple={true}
+                                valueType="ids"
+                                placeholder="Select campaigns for testing"
+                                className="text-sm"
+                                showAll={true}  // Show all campaigns regardless of instance
+                              />
+                              <div className="text-xs text-gray-500">
+                                Select campaigns or enter campaign IDs manually
+                              </div>
+                            </div>
                           ) : param.type === 'date' ? (
                             <input
                               type="date"
