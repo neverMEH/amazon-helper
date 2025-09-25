@@ -511,47 +511,18 @@ export default function QueryLibrary() {
           onSave={async (template: any) => {
             // The template data is already in snake_case format from TemplateEditor
             try {
-              // Extract parameters from the template data if present
-              const parameters = template.parameters_schema ? Object.entries(template.parameters_schema).map(([name, schema]: [string, any]) => ({
-                name,
-                type: schema.type,
-                description: schema.description || '',
-                required: schema.required !== undefined ? schema.required : true,
-                defaultValue: schema.default_value,
-                validation: schema.validation,
-                displayName: name
-              })) : [];
 
               if (selectedTemplate) {
-                // Update existing template with parameters
-                await queryTemplateService.updateTemplateWithParameters(
+                // Update existing template - just update the template data
+                // Parameters are included in the template data itself (parameters_schema)
+                await queryTemplateService.updateTemplate(
                   selectedTemplate.templateId || selectedTemplate.id,
-                  template,
-                  parameters
+                  template
                 );
                 toast.success('Template updated successfully');
               } else {
-                // Create new template
+                // Create new template - parameters are included in the template data
                 const result = await queryTemplateService.createTemplate(template);
-
-                // If we have parameters and the template was created, add them
-                if (result.templateId && parameters.length > 0) {
-                  for (const param of parameters) {
-                    try {
-                      await queryTemplateService.createTemplateParameter(result.templateId, {
-                        parameter_name: param.name,
-                        parameter_type: param.type,
-                        description: param.description,
-                        required: param.required,
-                        default_value: param.defaultValue,
-                        validation_rules: param.validation,
-                        display_name: param.displayName
-                      });
-                    } catch (paramError) {
-                      console.error('Failed to create parameter:', param.name, paramError);
-                    }
-                  }
-                }
                 toast.success('Template created successfully');
               }
               queryClient.invalidateQueries({ queryKey: ['query-templates'] });
