@@ -20,6 +20,7 @@ interface TemplateEditorProps {
 
 interface ParameterDefinition extends AnalyzerParameterDef {
   userValue?: any;
+  isPlaceholderInQuotes?: boolean;
 }
 
 const PARAMETER_TYPES = [
@@ -58,7 +59,7 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
   const [activeTab, setActiveTab] = useState<'editor' | 'preview' | 'settings'>('editor');
   const [isSaving, setIsSaving] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
-  const [autoSaveTimer, setAutoSaveTimer] = useState<NodeJS.Timeout | null>(null);
+  const [autoSaveTimer, setAutoSaveTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
 
   // Load parameters from template on mount/template change
   useEffect(() => {
