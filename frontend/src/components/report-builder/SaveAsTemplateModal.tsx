@@ -52,21 +52,28 @@ export default function SaveAsTemplateModal({
   };
 
   const handleSave = async () => {
+    console.log('=== Starting template save ===');
+    console.log('Template name:', templateName);
+    console.log('Execution data:', execution);
+
     if (!templateName.trim()) {
+      console.error('Template name is empty');
       toast.error('Please provide a template name');
       return;
     }
 
     if (!execution.sqlQuery) {
+      console.error('No SQL query found');
+      console.error('Execution object:', execution);
       toast.error('No SQL query found in the execution');
       return;
     }
 
-    console.log('Saving template with execution data:', {
-      workflowId: execution.workflowId,
-      hasQuery: !!execution.sqlQuery,
-      templateName
-    });
+    console.log('SQL Query length:', execution.sqlQuery.length);
+    console.log('First 200 chars of SQL:', execution.sqlQuery.substring(0, 200));
+    console.log('Tags:', tags);
+    console.log('Category:', category);
+    console.log('Is Public:', isPublic);
 
     setIsSaving(true);
     try {
@@ -99,35 +106,57 @@ export default function SaveAsTemplateModal({
       onSuccess?.(response.templateId);
       onClose();
     } catch (error: any) {
-      console.error('Failed to save template:', error);
-      console.error('Error response:', error.response);
-      console.error('Error data:', error.response?.data);
+      console.error('=== Template save failed ===');
+      console.error('Full error object:', error);
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+
+      if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response headers:', error.response.headers);
+        console.error('Response data:', error.response.data);
+        console.error('Response config:', error.response.config);
+      }
 
       // Extract error message from various possible locations
       let errorMessage = 'Failed to save template';
 
       if (error.response?.data?.detail) {
         errorMessage = error.response.data.detail;
+        console.log('Error from detail:', errorMessage);
       } else if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
+        console.log('Error from message:', errorMessage);
       } else if (error.response?.data?.error) {
         errorMessage = error.response.data.error;
+        console.log('Error from error:', errorMessage);
       } else if (error.message && error.message !== 'Request failed with status code 422') {
         errorMessage = error.message;
+        console.log('Error from error.message:', errorMessage);
       }
 
       // Show more descriptive error for validation errors
       if (error.response?.status === 422) {
+        console.log('422 Validation Error detected');
         const validationErrors = error.response?.data?.detail;
+        console.log('Validation errors:', validationErrors);
+
         if (Array.isArray(validationErrors)) {
-          errorMessage = 'Validation error: ' + validationErrors.map((e: any) => e.msg || e.message).join(', ');
+          errorMessage = 'Validation error: ' + validationErrors.map((e: any) => {
+            console.log('Validation error item:', e);
+            return e.msg || e.message || JSON.stringify(e);
+          }).join(', ');
         } else if (typeof validationErrors === 'string') {
           errorMessage = validationErrors;
+        } else if (validationErrors && typeof validationErrors === 'object') {
+          errorMessage = 'Validation error: ' + JSON.stringify(validationErrors);
         } else {
           errorMessage = 'Please check all required fields are filled correctly';
         }
       }
 
+      console.log('Final error message to display:', errorMessage);
       toast.error(errorMessage);
     } finally {
       setIsSaving(false);

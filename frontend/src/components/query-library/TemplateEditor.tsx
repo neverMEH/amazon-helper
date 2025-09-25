@@ -187,13 +187,19 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
 
   // Validate form
   const validateForm = (): boolean => {
+    console.log('=== Starting form validation ===');
+    console.log('Form data:', formData);
+    console.log('Parameters:', parameters);
+
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
+      console.error('Validation failed: Template name is empty');
       newErrors.name = 'Template name is required';
     }
 
     if (!formData.sqlTemplate.trim()) {
+      console.error('Validation failed: SQL query is empty');
       newErrors.sqlTemplate = 'SQL query is required';
     }
 
@@ -203,15 +209,22 @@ export default function TemplateEditor({ template, onSave, onCancel, isLoading }
 
     // Validate parameters
     parameters.forEach((param, index) => {
+      console.log(`Validating parameter ${index}:`, param);
+
       if (!param.description?.trim()) {
+        console.error(`Parameter ${index} (${param.name}): Description is empty`);
         newErrors[`param_${index}`] = 'Parameter description is required';
       }
 
       // If parameter is marked as required, ensure it has a default value or user value
       if (param.required && !param.defaultValue && !param.userValue) {
+        console.error(`Parameter ${index} (${param.name}): Required but no default value`);
         newErrors[`param_${index}_value`] = `Required parameter ${param.name} needs a default value`;
       }
     });
+
+    console.log('Validation errors:', newErrors);
+    console.log('Validation result:', Object.keys(newErrors).length === 0 ? 'PASSED' : 'FAILED');
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
