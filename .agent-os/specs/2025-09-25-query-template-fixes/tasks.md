@@ -3,7 +3,7 @@
 These are the tasks to be completed for the spec detailed in @.agent-os/specs/2025-09-25-query-template-fixes/spec.md reference the C:\Users\Aeciu\Projects\amazon-helper-2\.agent-os\features folder and files to understand the codebase and how to integrate the new features effectively without rewriting code and messing the structure up.
 
 > Created: 2025-09-25
-> Status: Ready for Implementation
+> Status: Complete
 
 ## Tasks
 
@@ -36,20 +36,20 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 3.6 Add validation for required parameter fields
   - [x] 3.7 Verify all tests pass
 
-- [ ] 4. Integrate Query Library with Report Builder
-  - [ ] 4.1 Write tests for Report Builder template integration
-  - [ ] 4.2 Create API endpoint for Report Builder template retrieval
-  - [ ] 4.3 Add Query Library Templates section to Report Builder UI
-  - [ ] 4.4 Implement template selection and parameter configuration modal
-  - [ ] 4.5 Connect template application to Report Builder's SQL editor
-  - [ ] 4.6 Add "Save as Template" feature for successful queries
-  - [ ] 4.7 Test end-to-end template usage in Report Builder
-  - [ ] 4.8 Verify all tests pass
+- [x] 4. Integrate Query Library with Report Builder
+  - [x] 4.1 Write tests for Report Builder template integration
+  - [x] 4.2 Create API endpoint for Report Builder template retrieval
+  - [x] 4.3 Add Query Library Templates section to Report Builder UI
+  - [x] 4.4 Implement template selection and parameter configuration modal
+  - [x] 4.5 Connect template application to Report Builder's SQL editor
+  - [x] 4.6 Add "Save as Template" feature for successful queries
+  - [x] 4.7 Test end-to-end template usage in Report Builder
+  - [x] 4.8 Verify all tests pass
 
-- [ ] 5. Create Enhanced Parameter Input Components
-  - [ ] 5.1 Write tests for specialized parameter input components
-  - [ ] 5.2 Create ParameterInputs.tsx with type-specific components
-  - [ ] 5.3 Implement validation for each parameter type
-  - [ ] 5.4 Add visual indicators for required fields
-  - [ ] 5.5 Test all parameter types with edge cases
-  - [ ] 5.6 Verify all tests pass
+- [x] 5. Create Enhanced Parameter Input Components
+  - [x] 5.1 Write tests for specialized parameter input components
+  - [x] 5.2 Create ParameterInputs.tsx with type-specific components
+  - [x] 5.3 Implement validation for each parameter type
+  - [x] 5.4 Add visual indicators for required fields
+  - [x] 5.5 Test all parameter types with edge cases
+  - [x] 5.6 Verify all tests pass

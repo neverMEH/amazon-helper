@@ -69,12 +69,13 @@ export default function SaveAsTemplateModal({
       if (execution.workflowId) {
         // Use the createFromWorkflow endpoint if we have a workflow ID
         response = await queryTemplateService.createFromWorkflow({
-          workflowId: execution.workflowId,
+          workflow_id: execution.workflowId,
           name: templateName,
           description,
           category,
-          tags,
-          isPublic
+          parameters_schema: {},
+          is_public: isPublic,
+          tags
         });
       } else {
         // Otherwise create a new template directly
@@ -83,9 +84,10 @@ export default function SaveAsTemplateModal({
           description,
           category,
           tags,
-          isPublic,
-          sqlTemplate: execution.sqlQuery,
-          sql_query: execution.sqlQuery
+          is_public: isPublic,
+          sql_template: execution.sqlQuery,
+          parameters_schema: {},
+          default_parameters: {}
         });
       }
 

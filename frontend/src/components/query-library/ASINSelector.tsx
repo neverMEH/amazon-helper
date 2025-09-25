@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Package, Search, X, Plus } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { asinService } from '../../services/asinService';
+import asinService from '../../services/asinService';
 
 interface ASINSelectorProps {
   value: string[];
@@ -26,18 +26,21 @@ export function ASINSelector({
   const [showManualInput, setShowManualInput] = useState(false);
 
   // Fetch available ASINs
-  const { data: asins = [], isLoading } = useQuery({
+  const { data: asinData, isLoading } = useQuery({
     queryKey: ['asins', instanceId],
-    queryFn: () => asinService?.list(instanceId) || Promise.resolve([]),
-    enabled: !!asinService
+    queryFn: () => asinService.listASINs({ page_size: 100, active: true }),
+    enabled: true
   });
+
+  // Extract ASINs from response
+  const asins = asinData?.items || [];
 
   // Filter ASINs based on search
   const filteredAsins = asins.filter((asin: any) => {
     const search = searchTerm.toLowerCase();
     return (
       asin.asin?.toLowerCase().includes(search) ||
-      asin.product_name?.toLowerCase().includes(search) ||
+      asin.title?.toLowerCase().includes(search) ||
       asin.brand?.toLowerCase().includes(search)
     );
   });

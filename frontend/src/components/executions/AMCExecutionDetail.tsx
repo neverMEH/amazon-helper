@@ -758,7 +758,7 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
             sqlQuery: execution.sqlQuery || execution.workflowInfo?.sqlQuery,
             workflowId: execution.workflowId || execution.workflowInfo?.id
           }}
-          onSuccess={(templateId) => {
+          onSuccess={() => {
             setShowSaveAsTemplate(false);
             toast.success('Template saved successfully!');
             // Optionally navigate to the template editor

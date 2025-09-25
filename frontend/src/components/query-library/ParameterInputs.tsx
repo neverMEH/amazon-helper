@@ -14,8 +14,7 @@ interface ParameterInputsProps {
 export default function ParameterInputs({
   parameter,
   value,
-  onChange,
-  instanceId
+  onChange
 }: ParameterInputsProps) {
   const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);

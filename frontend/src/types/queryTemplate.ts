@@ -69,5 +69,27 @@ export interface TemplateParameter {
     pattern?: string;
     minLength?: number;
     maxLength?: number;
+    enum?: string[];
+  };
+}
+
+// Extended parameter definition for query parameters
+export interface ParameterDefinition {
+  type: 'string' | 'number' | 'date' | 'boolean' | 'array' | 'select' | 'date_range' | 'pattern' | 'asin_list' | 'campaign_list' | 'text';
+  name?: string;
+  label?: string;
+  displayName?: string;
+  description?: string;
+  required: boolean;
+  default?: any;
+  defaultValue?: any;
+  options?: Array<{ value: string; label: string }>;
+  validation?: {
+    min?: number;
+    max?: number;
+    pattern?: string;
+    minLength?: number;
+    maxLength?: number;
+    enum?: string[];
   };
 }
