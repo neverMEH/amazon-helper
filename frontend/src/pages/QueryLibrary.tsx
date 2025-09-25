@@ -522,7 +522,7 @@ export default function QueryLibrary() {
                 toast.success('Template updated successfully');
               } else {
                 // Create new template - parameters are included in the template data
-                const result = await queryTemplateService.createTemplate(template);
+                await queryTemplateService.createTemplate(template);
                 toast.success('Template created successfully');
               }
               queryClient.invalidateQueries({ queryKey: ['query-templates'] });
