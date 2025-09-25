@@ -27,23 +27,33 @@ class QueryTemplateService(DatabaseService):
     def create_template(self, template_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Create a new query template"""
         try:
+            logger.info(f"Creating template with name: {template_data.get('name')}")
+            logger.info(f"Template user_id: {template_data.get('user_id')}")
+            logger.info(f"Template is_public: {template_data.get('is_public')}")
+
             # Generate unique template_id
             template_data['template_id'] = f"tpl_{uuid.uuid4().hex[:12]}"
-            
+
             # Add default values for new fields
             if 'version' not in template_data:
                 template_data['version'] = 1
             if 'execution_count' not in template_data:
                 template_data['execution_count'] = 0
-            
+
+            logger.info(f"Inserting template with ID: {template_data['template_id']}")
             response = self.client.table('query_templates').insert(template_data).execute()
-            
+
             if response.data:
-                logger.info(f"Created query template: {response.data[0]['template_id']}")
+                logger.info(f"Created query template successfully: {response.data[0]['template_id']}")
                 return response.data[0]
-            return None
+            else:
+                logger.error(f"No data returned from insert operation")
+                return None
         except Exception as e:
             logger.error(f"Error creating query template: {e}")
+            logger.error(f"Full error details: {str(e)}")
+            if hasattr(e, 'response'):
+                logger.error(f"Error response: {e.response}")
             return None
     
     @with_connection_retry

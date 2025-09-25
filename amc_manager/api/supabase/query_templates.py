@@ -99,6 +99,7 @@ def create_query_template(
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """Create a new query template"""
+    logger.info(f"Creating query template - User: {current_user.get('id')}, Template name: {template.name}")
     try:
         template_data = {
             "name": template.name,
@@ -111,11 +112,16 @@ def create_query_template(
             "is_public": template.is_public,
             "tags": template.tags
         }
-        
+
+        logger.info(f"Template data prepared: {template_data.get('name')}")
         created = query_template_service.create_template(template_data)
+
         if not created:
+            logger.error("Query template service returned None")
             raise HTTPException(status_code=500, detail="Failed to create query template")
-        
+
+        logger.info(f"Template created successfully with ID: {created.get('template_id')}")
+
         return {
             "templateId": created['template_id'],
             "name": created['name'],
@@ -126,7 +132,8 @@ def create_query_template(
         raise
     except Exception as e:
         logger.error(f"Error creating query template: {e}")
-        raise HTTPException(status_code=500, detail="Failed to create query template")
+        logger.error(f"Full error details: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to create query template: {str(e)}")
 
 
 @router.post("/from-workflow")
