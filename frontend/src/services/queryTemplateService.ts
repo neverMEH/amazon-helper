@@ -33,7 +33,7 @@ export const queryTemplateService = {
 
   async createTemplate(template: QueryTemplateCreate): Promise<{ templateId: string; name: string; category: string; createdAt: string }> {
     console.log('Calling POST /query-templates with:', template);
-    const response = await api.post('/query-templates/', template);  // Add trailing slash
+    const response = await api.post('/query-templates', template);  // Remove trailing slash - FastAPI doesn't like it
     console.log('Response from API:', response.data);
     return response.data;
   },
