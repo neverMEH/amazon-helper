@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, Code, Calendar, User, Hash, ChevronDown, ChevronRight, RefreshCw, Play, Loader, Table, BarChart3, Maximize2, Edit2, Clock, Settings } from 'lucide-react';
+import { X, Code, Calendar, User, Hash, ChevronDown, ChevronRight, RefreshCw, Play, Loader, Table, BarChart3, Maximize2, Edit2, Clock, Settings, Database } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
@@ -417,6 +417,46 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                                 </span>
                               </dd>
                             </div>
+                            {/* Snowflake Export Status */}
+                            {(execution.snowflake_enabled || execution.snowflakeEnabled) && (
+                              <div>
+                                <dt className="text-sm font-medium text-gray-500 flex items-center">
+                                  <Database className="h-4 w-4 mr-1" />
+                                  Snowflake Export
+                                </dt>
+                                <dd className="mt-1 text-sm space-y-1">
+                                  <div className="flex items-center space-x-2">
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                      ${(execution.snowflake_status || execution.snowflakeStatus) === 'completed' ? 'bg-green-100 text-green-800' :
+                                        (execution.snowflake_status || execution.snowflakeStatus) === 'failed' ? 'bg-red-100 text-red-800' :
+                                        (execution.snowflake_status || execution.snowflakeStatus) === 'uploading' ? 'bg-blue-100 text-blue-800' :
+                                        'bg-gray-100 text-gray-800'}`}>
+                                      {execution.snowflake_status || execution.snowflakeStatus || 'Pending'}
+                                    </span>
+                                    {(execution.snowflake_row_count || execution.snowflakeRowCount) && (
+                                      <span className="text-xs text-gray-600">
+                                        ({(execution.snowflake_row_count || execution.snowflakeRowCount).toLocaleString()} rows)
+                                      </span>
+                                    )}
+                                  </div>
+                                  {(execution.snowflake_table_name || execution.snowflakeTableName) && (
+                                    <div className="text-xs text-gray-600">
+                                      Table: <span className="font-mono">{execution.snowflake_table_name || execution.snowflakeTableName}</span>
+                                    </div>
+                                  )}
+                                  {(execution.snowflake_schema_name || execution.snowflakeSchemaName) && (
+                                    <div className="text-xs text-gray-600">
+                                      Schema: <span className="font-mono">{execution.snowflake_schema_name || execution.snowflakeSchemaName}</span>
+                                    </div>
+                                  )}
+                                  {(execution.snowflake_error || execution.snowflakeError) && (
+                                    <div className="text-xs text-red-600 mt-1">
+                                      Error: {execution.snowflake_error || execution.snowflakeError}
+                                    </div>
+                                  )}
+                                </dd>
+                              </div>
+                            )}
                             {execution.triggeredBy && (
                               <div>
                                 <dt className="text-sm font-medium text-gray-500 flex items-center">

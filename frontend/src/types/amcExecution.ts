@@ -39,6 +39,19 @@ export interface AMCExecutionDetail extends AMCExecution {
   message?: string;  // Additional message from backend
   errorDetails?: AMCErrorDetails;
   startedAt?: string;
+  // Snowflake export fields
+  snowflakeEnabled?: boolean;
+  snowflake_enabled?: boolean;  // Backend returns snake_case
+  snowflakeStatus?: string;
+  snowflake_status?: string;  // Backend returns snake_case
+  snowflakeTableName?: string;
+  snowflake_table_name?: string;  // Backend returns snake_case
+  snowflakeSchemaName?: string;
+  snowflake_schema_name?: string;  // Backend returns snake_case
+  snowflakeRowCount?: number;
+  snowflake_row_count?: number;  // Backend returns snake_case
+  snowflakeError?: string;
+  snowflake_error?: string;  // Backend returns snake_case
   instanceInfo?: {
     instanceId: string;
     instanceName: string;

@@ -740,11 +740,22 @@ class AMCExecutionService:
                 
                 # Store the AMC execution ID in the database
                 self._update_execution_amc_id(execution_id, amc_execution_id)
-                
+
                 # Start monitoring the execution to fetch results when completed
-                # Note: We'll skip async monitoring for now since we're in a sync context
-                # The frontend will poll for status updates
-                logger.info(f"Execution {execution_id} created - frontend will poll for status")
+                # Create async task to monitor execution in the background
+                from ..services.execution_monitor_service import execution_monitor_service
+                import asyncio
+
+                logger.info(f"Starting background monitoring for execution {execution_id}")
+                asyncio.create_task(
+                    execution_monitor_service.start_monitoring(
+                        execution_id=execution_id,
+                        amc_execution_id=amc_execution_id,
+                        instance_id=instance_id,
+                        user_id=user_id
+                    )
+                )
+                logger.info(f"Execution {execution_id} created - monitoring started in background")
                 
                 # Get execution record to get the UUID
                 client = SupabaseManager.get_client(use_service_role=True)
