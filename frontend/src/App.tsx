@@ -76,9 +76,6 @@ function App() {
               <Route path="/executions" element={<Executions />} />
               
               {/* Legacy routes - redirect to new ones */}
-              <Route path="/workflows" element={<Navigate to="/my-queries" replace />} />
-              <Route path="/workflows/:workflowId" element={<WorkflowDetail />} />
-              <Route path="/workflows/:workflowId/edit" element={<WorkflowDetail />} />
               <Route path="/query-templates" element={<Navigate to="/query-library" replace />} />
               
               {/* New Query Builder routes */}

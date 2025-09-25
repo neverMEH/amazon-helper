@@ -20,6 +20,8 @@ interface Execution {
     name: string;
   };
   isStoredLocally: boolean;
+  execution_id?: string; // Add this for compatibility
+  instance_id?: string; // Add this for compatibility
 }
 
 interface ExecutionsGridProps {

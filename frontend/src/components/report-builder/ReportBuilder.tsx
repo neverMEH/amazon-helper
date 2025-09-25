@@ -4,6 +4,7 @@ import { Plus, FileText, LayoutDashboard } from 'lucide-react';
 import ExecutionsGrid from './ExecutionsGrid';
 import DashboardsTable from './DashboardsTable';
 import RunReportModal from './RunReportModal';
+import AMCExecutionDetail from '../executions/AMCExecutionDetail';
 import { reportService } from '../../services/reportService';
 import type { Report } from '../../types/report';
 import toast from 'react-hot-toast';
@@ -12,6 +13,7 @@ export default function ReportBuilder() {
   const [activeTab, setActiveTab] = useState<'reports' | 'dashboards'>('reports');
   const [showRunModal, setShowRunModal] = useState(false);
   const [showCreateCustom, setShowCreateCustom] = useState(false);
+  const [selectedExecution, setSelectedExecution] = useState<{ instanceId: string; executionId: string } | null>(null);
 
   // Fetch reports
   const { data: reportsData, isLoading: loadingReports, refetch: refetchReports } = useQuery({
@@ -95,6 +97,29 @@ export default function ReportBuilder() {
     window.location.href = `/reports/${report.id}/results`;
   };
 
+  const handleExecutionSelect = (execution: any) => {
+    // Extract the instance ID and execution ID from the execution data
+    const instanceId = execution.instanceInfo?.id || execution.instance_id;
+    const executionId = execution.workflowExecutionId || execution.execution_id;
+
+    if (instanceId && executionId) {
+      setSelectedExecution({ instanceId, executionId });
+    } else {
+      toast.error('Unable to open execution details - missing instance or execution ID');
+    }
+  };
+
+  const handleExecutionClose = () => {
+    setSelectedExecution(null);
+  };
+
+  const handleExecutionRerun = (newExecutionId: string) => {
+    // Update the selected execution to the new one after rerun
+    if (selectedExecution) {
+      setSelectedExecution({ ...selectedExecution, executionId: newExecutionId });
+    }
+  };
+
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
@@ -153,7 +178,7 @@ export default function ReportBuilder() {
       <div className="flex-1 overflow-auto bg-gray-50">
         {activeTab === 'reports' ? (
           <div className="p-6">
-            <ExecutionsGrid />
+            <ExecutionsGrid onSelect={handleExecutionSelect} />
           </div>
         ) : (
           <div className="p-6">
@@ -182,6 +207,16 @@ export default function ReportBuilder() {
           template={null}
           onSubmit={handleRunReport}
           includeTemplateStep={showCreateCustom}
+        />
+      )}
+
+      {/* Execution Detail Modal */}
+      {selectedExecution && (
+        <AMCExecutionDetail
+          instanceId={selectedExecution.instanceId}
+          executionId={selectedExecution.executionId}
+          onClose={handleExecutionClose}
+          onRerunSuccess={handleExecutionRerun}
         />
       )}
     </div>
