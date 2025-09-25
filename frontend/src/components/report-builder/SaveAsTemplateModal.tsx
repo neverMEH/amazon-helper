@@ -62,33 +62,37 @@ export default function SaveAsTemplateModal({
       return;
     }
 
+    console.log('Saving template with execution data:', {
+      workflowId: execution.workflowId,
+      hasQuery: !!execution.sqlQuery,
+      templateName
+    });
+
     setIsSaving(true);
     try {
-      // Check if we have a workflow ID to create from
       let response;
-      if (execution.workflowId) {
-        // Use the createFromWorkflow endpoint if we have a workflow ID
-        response = await queryTemplateService.createFromWorkflow({
-          workflow_id: execution.workflowId,
-          name: templateName,
-          description,
-          category,
-          parameters_schema: {},
-          is_public: isPublic,
-          tags
-        });
-      } else {
-        // Otherwise create a new template directly
-        response = await queryTemplateService.createTemplate({
-          name: templateName,
-          description,
-          category,
-          tags,
-          is_public: isPublic,
-          sql_template: execution.sqlQuery,
-          parameters_schema: {},
-          default_parameters: {}
-        });
+
+      // Always use the direct create method since we have the SQL query
+      // The createFromWorkflow method requires the workflow to exist in the database
+      // which may not be the case for ad-hoc executions
+      const templatePayload = {
+        name: templateName,
+        description: description || '',
+        category,
+        tags,
+        is_public: isPublic,
+        sql_template: execution.sqlQuery,
+        parameters_schema: {},
+        default_parameters: {}
+      };
+
+      console.log('Creating template with payload:', templatePayload);
+      response = await queryTemplateService.createTemplate(templatePayload);
+
+      console.log('Template created successfully:', response);
+
+      if (!response || !response.templateId) {
+        throw new Error('Template was created but no ID was returned');
       }
 
       toast.success(`Template "${templateName}" saved successfully!`);
@@ -96,7 +100,35 @@ export default function SaveAsTemplateModal({
       onClose();
     } catch (error: any) {
       console.error('Failed to save template:', error);
-      toast.error(error.response?.data?.detail || error.message || 'Failed to save template');
+      console.error('Error response:', error.response);
+      console.error('Error data:', error.response?.data);
+
+      // Extract error message from various possible locations
+      let errorMessage = 'Failed to save template';
+
+      if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message && error.message !== 'Request failed with status code 422') {
+        errorMessage = error.message;
+      }
+
+      // Show more descriptive error for validation errors
+      if (error.response?.status === 422) {
+        const validationErrors = error.response?.data?.detail;
+        if (Array.isArray(validationErrors)) {
+          errorMessage = 'Validation error: ' + validationErrors.map((e: any) => e.msg || e.message).join(', ');
+        } else if (typeof validationErrors === 'string') {
+          errorMessage = validationErrors;
+        } else {
+          errorMessage = 'Please check all required fields are filled correctly';
+        }
+      }
+
+      toast.error(errorMessage);
     } finally {
       setIsSaving(false);
     }

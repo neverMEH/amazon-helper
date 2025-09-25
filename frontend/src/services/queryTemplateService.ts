@@ -32,7 +32,9 @@ export const queryTemplateService = {
   },
 
   async createTemplate(template: QueryTemplateCreate): Promise<{ templateId: string; name: string; category: string; createdAt: string }> {
-    const response = await api.post('/query-templates', template);
+    console.log('Calling POST /query-templates with:', template);
+    const response = await api.post('/query-templates/', template);  // Add trailing slash
+    console.log('Response from API:', response.data);
     return response.data;
   },
 
