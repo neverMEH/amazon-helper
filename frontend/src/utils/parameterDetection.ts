@@ -92,6 +92,20 @@ export class ParameterDetector {
   ): ParameterType {
     const paramLower = paramName.toLowerCase();
 
+    // First check SQL context to see if it's being used with LIKE
+    // This is important for campaign parameters which often use pattern matching
+    const beforeContext = query.substring(Math.max(0, position - 50), position);
+
+    // Check if this parameter is used with LIKE (pattern matching)
+    // If so, it should be treated as a pattern type for proper UI display
+    if (beforeContext.match(/\sLIKE\s*$/i)) {
+      // For campaign parameters with LIKE, keep as campaign type
+      // The UI will show pattern input with wildcard help
+      if (this.CAMPAIGN_KEYWORDS.some(keyword => paramLower.includes(keyword))) {
+        return 'campaign';
+      }
+    }
+
     // Check for ASIN parameters
     if (this.ASIN_KEYWORDS.some(keyword => paramLower.includes(keyword))) {
       return 'asin';

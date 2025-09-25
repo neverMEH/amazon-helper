@@ -1,16 +1,29 @@
 import api from './api';
 import type { QueryTemplate, QueryTemplateCreate, QueryTemplateUpdate, CreateFromWorkflow } from '../types/queryTemplate';
 
+interface TemplateFilters {
+  category?: string;
+  search?: string;
+  tags?: string[];
+  include_public?: boolean;
+  sort_by?: 'usage_count' | 'created_at' | 'name';
+}
+
 export const queryTemplateService = {
-  async listTemplates(includePublic = true, category?: string): Promise<QueryTemplate[]> {
+  async listTemplates(includePublic = true, filters?: TemplateFilters): Promise<{ data: { templates: QueryTemplate[] } }> {
     const params = new URLSearchParams();
     params.append('include_public', includePublic.toString());
-    if (category) {
-      params.append('category', category);
+
+    if (filters) {
+      if (filters.category) params.append('category', filters.category);
+      if (filters.search) params.append('search', filters.search);
+      if (filters.tags?.length) params.append('tags', filters.tags.join(','));
+      if (filters.sort_by) params.append('sort_by', filters.sort_by);
     }
-    
+
     const response = await api.get(`/query-templates?${params.toString()}`);
-    return response.data;
+    // Return in the format expected by the component
+    return { data: { templates: response.data } };
   },
 
   async getTemplate(templateId: string): Promise<QueryTemplate> {
@@ -55,5 +68,119 @@ export const queryTemplateService = {
   }> {
     const response = await api.post(`/query-templates/${templateId}/build`, parameters);
     return response.data;
+  },
+
+  async incrementUsage(templateId: string): Promise<{ success: boolean }> {
+    try {
+      await api.post(`/query-templates/${templateId}/increment-usage`);
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to increment template usage:', error);
+      return { success: false };
+    }
+  },
+
+  async forkTemplate(templateId: string, forkData: {
+    name: string;
+    description?: string;
+    sql_query: string;
+    is_public?: boolean;
+    parent_template_id?: string;
+    version?: number;
+  }): Promise<QueryTemplate> {
+    const response = await api.post(`/query-templates/${templateId}/fork`, forkData);
+    return response.data;
+  },
+
+  async getTemplateMetrics(templateId: string, timeRange?: '7d' | '30d' | '90d'): Promise<any> {
+    const params = timeRange ? `?time_range=${timeRange}` : '';
+    const response = await api.get(`/query-templates/${templateId}/metrics${params}`);
+    return response.data;
+  },
+
+  async updateTemplateTags(templateId: string, tags: string[], category: string): Promise<QueryTemplate> {
+    const response = await api.put(`/query-templates/${templateId}/tags`, { tags, category });
+    return response.data;
+  },
+
+  async favoriteTemplate(templateId: string): Promise<{ success: boolean }> {
+    const response = await api.post(`/query-templates/${templateId}/favorite`);
+    return response.data;
+  },
+
+  async unfavoriteTemplate(templateId: string): Promise<{ success: boolean }> {
+    const response = await api.delete(`/query-templates/${templateId}/favorite`);
+    return response.data;
+  },
+
+  async getTemplateVersionHistory(templateId: string): Promise<any[]> {
+    const response = await api.get(`/query-templates/${templateId}/versions`);
+    return response.data;
+  },
+
+  // Parameter management methods
+  async getTemplateParameters(templateId: string): Promise<any[]> {
+    const response = await api.get(`/query-library/templates/${templateId}/parameters`);
+    return response.data;
+  },
+
+  async createTemplateParameter(templateId: string, parameter: any): Promise<any> {
+    const response = await api.post(`/query-library/templates/${templateId}/parameters`, parameter);
+    return response.data;
+  },
+
+  async updateTemplateParameter(templateId: string, parameterId: string, updates: any): Promise<any> {
+    const response = await api.put(`/query-library/templates/${templateId}/parameters/${parameterId}`, updates);
+    return response.data;
+  },
+
+  async deleteTemplateParameter(templateId: string, parameterId: string): Promise<void> {
+    await api.delete(`/query-library/templates/${templateId}/parameters/${parameterId}`);
+  },
+
+  async updateTemplateWithParameters(templateId: string, template: QueryTemplateUpdate, parameters?: any[]): Promise<any> {
+    // Update the template first
+    const templateResponse = await api.put(`/query-templates/${templateId}`, template);
+
+    // If parameters are provided, update them too
+    if (parameters && parameters.length > 0) {
+      // Get existing parameters
+      const existingParams = await this.getTemplateParameters(templateId);
+
+      // Create a map of existing parameters by name
+      const existingMap = new Map(existingParams.map(p => [p.parameterName, p]));
+
+      // Update or create parameters
+      for (const param of parameters) {
+        const existing = existingMap.get(param.name);
+        if (existing) {
+          // Update existing parameter
+          await this.updateTemplateParameter(templateId, existing.parameterId, {
+            description: param.description,
+            required: param.required,
+            default_value: param.defaultValue,
+            parameter_type: param.type,
+            validation_rules: param.validation,
+            display_name: param.displayName || param.name
+          });
+        } else {
+          // Create new parameter
+          await this.createTemplateParameter(templateId, {
+            parameter_name: param.name,
+            parameter_type: param.type,
+            description: param.description,
+            required: param.required,
+            default_value: param.defaultValue,
+            validation_rules: param.validation,
+            display_name: param.displayName || param.name
+          });
+        }
+      }
+    }
+
+    return templateResponse.data;
   }
 };
+
+// Export individual functions for backward compatibility
+export const { listTemplates } = queryTemplateService;

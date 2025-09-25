@@ -13,6 +13,7 @@ from .db_service import db_service
 from .token_service import token_service
 from .token_refresh_service import token_refresh_service
 from .amc_api_client import AMCAPIClient
+from ..utils.parameter_processor import ParameterProcessor
 
 logger = get_logger(__name__)
 
@@ -31,7 +32,10 @@ class AMCExecutionService:
         user_id: str,
         execution_parameters: Optional[Dict[str, Any]] = None,
         triggered_by: str = "manual",
-        instance_id: Optional[str] = None
+        instance_id: Optional[str] = None,
+        snowflake_enabled: bool = False,
+        snowflake_table_name: Optional[str] = None,
+        snowflake_schema_name: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Execute a workflow on an AMC instance
@@ -70,8 +74,10 @@ class AMCExecutionService:
                 logger.info(f"Found instance: {instance['instance_name']} (id: {instance['id']})")
                 
                 # Verify user has access to this instance
-                logger.info(f"Checking user {user_id} access to instance {instance_id}")
-                if not self.db.user_has_instance_access_sync(user_id, instance_id):
+                # Use the instance UUID for access check
+                instance_uuid = instance['id']
+                logger.info(f"Checking user {user_id} access to instance {instance_id} (UUID: {instance_uuid})")
+                if not self.db.user_has_instance_access_sync(user_id, instance_uuid):
                     logger.error(f"User {user_id} does not have access to instance {instance_id}")
                     raise ValueError(f"Access denied to instance {instance_id}")
                 logger.info(f"User has access to instance {instance_id}")
@@ -185,7 +191,12 @@ class AMCExecutionService:
                 "triggered_by": triggered_by,
                 "started_at": datetime.now(timezone.utc).isoformat(),
                 "execution_mode": execution_mode,
-                "amc_workflow_id": amc_workflow_id  # Use the potentially auto-created ID
+                "amc_workflow_id": amc_workflow_id,  # Use the potentially auto-created ID
+                # Snowflake configuration
+                "snowflake_enabled": snowflake_enabled,
+                "snowflake_table_name": snowflake_table_name,
+                "snowflake_schema_name": snowflake_schema_name,
+                "snowflake_status": "pending" if snowflake_enabled else None
             }
             
             # Only add version ID if versioning is available
@@ -236,23 +247,33 @@ class AMCExecutionService:
     def _get_instance(self, instance_id: str) -> Optional[Dict[str, Any]]:
         """Get instance details by instance_id (can be UUID or AMC instance_id)"""
         try:
+            import uuid
             client = SupabaseManager.get_client(use_service_role=True)
-            
-            # First try to find by UUID (id field)
-            response = client.table('amc_instances')\
-                .select('*, amc_accounts(*)')\
-                .eq('id', instance_id)\
-                .execute()
-            
-            if response.data:
-                return response.data[0]
-            
-            # If not found, try by AMC instance_id
+
+            # Check if instance_id is a valid UUID
+            try:
+                # Try to parse as UUID
+                uuid.UUID(instance_id)
+                is_uuid = True
+            except (ValueError, AttributeError):
+                is_uuid = False
+
+            if is_uuid:
+                # Try to find by UUID (id field)
+                response = client.table('amc_instances')\
+                    .select('*, amc_accounts(*)')\
+                    .eq('id', instance_id)\
+                    .execute()
+
+                if response.data:
+                    return response.data[0]
+
+            # Try by AMC instance_id (string)
             response = client.table('amc_instances')\
                 .select('*, amc_accounts(*)')\
                 .eq('instance_id', instance_id)\
                 .execute()
-            
+
             return response.data[0] if response.data else None
         except Exception as e:
             logger.error(f"Error fetching instance {instance_id}: {e}")
@@ -270,129 +291,18 @@ class AMCExecutionService:
     def _prepare_sql_query(self, sql_template: str, parameters: Dict[str, Any]) -> str:
         """
         Prepare SQL query by substituting parameters
-        
+
+        Uses the shared ParameterProcessor for consistent handling
+
         Args:
             sql_template: SQL query with {{parameter}} placeholders
             parameters: Parameter values to substitute
-            
+
         Returns:
             SQL query with substituted values
         """
-        # Find all parameters in the template using multiple formats
-        import re
-        required_params = set()
-        
-        # Pattern for {{parameter}} format
-        mustache_params = re.findall(r'\{\{(\w+)\}\}', sql_template)
-        required_params.update(mustache_params)
-        
-        # Pattern for :parameter format  
-        colon_params = re.findall(r':(\w+)\b', sql_template)
-        required_params.update(colon_params)
-        
-        # Pattern for $parameter format
-        dollar_params = re.findall(r'\$(\w+)\b', sql_template)
-        required_params.update(dollar_params)
-        
-        required_params = list(required_params)
-        
-        # Check for missing required parameters
-        missing_params = [p for p in required_params if p not in parameters]
-        if missing_params:
-            logger.error(f"Missing required parameters: {', '.join(missing_params)}")
-            logger.error(f"Available parameters: {list(parameters.keys())}")
-            logger.error(f"SQL template preview: {sql_template[:200]}...")
-            raise ValueError(f"Missing required parameters: {', '.join(missing_params)}")
-        
-        # Substitute parameters with SQL injection prevention
-        query = sql_template
-        dangerous_keywords = ['DROP', 'DELETE FROM', 'INSERT INTO', 'UPDATE', 'ALTER', 
-                            'CREATE', 'EXEC', 'EXECUTE', 'TRUNCATE', 'GRANT', 'REVOKE']
-        
-        for param, value in parameters.items():
-            # Handle different value types
-            if isinstance(value, (list, tuple)):
-                # Validate and escape each list item
-                escaped_values = []
-                for v in value:
-                    if isinstance(v, str):
-                        # Escape single quotes
-                        v_escaped = v.replace("'", "''")
-                        # Check for dangerous SQL keywords
-                        for keyword in dangerous_keywords:
-                            if keyword in v_escaped.upper():
-                                raise ValueError(f"Dangerous SQL keyword '{keyword}' detected in parameter '{param}'")
-                        escaped_values.append(f"'{v_escaped}'")
-                    else:
-                        escaped_values.append(str(v))
-                value_str = "({})".format(','.join(escaped_values))
-            elif isinstance(value, str):
-                # Escape single quotes to prevent SQL injection
-                value_escaped = value.replace("'", "''")
-                # Check for dangerous SQL keywords
-                for keyword in dangerous_keywords:
-                    if keyword in value_escaped.upper():
-                        raise ValueError(f"Dangerous SQL keyword '{keyword}' detected in parameter '{param}'")
-                
-                # Check if this parameter is used in a LIKE context
-                # Look for patterns like "LIKE {{param}}" in the SQL template
-                # Also check if the parameter name suggests it's a pattern
-                param_lower = param.lower()
-                is_pattern_param = 'pattern' in param_lower or 'like' in param_lower
-
-                # In f-strings, we need to double the braces to escape them: {{ becomes {
-                # Allow for any amount of whitespace and potential quotes
-                like_pattern = rf'\bLIKE\s+[\'"]?\s*\{{\{{{param}\}}\}}'
-
-                # Also check for LIKE with other parameter formats
-                like_colon = rf'\bLIKE\s+[\'"]?\s*:{param}\b'
-                like_dollar = rf'\bLIKE\s+[\'"]?\s*\${param}\b'
-
-                # Check if ANY LIKE clause exists followed by this parameter within 50 chars
-                # This catches cases like "s.campaign LIKE {{campaign_brand}}"
-                like_anywhere = rf'\bLIKE\s+.{{0,50}}\{{\{{{param}\}}\}}'
-                is_like_nearby = re.search(like_anywhere, sql_template, re.IGNORECASE)
-
-                # Debug logging
-                logger.info(f"Checking parameter '{param}' for LIKE context...")
-                logger.info(f"  - Parameter name check: is_pattern_param={is_pattern_param}")
-                logger.info(f"  - Checking regex patterns against SQL template...")
-                logger.info(f"  - SQL snippet: {sql_template[max(0, sql_template.find(param)-50):min(len(sql_template), sql_template.find(param)+50)]}")
-
-                if re.search(like_pattern, sql_template, re.IGNORECASE):
-                    logger.info(f"  - Matched {{{{param}}}} pattern directly after LIKE")
-                if re.search(like_colon, sql_template, re.IGNORECASE):
-                    logger.info(f"  - Matched :param pattern")
-                if re.search(like_dollar, sql_template, re.IGNORECASE):
-                    logger.info(f"  - Matched $param pattern")
-                if is_like_nearby:
-                    logger.info(f"  - Found LIKE keyword near parameter")
-
-                if (re.search(like_pattern, sql_template, re.IGNORECASE) or
-                    re.search(like_colon, sql_template, re.IGNORECASE) or
-                    re.search(like_dollar, sql_template, re.IGNORECASE) or
-                    is_like_nearby or
-                    is_pattern_param):
-                    # Add % wildcards for LIKE pattern matching
-                    value_str = f"'%{value_escaped}%'"
-                    logger.info(f"✓ Parameter {param} formatted with wildcards: {value_str}")
-                else:
-                    value_str = f"'{value_escaped}'"
-            else:
-                value_str = str(value)
-            
-            # Replace multiple parameter formats
-            old_query = query
-            query = query.replace(f"{{{{{param}}}}}", value_str)  # {{param}} format
-            query = query.replace(f":{param}", value_str)  # :param format  
-            query = query.replace(f"${param}", value_str)  # $param format
-            
-            if old_query != query:
-                logger.debug(f"Replaced parameter {param} with value: {value_str[:50]}...")
-        
-        # Log final query for debugging
-        logger.debug(f"Final SQL after parameter substitution: {query[:300]}...")
-        return query
+        # Use the shared parameter processor for consistency
+        return ParameterProcessor.process_sql_parameters(sql_template, parameters)
     
     def _is_campaign_or_asin_param(self, param_name: str) -> bool:
         """
@@ -498,45 +408,226 @@ class AMCExecutionService:
             marketplace_id = instance['amc_accounts'].get('marketplace_id', 'ATVPDKIKX0DER')
             
             logger.info(f"Executing on instance {instance_id} with entity {entity_id}")
-            
-            # Process SQL injection parameters - apply them to the SQL query
+
+            # Process all parameters - both template placeholders and SQL injection
             processed_sql_query = sql_query
-            amc_parameters = {}
+            template_params = {}
             sql_injection_params = {}
-            
+
             if execution_parameters:
+                # Step 1: Categorize parameters
                 for param_name, param_value in execution_parameters.items():
                     # Check if this is a SQL injection parameter (campaigns/ASINs)
                     if isinstance(param_value, dict) and param_value.get('_sqlInject'):
                         sql_injection_params[param_name] = param_value
                         logger.info(f"SQL injection parameter detected: {param_name} with {len(param_value.get('_values', []))} values")
-                        
-                        # Apply SQL injection to query
-                        values_clause = param_value.get('_valuesClause', '')
-                        if values_clause:
-                            # Replace parameter placeholder with VALUES clause
-                            param_pattern = f"{{{{{param_name}}}}}"
-                            processed_sql_query = processed_sql_query.replace(param_pattern, f"VALUES\n{values_clause}")
-                            logger.info(f"Applied SQL injection for {param_name}: replaced {param_pattern} with VALUES clause")
                     # Check if this is a legacy array parameter that should be converted to SQL injection
                     elif isinstance(param_value, list) and self._is_campaign_or_asin_param(param_name):
-                        # Convert legacy array to SQL injection
                         sql_injection_params[param_name] = param_value
                         logger.info(f"Converting legacy array parameter {param_name} to SQL injection with {len(param_value)} values")
-                        
-                        # Apply SQL injection to query
-                        values_clause = '\n'.join([f"    ('{value}')" for value in param_value])
-                        param_pattern = f"{{{{{param_name}}}}}"
-                        processed_sql_query = processed_sql_query.replace(param_pattern, f"VALUES\n{values_clause}")
-                        logger.info(f"Applied SQL injection for legacy parameter {param_name}: replaced {param_pattern} with VALUES clause")
                     else:
-                        # Regular parameters (dates, etc.)
-                        amc_parameters[param_name] = param_value
-            
-            logger.info(f"AMC parameters: {list(amc_parameters.keys())}")
-            logger.info(f"SQL injection parameters: {list(sql_injection_params.keys())}")
-            if processed_sql_query != sql_query:
-                logger.info(f"SQL query modified by injection parameters")
+                        # Regular template parameters that need substitution
+                        template_params[param_name] = param_value
+
+                # Step 2: Apply template parameter substitution FIRST
+                if template_params:
+                    logger.info(f"Processing {len(template_params)} template parameters: {list(template_params.keys())}")
+                    try:
+                        # Use ParameterProcessor with validate_all=False for partial processing
+                        # This allows SQL injection params to be handled separately
+                        processed_sql_query = ParameterProcessor.process_sql_parameters(
+                            processed_sql_query, template_params, validate_all=False
+                        )
+                        logger.info("Successfully replaced template placeholders")
+                    except ValueError as e:
+                        logger.error(f"Failed to substitute template parameters: {e}")
+                        # Return error to user instead of sending invalid SQL to AMC
+                        self._update_execution_completed(
+                            execution_id=execution_id,
+                            amc_execution_id=execution_id,
+                            row_count=0,
+                            error_message=f"Parameter substitution failed: {str(e)}"
+                        )
+                        return {
+                            "status": "failed",
+                            "error": f"Parameter substitution failed: {str(e)}"
+                        }
+
+                # Step 3: Apply SQL injection parameters
+                for param_name, param_value in sql_injection_params.items():
+                    param_pattern = f"{{{{{param_name}}}}}"
+
+                    # Check if VALUES keyword already exists before the parameter
+                    # This handles templates like: WITH cte AS (VALUES {{param}})
+                    import re
+                    values_before_param = re.search(rf'VALUES\s*\n?\s*\{{\{{{param_name}\}}\}}', processed_sql_query, re.IGNORECASE)
+
+                    if isinstance(param_value, dict) and param_value.get('_sqlInject'):
+                        values_clause = param_value.get('_valuesClause', '')
+                        explicit_values = param_value.get('_values')
+                        if not values_clause:
+                            values_clause = ParameterProcessor.build_values_clause(
+                                processed_sql_query,
+                                param_name,
+                                explicit_values,
+                            )
+                        logger.debug(
+                            "Values clause for %s (dict) length=%d", param_name, len(values_clause)
+                        )
+                        if values_before_param:
+                            replacement_pattern = re.compile(
+                                rf'(VALUES\s*)\{{\{{{param_name}\}}\}}',
+                                re.IGNORECASE,
+                            )
+                            cte_pattern = re.compile(
+                                rf'([A-Za-z_][\w]*)\s*\(([^)]+)\)\s*AS\s*\(\s*VALUES\s*\{{\{{{param_name}\}}\}}',
+                                re.IGNORECASE,
+                            )
+                            cte_match = cte_pattern.search(processed_sql_query)
+                            cte_columns = []
+                            if cte_match:
+                                cte_columns = [c.strip() for c in cte_match.group(2).split(',') if c.strip()]
+
+                            column_count = max(
+                                len(cte_columns) or 1,
+                                ParameterProcessor._infer_placeholder_column_count(processed_sql_query, param_name),
+                            )
+
+                            internal_columns = [f"col{i+1}" for i in range(column_count)]
+                            if not cte_columns:
+                                cte_columns = [f"{param_name}_{i+1}" for i in range(column_count)]
+
+                            select_assignments = ', '.join(
+                                f"{internal_columns[i]} AS {cte_columns[i]}"
+                                if i < len(cte_columns)
+                                else internal_columns[i]
+                                for i in range(column_count)
+                            )
+
+                            line_start = processed_sql_query.rfind('\n', 0, values_before_param.start()) + 1
+                            indent = processed_sql_query[line_start:values_before_param.start()]
+
+                            clause_lines = values_clause.splitlines()
+                            indented_clause = '\n'.join(
+                                indent + '        ' + line.strip()
+                                for line in clause_lines
+                            )
+
+                            replacement_text = (
+                                f"SELECT {select_assignments}\n"
+                                f"{indent}FROM (\n"
+                                f"{indent}    VALUES\n"
+                                f"{indented_clause}\n"
+                                f"{indent}) AS __values_{param_name}({', '.join(internal_columns)})"
+                            )
+
+                            processed_sql_query = replacement_pattern.sub(
+                                replacement_text,
+                                processed_sql_query,
+                                count=1,
+                            )
+                            logger.info(
+                                f"Applied SQL injection for {param_name}: replaced VALUES block with SELECT wrapper"
+                            )
+                        else:
+                            processed_sql_query = processed_sql_query.replace(param_pattern, f"VALUES\n{values_clause}")
+                            logger.info(f"Applied SQL injection for {param_name}: inserted VALUES clause")
+                    elif isinstance(param_value, list):
+                        values_clause = ParameterProcessor.build_values_clause(
+                            processed_sql_query,
+                            param_name,
+                            param_value,
+                        )
+                        logger.debug(
+                            "Values clause for %s (list) length=%d", param_name, len(values_clause)
+                        )
+                        if values_before_param:
+                            replacement_pattern = re.compile(
+                                rf'(VALUES\s*)\{{\{{{param_name}\}}\}}',
+                                re.IGNORECASE,
+                            )
+                            cte_pattern = re.compile(
+                                rf'([A-Za-z_][\w]*)\s*\(([^)]+)\)\s*AS\s*\(\s*VALUES\s*\{{\{{{param_name}\}}\}}',
+                                re.IGNORECASE,
+                            )
+                            cte_match = cte_pattern.search(processed_sql_query)
+                            cte_columns = []
+                            if cte_match:
+                                cte_columns = [c.strip() for c in cte_match.group(2).split(',') if c.strip()]
+
+                            column_count = max(
+                                len(cte_columns) or 1,
+                                ParameterProcessor._infer_placeholder_column_count(processed_sql_query, param_name),
+                            )
+
+                            internal_columns = [f"col{i+1}" for i in range(column_count)]
+                            if not cte_columns:
+                                cte_columns = [f"{param_name}_{i+1}" for i in range(column_count)]
+
+                            select_assignments = ', '.join(
+                                f"{internal_columns[i]} AS {cte_columns[i]}"
+                                if i < len(cte_columns)
+                                else internal_columns[i]
+                                for i in range(column_count)
+                            )
+
+                            line_start = processed_sql_query.rfind('\n', 0, values_before_param.start()) + 1
+                            indent = processed_sql_query[line_start:values_before_param.start()]
+
+                            clause_lines = values_clause.splitlines()
+                            indented_clause = '\n'.join(
+                                indent + '        ' + line.strip()
+                                for line in clause_lines
+                            )
+
+                            replacement_text = (
+                                f"SELECT {select_assignments}\n"
+                                f"{indent}FROM (\n"
+                                f"{indent}    VALUES\n"
+                                f"{indented_clause}\n"
+                                f"{indent}) AS __values_{param_name}({', '.join(internal_columns)})"
+                            )
+
+                            processed_sql_query = replacement_pattern.sub(
+                                replacement_text,
+                                processed_sql_query,
+                                count=1,
+                            )
+                            logger.info(
+                                f"Applied SQL injection for legacy parameter {param_name}: replaced VALUES block with SELECT wrapper"
+                            )
+                        else:
+                            processed_sql_query = processed_sql_query.replace(param_pattern, f"VALUES\n{values_clause}")
+                            logger.info(f"Applied SQL injection for legacy parameter {param_name}: inserted VALUES clause")
+
+            # Step 4: Validate no placeholders remain
+            import re
+            placeholder_pattern = r'\{\{(\w+)\}\}'
+            remaining_placeholders = re.findall(placeholder_pattern, processed_sql_query)
+
+            if remaining_placeholders:
+                error_msg = f"Missing parameter values for: {', '.join(remaining_placeholders)}"
+                logger.error(f"Unresolved template placeholders found: {remaining_placeholders}")
+
+                # Update execution as failed
+                self._update_execution_completed(
+                    execution_id=execution_id,
+                    amc_execution_id=execution_id,
+                    row_count=0,
+                    error_message=error_msg
+                )
+
+                return {
+                    "status": "failed",
+                    "error": error_msg,
+                    "missing_parameters": remaining_placeholders
+                }
+
+            logger.info(f"Template parameters substituted: {list(template_params.keys())}")
+            logger.info(f"SQL injection parameters applied: {list(sql_injection_params.keys())}")
+            logger.info(f"Final SQL query ready for AMC (length: {len(processed_sql_query)} chars)")
+            # Log first 500 chars of SQL for debugging (without sensitive data)
+            logger.debug(f"SQL preview: {processed_sql_query[:1500]}...")
             
             # Create workflow execution via AMC API
             # Initialize API client with correct service
@@ -546,18 +637,72 @@ class AMCExecutionService:
             self._update_execution_progress(execution_id, 'running', 10)
 
             try:
-                # ALWAYS use ad-hoc execution - simpler and no size limits
-                # This handles queries of any size without needing workflow management
-                logger.info(f"Executing query via ad-hoc execution (query size: {len(processed_sql_query)} chars)")
-                response = api_client.create_workflow_execution(
-                    instance_id=instance_id,
-                    sql_query=processed_sql_query,
-                    access_token=valid_token,
-                    entity_id=entity_id,
-                    marketplace_id=marketplace_id,
-                    output_format=amc_parameters.get('output_format', 'CSV')
-                )
-                
+                output_format = execution_parameters.get('output_format', 'CSV') if execution_parameters else 'CSV'
+                sql_length = len(processed_sql_query)
+                logger.info(f"Prepared SQL length: {sql_length} characters")
+
+                # AMC enforces a ~1KB limit on ad-hoc SQL payloads. Anything larger must run via saved workflow.
+                AD_HOC_SQL_LIMIT = 65536  # 64KB - reasonable limit for ad-hoc SQL
+                use_ad_hoc_mode = sql_length <= AD_HOC_SQL_LIMIT
+
+                if not use_ad_hoc_mode and not amc_workflow_id:
+                    logger.warning(
+                        "SQL length exceeds ad-hoc limit but workflow lacks AMC workflow ID; falling back to ad-hoc and expect failure"
+                    )
+                    use_ad_hoc_mode = True
+
+                if use_ad_hoc_mode:
+                    logger.info(
+                        f"Executing query via ad-hoc execution (query size: {sql_length} chars; limit {AD_HOC_SQL_LIMIT})"
+                    )
+                    logger.info(f"Template parameters for AMC execution: {template_params}")
+
+                    response = api_client.create_workflow_execution(
+                        instance_id=instance_id,
+                        sql_query=processed_sql_query,
+                        access_token=valid_token,
+                        entity_id=entity_id,
+                        marketplace_id=marketplace_id,
+                        parameter_values=template_params,
+                        output_format=output_format
+                    )
+                else:
+                    logger.info(
+                        f"SQL length {sql_length} exceeds ad-hoc limit {AD_HOC_SQL_LIMIT}; updating saved workflow {amc_workflow_id}"
+                    )
+
+                    # Ensure the saved workflow definition matches the processed SQL
+                    update_response = api_client.update_workflow(
+                        instance_id=instance_id,
+                        workflow_id=amc_workflow_id,
+                        sql_query=processed_sql_query,
+                        access_token=valid_token,
+                        entity_id=entity_id,
+                        marketplace_id=marketplace_id,
+                        output_format=output_format
+                    )
+
+                    if not update_response.get('success'):
+                        error_msg = update_response.get('error', 'Failed to update AMC workflow with latest SQL')
+                        logger.error(f"Unable to update saved workflow {amc_workflow_id}: {error_msg}")
+                        return {
+                            "status": "failed",
+                            "error": error_msg
+                        }
+
+                    logger.info(f"Saved workflow {amc_workflow_id} updated; triggering execution via workflowId")
+                    logger.info(f"Template parameters for AMC execution: {template_params}")
+
+                    response = api_client.create_workflow_execution(
+                        instance_id=instance_id,
+                        workflow_id=amc_workflow_id,
+                        access_token=valid_token,
+                        entity_id=entity_id,
+                        marketplace_id=marketplace_id,
+                        parameter_values=template_params,
+                        output_format=output_format
+                    )
+
                 # Check if execution was created successfully
                 if not response.get('success'):
                     error_msg = response.get('error', 'Failed to create workflow execution')
@@ -595,11 +740,22 @@ class AMCExecutionService:
                 
                 # Store the AMC execution ID in the database
                 self._update_execution_amc_id(execution_id, amc_execution_id)
-                
+
                 # Start monitoring the execution to fetch results when completed
-                # Note: We'll skip async monitoring for now since we're in a sync context
-                # The frontend will poll for status updates
-                logger.info(f"Execution {execution_id} created - frontend will poll for status")
+                # Create async task to monitor execution in the background
+                from ..services.execution_monitor_service import execution_monitor_service
+                import asyncio
+
+                logger.info(f"Starting background monitoring for execution {execution_id}")
+                asyncio.create_task(
+                    execution_monitor_service.start_monitoring(
+                        execution_id=execution_id,
+                        amc_execution_id=amc_execution_id,
+                        instance_id=instance_id,
+                        user_id=user_id
+                    )
+                )
+                logger.info(f"Execution {execution_id} created - monitoring started in background")
                 
                 # Get execution record to get the UUID
                 client = SupabaseManager.get_client(use_service_role=True)

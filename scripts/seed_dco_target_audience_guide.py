@@ -288,7 +288,7 @@ FROM
   adserver_traffic
 WHERE
   is_dco_ad = TRUE
-  AND event_dt >= DATE_ADD('day', -{{lookback_days}}, CURRENT_DATE)
+  AND event_dt >= (CURRENT_DATE - INTERVAL '{{lookback_days}}' DAY)
   {% if campaign_ids %}
   AND campaign_id IN ({{campaign_ids}})
   {% endif %}
@@ -340,7 +340,7 @@ WITH dco_traffic AS (
     adserver_traffic
   WHERE
     is_dco_ad = TRUE
-    AND event_dt >= DATE_ADD('day', -{{lookback_days}}, CURRENT_DATE)
+    AND event_dt >= (CURRENT_DATE - INTERVAL '{{lookback_days}}' DAY)
     {% if campaign_ids %}
     AND campaign_id IN ({{campaign_ids}})
     {% endif %}
@@ -355,7 +355,7 @@ conversions AS (
   FROM
     adserver_conversions
   WHERE
-    event_dt >= DATE_ADD('day', -{{lookback_days}}, CURRENT_DATE)
+    event_dt >= (CURRENT_DATE - INTERVAL '{{lookback_days}}' DAY)
     AND conversion_type IN ({{conversion_types}})
   GROUP BY
     user_id
@@ -447,7 +447,7 @@ FROM
   adserver_traffic_by_user_segments
 WHERE
   is_dco_ad = TRUE
-  AND event_dt >= DATE_ADD('day', -{{lookback_days}}, CURRENT_DATE)
+  AND event_dt >= (CURRENT_DATE - INTERVAL '{{lookback_days}}' DAY)
   {% if segment_categories %}
   AND behavior_segment_category IN ({{segment_categories}})
   {% endif %}
@@ -515,7 +515,7 @@ FROM
   adserver_traffic
 WHERE
   is_dco_ad = TRUE
-  AND event_dt >= DATE_ADD('day', -{{lookback_days}}, CURRENT_DATE)
+  AND event_dt >= (CURRENT_DATE - INTERVAL '{{lookback_days}}' DAY)
   /*UPDATE: Replace 'SMART_ITEM_KEY' in the line below with your chosen 
    smart item key and 'SMART_ITEM_VALUE' with your chosen smart item value */
   AND smart_items_list SIMILAR TO '^(|.*\\|,){{smart_item_key}}:{{smart_item_value}}(\\|,.*|$)'

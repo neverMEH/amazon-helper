@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, Depends, Body
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel
 from datetime import datetime, timezone, timedelta
+import re
 
 from ...services.db_service import db_service
 from ...services.token_service import token_service
@@ -50,7 +51,7 @@ class WorkflowUpdate(BaseModel):
 #     is_active: Optional[bool] = None
 
 
-@router.get("")
+@router.get("/")
 def list_workflows(
     instance_id: Optional[str] = None,
     current_user: Dict[str, Any] = Depends(get_current_user)
@@ -127,7 +128,26 @@ async def create_workflow(
     workflow: WorkflowCreate,
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
-    """Create a new workflow - saves to AMC first, then syncs to backend"""
+    """
+    Create a new workflow - saves to AMC first, then syncs to backend
+
+    WORKFLOW CREATION STRATEGY:
+    ---------------------------
+    1. For template-based workflows:
+       - Fetch SQL template with {{placeholders}}
+       - Process placeholders to create valid SQL for AMC
+       - Store BOTH template SQL (for future params) and processed SQL
+
+    2. For direct SQL workflows:
+       - Use provided SQL as-is
+       - Still check for placeholders and process if needed
+
+    3. AMC Workflow Creation:
+       - Creates a SAVED workflow in AMC (not ad-hoc)
+       - Gets a permanent workflow_id
+       - Can be executed multiple times with different parameters
+       - Executions reference the workflow_id, not SQL directly
+    """
     try:
         # Verify user has access to the instance
         user_instances = db_service.get_user_instances_sync(current_user['id'])
@@ -148,43 +168,291 @@ async def create_workflow(
         account = instance.get('amc_accounts')
         if not account:
             raise HTTPException(status_code=404, detail="AMC account not found")
-        
+
         entity_id = account['account_id']
         marketplace_id = account['marketplace_id']
-        
-        # Generate unique workflow ID for AMC
+
+        # Import needed modules at the top
         import uuid
         import re
+
+        # If template_id is provided and sql_query is empty, fetch SQL from template
+        sql_query = workflow.sql_query
+        sql_template = None  # Keep original template for reference
+
+        if workflow.template_id and not sql_query:
+            from ...services.query_template_service import query_template_service
+            template = query_template_service.get_template(workflow.template_id, current_user['id'])
+            if template:
+                # Get the template SQL
+                sql_template = template.get('sql_template') or template.get('sql_query') or ''
+                sql_query = sql_template
+                logger.info(f"Fetched SQL from template {workflow.template_id}, length: {len(sql_query)}")
+            else:
+                logger.warning(f"Template {workflow.template_id} not found or access denied")
+
+        if not sql_query:
+            raise HTTPException(status_code=400, detail="SQL query is required")
+
+        # Process parameters if SQL has placeholders
+        # CRITICAL FOR TEMPLATE-BASED WORKFLOWS:
+        # When creating a workflow from a template, the SQL contains placeholders like {{param}}
+        # AMC doesn't understand this syntax, so we must process it before submission
+        # We provide default values just to create valid SQL for the workflow creation
+        # The actual parameter values will be provided during execution
+
+        # Initialize params_to_use outside the if block so it's available later
+        params_to_use = {}
+
+        if '{{' in sql_query:
+            from ...utils.parameter_processor import ParameterProcessor
+
+            def _apply_sql_injection(sql_text: str, param_name: str, param_value: Any) -> str:
+                """Replace SQL injection placeholder with an inline VALUES clause."""
+                values_clause_body = None
+                explicit_values = None
+
+                if isinstance(param_value, dict):
+                    values_clause_body = param_value.get('_valuesClause')
+                    explicit_values = param_value.get('_values')
+                    if values_clause_body:
+                        values_clause_body = values_clause_body.strip()
+                elif isinstance(param_value, list):
+                    explicit_values = param_value
+                elif param_value not in (None, ''):
+                    explicit_values = [param_value]
+
+                if not values_clause_body:
+                    values_clause_body = ParameterProcessor.build_values_clause(
+                        sql_text,
+                        param_name,
+                        explicit_values,
+                    )
+
+                logger.debug(
+                    "Generated VALUES clause for %s (%d rows)",
+                    param_name,
+                    values_clause_body.count("\n") + 1,
+                )
+
+                values_pattern = re.compile(
+                    rf'(VALUES\s*)\{{\{{{param_name}\}}\}}',
+                    re.IGNORECASE,
+                )
+
+                match = values_pattern.search(sql_text)
+                if match:
+                    line_start = sql_text.rfind('\n', 0, match.start()) + 1
+                    indent = sql_text[line_start:match.start()]
+
+                    cte_pattern = re.compile(
+                        rf'([A-Za-z_][\w]*)\s*\(([^)]+)\)\s*AS\s*\(\s*VALUES\s*\{{\{{{param_name}\}}\}}',
+                        re.IGNORECASE,
+                    )
+                    cte_match = cte_pattern.search(sql_text)
+                    cte_columns = []
+                    if cte_match:
+                        cte_columns = [c.strip() for c in cte_match.group(2).split(',') if c.strip()]
+
+                    column_count = max(
+                        len(cte_columns) or 1,
+                        ParameterProcessor._infer_placeholder_column_count(sql_text, param_name),
+                    )
+
+                    internal_columns = [f"col{i+1}" for i in range(column_count)]
+                    if not cte_columns:
+                        cte_columns = [f"{param_name}_{i+1}" for i in range(column_count)]
+
+                    select_assignments = ', '.join(
+                        f"{internal_columns[i]} AS {cte_columns[i]}"
+                        if i < len(cte_columns)
+                        else internal_columns[i]
+                        for i in range(column_count)
+                    )
+
+                    clause_lines = values_clause_body.splitlines()
+                    indented_clause = '\n'.join(
+                        indent + '        ' + line.strip()
+                        for line in clause_lines
+                    )
+
+                    replacement = (
+                        f"SELECT {select_assignments}\n"
+                        f"{indent}FROM (\n"
+                        f"{indent}    VALUES\n"
+                        f"{indented_clause}\n"
+                        f"{indent}) AS __values_{param_name}({', '.join(internal_columns)})"
+                    )
+
+                    return values_pattern.sub(replacement, sql_text, count=1)
+
+                placeholder_regex = re.compile(rf"\{{\{{{param_name}\}}\}}")
+                return placeholder_regex.sub(f"VALUES\n{values_clause_body}", sql_text)
+
+            # Use provided parameters or empty defaults for workflow creation
+            # This creates a valid SQL for AMC workflow creation
+            provided_params = workflow.parameters or {}
+
+            param_pattern = r'\{\{(\w+)\}\}'
+            param_names = list(set(re.findall(param_pattern, sql_query)))
+            sql_injection_params = set()
+
+            for param_name in param_names:
+                param_value = provided_params.get(param_name)
+                values_context = re.search(
+                    rf"VALUES\s*\{{\{{{param_name}\}}\}}",
+                    sql_query,
+                    re.IGNORECASE,
+                )
+
+                is_sql_inject = bool(
+                    (isinstance(param_value, dict) and param_value.get('_sqlInject'))
+                    or values_context
+                )
+
+                if is_sql_inject:
+                    sql_injection_params.add(param_name)
+                    sql_query = _apply_sql_injection(sql_query, param_name, param_value)
+                    logger.info(f"Applied SQL injection default for {param_name}")
+                    continue
+
+                if param_value and isinstance(param_value, dict) and 'value' in param_value:
+                    actual_value = param_value.get('value')
+                    if isinstance(actual_value, dict) and actual_value.get('_sqlInject'):
+                        sql_injection_params.add(param_name)
+                        sql_query = _apply_sql_injection(sql_query, param_name, actual_value)
+                        logger.info(f"Applied nested SQL injection default for {param_name}")
+                        continue
+                    if actual_value not in (None, ''):
+                        params_to_use[param_name] = actual_value
+                        continue
+
+                if param_name in provided_params and param_name not in params_to_use:
+                    params_to_use[param_name] = provided_params[param_name]
+                    continue
+
+                # Provide sensible defaults for missing parameters
+                default_values = ParameterProcessor.default_values_for(param_name)
+                if len(default_values) == 1:
+                    params_to_use[param_name] = default_values[0]
+                else:
+                    params_to_use[param_name] = default_values
+
+            # Remove injection placeholders from params_to_use to avoid accidental substitution
+            for injection_param in sql_injection_params:
+                params_to_use.pop(injection_param, None)
+
+            # Process the SQL with standard template parameters
+            if params_to_use:
+                try:
+                    sql_query = ParameterProcessor.process_sql_parameters(
+                        sql_query,
+                        params_to_use,
+                        validate_all=False,  # Allow partial processing
+                    )
+                    logger.info(
+                        f"Processed SQL query for AMC workflow creation, final length: {len(sql_query)}"
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to process SQL parameters: {e}")
+                    # If processing fails, we'll try with the original SQL
+                    pass
+
+        # Generate unique workflow ID for AMC
         base_workflow_id = f"wf_{uuid.uuid4().hex[:8]}"
         amc_workflow_id = re.sub(r'[^a-zA-Z0-9._-]', '_', base_workflow_id)
-        
-        # Extract parameters from SQL query
+
+        # Extract parameters from ORIGINAL template SQL (if we have one) for metadata
+        # But don't include them in the AMC workflow creation since we've already processed the SQL
         param_pattern = r'\{\{(\w+)\}\}'
-        param_names = re.findall(param_pattern, workflow.sql_query)
+
+        # Check if we used a template and extract params from the original
+        param_names = []
+        if sql_template:
+            param_names = list(set(re.findall(param_pattern, sql_template)))
+        elif '{{' not in sql_query:  # Only check processed SQL if we didn't process parameters
+            param_names = list(set(re.findall(param_pattern, sql_query)))
+
+        # IMPORTANT: Parameter Strategy for AMC
+        # --------------------------------------
+        # Check if there are still any unprocessed parameter references in the SQL
+        # AMC recognizes multiple parameter formats, not just {{param}}
+        # We need to check for ALL possible formats and declare them as input parameters
+
+        # Define all parameter patterns that AMC might recognize
+        amc_param_patterns = [
+            (r'\{\{(\w+)\}\}', 'mustache'),     # {{param}} - our template format
+            (r':(\w+)(?=\s|,|\)|;|$)', 'colon'), # :param - AMC named parameter (with lookahead to avoid time formats)
+            (r'\$\{(\w+)\}', 'dollar_brace'),   # ${param} - AMC variable format
+            (r'\$(\w+)\b', 'dollar'),           # $param - alternative format
+            (r"CUSTOM_PARAMETER\s*\(\s*'([^']+)'\s*\)", 'custom_parameter'),  # CUSTOM_PARAMETER('param') - AMC native syntax
+        ]
+
+        # Find all remaining parameter references in any format
+        all_remaining_params = set()
+        custom_params = set()
+        for pattern_regex, pattern_type in amc_param_patterns:
+            matches = re.findall(pattern_regex, sql_query, re.IGNORECASE)
+            # Filter out false positives (like :00 in timestamps)
+            filtered_matches = [m for m in matches if not m.isdigit() and m != 'values']
+            if filtered_matches:
+                logger.info(f"Found {len(filtered_matches)} {pattern_type} format parameters: {filtered_matches}")
+                # Track CUSTOM_PARAMETER matches separately for special handling
+                if pattern_type == 'custom_parameter':
+                    custom_params.update(filtered_matches)
+                    logger.info("CUSTOM_PARAMETER syntax detected - will declare as STRING parameters")
+                all_remaining_params.update(filtered_matches)
+
+        remaining_placeholders = list(all_remaining_params)
+
+        if remaining_placeholders:
+            # Create input parameter declarations for any remaining parameter references
+            input_parameters = []
+            for param_name in remaining_placeholders:
+                # For CUSTOM_PARAMETER, always use STRING type
+                # AMC's CUSTOM_PARAMETER function handles type coercion internally
+                if param_name in custom_params:
+                    param_type = 'STRING'
+                    logger.debug(f"Parameter '{param_name}' from CUSTOM_PARAMETER will be declared as STRING")
+                else:
+                    # Determine parameter type based on name for other formats
+                    param_type = 'STRING'  # Default type
+                    param_lower = param_name.lower()
+
+                    if 'date' in param_lower or 'time' in param_lower:
+                        param_type = 'DATE'
+                    elif 'count' in param_lower or 'number' in param_lower or 'qty' in param_lower:
+                        param_type = 'INTEGER'
+                    elif 'price' in param_lower or 'cost' in param_lower or 'amount' in param_lower:
+                        param_type = 'DECIMAL'
+                    elif 'id' in param_lower and 'product' not in param_lower:
+                        param_type = 'STRING'
+
+                input_parameters.append({
+                    'name': param_name,
+                    'dataType': param_type,
+                    'required': False,
+                    'defaultValue': params_to_use.get(param_name, '')
+                })
+
+            logger.info(f"Found {len(remaining_placeholders)} unprocessed parameter references in various formats, creating input parameters for AMC")
+        else:
+            # No remaining parameter references, no need for input parameters
+            input_parameters = None
+            logger.info("All parameter references processed, no input parameters needed for AMC")
         
-        # Create input parameter definitions for AMC
-        input_parameters = []
-        for param_name in param_names:
-            param_type = 'STRING'
-            if 'date' in param_name.lower() or 'time' in param_name.lower():
-                param_type = 'TIMESTAMP'
-            elif 'count' in param_name.lower() or 'number' in param_name.lower() or 'id' in param_name.lower():
-                param_type = 'INTEGER'
-            
-            input_parameters.append({
-                'name': param_name,
-                'type': param_type,
-                'required': True
-            })
-        
-        # Create workflow in AMC first
+        # Create SAVED workflow in AMC first
+        # This is different from ad-hoc execution:
+        # - Ad-hoc: Sends sql_query parameter directly to each execution (no workflow created)
+        # - Saved: Creates workflow first, then executions reference the workflow_id
+        # We're doing the SAVED approach here for reusability and version control
         from ...services.amc_api_client import AMCAPIClient
         api_client = AMCAPIClient()
         
         amc_response = api_client.create_workflow(
             instance_id=instance['instance_id'],
             workflow_id=amc_workflow_id,
-            sql_query=workflow.sql_query,
+            sql_query=sql_query,
             access_token=valid_token,
             entity_id=entity_id,
             marketplace_id=marketplace_id,
@@ -210,7 +478,7 @@ async def create_workflow(
             "name": workflow.name,
             "description": workflow.description,
             "instance_id": instance['id'],  # Use internal UUID
-            "sql_query": workflow.sql_query,
+            "sql_query": sql_template or sql_query,  # Store ORIGINAL template SQL if available for execution
             "parameters": workflow.parameters,
             "tags": workflow.tags,
             "user_id": current_user['id'],
@@ -218,8 +486,11 @@ async def create_workflow(
             "amc_workflow_id": amc_workflow_id,  # Store AMC's workflow ID
             "is_synced_to_amc": True,
             "amc_sync_status": "synced",
-            "amc_synced_at": datetime.now(timezone.utc).isoformat()
+            "amc_synced_at": datetime.now(timezone.utc).isoformat(),
         }
+
+        # Note: template_id column isn't present in workflows table yet, so we avoid persisting it here.
+        # Add a migration before storing template references directly in the workflows row.
         
         # Use sync version
         created = db_service.create_workflow_sync(workflow_data)
@@ -230,6 +501,7 @@ async def create_workflow(
             raise HTTPException(status_code=500, detail="Failed to create workflow in backend")
         
         return {
+            "id": created['workflow_id'],  # Frontend expects 'id' field
             "workflow_id": created['workflow_id'],
             "name": created['name'],
             "description": created.get('description'),
@@ -457,10 +729,26 @@ async def execute_workflow(
 ) -> Dict[str, Any]:
     """Execute a workflow on AMC instance"""
     try:
-        # Extract instance_id and parameters from body
+        # Extract instance_id and Snowflake configuration from body
         instance_id = body.get('instance_id')
-        parameters = {k: v for k, v in body.items() if k != 'instance_id'}
-        
+        snowflake_enabled = body.get('snowflake_enabled', False)
+        snowflake_table_name = body.get('snowflake_table_name')
+        snowflake_schema_name = body.get('snowflake_schema_name')
+
+        # Extract parameters, excluding system fields
+        excluded_fields = {'instance_id', 'execution_parameters', 'snowflake_enabled',
+                          'snowflake_table_name', 'snowflake_schema_name'}
+        parameters = {k: v for k, v in body.items() if k not in excluded_fields}
+
+        # Support new payload shape where parameters are nested under execution_parameters
+        nested_parameters = body.get('execution_parameters')
+        if isinstance(nested_parameters, dict):
+            # Remove Snowflake fields from nested parameters if they exist
+            filtered_nested = {k: v for k, v in nested_parameters.items()
+                             if k not in {'snowflake_enabled', 'snowflake_table_name', 'snowflake_schema_name'}}
+            # Nested values take precedence over top-level duplicates
+            parameters = {**parameters, **filtered_nested}
+
         logger.info(f"Executing workflow {workflow_id} with instance_id: {instance_id}, parameters: {parameters}")
         
         # The workflow_id parameter here is actually the workflow_id field (e.g., "wf_883e6982")
@@ -483,12 +771,16 @@ async def execute_workflow(
         
         # Execute workflow using AMC execution service
         logger.info(f"Calling execution service with workflow UUID: {workflow['id']}")
+        logger.info(f"Snowflake config - enabled: {snowflake_enabled}, table: {snowflake_table_name}, schema: {snowflake_schema_name}")
         result = await amc_execution_service.execute_workflow(
             workflow_id=workflow['id'],  # Use internal UUID
             user_id=current_user['id'],
             execution_parameters=parameters,
             triggered_by="manual",
-            instance_id=instance_id  # Pass instance_id if provided
+            instance_id=instance_id,  # Pass instance_id if provided
+            snowflake_enabled=snowflake_enabled,
+            snowflake_table_name=snowflake_table_name,
+            snowflake_schema_name=snowflake_schema_name
         )
         
         return result
@@ -761,7 +1053,20 @@ def sync_workflow_to_amc(
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
-    Sync a local workflow to AMC, creating it as a saved workflow definition
+    Sync a local workflow to AMC, creating it as a SAVED workflow definition
+
+    IMPORTANT: Saved Workflow vs Ad-hoc Execution
+    ---------------------------------------------
+    This endpoint creates a SAVED WORKFLOW in AMC that can be reused:
+    1. Workflow is created once with POST /workflows API
+    2. Gets a permanent workflow_id in AMC
+    3. Can be executed multiple times with different parameters
+    4. Executions reference the workflow_id, not SQL directly
+
+    This is different from ad-hoc execution where:
+    - SQL is passed directly to each execution
+    - No workflow is created in AMC
+    - Each execution is independent
     """
     try:
         # Get workflow details

@@ -15,7 +15,7 @@ interface QueryBuilderState {
   sqlQuery: string;
   name: string;
   description: string;
-  
+
   // Configuration
   instanceId: string;
   timezone: string;
@@ -23,12 +23,17 @@ interface QueryBuilderState {
     ignoreDataGaps: boolean;
     appendThresholdColumns: boolean;
   };
-  
+
   // Export settings
   exportSettings: {
     name: string;
   };
-  
+
+  // Snowflake integration
+  snowflakeEnabled?: boolean;
+  snowflakeTableName?: string;
+  snowflakeSchemaName?: string;
+
   // Parameters extracted from query
   parameters: Record<string, unknown>;
 }
@@ -94,6 +99,9 @@ export default function QueryBuilder() {
     exportSettings: {
       name: ''
     },
+    snowflakeEnabled: false,
+    snowflakeTableName: '',
+    snowflakeSchemaName: '',
     parameters: {}
   });
 
@@ -179,7 +187,7 @@ export default function QueryBuilder() {
     if (template) {
       setQueryState(prev => ({
         ...prev,
-        sqlQuery: template.sqlTemplate,
+        sqlQuery: template.sqlTemplate || template.sql_query || '',
         name: template.name,
         description: template.description || '',
         parameters: template.defaultParameters || {}

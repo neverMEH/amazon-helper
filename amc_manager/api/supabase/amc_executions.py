@@ -838,7 +838,14 @@ async def get_amc_execution_details(
                 'createdAt': db_execution.get('created_at'),
                 'startedAt': db_execution.get('started_at'),
                 'completedAt': db_execution.get('completed_at'),
-                'errorMessage': db_execution.get('error_message')
+                'errorMessage': db_execution.get('error_message'),
+                # Add Snowflake export fields
+                'snowflake_enabled': db_execution.get('snowflake_enabled'),
+                'snowflake_status': db_execution.get('snowflake_status'),
+                'snowflake_table_name': db_execution.get('snowflake_table_name'),
+                'snowflake_schema_name': db_execution.get('snowflake_schema_name'),
+                'snowflake_row_count': db_execution.get('snowflake_row_count'),
+                'snowflake_error': db_execution.get('snowflake_error')
             })
         
         return {

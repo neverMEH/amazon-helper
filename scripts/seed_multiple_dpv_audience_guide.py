@@ -639,7 +639,7 @@ WITH view_counts AS (
     conversions
   WHERE
     event_subtype = 'detailPageView'
-    AND event_dt >= DATE_ADD('day', -{{lookback_days}}, CURRENT_DATE)
+    AND event_dt >= (CURRENT_DATE - INTERVAL '{{lookback_days}}' DAY)
   GROUP BY
     1
 ),
@@ -650,7 +650,7 @@ purchases AS (
     conversions
   WHERE
     event_subtype = 'order'
-    AND event_dt >= DATE_ADD('day', -{{lookback_days}}, CURRENT_DATE)
+    AND event_dt >= (CURRENT_DATE - INTERVAL '{{lookback_days}}' DAY)
 ),
 analysis AS (
   SELECT
@@ -709,7 +709,7 @@ WITH asin_metrics AS (
     conversions
   WHERE
     event_subtype = 'detailPageView'
-    AND event_dt >= DATE_ADD('day', -{{lookback_days}}, CURRENT_DATE)
+    AND event_dt >= (CURRENT_DATE - INTERVAL '{{lookback_days}}' DAY)
   GROUP BY
     1
 ),
@@ -721,7 +721,7 @@ asin_purchases AS (
     conversions
   WHERE
     event_subtype = 'order'
-    AND event_dt >= DATE_ADD('day', -{{lookback_days}}, CURRENT_DATE)
+    AND event_dt >= (CURRENT_DATE - INTERVAL '{{lookback_days}}' DAY)
   GROUP BY
     1
 )

@@ -721,10 +721,18 @@ class DatabaseService:
     def get_brands_for_instance_sync(self, instance_id: str) -> List[str]:
         """Get brands associated with a specific instance"""
         try:
-            # Query instance_brands table to get brands for this instance
-            response = self.client.table('instance_brands').select('brand_tag').eq('instance_id', instance_id).execute()
+            # First get the internal instance ID (UUID) from the AMC instance ID string
+            instance_response = self.client.table('amc_instances').select('id').eq('instance_id', instance_id).execute()
+            if not instance_response.data:
+                logger.warning(f"Instance not found: {instance_id}")
+                return []
+
+            internal_id = instance_response.data[0]['id']
+
+            # Query instance_brands table to get brands for this instance using the internal UUID
+            response = self.client.table('instance_brands').select('brand_tag').eq('instance_id', internal_id).execute()
             brands = [item['brand_tag'] for item in response.data if item.get('brand_tag')]
-            
+
             # If no brands in instance_brands, try to get from campaigns
             if not brands:
                 # Get campaigns for this instance (by profile_id)
@@ -734,7 +742,7 @@ class DatabaseService:
                     if campaign.get('brand_tag'):
                         brands_set.add(campaign['brand_tag'])
                 brands = list(brands_set)
-            
+
             return brands
         except Exception as e:
             logger.error(f"Error fetching brands for instance {instance_id}: {e}")

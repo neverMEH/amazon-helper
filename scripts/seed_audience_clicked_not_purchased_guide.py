@@ -216,7 +216,7 @@ WITH click_stats AS (
     sponsored_ads_traffic
   WHERE
     clicks > 0
-    AND event_dt >= DATE_ADD('day', -{{lookback_days}}, CURRENT_DATE)
+    AND event_dt >= (CURRENT_DATE - INTERVAL '{{lookback_days}}' DAY)
   GROUP BY
     ad_product_type
 ),
@@ -228,7 +228,7 @@ purchase_stats AS (
     amazon_attributed_events_by_traffic_time
   WHERE
     total_purchases > 0
-    AND event_dt >= DATE_ADD('day', -{{lookback_days}}, CURRENT_DATE)
+    AND event_dt >= (CURRENT_DATE - INTERVAL '{{lookback_days}}' DAY)
   GROUP BY
     ad_product_type
 )
@@ -271,7 +271,7 @@ WITH campaign_clicks AS (
   WHERE
     clicks > 0
     AND ad_product_type = '{{ad_product_type}}'
-    AND event_dt >= DATE_ADD('day', -{{lookback_days}}, CURRENT_DATE)
+    AND event_dt >= (CURRENT_DATE - INTERVAL '{{lookback_days}}' DAY)
   GROUP BY
     campaign
 ),
@@ -284,7 +284,7 @@ campaign_purchases AS (
   WHERE
     total_purchases > 0
     AND ad_product_type = '{{ad_product_type}}'
-    AND event_dt >= DATE_ADD('day', -{{lookback_days}}, CURRENT_DATE)
+    AND event_dt >= (CURRENT_DATE - INTERVAL '{{lookback_days}}' DAY)
   GROUP BY
     campaign
 )
@@ -572,7 +572,7 @@ WITH user_clicks AS (
     sponsored_ads_traffic
   WHERE
     ad_product_type = '{{ad_product_type}}'
-    AND event_dt >= DATE_ADD('day', -{{lookback_days}}, CURRENT_DATE)
+    AND event_dt >= (CURRENT_DATE - INTERVAL '{{lookback_days}}' DAY)
   GROUP BY
     user_id
 ),
@@ -584,7 +584,7 @@ user_purchases AS (
     amazon_attributed_events_by_traffic_time
   WHERE
     ad_product_type = '{{ad_product_type}}'
-    AND event_dt >= DATE_ADD('day', -{{lookback_days}}, CURRENT_DATE)
+    AND event_dt >= (CURRENT_DATE - INTERVAL '{{lookback_days}}' DAY)
   GROUP BY
     user_id
 ),

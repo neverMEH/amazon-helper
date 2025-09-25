@@ -582,7 +582,7 @@ purchase_activity AS (
     INNER JOIN amazon_attributed_events_by_conversion_time aae
         ON oi.user_id = aae.user_id
         AND aae.conversion_dt >= '{{start_date}}'
-        AND aae.conversion_dt <= DATE_ADD('day', {{attribution_days}}, '{{end_date}}')
+        AND aae.conversion_dt <= (CAST('{{end_date}}' AS DATE) + INTERVAL '{{attribution_days}}' DAY)
     WHERE 
         aae.purchase_flag = 1
     GROUP BY 

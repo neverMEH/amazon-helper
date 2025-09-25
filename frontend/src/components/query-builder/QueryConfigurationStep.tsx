@@ -444,7 +444,7 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
       {/* Export Configuration */}
       <div className="border-t border-gray-200 pt-6">
         <h3 className="text-sm font-semibold text-gray-900 mb-4">Export Configuration</h3>
-        
+
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -460,6 +460,64 @@ export default function QueryConfigurationStep({ state, setState, instances }: Q
             <p className="mt-1 text-xs text-gray-500">
               Automatically generated based on query name, instance, date range, and execution time. You can customize if needed.
             </p>
+          </div>
+
+          {/* Snowflake Data Warehouse Export */}
+          <div className="border-t border-gray-100 pt-4">
+            <div className="flex items-start">
+              <input
+                type="checkbox"
+                id="snowflakeEnabled"
+                checked={state.snowflakeEnabled || false}
+                onChange={(e) => setState((prev: any) => ({ ...prev, snowflakeEnabled: e.target.checked }))}
+                className="mt-1 text-indigo-600 focus:ring-indigo-500"
+              />
+              <div className="ml-3 flex-1">
+                <label htmlFor="snowflakeEnabled" className="text-sm font-medium text-gray-900 cursor-pointer">
+                  Upload to Snowflake Data Warehouse
+                </label>
+                <p className="text-xs text-gray-500 mt-1">
+                  Export query results directly to your configured Snowflake data warehouse
+                </p>
+              </div>
+            </div>
+
+            {/* Snowflake Configuration Fields */}
+            {state.snowflakeEnabled && (
+              <div className="ml-7 mt-3 space-y-3 border-l-2 border-indigo-200 pl-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Table Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={state.snowflakeTableName || ''}
+                    onChange={(e) => setState((prev: any) => ({ ...prev, snowflakeTableName: e.target.value }))}
+                    placeholder="e.g., amc_campaign_performance"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Table will be created if it doesn't exist
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Schema Name (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={state.snowflakeSchemaName || ''}
+                    onChange={(e) => setState((prev: any) => ({ ...prev, snowflakeSchemaName: e.target.value }))}
+                    placeholder="e.g., PUBLIC (default if not specified)"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Uses your configured default schema if not specified
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

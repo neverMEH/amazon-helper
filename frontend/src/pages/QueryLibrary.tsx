@@ -64,10 +64,12 @@ export default function QueryLibrary() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
   // Fetch templates
-  const { data: templates = [], isLoading } = useQuery({
+  const { data: templatesResponse, isLoading } = useQuery({
     queryKey: ['query-templates'],
     queryFn: () => queryTemplateService.listTemplates(true),
   });
+
+  const templates = templatesResponse?.data?.templates || [];
 
   // Fetch categories - commented out until backend implementation
   // const { data: categories = [] } = useQuery({
@@ -95,23 +97,23 @@ export default function QueryLibrary() {
     // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(t => 
+      filtered = filtered.filter((t: QueryTemplate) =>
         t.name.toLowerCase().includes(query) ||
         t.description?.toLowerCase().includes(query) ||
-        t.tags?.some(tag => tag.toLowerCase().includes(query))
+        t.tags?.some((tag: string) => tag.toLowerCase().includes(query))
       );
     }
 
     // Filter by category
     if (selectedCategory) {
-      filtered = filtered.filter(t => t.category === selectedCategory);
+      filtered = filtered.filter((t: QueryTemplate) => t.category === selectedCategory);
     }
 
     // Filter by ownership
     if (ownershipFilter === 'my-templates') {
-      filtered = filtered.filter(t => t.isOwner);
+      filtered = filtered.filter((t: QueryTemplate) => t.isOwner);
     } else if (ownershipFilter === 'public') {
-      filtered = filtered.filter(t => t.isPublic && !t.isOwner);
+      filtered = filtered.filter((t: QueryTemplate) => t.isPublic && !t.isOwner);
     }
 
     // Filter by favorites (if implemented)
@@ -124,10 +126,10 @@ export default function QueryLibrary() {
     const sorted = [...filtered];
     switch (sortBy) {
       case 'newest':
-        sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        sorted.sort((a, b) => new Date(b.createdAt || b.created_at || '').getTime() - new Date(a.createdAt || a.created_at || '').getTime());
         break;
       case 'oldest':
-        sorted.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        sorted.sort((a, b) => new Date(a.createdAt || a.created_at || '').getTime() - new Date(b.createdAt || b.created_at || '').getTime());
         break;
       case 'usage':
         sorted.sort((a, b) => (b.usageCount || 0) - (a.usageCount || 0));
@@ -167,9 +169,10 @@ export default function QueryLibrary() {
 
   const handleUseTemplate = (template: QueryTemplate) => {
     // Track template usage
-    queryTemplateService.useTemplate(template.templateId);
+    const templateId = template.templateId || template.id;
+    queryTemplateService.useTemplate(templateId);
     // Navigate to query builder with template using the proper route
-    navigate(`/query-builder/template/${template.templateId}`);
+    navigate(`/query-builder/template/${templateId}`);
   };
 
   const handleEditTemplate = (template: QueryTemplate) => {
@@ -405,11 +408,11 @@ export default function QueryLibrary() {
             <div className="flex items-center space-x-4">
               <span>
                 <Globe className="inline-block h-4 w-4 mr-1" />
-                {templates.filter(t => t.isPublic).length} public
+                {templates.filter((t: QueryTemplate) => t.isPublic).length} public
               </span>
               <span>
                 <User className="inline-block h-4 w-4 mr-1" />
-                {templates.filter(t => t.isOwner).length} owned
+                {templates.filter((t: QueryTemplate) => t.isOwner).length} owned
               </span>
             </div>
           </div>
@@ -424,13 +427,13 @@ export default function QueryLibrary() {
           {/* Template Grid/List */}
           {!isLoading && viewMode === 'grid' && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredAndSortedTemplates.map(template => (
+              {filteredAndSortedTemplates.map((template: QueryTemplate) => (
                 <TemplateCard
-                  key={template.templateId}
+                  key={template.templateId || template.id}
                   template={template}
                   onUse={() => handleUseTemplate(template)}
                   onEdit={() => handleEditTemplate(template)}
-                  onDelete={() => handleDeleteTemplate(template.templateId)}
+                  onDelete={() => handleDeleteTemplate(template.templateId || template.id)}
                   testId="template-card"
                 />
               ))}
@@ -445,7 +448,7 @@ export default function QueryLibrary() {
                   template={template}
                   onUse={() => handleUseTemplate(template)}
                   onEdit={() => handleEditTemplate(template)}
-                  onDelete={() => handleDeleteTemplate(template.templateId)}
+                  onDelete={() => handleDeleteTemplate(template.templateId || template.id)}
                 />
               ))}
             </div>
@@ -508,19 +511,54 @@ export default function QueryLibrary() {
           onSave={async (template: any) => {
             // The template data is already in snake_case format from TemplateEditor
             try {
+              // Extract parameters from the template data if present
+              const parameters = template.parameters_schema ? Object.entries(template.parameters_schema).map(([name, schema]: [string, any]) => ({
+                name,
+                type: schema.type,
+                description: schema.description || '',
+                required: schema.required !== undefined ? schema.required : true,
+                defaultValue: schema.default_value,
+                validation: schema.validation,
+                displayName: name
+              })) : [];
+
               if (selectedTemplate) {
-                // Update existing template - cast to QueryTemplateUpdate
-                await queryTemplateService.updateTemplate(selectedTemplate.templateId, template);
+                // Update existing template with parameters
+                await queryTemplateService.updateTemplateWithParameters(
+                  selectedTemplate.templateId || selectedTemplate.id,
+                  template,
+                  parameters
+                );
                 toast.success('Template updated successfully');
               } else {
-                // Create new template - cast to QueryTemplateCreate
-                await queryTemplateService.createTemplate(template);
+                // Create new template
+                const result = await queryTemplateService.createTemplate(template);
+
+                // If we have parameters and the template was created, add them
+                if (result.templateId && parameters.length > 0) {
+                  for (const param of parameters) {
+                    try {
+                      await queryTemplateService.createTemplateParameter(result.templateId, {
+                        parameter_name: param.name,
+                        parameter_type: param.type,
+                        description: param.description,
+                        required: param.required,
+                        default_value: param.defaultValue,
+                        validation_rules: param.validation,
+                        display_name: param.displayName
+                      });
+                    } catch (paramError) {
+                      console.error('Failed to create parameter:', param.name, paramError);
+                    }
+                  }
+                }
                 toast.success('Template created successfully');
               }
               queryClient.invalidateQueries({ queryKey: ['query-templates'] });
               setShowCreateModal(false);
               setSelectedTemplate(null);
             } catch (error) {
+              console.error('Failed to save template:', error);
               toast.error('Failed to save template');
             }
           }}
@@ -694,7 +732,7 @@ function TemplateListItem({ template, onUse, onEdit, onDelete }: TemplateListIte
           <div className="flex items-center mt-2 space-x-4 text-xs text-gray-500">
             <span>{TEMPLATE_CATEGORIES[template.category]?.name || template.category}</span>
             <span>{template.usageCount || 0} uses</span>
-            <span>Created {new Date(template.createdAt).toLocaleDateString()}</span>
+            <span>Created {new Date(template.createdAt || template.created_at || '').toLocaleDateString()}</span>
           </div>
         </div>
         <div className="flex items-center space-x-2 ml-4">

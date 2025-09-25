@@ -58,8 +58,8 @@ export function analyzeParameterContext(sql: string, paramName: string): Paramet
       };
     }
     
-    // Check for LIKE context (must be immediately before parameter)
-    if (beforeContext.match(/\sLIKE\s*$/i)) {
+    // Check for LIKE context (can have quotes and % wildcards between LIKE and parameter)
+    if (beforeContext.match(/\sLIKE\s*['"]?%?$/i)) {
       return {
         name: paramName,
         type: 'pattern',
@@ -177,7 +177,10 @@ export function formatParameterValue(value: any, context: ParameterContext): str
     case 'LIKE':
       // Format for LIKE pattern matching
       if (typeof value === 'string') {
+        // Remove any existing quotes and wildcards from the value
         const cleanValue = value.replace(/^['"%]+|['"%]+$/g, '');
+        // Don't add wildcards if the SQL template already has them
+        // This will be handled by the isPlaceholderInQuotes check
         return `'%${cleanValue}%'`;
       }
       return `'%${value}%'`;
@@ -251,12 +254,14 @@ export function detectParametersWithContext(sql: string): ParameterDefinition[] 
     
     // Determine specific type based on context and name
     let type: ParameterDefinition['type'] = 'text';
-    
+
+    // LIKE context should always take precedence for pattern matching
     if (context.sqlContext === 'LIKE') {
       type = 'pattern';
     } else if (lowerName.includes('asin')) {
       type = 'asin_list';
     } else if (lowerName.includes('campaign')) {
+      // Only set to campaign_list if NOT using LIKE (already checked above)
       type = 'campaign_list';
     } else if (context.type === 'date') {
       type = 'date';
@@ -284,14 +289,31 @@ export function detectParametersWithContext(sql: string): ParameterDefinition[] 
  */
 export function replaceParametersInSQL(sql: string, parameters: Record<string, any>): string {
   let result = sql;
-  
+
   for (const [paramName, value] of Object.entries(parameters)) {
     const context = analyzeParameterContext(sql, paramName);
-    const formattedValue = formatParameterValue(value, context);
+
+    // Check if the placeholder is already within quotes in the template (with or without wildcards)
+    const quotedPlaceholderPattern = new RegExp(`'[%\\s]*\\{\\{${paramName}\\}\\}[%\\s]*'`, 'g');
+    const isPlaceholderInQuotes = quotedPlaceholderPattern.test(sql);
+
+    let formattedValue = formatParameterValue(value, context);
+
+    // If placeholder is already in quotes with wildcards (like '%{{param}}%')
+    if (isPlaceholderInQuotes && context.sqlContext === 'LIKE') {
+      // The template has quotes and wildcards, but we need to escape the value properly
+      // Remove any quotes from the value and return it plain
+      // The template is like: '%{{param}}%' so we just need the value part
+      formattedValue = value.toString().replace(/^['"%]+|['"%]+$/g, '');
+    } else if (isPlaceholderInQuotes && formattedValue.startsWith("'") && formattedValue.endsWith("'")) {
+      // Remove the quotes we would have added since the template already has them
+      formattedValue = formattedValue.slice(1, -1);
+    }
+
     const paramPattern = new RegExp(`\\{\\{${paramName}\\}\\}`, 'g');
     result = result.replace(paramPattern, formattedValue);
   }
-  
+
   return result;
 }
 
@@ -300,10 +322,24 @@ export function replaceParametersInSQL(sql: string, parameters: Record<string, a
  */
 export function generatePreviewSQL(sql: string, parameters: ParameterDefinition[]): string {
   let previewSQL = sql;
-  
+
   parameters.forEach(param => {
     const context = analyzeParameterContext(sql, param.name);
-    const sampleValue = getSampleValue(param, context);
+    let sampleValue = getSampleValue(param, context);
+
+    // Check if the placeholder is already within quotes in the template (with or without wildcards)
+    const quotedPlaceholderPattern = new RegExp(`'[%\\s]*\\{\\{${param.name}\\}\\}[%\\s]*'`, 'g');
+    const isPlaceholderInQuotes = quotedPlaceholderPattern.test(sql);
+
+    // If placeholder is already in quotes with wildcards (like '%{{param}}%')
+    if (isPlaceholderInQuotes && context.sqlContext === 'LIKE') {
+      // Just use a plain sample value without quotes or wildcards
+      sampleValue = 'sample_pattern';
+    } else if (isPlaceholderInQuotes && sampleValue.startsWith("'") && sampleValue.endsWith("'")) {
+      // Remove the outer quotes since template already has them
+      sampleValue = sampleValue.slice(1, -1);
+    }
+
     const paramPattern = new RegExp(`\\{\\{${param.name}\\}\\}`, 'g');
     previewSQL = previewSQL.replace(paramPattern, sampleValue);
   });

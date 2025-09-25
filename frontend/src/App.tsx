@@ -7,7 +7,6 @@ import Dashboard from './components/Dashboard';
 import Instances from './components/instances/Instances';
 import InstanceDetail from './components/instances/InstanceDetail';
 import Campaigns from './components/campaigns/Campaigns';
-import WorkflowDetail from './components/workflows/WorkflowDetail';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import { AuthCallback } from './pages/AuthCallback';
 import Profile from './pages/Profile';
@@ -39,6 +38,7 @@ import ASINManagement from './pages/ASINManagement';
 
 // Reports & Analytics imports
 import DataCollections from './components/reports/DataCollections';
+import ReportBuilder from './components/report-builder/ReportBuilder';
 
 
 const queryClient = new QueryClient({
@@ -75,9 +75,6 @@ function App() {
               <Route path="/executions" element={<Executions />} />
               
               {/* Legacy routes - redirect to new ones */}
-              <Route path="/workflows" element={<Navigate to="/my-queries" replace />} />
-              <Route path="/workflows/:workflowId" element={<WorkflowDetail />} />
-              <Route path="/workflows/:workflowId/edit" element={<WorkflowDetail />} />
               <Route path="/query-templates" element={<Navigate to="/query-library" replace />} />
               
               {/* New Query Builder routes */}
@@ -102,6 +99,7 @@ function App() {
               
               {/* Reports & Analytics routes */}
               <Route path="/data-collections" element={<DataCollections />} />
+              <Route path="/report-builder" element={<ReportBuilder />} />
               
               
               {/* Profile route */}

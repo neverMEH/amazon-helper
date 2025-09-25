@@ -1,6 +1,7 @@
 """Query template models for saving and sharing queries"""
 
-from sqlalchemy import Column, String, Text, Boolean, JSON, ForeignKey, Index
+from datetime import datetime
+from sqlalchemy import Column, String, Text, Boolean, JSON, ForeignKey, Index, Integer
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSONB
 

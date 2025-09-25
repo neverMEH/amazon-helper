@@ -59,8 +59,9 @@ export const CampaignSelector: FC<CampaignSelectorProps> = ({
   const { data, isLoading, error } = useQuery({
     queryKey: ['campaigns', instanceId, brandId, searchTerm, campaignType, showAll],
     queryFn: async () => {
-      // If showAll is true or no filters, use the regular campaigns endpoint
-      if (showAll || (!instanceId && !brandId)) {
+      // Always fetch campaigns from the main campaigns table for report builder
+      // This ensures we have access to all campaigns in the system
+      if (true) {  // Always use main campaigns endpoint for better data access
         const params = new URLSearchParams({
           page: '1',
           page_size: '200',  // Get more campaigns when showing all
@@ -75,11 +76,13 @@ export const CampaignSelector: FC<CampaignSelectorProps> = ({
           // Map to the 'type' field used by main campaigns endpoint
           const typeMapping: Record<string, string> = {
             'sp': 'sp',
-            'sb': 'sb', 
+            'sb': 'sb',
             'sd': 'sd',
             'dsp': 'dsp'
           };
-          params.append('type', typeMapping[campaignType] || campaignType);
+          // Ensure campaignType is definitely defined for TypeScript
+          const type = campaignType as string;
+          params.append('type', typeMapping[type] || type);
         }
         
         const response = await api.get(`/campaigns/?${params.toString()}`);
@@ -110,18 +113,21 @@ export const CampaignSelector: FC<CampaignSelectorProps> = ({
         if (campaignType) {
           const typeMapping: Record<string, string> = {
             'sp': 'sponsored_products',
-            'sb': 'sponsored_brands', 
+            'sb': 'sponsored_brands',
             'sd': 'sponsored_display',
             'dsp': 'dsp'
           };
-          params.append('campaign_type', typeMapping[campaignType] || campaignType);
+          // Ensure campaignType is definitely defined for TypeScript
+          const type = campaignType as string;
+          const mappedType = typeMapping[type] || type;
+          params.append('campaign_type', mappedType);
         }
 
         const response = await api.get(`/campaigns/by-instance-brand/list?${params.toString()}`);
         return response.data;
       }
     },
-    enabled: isOpen && (showAll || (!!instanceId && !!brandId)),
+    enabled: isOpen,  // Always enable when open, don't require instance/brand
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 

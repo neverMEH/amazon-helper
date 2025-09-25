@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, Code, Calendar, User, Hash, ChevronDown, ChevronRight, RefreshCw, Play, Loader, Table, BarChart3, Maximize2, Edit2, Clock, Settings } from 'lucide-react';
+import { X, Code, Calendar, User, Hash, ChevronDown, ChevronRight, RefreshCw, Play, Loader, Table, BarChart3, Maximize2, Edit2, Clock, Settings, Database } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
@@ -50,11 +50,20 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
       // Import api service
       const { default: api } = await import('../../services/api');
       
-      // Execute with the same parameters
-      const response = await api.post(`/workflows/${workflowId}/execute`, {
+      // Execute with the same parameters, including Snowflake settings if they were enabled
+      const requestBody: any = {
         parameters: execution.executionParameters || {},
         instance_id: instanceId
-      });
+      };
+
+      // Preserve Snowflake configuration if it was enabled
+      if (execution.snowflake_enabled || execution.snowflakeEnabled) {
+        requestBody.snowflake_enabled = true;
+        requestBody.snowflake_table_name = execution.snowflake_table_name || execution.snowflakeTableName;
+        requestBody.snowflake_schema_name = execution.snowflake_schema_name || execution.snowflakeSchemaName;
+      }
+
+      const response = await api.post(`/workflows/${workflowId}/execute`, requestBody);
       
       return response.data;
     },
@@ -125,6 +134,13 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
           <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-6xl sm:p-6">
             <div className="absolute right-0 top-0 hidden pr-4 pt-4 sm:block">
               <div className="flex items-center space-x-2">
+                {/* Show Snowflake indicator if enabled */}
+                {(execution?.snowflake_enabled || execution?.snowflakeEnabled) && (
+                  <div className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded-md" title="Snowflake export is enabled for this query">
+                    <Database className="h-3 w-3 mr-1" />
+                    Snowflake
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={handleRefresh}
@@ -138,7 +154,7 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                   onClick={handleRerun}
                   disabled={isRerunning || (!execution?.workflowId && !execution?.workflowInfo?.id)}
                   className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                  title="Rerun with same parameters"
+                  title={`Rerun with same parameters${(execution?.snowflake_enabled || execution?.snowflakeEnabled) ? ' (includes Snowflake export)' : ''}`}
                 >
                   {isRerunning ? (
                     <>
@@ -417,6 +433,46 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                                 </span>
                               </dd>
                             </div>
+                            {/* Snowflake Export Status */}
+                            {(execution.snowflake_enabled || execution.snowflakeEnabled) && (
+                              <div>
+                                <dt className="text-sm font-medium text-gray-500 flex items-center">
+                                  <Database className="h-4 w-4 mr-1" />
+                                  Snowflake Export
+                                </dt>
+                                <dd className="mt-1 text-sm space-y-1">
+                                  <div className="flex items-center space-x-2">
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                      ${(execution.snowflake_status || execution.snowflakeStatus) === 'completed' ? 'bg-green-100 text-green-800' :
+                                        (execution.snowflake_status || execution.snowflakeStatus) === 'failed' ? 'bg-red-100 text-red-800' :
+                                        (execution.snowflake_status || execution.snowflakeStatus) === 'uploading' ? 'bg-blue-100 text-blue-800' :
+                                        'bg-gray-100 text-gray-800'}`}>
+                                      {execution.snowflake_status || execution.snowflakeStatus || 'Pending'}
+                                    </span>
+                                    {(execution.snowflake_row_count || execution.snowflakeRowCount) && (
+                                      <span className="text-xs text-gray-600">
+                                        ({(execution.snowflake_row_count || execution.snowflakeRowCount || 0).toLocaleString()} rows)
+                                      </span>
+                                    )}
+                                  </div>
+                                  {(execution.snowflake_table_name || execution.snowflakeTableName) && (
+                                    <div className="text-xs text-gray-600">
+                                      Table: <span className="font-mono">{execution.snowflake_table_name || execution.snowflakeTableName}</span>
+                                    </div>
+                                  )}
+                                  {(execution.snowflake_schema_name || execution.snowflakeSchemaName) && (
+                                    <div className="text-xs text-gray-600">
+                                      Schema: <span className="font-mono">{execution.snowflake_schema_name || execution.snowflakeSchemaName}</span>
+                                    </div>
+                                  )}
+                                  {(execution.snowflake_error || execution.snowflakeError) && (
+                                    <div className="text-xs text-red-600 mt-1">
+                                      Error: {execution.snowflake_error || execution.snowflakeError}
+                                    </div>
+                                  )}
+                                </dd>
+                              </div>
+                            )}
                             {execution.triggeredBy && (
                               <div>
                                 <dt className="text-sm font-medium text-gray-500 flex items-center">

@@ -34,7 +34,26 @@ class AMCAPIClient:
     ) -> Dict[str, Any]:
         """
         Create a new AMC workflow execution
-        
+
+        EXECUTION MODES (Mutually Exclusive):
+        -------------------------------------
+        1. AD-HOC EXECUTION (sql_query parameter):
+           - Pass sql_query containing the full SQL to execute
+           - Do NOT pass workflow_id
+           - SQL is executed directly without creating a workflow
+           - SQL must be valid (no template placeholders like {{param}})
+           - Each execution is independent
+           - Used for: Report Builder, one-time queries, dynamic SQL
+
+        2. SAVED WORKFLOW EXECUTION (workflow_id parameter):
+           - Pass workflow_id of an existing AMC workflow
+           - Do NOT pass sql_query
+           - References a workflow created with create_workflow()
+           - Can pass parameter_values for workflow parameters
+           - Used for: Scheduled runs, recurring reports
+
+        AMC API REQUIREMENT: You must pass exactly ONE of sql_query or workflow_id
+
         Args:
             instance_id: AMC instance ID
             access_token: Amazon OAuth access token
@@ -44,16 +63,17 @@ class AMCAPIClient:
             workflow_id: Workflow ID for saved workflow execution (mutually exclusive with sql_query)
             parameter_values: Parameter values for saved workflow execution
             output_format: Output format (CSV, JSON, PARQUET)
-            
+
         Returns:
             Execution details including execution ID
         """
         
         # Validate that either sql_query or workflow_id is provided, but not both
+        # This is a CRITICAL AMC API requirement - these parameters are mutually exclusive
         if not sql_query and not workflow_id:
             raise ValueError("Either sql_query or workflow_id must be provided")
         if sql_query and workflow_id:
-            raise ValueError("Cannot provide both sql_query and workflow_id")
+            raise ValueError("Cannot provide both sql_query and workflow_id - they are mutually exclusive")
         url = f"{self.base_url}/amc/reporting/{instance_id}/workflowExecutions"
         
         headers = {
@@ -78,7 +98,7 @@ class AMCAPIClient:
         # Check for various date parameter formats
         time_window_start = None
         time_window_end = None
-        
+
         if parameter_values:
             # Look for date parameters in various formats
             for start_key in ['startDate', 'start_date', 'timeWindowStart', 'beginDate']:
@@ -86,45 +106,76 @@ class AMCAPIClient:
                     time_window_start = parameter_values[start_key]
                     logger.info(f"Found start date parameter '{start_key}': {time_window_start}")
                     break
-            
+
             for end_key in ['endDate', 'end_date', 'timeWindowEnd', 'finishDate']:
                 if end_key in parameter_values:
                     time_window_end = parameter_values[end_key]
                     logger.info(f"Found end date parameter '{end_key}': {time_window_end}")
                     break
-        
+
         # Parse and format dates for AMC API
         if time_window_start:
             try:
                 # Parse the date string (handle various formats)
                 if 'T' in str(time_window_start):
                     # Already in ISO format, just ensure no timezone
-                    time_window_start = str(time_window_start).replace('Z', '').split('+')[0].split('.')[0]
+                    # Remove 'Z' suffix first
+                    clean_date = str(time_window_start).replace('Z', '')
+                    # Remove timezone offset (+ or - followed by HH:MM)
+                    if '+' in clean_date:
+                        clean_date = clean_date.split('+')[0]
+                    # Handle negative UTC offsets (e.g., -05:00)
+                    # But keep the date part which has hyphens
+                    if clean_date.count('-') > 2:  # More than the 2 hyphens in YYYY-MM-DD
+                        # Find the last hyphen that's part of timezone
+                        parts = clean_date.rsplit('-', 1)
+                        if len(parts[1]) <= 6:  # Likely a timezone offset like 05:00
+                            clean_date = parts[0]
+                    # Remove microseconds if present
+                    if '.' in clean_date:
+                        clean_date = clean_date.split('.')[0]
+                    time_window_start = clean_date
                 else:
                     # Date only format (YYYY-MM-DD), add time component
                     time_window_start = f"{time_window_start}T00:00:00"
                 logger.info(f"Formatted start date for AMC: {time_window_start}")
             except Exception as e:
-                logger.warning(f"Error parsing start date: {e}, using default")
+                logger.warning(f"Error parsing start date: {e}, will use default")
                 time_window_start = None
-        
+
         if time_window_end:
             try:
                 # Parse the date string (handle various formats)
                 if 'T' in str(time_window_end):
                     # Already in ISO format, just ensure no timezone
-                    time_window_end = str(time_window_end).replace('Z', '').split('+')[0].split('.')[0]
+                    # Remove 'Z' suffix first
+                    clean_date = str(time_window_end).replace('Z', '')
+                    # Remove timezone offset (+ or - followed by HH:MM)
+                    if '+' in clean_date:
+                        clean_date = clean_date.split('+')[0]
+                    # Handle negative UTC offsets (e.g., -05:00)
+                    # But keep the date part which has hyphens
+                    if clean_date.count('-') > 2:  # More than the 2 hyphens in YYYY-MM-DD
+                        # Find the last hyphen that's part of timezone
+                        parts = clean_date.rsplit('-', 1)
+                        if len(parts[1]) <= 6:  # Likely a timezone offset like 05:00
+                            clean_date = parts[0]
+                    # Remove microseconds if present
+                    if '.' in clean_date:
+                        clean_date = clean_date.split('.')[0]
+                    time_window_end = clean_date
                 else:
                     # Date only format (YYYY-MM-DD), add time component (end of day)
                     time_window_end = f"{time_window_end}T23:59:59"
                 logger.info(f"Formatted end date for AMC: {time_window_end}")
             except Exception as e:
-                logger.warning(f"Error parsing end date: {e}, using default")
+                logger.warning(f"Error parsing end date: {e}, will use default")
                 time_window_end = None
-        
+
         # Use default dates if not provided (14-21 days ago to account for AMC data lag)
-        if not time_window_start or not time_window_end:
-            logger.warning("Date parameters not found or invalid, using default date range (14-21 days ago for AMC data lag)")
+        # Only use defaults if BOTH dates are missing
+        if not time_window_start and not time_window_end:
+            logger.warning("No date parameters found, using default date range (14-21 days ago for AMC data lag)")
             from datetime import timedelta
             # AMC has a 14-day data lag, so we need to query older data
             end_date = datetime.utcnow() - timedelta(days=14)  # 14 days ago
@@ -132,10 +183,67 @@ class AMCAPIClient:
             time_window_start = start_date.replace(hour=0, minute=0, second=0, microsecond=0).strftime('%Y-%m-%dT%H:%M:%S')
             time_window_end = end_date.replace(hour=23, minute=59, second=59, microsecond=0).strftime('%Y-%m-%dT%H:%M:%S')
             logger.info(f"Using default date range (accounting for AMC data lag): {time_window_start} to {time_window_end}")
+        elif not time_window_start and time_window_end:
+            # If only end date provided, calculate start date as 7 days before
+            logger.info("Only end date provided, calculating start date as 7 days before")
+            from datetime import timedelta
+            try:
+                # Parse end date to datetime
+                if 'T' in str(time_window_end):
+                    end_dt = datetime.strptime(time_window_end.split('.')[0], '%Y-%m-%dT%H:%M:%S')
+                else:
+                    end_dt = datetime.strptime(time_window_end, '%Y-%m-%d')
+                start_dt = end_dt - timedelta(days=7)
+                time_window_start = start_dt.replace(hour=0, minute=0, second=0, microsecond=0).strftime('%Y-%m-%dT%H:%M:%S')
+                logger.info(f"Calculated start date: {time_window_start}")
+            except Exception as e:
+                logger.error(f"Failed to calculate start date: {e}")
+                # Fall back to defaults
+                from datetime import timedelta
+                end_date = datetime.utcnow() - timedelta(days=14)
+                start_date = end_date - timedelta(days=7)
+                time_window_start = start_date.strftime('%Y-%m-%dT%H:%M:%S')
+                time_window_end = end_date.strftime('%Y-%m-%dT%H:%M:%S')
+        elif time_window_start and not time_window_end:
+            # If only start date provided, calculate end date as 7 days after (but respect data lag)
+            logger.info("Only start date provided, calculating end date")
+            from datetime import timedelta
+            try:
+                # Parse start date to datetime
+                if 'T' in str(time_window_start):
+                    start_dt = datetime.strptime(time_window_start.split('.')[0], '%Y-%m-%dT%H:%M:%S')
+                else:
+                    start_dt = datetime.strptime(time_window_start, '%Y-%m-%d')
+
+                # Calculate end as 7 days after start, but cap at 14 days ago for data lag
+                end_dt = start_dt + timedelta(days=7)
+                max_end = datetime.utcnow() - timedelta(days=14)
+                if end_dt > max_end:
+                    end_dt = max_end
+                    logger.info(f"Adjusted end date for AMC data lag")
+
+                time_window_end = end_dt.replace(hour=23, minute=59, second=59, microsecond=0).strftime('%Y-%m-%dT%H:%M:%S')
+                logger.info(f"Calculated end date: {time_window_end}")
+            except Exception as e:
+                logger.error(f"Failed to calculate end date: {e}")
+                # Fall back to defaults
+                from datetime import timedelta
+                end_date = datetime.utcnow() - timedelta(days=14)
+                start_date = end_date - timedelta(days=7)
+                time_window_start = start_date.strftime('%Y-%m-%dT%H:%M:%S')
+                time_window_end = end_date.strftime('%Y-%m-%dT%H:%M:%S')
         
         # Build payload based on execution mode
+        # CRITICAL DISTINCTION: Ad-hoc vs Saved Workflow Execution
+        # --------------------------------------------------------
+        # AMC API requires EITHER workflow_id OR sql_query, never both
+        # These are mutually exclusive execution modes
         if workflow_id:
-            # Saved workflow execution
+            # SAVED WORKFLOW EXECUTION MODE
+            # - References a previously created workflow by its ID
+            # - The workflow already contains the SQL query
+            # - We only provide execution parameters and time window
+            # - Used for: Scheduled runs, recurring reports
             payload = {
                 "workflowId": workflow_id,
                 "timeWindowType": "EXPLICIT",  # Use explicit time window
@@ -153,16 +261,27 @@ class AMCAPIClient:
                 if workflow_params:
                     payload["parameterValues"] = workflow_params
         else:
-            # Ad-hoc execution with SQL query
+            # AD-HOC EXECUTION MODE
+            # - SQL query is provided directly (no workflow created)
+            # - Each execution is independent
+            # - SQL must be fully processed (no {{placeholders}})
+            # - Used for: Report Builder, one-time queries, dynamic SQL
+            logger.info(f"Building ad-hoc execution payload")
+            logger.info(f"SQL query provided: {sql_query is not None}")
+            logger.info(f"SQL query length: {len(sql_query) if sql_query else 0}")
+            if sql_query:
+                logger.info(f"First 100 chars of SQL: {sql_query[:100] if sql_query else 'None'}")
+
+            if not sql_query:
+                logger.error("No SQL query provided for ad-hoc execution! Returning error.")
+                return {
+                    "success": False,
+                    "error": "No SQL query provided for ad-hoc execution"
+                }
+
             payload = {
                 "workflow": {
-                    "query": {
-                        "operations": [
-                            {
-                                "sql": sql_query
-                            }
-                        ]
-                    }
+                    "sqlQuery": sql_query  # According to AMC API docs, ad-hoc execution uses sqlQuery directly
                 },
                 "timeWindowType": "EXPLICIT",  # Use explicit time window
                 "timeWindowStart": time_window_start,
@@ -944,7 +1063,9 @@ class AMCAPIClient:
             body['inputParameters'] = input_parameters
         
         logger.info(f"Updating workflow {workflow_id} in instance {instance_id}")
-        
+        logger.debug(f"SQL Query length: {len(sql_query)} characters")
+        logger.debug(f"SQL Query preview (first 500 chars): {sql_query[:500]}")
+
         try:
             response = requests.put(
                 url,

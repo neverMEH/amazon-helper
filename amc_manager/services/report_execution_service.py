@@ -15,7 +15,34 @@ logger = get_logger(__name__)
 
 
 class ReportExecutionService(DatabaseService):
-    """Service for executing reports via ad-hoc AMC API calls"""
+    """
+    Service for executing reports via ad-hoc AMC API calls
+
+    IMPORTANT DISTINCTION: Ad-hoc vs Saved Workflows
+    ------------------------------------------------
+    This service handles AD-HOC execution of SQL queries directly through AMC API.
+
+    Ad-hoc Execution (This Service):
+    - SQL query is sent directly to AMC's createWorkflowExecution API with sql_query parameter
+    - No workflow is created or stored in AMC
+    - Each execution is independent with its own SQL and parameters
+    - Used for: Report Builder, one-time queries, dynamic SQL generation
+    - AMC API call: POST /workflowExecutions with {sql_query: "...", parameter_values: {...}}
+
+    Saved Workflow Execution (WorkflowService):
+    - Workflow is first created in AMC with createWorkflow API
+    - Workflow has a permanent ID and can be reused
+    - Executions reference the workflow_id, not SQL directly
+    - Used for: Scheduled workflows, recurring reports, version-controlled queries
+    - AMC API calls:
+        1. POST /workflows to create (one-time)
+        2. POST /workflowExecutions with {workflow_id: "...", parameter_values: {...}}
+
+    Key Differences:
+    - Ad-hoc: sql_query parameter is REQUIRED, workflow_id is NOT ALLOWED
+    - Saved: workflow_id parameter is REQUIRED, sql_query is NOT ALLOWED
+    - These parameters are mutually exclusive in AMC API
+    """
 
     def __init__(self):
         super().__init__()
@@ -33,7 +60,10 @@ class ReportExecutionService(DatabaseService):
         schedule_id: Optional[str] = None,
         collection_id: Optional[str] = None,
         time_window_start: Optional[datetime] = None,
-        time_window_end: Optional[datetime] = None
+        time_window_end: Optional[datetime] = None,
+        snowflake_enabled: bool = False,
+        snowflake_table_name: Optional[str] = None,
+        snowflake_schema_name: Optional[str] = None
     ) -> Optional[Dict[str, Any]]:
         """
         Execute a report directly via AMC ad-hoc API
@@ -50,11 +80,23 @@ class ReportExecutionService(DatabaseService):
             collection_id: Optional collection UUID
             time_window_start: Optional time window start
             time_window_end: Optional time window end
+            snowflake_enabled: Whether to upload results to Snowflake
+            snowflake_table_name: Optional custom table name for Snowflake
+            snowflake_schema_name: Optional custom schema name for Snowflake
 
         Returns:
             Execution record or None if failed
         """
         try:
+            logger.info(f"execute_report_adhoc called with report_id={report_id}, instance_id={instance_id}")
+            logger.info(f"SQL query received: {'Yes' if sql_query else 'No'}")
+            logger.info(f"SQL query length: {len(sql_query) if sql_query else 0}")
+            if sql_query:
+                logger.info(f"SQL query first 200 chars: {sql_query[:200]}")
+            else:
+                logger.error("WARNING: SQL query is None or empty!")
+            logger.info(f"Time window: {time_window_start} to {time_window_end}")
+
             # Generate execution ID
             execution_id = f"exec_{uuid.uuid4().hex[:8]}"
 
@@ -71,7 +113,12 @@ class ReportExecutionService(DatabaseService):
                 'parameters_snapshot': parameters,
                 'time_window_start': time_window_start.isoformat() if time_window_start else None,
                 'time_window_end': time_window_end.isoformat() if time_window_end else None,
-                'started_at': datetime.utcnow().isoformat()
+                'started_at': datetime.utcnow().isoformat(),
+                # Snowflake configuration
+                'snowflake_enabled': snowflake_enabled,
+                'snowflake_table_name': snowflake_table_name,
+                'snowflake_schema_name': snowflake_schema_name,
+                'snowflake_status': 'pending' if snowflake_enabled else None
             }
 
             # Get template ID from report
@@ -89,15 +136,45 @@ class ReportExecutionService(DatabaseService):
             execution_uuid = exec_response.data[0]['id']
 
             # Execute via AMC API (ad-hoc, no workflow creation)
+            # CRITICAL: This is an AD-HOC execution - we pass sql_query directly
+            # We do NOT create a workflow first, and do NOT pass workflow_id
+            # The AMC API requires either sql_query OR workflow_id, never both
             try:
                 # Call AMC API with sql_query only (no workflow)
+                # Build parameters for AMC API - include time window in parameter_values
+                amc_params = {}
+                if time_window_start:
+                    amc_params['timeWindowStart'] = self._format_amc_date(time_window_start)
+                if time_window_end:
+                    amc_params['timeWindowEnd'] = self._format_amc_date(time_window_end)
+
+                # Add any other parameters passed
+                if parameters:
+                    amc_params.update(parameters)
+
+                # Ad-hoc execution: SQL query is passed directly to AMC
+                # The SQL must be fully processed (no template placeholders like {{param}})
+                # because AMC doesn't understand template syntax
+                logger.info(f"Executing ad-hoc report with SQL length: {len(sql_query) if sql_query else 0}")
+                logger.info(f"Parameters being passed: {amc_params}")
+
+                # Final check before AMC call
+                if not sql_query:
+                    logger.error("CRITICAL: SQL query is None/empty right before AMC API call!")
+                    raise ValueError("SQL query is required for ad-hoc execution")
+                else:
+                    logger.info(f"SQL query confirmed present, length: {len(sql_query)}")
+
+                # AD-HOC EXECUTION: Pass sql_query parameter (not workflow_id)
+                # The AMC API will execute this SQL directly without creating a workflow
+                # This is different from saved workflows which reference a workflow_id
                 amc_result = await self.amc_client.create_workflow_execution(
                     instance_id=instance_id,
                     user_id=user_id,
                     entity_id=entity_id,
-                    sql_query=sql_query,
-                    time_window_start=self._format_amc_date(time_window_start),
-                    time_window_end=self._format_amc_date(time_window_end)
+                    sql_query=sql_query,  # Ad-hoc: SQL passed directly
+                    # workflow_id=None,   # Ad-hoc: NO workflow_id
+                    parameter_values=amc_params if amc_params else None
                 )
 
                 # Update execution with AMC execution ID
