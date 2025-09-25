@@ -16,6 +16,9 @@ interface QueryReviewState {
   exportSettings: {
     name: string;
   };
+  snowflakeEnabled?: boolean;
+  snowflakeTableName?: string;
+  snowflakeSchemaName?: string;
   advancedOptions: {
     ignoreDataGaps: boolean;
     appendThresholdColumns: boolean;
@@ -72,7 +75,13 @@ export default function QueryReviewStep({ state, instances, onNavigateToStep }: 
 
       // Execute the workflow - using the correct endpoint
       const executePayload = {
-        execution_parameters: state.parameters
+        execution_parameters: state.parameters,
+        // Add Snowflake configuration if enabled
+        ...(state.snowflakeEnabled && {
+          snowflake_enabled: true,
+          snowflake_table_name: state.snowflakeTableName,
+          snowflake_schema_name: state.snowflakeSchemaName || undefined
+        })
       };
 
       const response = await api.post(`/workflows/${workflowId}/execute`, executePayload);
@@ -318,6 +327,24 @@ export default function QueryReviewStep({ state, instances, onNavigateToStep }: 
                   {state.exportSettings.name || 'Auto-generated on execution'}
                 </p>
               </div>
+              {state.snowflakeEnabled && (
+                <div className="pt-2 border-t border-gray-100">
+                  <div className="flex items-center mb-1">
+                    <Database className="h-3 w-3 text-blue-600 mr-1" />
+                    <p className="text-xs font-medium text-gray-700">Snowflake Export</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-gray-600">
+                      Table: <span className="font-mono">{state.snowflakeTableName}</span>
+                    </p>
+                    {state.snowflakeSchemaName && (
+                      <p className="text-xs text-gray-600">
+                        Schema: <span className="font-mono">{state.snowflakeSchemaName}</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
               <div className="pt-2 border-t border-gray-100">
                 <p className="text-xs text-gray-400">
                   All formats (CSV, Parquet, JSON) are available
