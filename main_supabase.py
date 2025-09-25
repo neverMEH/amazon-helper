@@ -200,7 +200,7 @@ from amc_manager.api.asin_router import router as asin_router
 from amc_manager.api.data_collections import router as data_collections_router
 from amc_manager.api.dashboards import router as dashboards_router
 from amc_manager.api.report_dashboard import router as report_dashboard_router
-from amc_manager.api.snowflake_minimal import router as snowflake_router
+from amc_manager.api.snowflake_config import router as snowflake_router
 
 # Add redirect for misconfigured callback URL (must be before router includes)
 @app.get("/api/auth/callback")
