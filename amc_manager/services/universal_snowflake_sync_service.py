@@ -172,9 +172,10 @@ class UniversalSnowflakeSyncService:
     def _generate_table_name(self, execution: Dict[str, Any]) -> str:
         """Generate a meaningful table name for the execution"""
         # Use execution ID and date for uniqueness
-        execution_date = execution.get('created_at', datetime.now().isoformat())[:10]
+        # Replace hyphens with underscores for Snowflake compatibility
+        execution_date = execution.get('created_at', datetime.now().isoformat())[:10].replace('-', '_')
         execution_id_short = execution.get('execution_id', 'unknown')[-8:]
-        
+
         return f"workflow_execution_{execution_date}_{execution_id_short}"
     
     def _update_sync_status(self, sync_id: str, status: str, 
