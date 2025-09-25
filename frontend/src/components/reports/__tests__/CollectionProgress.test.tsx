@@ -35,6 +35,7 @@ vi.mock('lucide-react', () => ({
   RefreshCw: () => <div>RefreshCw</div>,
   ExternalLink: () => <div>ExternalLink</div>,
   Eye: () => <div>Eye</div>,
+  BarChart3: () => <div>BarChart3</div>,
 }));
 
 const createMockProgress = (overrides?: Partial<CollectionProgressType>): CollectionProgressType => ({
