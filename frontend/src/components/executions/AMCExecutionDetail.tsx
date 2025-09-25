@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, Code, Calendar, User, Hash, ChevronDown, ChevronRight, RefreshCw, Play, Loader, Table, BarChart3, Maximize2, Edit2, Clock, Settings, Database } from 'lucide-react';
+import { X, Code, Calendar, User, Hash, ChevronDown, ChevronRight, RefreshCw, Play, Loader, Table, BarChart3, Maximize2, Edit2, Clock, Settings, Database, Save } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
@@ -9,6 +9,7 @@ import EnhancedResultsTable from './EnhancedResultsTable';
 import DataVisualization from './DataVisualization';
 import SQLEditor from '../common/SQLEditor';
 import ExecutionErrorDetails from './ExecutionErrorDetails';
+import SaveAsTemplateModal from '../report-builder/SaveAsTemplateModal';
 
 interface Props {
   instanceId: string;
@@ -25,6 +26,7 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
   const [viewMode, setViewMode] = useState<'table' | 'charts'>('table');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isExpandedSQL, setIsExpandedSQL] = useState(false);
+  const [showSaveAsTemplate, setShowSaveAsTemplate] = useState(false);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   
@@ -168,6 +170,18 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                     </>
                   )}
                 </button>
+                {/* Save as Template button - only show for successful executions */}
+                {execution?.status === 'SUCCEEDED' && execution?.sqlQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setShowSaveAsTemplate(true)}
+                    className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                    title="Save this query as a template for future use"
+                  >
+                    <Save className="h-4 w-4 mr-1" />
+                    Save as Template
+                  </button>
+                )}
                 <button
                   type="button"
                   className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
@@ -732,6 +746,25 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
             </div>
           </div>
         </>
+      )}
+
+      {/* Save as Template Modal */}
+      {showSaveAsTemplate && execution && (
+        <SaveAsTemplateModal
+          isOpen={showSaveAsTemplate}
+          onClose={() => setShowSaveAsTemplate(false)}
+          execution={{
+            workflowName: execution.workflowInfo?.name || execution.workflowName || 'Query',
+            sqlQuery: execution.sqlQuery || execution.workflowInfo?.sqlQuery,
+            workflowId: execution.workflowId || execution.workflowInfo?.id
+          }}
+          onSuccess={(templateId) => {
+            setShowSaveAsTemplate(false);
+            toast.success('Template saved successfully!');
+            // Optionally navigate to the template editor
+            // navigate(`/query-library/templates/${templateId}`);
+          }}
+        />
       )}
     </>
   );
