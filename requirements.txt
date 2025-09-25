@@ -40,8 +40,9 @@ ratelimit==2.2.1
 slowapi==0.1.9
 
 # Snowflake integration
-snowflake-connector-python>=3.0.0
+snowflake-connector-python[pandas]>=3.0.0
 pandas>=2.0.0
+pyarrow>=21.0.0
 
 # Testing (optional)
 pytest==7.4.4

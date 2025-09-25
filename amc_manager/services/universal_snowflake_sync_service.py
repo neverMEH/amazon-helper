@@ -55,7 +55,7 @@ class UniversalSnowflakeSyncService:
         try:
             # Get pending sync items
             response = self.client.table('snowflake_sync_queue')\
-                .select('*, workflow_executions(*), users(id)')\
+                .select('*, users(id)')\
                 .eq('status', 'pending')\
                 .order('created_at')\
                 .limit(10)\
@@ -100,9 +100,15 @@ class UniversalSnowflakeSyncService:
             try:
                 # Update status to processing
                 self._update_sync_status(sync_id, 'processing')
-                
-                # Get execution data
-                execution = sync_item['workflow_executions']
+
+                # Get execution data separately
+                exec_response = self.client.table('workflow_executions')\
+                    .select('*')\
+                    .eq('execution_id', execution_id)\
+                    .single()\
+                    .execute()
+
+                execution = exec_response.data
                 if not execution:
                     raise Exception("Execution not found")
                 
