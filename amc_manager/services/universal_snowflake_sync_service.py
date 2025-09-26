@@ -178,7 +178,7 @@ class UniversalSnowflakeSyncService:
 
         # Get workflow info
         workflow_response = self.client.table('workflows')\
-            .select('name, instance_id, query_text')\
+            .select('name, instance_id, sql_query')\
             .eq('id', execution.get('workflow_id'))\
             .single()\
             .execute()
