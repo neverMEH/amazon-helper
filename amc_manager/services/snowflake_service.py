@@ -14,9 +14,14 @@ from datetime import datetime
 import logging
 from cryptography.hazmat.primitives import serialization
 import base64
+import os
+from dotenv import load_dotenv
 
 from ..services.db_service import DatabaseService, with_connection_retry
 from ..core.logger_simple import get_logger
+
+# Load environment variables
+load_dotenv()
 
 logger = get_logger(__name__)
 
@@ -108,37 +113,101 @@ class SnowflakeService(DatabaseService):
 
     def _encrypt_sensitive_data(self, config_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Encrypt sensitive data (password, private key)
-        In production, use proper encryption libraries like cryptography
+        Encrypt sensitive data using Fernet encryption
         """
+        import os
+        from cryptography.fernet import Fernet
+
         encrypted_data = {}
-        
+
+        # Get FERNET_KEY from environment
+        fernet_key = os.getenv('FERNET_KEY')
+        if not fernet_key:
+            # Fallback to base64 encoding if no FERNET_KEY
+            if 'password' in config_data and config_data['password']:
+                encrypted_data['password_encrypted'] = base64.b64encode(
+                    config_data['password'].encode()
+                ).decode()
+
+            if 'private_key' in config_data and config_data['private_key']:
+                encrypted_data['private_key_encrypted'] = base64.b64encode(
+                    config_data['private_key'].encode()
+                ).decode()
+            return encrypted_data
+
+        # Use Fernet for encryption
+        cipher = Fernet(fernet_key.encode() if isinstance(fernet_key, str) else fernet_key)
+
         if 'password' in config_data and config_data['password']:
-            # Simple base64 encoding for demo - use proper encryption in production
-            encrypted_data['password_encrypted'] = base64.b64encode(
+            encrypted_data['password_encrypted'] = cipher.encrypt(
                 config_data['password'].encode()
             ).decode()
-            
+
         if 'private_key' in config_data and config_data['private_key']:
-            # Simple base64 encoding for demo - use proper encryption in production
-            encrypted_data['private_key_encrypted'] = base64.b64encode(
+            encrypted_data['private_key_encrypted'] = cipher.encrypt(
                 config_data['private_key'].encode()
             ).decode()
-            
+
         return encrypted_data
 
     def _decrypt_sensitive_data(self, encrypted_password: str = None, encrypted_key: str = None) -> Dict[str, str]:
         """
-        Decrypt sensitive data
+        Decrypt sensitive data using Fernet encryption
         """
+        import os
+        from cryptography.fernet import Fernet
+
         decrypted_data = {}
-        
-        if encrypted_password:
-            decrypted_data['password'] = base64.b64decode(encrypted_password.encode()).decode()
-            
-        if encrypted_key:
-            decrypted_data['private_key'] = base64.b64decode(encrypted_key.encode()).decode()
-            
+
+        # Get FERNET_KEY from environment
+        fernet_key = os.getenv('FERNET_KEY')
+        if not fernet_key:
+            # Fallback to base64 decoding for legacy data
+            if encrypted_password:
+                try:
+                    decrypted_data['password'] = base64.b64decode(encrypted_password.encode()).decode()
+                except:
+                    # If base64 fails, assume it's plain text
+                    decrypted_data['password'] = encrypted_password
+
+            if encrypted_key:
+                try:
+                    decrypted_data['private_key'] = base64.b64decode(encrypted_key.encode()).decode()
+                except:
+                    decrypted_data['private_key'] = encrypted_key
+            return decrypted_data
+
+        # Use Fernet for decryption
+        try:
+            cipher = Fernet(fernet_key.encode() if isinstance(fernet_key, str) else fernet_key)
+
+            if encrypted_password:
+                try:
+                    # Try Fernet decryption first
+                    decrypted_data['password'] = cipher.decrypt(encrypted_password.encode()).decode()
+                except:
+                    # Fallback to base64 if Fernet fails (for legacy data)
+                    try:
+                        decrypted_data['password'] = base64.b64decode(encrypted_password.encode()).decode()
+                    except:
+                        # If both fail, log error
+                        logger.error("Failed to decrypt password")
+                        raise
+
+            if encrypted_key:
+                try:
+                    decrypted_data['private_key'] = cipher.decrypt(encrypted_key.encode()).decode()
+                except:
+                    try:
+                        decrypted_data['private_key'] = base64.b64decode(encrypted_key.encode()).decode()
+                    except:
+                        logger.error("Failed to decrypt private key")
+                        raise
+
+        except Exception as e:
+            logger.error(f"Decryption error: {e}")
+            raise
+
         return decrypted_data
 
     def _get_snowflake_connection(self, config: Dict[str, Any]) -> snowflake.connector.SnowflakeConnection:
@@ -299,12 +368,12 @@ class SnowflakeService(DatabaseService):
                     snowflake_type = 'VARCHAR(16777216)'
                 
                 columns.append(f'"{col_name}" {snowflake_type}')
-            
-            # Add primary key constraint
-            columns.append('PRIMARY KEY ("execution_id", "uploaded_at")')
-            
+
+            # Build CREATE TABLE statement without PRIMARY KEY (add as separate constraint)
+            # Convert table name to uppercase for consistency
+            upper_table_name = '.'.join(part.upper() for part in table_name.split('.'))
             create_sql = f"""
-            CREATE TABLE IF NOT EXISTS {table_name} (
+            CREATE TABLE IF NOT EXISTS {upper_table_name} (
                 {', '.join(columns)}
             )
             """
@@ -320,39 +389,39 @@ class SnowflakeService(DatabaseService):
 
     def _upload_dataframe_to_snowflake(self, connection: snowflake.connector.SnowflakeConnection, df: pd.DataFrame, table_name: str):
         """
-        Upload DataFrame to Snowflake using COPY INTO
+        Upload DataFrame to Snowflake using write_pandas
         """
         try:
-            # Convert DataFrame to CSV string
-            csv_data = df.to_csv(index=False, header=False)
-            
-            # Use COPY INTO for efficient bulk loading
-            cursor = connection.cursor()
-            
-            # Create temporary stage (in production, use a persistent stage)
-            stage_name = f"temp_stage_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
-            
-            try:
-                # Create temporary stage
-                cursor.execute(f"CREATE TEMPORARY STAGE {stage_name}")
-                
-                # Put CSV data to stage
-                cursor.execute(f"PUT file://{csv_data} @{stage_name}")
-                
-                # Copy from stage to table
-                copy_sql = f"""
-                COPY INTO {table_name}
-                FROM @{stage_name}
-                FILE_FORMAT = (TYPE = 'CSV' FIELD_DELIMITER = ',' SKIP_HEADER = 1)
-                """
-                
-                cursor.execute(copy_sql)
-                
-            finally:
-                # Clean up temporary stage
-                cursor.execute(f"DROP STAGE IF EXISTS {stage_name}")
-                cursor.close()
-                
+            # Use Snowflake's write_pandas method for efficient upload
+            from snowflake.connector.pandas_tools import write_pandas
+
+            # Parse table name components
+            parts = table_name.split('.')
+            if len(parts) == 3:
+                db, schema, table = parts
+            elif len(parts) == 2:
+                db = None
+                schema, table = parts
+            else:
+                db = None
+                schema = 'PUBLIC'
+                table = table_name
+
+            success, num_chunks, num_rows, output = write_pandas(
+                conn=connection,
+                df=df,
+                table_name=table.upper(),  # Snowflake uses uppercase by default
+                database=db,
+                schema=schema,
+                auto_create_table=False,  # We already created the table
+                overwrite=False  # Append to existing data
+            )
+
+            if success:
+                logger.info(f"Successfully uploaded {num_rows} rows to {table_name}")
+            else:
+                raise Exception(f"Failed to upload data: {output}")
+
         except Exception as e:
             logger.error(f"Error uploading DataFrame to Snowflake: {e}")
             raise

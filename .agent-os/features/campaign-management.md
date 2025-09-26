@@ -4,6 +4,16 @@
 
 The campaign management system provides functionality to import, filter, and manage Amazon advertising campaigns within RecomAMP. It enables users to work with campaign data for parameter substitution in AMC queries and maintains campaign metadata for analysis.
 
+## Recent Changes (2025-09-25)
+
+### Campaign API Parameter Limits Fix (2025-09-25)
+- **Fixed Campaign Selector 422 Validation Errors**: Corrected page_size parameter in campaign API requests to comply with API limits
+  - **Issue**: CampaignSelector components were requesting 200 campaigns per page, exceeding the API's maximum limit of 100
+  - **Impact**: Users experienced 422 Unprocessable Entity errors when trying to load campaign lists in template parameter configuration
+  - **Solution**: Updated all CampaignSelector components to use page_size=100 instead of 200
+  - **Files Modified**: Campaign selector components throughout the frontend
+  - **Result**: Campaign selection in query templates and workflow parameters now works without validation errors
+
 ## Recent Changes (2025-09-11)
 
 ### Critical Bug Fix: Campaign Page Loading Issue

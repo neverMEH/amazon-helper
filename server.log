@@ -1,1 +1,891 @@
-nohup: failed to run command 'python': No such file or directory
+2025-09-25 14:29:02 - amc_manager.services.token_service - INFO - Using existing FERNET_KEY from environment
+2025-09-25 14:29:02 - amc_manager.services.token_service - INFO - Fernet encryption initialized successfully
+2025-09-25 14:29:03 - amc_manager.services.amc_execution_service - INFO - AMC Execution Service configured to use REAL AMC API
+2025-09-25 14:29:03 - amc_manager.services.amc_execution_service - INFO - AMC Execution Service configured to use REAL AMC API
+2025-09-25 14:29:03 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+/home/nevermeh/.local/lib/python3.12/site-packages/pydantic/_internal/_fields.py:198: UserWarning: Field name "schema" in "SnowflakeConfigCreate" shadows an attribute in parent "BaseModel"
+  warnings.warn(
+/home/nevermeh/.local/lib/python3.12/site-packages/pydantic/_internal/_fields.py:198: UserWarning: Field name "schema" in "SnowflakeConfigUpdate" shadows an attribute in parent "BaseModel"
+  warnings.warn(
+/home/nevermeh/.local/lib/python3.12/site-packages/pydantic/_internal/_fields.py:198: UserWarning: Field name "schema" in "SnowflakeConfigResponse" shadows an attribute in parent "BaseModel"
+  warnings.warn(
+/home/nevermeh/.local/lib/python3.12/site-packages/pydantic/_internal/_fields.py:198: UserWarning: Field name "schema" in "SnowflakeTestRequest" shadows an attribute in parent "BaseModel"
+  warnings.warn(
+2025-09-25 14:29:05 - __main__ - INFO - All API routers loaded successfully with rate limiting
+2025-09-25 14:29:05 - __main__ - INFO - Frontend static files mounted
+2025-09-25 14:29:05 - main_supabase - INFO - All API routers loaded successfully with rate limiting
+2025-09-25 14:29:05 - main_supabase - INFO - Frontend static files mounted
+INFO:     Started server process [38154]
+INFO:     Waiting for application startup.
+2025-09-25 14:29:05 - main_supabase - INFO - Starting Recom AMP application with Supabase...
+2025-09-25 14:29:06 - main_supabase - INFO - ✓ Supabase connection successful
+2025-09-25 14:29:06 - amc_manager.services.token_refresh_service - INFO - Token refresh service started
+2025-09-25 14:29:06 - main_supabase - INFO - ✓ Token refresh service started
+2025-09-25 14:29:06 - main_supabase - INFO - ✓ Execution status poller started
+2025-09-25 14:29:06 - amc_manager.services.token_service - INFO - Using existing FERNET_KEY from environment
+2025-09-25 14:29:06 - amc_manager.services.token_service - INFO - Fernet encryption initialized successfully
+2025-09-25 14:29:06 - main_supabase - INFO - ✓ Schedule executor service started
+2025-09-25 14:29:06 - main_supabase - INFO - ✓ Collection executor service started
+2025-09-25 14:29:06 - main_supabase - INFO - ✓ Report scheduler executor service started
+2025-09-25 14:29:06 - main_supabase - INFO - ✓ Report backfill executor service started
+2025-09-25 14:29:06 - main_supabase - INFO - ✓ Universal Snowflake sync service started
+2025-09-25 14:29:06 - amc_manager.services.token_refresh_service - INFO - Added user fe841586-7807-48b1-8808-02877834fce0 to token refresh tracking
+2025-09-25 14:29:06 - main_supabase - INFO - ✓ Added 1 users with tokens to refresh tracking (out of 15 total)
+2025-09-25 14:29:06 - amc_manager.services.token_refresh_service - INFO - Starting token refresh service (interval: 600s)
+2025-09-25 14:29:06 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
+2025-09-25 14:29:06 - amc_manager.services.schedule_executor_service - INFO - Starting Schedule Executor Service
+2025-09-25 14:29:06 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-09-25 14:29:06 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-09-25 14:29:06 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-09-25 14:29:07 - amc_manager.services.collection_executor_service - INFO - Starting Collection Executor Service
+2025-09-25 14:29:07 - amc_manager.services.report_scheduler_executor_service - INFO - Starting Report Scheduler Executor Service
+2025-09-25 14:29:07 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-09-25 14:29:07 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-09-25 14:29:07 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-09-25 14:29:07 - amc_manager.services.report_backfill_executor_service - INFO - Starting Report Backfill Executor Service
+2025-09-25 14:29:07 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-09-25 14:29:07 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-09-25 14:29:07 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-09-25 14:29:08 - amc_manager.services.universal_snowflake_sync_service - INFO - Starting Universal Snowflake Sync Service
+2025-09-25 14:29:08 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error processing universal sync queue: {'message': "Could not find a relationship between 'snowflake_sync_queue' and 'workflow_executions' in the schema cache", 'code': 'PGRST200', 'hint': None, 'details': "Searched for a foreign key relationship between 'snowflake_sync_queue' and 'workflow_executions' in the schema 'public', but no matches were found."}
+INFO:     Application startup complete.
+2025-09-25 14:29:08 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-09-25 14:29:08 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-09-25 14:29:08 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-09-25 14:29:09 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-09-25 14:29:09 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-09-25 14:29:09 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-09-25 14:29:09 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 1 successful, 0 failed
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+2025-09-25 14:29:38 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error processing universal sync queue: {'message': "Could not find a relationship between 'snowflake_sync_queue' and 'workflow_executions' in the schema cache", 'code': 'PGRST200', 'hint': None, 'details': "Searched for a foreign key relationship between 'snowflake_sync_queue' and 'workflow_executions' in the schema 'public', but no matches were found."}
+2025-09-25 14:30:09 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error processing universal sync queue: {'message': "Could not find a relationship between 'snowflake_sync_queue' and 'workflow_executions' in the schema cache", 'code': 'PGRST200', 'hint': None, 'details': "Searched for a foreign key relationship between 'snowflake_sync_queue' and 'workflow_executions' in the schema 'public', but no matches were found."}
+2025-09-25 14:30:39 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error processing universal sync queue: {'message': "Could not find a relationship between 'snowflake_sync_queue' and 'workflow_executions' in the schema cache", 'code': 'PGRST200', 'hint': None, 'details': "Searched for a foreign key relationship between 'snowflake_sync_queue' and 'workflow_executions' in the schema 'public', but no matches were found."}
+2025-09-25 14:31:09 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error processing universal sync queue: {'message': "Could not find a relationship between 'snowflake_sync_queue' and 'workflow_executions' in the schema cache", 'code': 'PGRST200', 'hint': None, 'details': "Searched for a foreign key relationship between 'snowflake_sync_queue' and 'workflow_executions' in the schema 'public', but no matches were found."}
+2025-09-25 14:31:40 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error processing universal sync queue: {'message': "Could not find a relationship between 'snowflake_sync_queue' and 'workflow_executions' in the schema cache", 'code': 'PGRST200', 'hint': None, 'details': "Searched for a foreign key relationship between 'snowflake_sync_queue' and 'workflow_executions' in the schema 'public', but no matches were found."}
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-09-25 14:32:04 - main_supabase - INFO - Shutting down Recom AMP application...
+2025-09-25 14:32:04 - amc_manager.services.token_refresh_service - INFO - Token refresh loop cancelled
+2025-09-25 14:32:04 - amc_manager.services.token_refresh_service - INFO - Token refresh service stopped
+2025-09-25 14:32:04 - amc_manager.services.schedule_executor_service - INFO - Stopping Schedule Executor Service
+2025-09-25 14:32:04 - amc_manager.services.collection_executor_service - INFO - Stopping Collection Executor Service
+2025-09-25 14:32:04 - amc_manager.services.universal_snowflake_sync_service - INFO - Stopping Universal Snowflake Sync Service
+INFO:     Application shutdown complete.
+INFO:     Finished server process [38154]
+2025-09-25 14:32:04 - amc_manager.services.report_backfill_executor_service - INFO - Report Backfill Executor Service stopped
+2025-09-25 14:32:04 - amc_manager.services.report_scheduler_executor_service - INFO - Report Scheduler Executor Service stopped
+2025-09-25 14:32:18 - amc_manager.services.token_service - INFO - Using existing FERNET_KEY from environment
+2025-09-25 14:32:18 - amc_manager.services.token_service - INFO - Fernet encryption initialized successfully
+2025-09-25 14:32:18 - amc_manager.services.amc_execution_service - INFO - AMC Execution Service configured to use REAL AMC API
+2025-09-25 14:32:18 - amc_manager.services.amc_execution_service - INFO - AMC Execution Service configured to use REAL AMC API
+2025-09-25 14:32:19 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+/home/nevermeh/.local/lib/python3.12/site-packages/pydantic/_internal/_fields.py:198: UserWarning: Field name "schema" in "SnowflakeConfigCreate" shadows an attribute in parent "BaseModel"
+  warnings.warn(
+/home/nevermeh/.local/lib/python3.12/site-packages/pydantic/_internal/_fields.py:198: UserWarning: Field name "schema" in "SnowflakeConfigUpdate" shadows an attribute in parent "BaseModel"
+  warnings.warn(
+/home/nevermeh/.local/lib/python3.12/site-packages/pydantic/_internal/_fields.py:198: UserWarning: Field name "schema" in "SnowflakeConfigResponse" shadows an attribute in parent "BaseModel"
+  warnings.warn(
+/home/nevermeh/.local/lib/python3.12/site-packages/pydantic/_internal/_fields.py:198: UserWarning: Field name "schema" in "SnowflakeTestRequest" shadows an attribute in parent "BaseModel"
+  warnings.warn(
+2025-09-25 14:32:20 - __main__ - INFO - All API routers loaded successfully with rate limiting
+2025-09-25 14:32:20 - __main__ - INFO - Frontend static files mounted
+2025-09-25 14:32:20 - main_supabase - INFO - All API routers loaded successfully with rate limiting
+2025-09-25 14:32:20 - main_supabase - INFO - Frontend static files mounted
+INFO:     Started server process [38352]
+INFO:     Waiting for application startup.
+2025-09-25 14:32:20 - main_supabase - INFO - Starting Recom AMP application with Supabase...
+2025-09-25 14:32:20 - main_supabase - INFO - ✓ Supabase connection successful
+2025-09-25 14:32:20 - amc_manager.services.token_refresh_service - INFO - Token refresh service started
+2025-09-25 14:32:20 - main_supabase - INFO - ✓ Token refresh service started
+2025-09-25 14:32:20 - main_supabase - INFO - ✓ Execution status poller started
+2025-09-25 14:32:20 - amc_manager.services.token_service - INFO - Using existing FERNET_KEY from environment
+2025-09-25 14:32:20 - amc_manager.services.token_service - INFO - Fernet encryption initialized successfully
+2025-09-25 14:32:20 - main_supabase - INFO - ✓ Schedule executor service started
+2025-09-25 14:32:20 - main_supabase - INFO - ✓ Collection executor service started
+2025-09-25 14:32:20 - main_supabase - INFO - ✓ Report scheduler executor service started
+2025-09-25 14:32:20 - main_supabase - INFO - ✓ Report backfill executor service started
+2025-09-25 14:32:20 - main_supabase - INFO - ✓ Universal Snowflake sync service started
+2025-09-25 14:32:20 - amc_manager.services.token_refresh_service - INFO - Added user fe841586-7807-48b1-8808-02877834fce0 to token refresh tracking
+2025-09-25 14:32:20 - main_supabase - INFO - ✓ Added 1 users with tokens to refresh tracking (out of 15 total)
+2025-09-25 14:32:20 - amc_manager.services.token_refresh_service - INFO - Starting token refresh service (interval: 600s)
+2025-09-25 14:32:20 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
+2025-09-25 14:32:21 - amc_manager.services.schedule_executor_service - INFO - Starting Schedule Executor Service
+2025-09-25 14:32:21 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-09-25 14:32:21 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-09-25 14:32:21 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-09-25 14:32:21 - amc_manager.services.collection_executor_service - INFO - Starting Collection Executor Service
+2025-09-25 14:32:21 - amc_manager.services.report_scheduler_executor_service - INFO - Starting Report Scheduler Executor Service
+2025-09-25 14:32:21 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-09-25 14:32:21 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-09-25 14:32:21 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-09-25 14:32:22 - amc_manager.services.report_backfill_executor_service - INFO - Starting Report Backfill Executor Service
+2025-09-25 14:32:22 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-09-25 14:32:22 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-09-25 14:32:22 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-09-25 14:32:22 - amc_manager.services.universal_snowflake_sync_service - INFO - Starting Universal Snowflake Sync Service
+2025-09-25 14:32:22 - amc_manager.services.universal_snowflake_sync_service - INFO - Processing 10 universal Snowflake sync items
+INFO:     Application startup complete.
+2025-09-25 14:32:22 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-09-25 14:32:22 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-09-25 14:32:22 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-09-25 14:32:23 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-09-25 14:32:23 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-09-25 14:32:23 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-09-25 14:32:23 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-09-25 14:32:23 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-09-25 14:32:23 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-09-25 14:32:24 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_f92cddc6 to Snowflake table workflow_execution_2025-09-25_f92cddc6
+2025-09-25 14:32:24 - amc_manager.services.snowflake_service - INFO - Updated execution exec_f92cddc6 Snowflake status to uploading
+2025-09-25 14:32:24 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:32:24 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:32:24 - amc_manager.services.snowflake_service - INFO - Updated execution exec_f92cddc6 Snowflake status to failed
+2025-09-25 14:32:24 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_f92cddc6: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:32:24 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_f92cddc6 (attempt 2)
+2025-09-25 14:32:24 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_ab32a765 to Snowflake table workflow_execution_2025-09-25_ab32a765
+2025-09-25 14:32:24 - amc_manager.services.snowflake_service - INFO - Updated execution exec_ab32a765 Snowflake status to uploading
+2025-09-25 14:32:24 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:32:24 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:32:24 - amc_manager.services.snowflake_service - INFO - Updated execution exec_ab32a765 Snowflake status to failed
+2025-09-25 14:32:24 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_ab32a765: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:32:24 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_ab32a765 (attempt 2)
+2025-09-25 14:32:25 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_b253b8b0 to Snowflake table workflow_execution_2025-09-24_b253b8b0
+2025-09-25 14:32:25 - amc_manager.services.snowflake_service - INFO - Updated execution exec_b253b8b0 Snowflake status to uploading
+2025-09-25 14:32:25 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:32:25 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:32:25 - amc_manager.services.snowflake_service - INFO - Updated execution exec_b253b8b0 Snowflake status to failed
+2025-09-25 14:32:25 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_b253b8b0: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:32:25 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_b253b8b0 (attempt 2)
+2025-09-25 14:32:25 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_df7460de to Snowflake table workflow_execution_2025-09-23_df7460de
+2025-09-25 14:32:25 - amc_manager.services.snowflake_service - INFO - Updated execution exec_df7460de Snowflake status to uploading
+2025-09-25 14:32:25 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:32:25 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:32:26 - amc_manager.services.snowflake_service - INFO - Updated execution exec_df7460de Snowflake status to failed
+2025-09-25 14:32:26 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_df7460de: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:32:26 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_df7460de (attempt 2)
+2025-09-25 14:32:26 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_f08238c0 to Snowflake table workflow_execution_2025-09-23_f08238c0
+2025-09-25 14:32:26 - amc_manager.services.snowflake_service - INFO - Updated execution exec_f08238c0 Snowflake status to uploading
+2025-09-25 14:32:26 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:32:26 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:32:27 - amc_manager.services.snowflake_service - INFO - Updated execution exec_f08238c0 Snowflake status to failed
+2025-09-25 14:32:27 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_f08238c0: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:32:27 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_f08238c0 (attempt 2)
+2025-09-25 14:32:27 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_067bd290 to Snowflake table workflow_execution_2025-09-24_067bd290
+2025-09-25 14:32:27 - amc_manager.services.snowflake_service - INFO - Updated execution exec_067bd290 Snowflake status to uploading
+2025-09-25 14:32:27 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:32:27 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:32:27 - amc_manager.services.snowflake_service - INFO - Updated execution exec_067bd290 Snowflake status to failed
+2025-09-25 14:32:27 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_067bd290: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:32:27 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_067bd290 (attempt 2)
+2025-09-25 14:32:27 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_11f47977 to Snowflake table workflow_execution_2025-09-23_11f47977
+2025-09-25 14:32:27 - amc_manager.services.snowflake_service - INFO - Updated execution exec_11f47977 Snowflake status to uploading
+2025-09-25 14:32:27 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:32:27 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:32:28 - amc_manager.services.snowflake_service - INFO - Updated execution exec_11f47977 Snowflake status to failed
+2025-09-25 14:32:28 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_11f47977: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:32:28 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_11f47977 (attempt 2)
+2025-09-25 14:32:28 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_12683a5a to Snowflake table workflow_execution_2025-09-23_12683a5a
+2025-09-25 14:32:28 - amc_manager.services.snowflake_service - INFO - Updated execution exec_12683a5a Snowflake status to uploading
+2025-09-25 14:32:28 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:32:28 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:32:28 - amc_manager.services.snowflake_service - INFO - Updated execution exec_12683a5a Snowflake status to failed
+2025-09-25 14:32:28 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_12683a5a: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:32:28 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_12683a5a (attempt 2)
+2025-09-25 14:32:28 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_30bbb840 to Snowflake table workflow_execution_2025-09-25_30bbb840
+2025-09-25 14:32:29 - amc_manager.services.snowflake_service - INFO - Updated execution exec_30bbb840 Snowflake status to uploading
+2025-09-25 14:32:29 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:32:29 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:32:29 - amc_manager.services.snowflake_service - INFO - Updated execution exec_30bbb840 Snowflake status to failed
+2025-09-25 14:32:29 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_30bbb840: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:32:29 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_30bbb840 (attempt 2)
+2025-09-25 14:32:29 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_31e5188f to Snowflake table workflow_execution_2025-09-23_31e5188f
+2025-09-25 14:32:29 - amc_manager.services.snowflake_service - INFO - Updated execution exec_31e5188f Snowflake status to uploading
+2025-09-25 14:32:29 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:32:29 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:32:29 - amc_manager.services.snowflake_service - INFO - Updated execution exec_31e5188f Snowflake status to failed
+2025-09-25 14:32:29 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_31e5188f: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:32:29 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_31e5188f (attempt 2)
+2025-09-25 14:32:29 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 1 successful, 0 failed
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+2025-09-25 14:33:00 - amc_manager.services.universal_snowflake_sync_service - INFO - Processing 10 universal Snowflake sync items
+2025-09-25 14:33:00 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_aada1943 to Snowflake table workflow_execution_2025-09-23_aada1943
+2025-09-25 14:33:01 - amc_manager.services.snowflake_service - INFO - Updated execution exec_aada1943 Snowflake status to uploading
+2025-09-25 14:33:01 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:01 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:01 - amc_manager.services.snowflake_service - INFO - Updated execution exec_aada1943 Snowflake status to failed
+2025-09-25 14:33:01 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_aada1943: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:01 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_aada1943 (attempt 2)
+2025-09-25 14:33:01 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_419b2f72 to Snowflake table workflow_execution_2025-09-24_419b2f72
+2025-09-25 14:33:01 - amc_manager.services.snowflake_service - INFO - Updated execution exec_419b2f72 Snowflake status to uploading
+2025-09-25 14:33:01 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:01 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:02 - amc_manager.services.snowflake_service - INFO - Updated execution exec_419b2f72 Snowflake status to failed
+2025-09-25 14:33:02 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_419b2f72: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:02 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_419b2f72 (attempt 2)
+2025-09-25 14:33:02 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_4fcf9a3a to Snowflake table workflow_execution_2025-09-24_4fcf9a3a
+2025-09-25 14:33:02 - amc_manager.services.snowflake_service - INFO - Updated execution exec_4fcf9a3a Snowflake status to uploading
+2025-09-25 14:33:02 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:02 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:02 - amc_manager.services.snowflake_service - INFO - Updated execution exec_4fcf9a3a Snowflake status to failed
+2025-09-25 14:33:02 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_4fcf9a3a: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:02 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_4fcf9a3a (attempt 2)
+2025-09-25 14:33:03 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_6d63b8fc to Snowflake table workflow_execution_2025-09-25_6d63b8fc
+2025-09-25 14:33:03 - amc_manager.services.snowflake_service - INFO - Updated execution exec_6d63b8fc Snowflake status to uploading
+2025-09-25 14:33:03 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:03 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:03 - amc_manager.services.snowflake_service - INFO - Updated execution exec_6d63b8fc Snowflake status to failed
+2025-09-25 14:33:03 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_6d63b8fc: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:03 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_6d63b8fc (attempt 2)
+2025-09-25 14:33:03 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_95f6eebd to Snowflake table workflow_execution_2025-09-25_95f6eebd
+2025-09-25 14:33:04 - amc_manager.services.snowflake_service - INFO - Updated execution exec_95f6eebd Snowflake status to uploading
+2025-09-25 14:33:04 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:04 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:04 - amc_manager.services.snowflake_service - INFO - Updated execution exec_95f6eebd Snowflake status to failed
+2025-09-25 14:33:04 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_95f6eebd: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:04 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_95f6eebd (attempt 2)
+2025-09-25 14:33:04 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_f92cddc6 to Snowflake table workflow_execution_2025-09-25_f92cddc6
+2025-09-25 14:33:04 - amc_manager.services.snowflake_service - INFO - Updated execution exec_f92cddc6 Snowflake status to uploading
+2025-09-25 14:33:04 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:04 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:04 - amc_manager.services.snowflake_service - INFO - Updated execution exec_f92cddc6 Snowflake status to failed
+2025-09-25 14:33:04 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_f92cddc6: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:04 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_f92cddc6 (attempt 3)
+2025-09-25 14:33:05 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_ab32a765 to Snowflake table workflow_execution_2025-09-25_ab32a765
+2025-09-25 14:33:05 - amc_manager.services.snowflake_service - INFO - Updated execution exec_ab32a765 Snowflake status to uploading
+2025-09-25 14:33:05 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:05 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:05 - amc_manager.services.snowflake_service - INFO - Updated execution exec_ab32a765 Snowflake status to failed
+2025-09-25 14:33:05 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_ab32a765: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:05 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_ab32a765 (attempt 3)
+2025-09-25 14:33:06 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_b253b8b0 to Snowflake table workflow_execution_2025-09-24_b253b8b0
+2025-09-25 14:33:06 - amc_manager.services.snowflake_service - INFO - Updated execution exec_b253b8b0 Snowflake status to uploading
+2025-09-25 14:33:06 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:06 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:06 - amc_manager.services.snowflake_service - INFO - Updated execution exec_b253b8b0 Snowflake status to failed
+2025-09-25 14:33:06 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_b253b8b0: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:06 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_b253b8b0 (attempt 3)
+2025-09-25 14:33:06 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_df7460de to Snowflake table workflow_execution_2025-09-23_df7460de
+2025-09-25 14:33:07 - amc_manager.services.snowflake_service - INFO - Updated execution exec_df7460de Snowflake status to uploading
+2025-09-25 14:33:07 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:07 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:07 - amc_manager.services.snowflake_service - INFO - Updated execution exec_df7460de Snowflake status to failed
+2025-09-25 14:33:07 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_df7460de: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:07 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_df7460de (attempt 3)
+2025-09-25 14:33:07 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_f08238c0 to Snowflake table workflow_execution_2025-09-23_f08238c0
+2025-09-25 14:33:07 - amc_manager.services.snowflake_service - INFO - Updated execution exec_f08238c0 Snowflake status to uploading
+2025-09-25 14:33:07 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:07 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:08 - amc_manager.services.snowflake_service - INFO - Updated execution exec_f08238c0 Snowflake status to failed
+2025-09-25 14:33:08 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_f08238c0: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:08 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_f08238c0 (attempt 3)
+2025-09-25 14:33:38 - amc_manager.services.universal_snowflake_sync_service - INFO - Processing 10 universal Snowflake sync items
+2025-09-25 14:33:39 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_3c2fd1c3 to Snowflake table workflow_execution_2025-09-23_3c2fd1c3
+2025-09-25 14:33:39 - amc_manager.services.snowflake_service - INFO - Updated execution exec_3c2fd1c3 Snowflake status to uploading
+2025-09-25 14:33:39 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:39 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:39 - amc_manager.services.snowflake_service - INFO - Updated execution exec_3c2fd1c3 Snowflake status to failed
+2025-09-25 14:33:39 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_3c2fd1c3: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:39 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_3c2fd1c3 (attempt 2)
+2025-09-25 14:33:39 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_ab32a765 to Snowflake table workflow_execution_2025-09-25_ab32a765
+2025-09-25 14:33:39 - amc_manager.services.snowflake_service - INFO - Updated execution exec_ab32a765 Snowflake status to uploading
+2025-09-25 14:33:39 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:39 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:40 - amc_manager.services.snowflake_service - INFO - Updated execution exec_ab32a765 Snowflake status to failed
+2025-09-25 14:33:40 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_ab32a765: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:40 - amc_manager.services.universal_snowflake_sync_service - ERROR - Max retries exceeded for execution exec_ab32a765
+2025-09-25 14:33:40 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_b253b8b0 to Snowflake table workflow_execution_2025-09-24_b253b8b0
+2025-09-25 14:33:40 - amc_manager.services.snowflake_service - INFO - Updated execution exec_b253b8b0 Snowflake status to uploading
+2025-09-25 14:33:40 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:40 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:40 - amc_manager.services.snowflake_service - INFO - Updated execution exec_b253b8b0 Snowflake status to failed
+2025-09-25 14:33:40 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_b253b8b0: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:40 - amc_manager.services.universal_snowflake_sync_service - ERROR - Max retries exceeded for execution exec_b253b8b0
+2025-09-25 14:33:41 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_df7460de to Snowflake table workflow_execution_2025-09-23_df7460de
+2025-09-25 14:33:41 - amc_manager.services.snowflake_service - INFO - Updated execution exec_df7460de Snowflake status to uploading
+2025-09-25 14:33:41 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:41 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:41 - amc_manager.services.snowflake_service - INFO - Updated execution exec_df7460de Snowflake status to failed
+2025-09-25 14:33:41 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_df7460de: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:41 - amc_manager.services.universal_snowflake_sync_service - ERROR - Max retries exceeded for execution exec_df7460de
+2025-09-25 14:33:41 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_f08238c0 to Snowflake table workflow_execution_2025-09-23_f08238c0
+2025-09-25 14:33:42 - amc_manager.services.snowflake_service - INFO - Updated execution exec_f08238c0 Snowflake status to uploading
+2025-09-25 14:33:42 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:42 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:42 - amc_manager.services.snowflake_service - INFO - Updated execution exec_f08238c0 Snowflake status to failed
+2025-09-25 14:33:42 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_f08238c0: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:42 - amc_manager.services.universal_snowflake_sync_service - ERROR - Max retries exceeded for execution exec_f08238c0
+2025-09-25 14:33:42 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_067bd290 to Snowflake table workflow_execution_2025-09-24_067bd290
+2025-09-25 14:33:42 - amc_manager.services.snowflake_service - INFO - Updated execution exec_067bd290 Snowflake status to uploading
+2025-09-25 14:33:42 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:42 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:42 - amc_manager.services.snowflake_service - INFO - Updated execution exec_067bd290 Snowflake status to failed
+2025-09-25 14:33:42 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_067bd290: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:42 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_067bd290 (attempt 3)
+2025-09-25 14:33:43 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_11f47977 to Snowflake table workflow_execution_2025-09-23_11f47977
+2025-09-25 14:33:43 - amc_manager.services.snowflake_service - INFO - Updated execution exec_11f47977 Snowflake status to uploading
+2025-09-25 14:33:43 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:43 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:43 - amc_manager.services.snowflake_service - INFO - Updated execution exec_11f47977 Snowflake status to failed
+2025-09-25 14:33:43 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_11f47977: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:43 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_11f47977 (attempt 3)
+2025-09-25 14:33:43 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_12683a5a to Snowflake table workflow_execution_2025-09-23_12683a5a
+2025-09-25 14:33:43 - amc_manager.services.snowflake_service - INFO - Updated execution exec_12683a5a Snowflake status to uploading
+2025-09-25 14:33:43 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:43 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:44 - amc_manager.services.snowflake_service - INFO - Updated execution exec_12683a5a Snowflake status to failed
+2025-09-25 14:33:44 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_12683a5a: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:44 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_12683a5a (attempt 3)
+2025-09-25 14:33:44 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_30bbb840 to Snowflake table workflow_execution_2025-09-25_30bbb840
+2025-09-25 14:33:44 - amc_manager.services.snowflake_service - INFO - Updated execution exec_30bbb840 Snowflake status to uploading
+2025-09-25 14:33:44 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:44 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:44 - amc_manager.services.snowflake_service - INFO - Updated execution exec_30bbb840 Snowflake status to failed
+2025-09-25 14:33:44 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_30bbb840: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:44 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_30bbb840 (attempt 3)
+2025-09-25 14:33:44 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_31e5188f to Snowflake table workflow_execution_2025-09-23_31e5188f
+2025-09-25 14:33:45 - amc_manager.services.snowflake_service - INFO - Updated execution exec_31e5188f Snowflake status to uploading
+2025-09-25 14:33:45 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:45 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:45 - amc_manager.services.snowflake_service - INFO - Updated execution exec_31e5188f Snowflake status to failed
+2025-09-25 14:33:45 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_31e5188f: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:33:45 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_31e5188f (attempt 3)
+2025-09-25 14:34:15 - amc_manager.services.universal_snowflake_sync_service - INFO - Processing 10 universal Snowflake sync items
+2025-09-25 14:34:16 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_aada1943 to Snowflake table workflow_execution_2025-09-23_aada1943
+2025-09-25 14:34:16 - amc_manager.services.snowflake_service - INFO - Updated execution exec_aada1943 Snowflake status to uploading
+2025-09-25 14:34:16 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:16 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:16 - amc_manager.services.snowflake_service - INFO - Updated execution exec_aada1943 Snowflake status to failed
+2025-09-25 14:34:16 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_aada1943: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:16 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_aada1943 (attempt 3)
+2025-09-25 14:34:17 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_419b2f72 to Snowflake table workflow_execution_2025-09-24_419b2f72
+2025-09-25 14:34:17 - amc_manager.services.snowflake_service - INFO - Updated execution exec_419b2f72 Snowflake status to uploading
+2025-09-25 14:34:17 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:17 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:17 - amc_manager.services.snowflake_service - INFO - Updated execution exec_419b2f72 Snowflake status to failed
+2025-09-25 14:34:17 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_419b2f72: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:17 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_419b2f72 (attempt 3)
+2025-09-25 14:34:18 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_4fcf9a3a to Snowflake table workflow_execution_2025-09-24_4fcf9a3a
+2025-09-25 14:34:18 - amc_manager.services.snowflake_service - INFO - Updated execution exec_4fcf9a3a Snowflake status to uploading
+2025-09-25 14:34:18 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:18 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:18 - amc_manager.services.snowflake_service - INFO - Updated execution exec_4fcf9a3a Snowflake status to failed
+2025-09-25 14:34:18 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_4fcf9a3a: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:18 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_4fcf9a3a (attempt 3)
+2025-09-25 14:34:18 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_6d63b8fc to Snowflake table workflow_execution_2025-09-25_6d63b8fc
+2025-09-25 14:34:19 - amc_manager.services.snowflake_service - INFO - Updated execution exec_6d63b8fc Snowflake status to uploading
+2025-09-25 14:34:19 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:19 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:19 - amc_manager.services.snowflake_service - INFO - Updated execution exec_6d63b8fc Snowflake status to failed
+2025-09-25 14:34:19 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_6d63b8fc: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:19 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_6d63b8fc (attempt 3)
+2025-09-25 14:34:19 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_95f6eebd to Snowflake table workflow_execution_2025-09-25_95f6eebd
+2025-09-25 14:34:19 - amc_manager.services.snowflake_service - INFO - Updated execution exec_95f6eebd Snowflake status to uploading
+2025-09-25 14:34:19 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:19 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:19 - amc_manager.services.snowflake_service - INFO - Updated execution exec_95f6eebd Snowflake status to failed
+2025-09-25 14:34:19 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_95f6eebd: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:19 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_95f6eebd (attempt 3)
+2025-09-25 14:34:20 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_f92cddc6 to Snowflake table workflow_execution_2025-09-25_f92cddc6
+2025-09-25 14:34:20 - amc_manager.services.snowflake_service - INFO - Updated execution exec_f92cddc6 Snowflake status to uploading
+2025-09-25 14:34:20 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:20 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:20 - amc_manager.services.snowflake_service - INFO - Updated execution exec_f92cddc6 Snowflake status to failed
+2025-09-25 14:34:20 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_f92cddc6: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:20 - amc_manager.services.universal_snowflake_sync_service - ERROR - Max retries exceeded for execution exec_f92cddc6
+2025-09-25 14:34:20 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_3c2fd1c3 to Snowflake table workflow_execution_2025-09-23_3c2fd1c3
+2025-09-25 14:34:21 - amc_manager.services.snowflake_service - INFO - Updated execution exec_3c2fd1c3 Snowflake status to uploading
+2025-09-25 14:34:21 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:21 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:21 - amc_manager.services.snowflake_service - INFO - Updated execution exec_3c2fd1c3 Snowflake status to failed
+2025-09-25 14:34:21 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_3c2fd1c3: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:21 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_3c2fd1c3 (attempt 3)
+2025-09-25 14:34:21 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_067bd290 to Snowflake table workflow_execution_2025-09-24_067bd290
+2025-09-25 14:34:21 - amc_manager.services.snowflake_service - INFO - Updated execution exec_067bd290 Snowflake status to uploading
+2025-09-25 14:34:21 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:21 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:22 - amc_manager.services.snowflake_service - INFO - Updated execution exec_067bd290 Snowflake status to failed
+2025-09-25 14:34:22 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_067bd290: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:22 - amc_manager.services.universal_snowflake_sync_service - ERROR - Max retries exceeded for execution exec_067bd290
+2025-09-25 14:34:22 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_11f47977 to Snowflake table workflow_execution_2025-09-23_11f47977
+2025-09-25 14:34:22 - amc_manager.services.snowflake_service - INFO - Updated execution exec_11f47977 Snowflake status to uploading
+2025-09-25 14:34:22 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:22 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:22 - amc_manager.services.snowflake_service - INFO - Updated execution exec_11f47977 Snowflake status to failed
+2025-09-25 14:34:22 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_11f47977: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:22 - amc_manager.services.universal_snowflake_sync_service - ERROR - Max retries exceeded for execution exec_11f47977
+2025-09-25 14:34:23 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_12683a5a to Snowflake table workflow_execution_2025-09-23_12683a5a
+2025-09-25 14:34:23 - amc_manager.services.snowflake_service - INFO - Updated execution exec_12683a5a Snowflake status to uploading
+2025-09-25 14:34:23 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:23 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:23 - amc_manager.services.snowflake_service - INFO - Updated execution exec_12683a5a Snowflake status to failed
+2025-09-25 14:34:23 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_12683a5a: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:23 - amc_manager.services.universal_snowflake_sync_service - ERROR - Max retries exceeded for execution exec_12683a5a
+2025-09-25 14:34:53 - amc_manager.services.universal_snowflake_sync_service - INFO - Processing 10 universal Snowflake sync items
+2025-09-25 14:34:54 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_30bbb840 to Snowflake table workflow_execution_2025-09-25_30bbb840
+2025-09-25 14:34:54 - amc_manager.services.snowflake_service - INFO - Updated execution exec_30bbb840 Snowflake status to uploading
+2025-09-25 14:34:54 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:54 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:54 - amc_manager.services.snowflake_service - INFO - Updated execution exec_30bbb840 Snowflake status to failed
+2025-09-25 14:34:54 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_30bbb840: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:54 - amc_manager.services.universal_snowflake_sync_service - ERROR - Max retries exceeded for execution exec_30bbb840
+2025-09-25 14:34:55 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_31e5188f to Snowflake table workflow_execution_2025-09-23_31e5188f
+2025-09-25 14:34:55 - amc_manager.services.snowflake_service - INFO - Updated execution exec_31e5188f Snowflake status to uploading
+2025-09-25 14:34:55 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:55 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:55 - amc_manager.services.snowflake_service - INFO - Updated execution exec_31e5188f Snowflake status to failed
+2025-09-25 14:34:55 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_31e5188f: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:55 - amc_manager.services.universal_snowflake_sync_service - ERROR - Max retries exceeded for execution exec_31e5188f
+2025-09-25 14:34:56 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_aada1943 to Snowflake table workflow_execution_2025-09-23_aada1943
+2025-09-25 14:34:56 - amc_manager.services.snowflake_service - INFO - Updated execution exec_aada1943 Snowflake status to uploading
+2025-09-25 14:34:56 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:56 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:56 - amc_manager.services.snowflake_service - INFO - Updated execution exec_aada1943 Snowflake status to failed
+2025-09-25 14:34:56 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_aada1943: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:56 - amc_manager.services.universal_snowflake_sync_service - ERROR - Max retries exceeded for execution exec_aada1943
+2025-09-25 14:34:57 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_419b2f72 to Snowflake table workflow_execution_2025-09-24_419b2f72
+2025-09-25 14:34:57 - amc_manager.services.snowflake_service - INFO - Updated execution exec_419b2f72 Snowflake status to uploading
+2025-09-25 14:34:57 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:57 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:57 - amc_manager.services.snowflake_service - INFO - Updated execution exec_419b2f72 Snowflake status to failed
+2025-09-25 14:34:57 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_419b2f72: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:57 - amc_manager.services.universal_snowflake_sync_service - ERROR - Max retries exceeded for execution exec_419b2f72
+2025-09-25 14:34:58 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_4fcf9a3a to Snowflake table workflow_execution_2025-09-24_4fcf9a3a
+2025-09-25 14:34:58 - amc_manager.services.snowflake_service - INFO - Updated execution exec_4fcf9a3a Snowflake status to uploading
+2025-09-25 14:34:58 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:58 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:58 - amc_manager.services.snowflake_service - INFO - Updated execution exec_4fcf9a3a Snowflake status to failed
+2025-09-25 14:34:58 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_4fcf9a3a: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:58 - amc_manager.services.universal_snowflake_sync_service - ERROR - Max retries exceeded for execution exec_4fcf9a3a
+2025-09-25 14:34:59 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_6d63b8fc to Snowflake table workflow_execution_2025-09-25_6d63b8fc
+2025-09-25 14:34:59 - amc_manager.services.snowflake_service - INFO - Updated execution exec_6d63b8fc Snowflake status to uploading
+2025-09-25 14:34:59 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:59 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:59 - amc_manager.services.snowflake_service - INFO - Updated execution exec_6d63b8fc Snowflake status to failed
+2025-09-25 14:34:59 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_6d63b8fc: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:59 - amc_manager.services.universal_snowflake_sync_service - ERROR - Max retries exceeded for execution exec_6d63b8fc
+2025-09-25 14:34:59 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_95f6eebd to Snowflake table workflow_execution_2025-09-25_95f6eebd
+2025-09-25 14:34:59 - amc_manager.services.snowflake_service - INFO - Updated execution exec_95f6eebd Snowflake status to uploading
+2025-09-25 14:34:59 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:34:59 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:35:00 - amc_manager.services.snowflake_service - INFO - Updated execution exec_95f6eebd Snowflake status to failed
+2025-09-25 14:35:00 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_95f6eebd: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:35:00 - amc_manager.services.universal_snowflake_sync_service - ERROR - Max retries exceeded for execution exec_95f6eebd
+2025-09-25 14:35:00 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_3c2fd1c3 to Snowflake table workflow_execution_2025-09-23_3c2fd1c3
+2025-09-25 14:35:00 - amc_manager.services.snowflake_service - INFO - Updated execution exec_3c2fd1c3 Snowflake status to uploading
+2025-09-25 14:35:00 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:35:00 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:35:00 - amc_manager.services.snowflake_service - INFO - Updated execution exec_3c2fd1c3 Snowflake status to failed
+2025-09-25 14:35:00 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_3c2fd1c3: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:35:00 - amc_manager.services.universal_snowflake_sync_service - ERROR - Max retries exceeded for execution exec_3c2fd1c3
+2025-09-25 14:35:01 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_e6c6dc72 to Snowflake table workflow_execution_2025-09-09_e6c6dc72
+2025-09-25 14:35:01 - amc_manager.services.snowflake_service - INFO - Updated execution exec_e6c6dc72 Snowflake status to uploading
+2025-09-25 14:35:01 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:35:01 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:35:01 - amc_manager.services.snowflake_service - INFO - Updated execution exec_e6c6dc72 Snowflake status to failed
+2025-09-25 14:35:01 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_e6c6dc72: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:35:01 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_e6c6dc72 (attempt 1)
+2025-09-25 14:35:02 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_ff8bd984 to Snowflake table workflow_execution_2025-09-09_ff8bd984
+2025-09-25 14:35:02 - amc_manager.services.snowflake_service - INFO - Updated execution exec_ff8bd984 Snowflake status to uploading
+2025-09-25 14:35:02 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:35:02 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:35:02 - amc_manager.services.snowflake_service - INFO - Updated execution exec_ff8bd984 Snowflake status to failed
+2025-09-25 14:35:02 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_ff8bd984: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:35:02 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_ff8bd984 (attempt 1)
+2025-09-25 14:35:33 - amc_manager.services.universal_snowflake_sync_service - INFO - Processing 4 universal Snowflake sync items
+2025-09-25 14:35:33 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_e6c6dc72 to Snowflake table workflow_execution_2025-09-09_e6c6dc72
+2025-09-25 14:35:34 - amc_manager.services.snowflake_service - INFO - Updated execution exec_e6c6dc72 Snowflake status to uploading
+2025-09-25 14:35:34 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:35:34 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:35:34 - amc_manager.services.snowflake_service - INFO - Updated execution exec_e6c6dc72 Snowflake status to failed
+2025-09-25 14:35:34 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_e6c6dc72: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:35:34 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_e6c6dc72 (attempt 2)
+2025-09-25 14:35:34 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_ff8bd984 to Snowflake table workflow_execution_2025-09-09_ff8bd984
+2025-09-25 14:35:34 - amc_manager.services.snowflake_service - INFO - Updated execution exec_ff8bd984 Snowflake status to uploading
+2025-09-25 14:35:34 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:35:34 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:35:35 - amc_manager.services.snowflake_service - INFO - Updated execution exec_ff8bd984 Snowflake status to failed
+2025-09-25 14:35:35 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_ff8bd984: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:35:35 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_ff8bd984 (attempt 2)
+2025-09-25 14:35:35 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_80904af5 to Snowflake table workflow_execution_2025-09-09_80904af5
+2025-09-25 14:35:35 - amc_manager.services.snowflake_service - INFO - Updated execution exec_80904af5 Snowflake status to uploading
+2025-09-25 14:35:35 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:35:35 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:35:35 - amc_manager.services.snowflake_service - INFO - Updated execution exec_80904af5 Snowflake status to failed
+2025-09-25 14:35:35 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_80904af5: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:35:35 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_80904af5 (attempt 1)
+2025-09-25 14:35:36 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_82c9f131 to Snowflake table workflow_execution_2025-09-09_82c9f131
+2025-09-25 14:35:36 - amc_manager.services.snowflake_service - INFO - Updated execution exec_82c9f131 Snowflake status to uploading
+2025-09-25 14:35:36 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:35:36 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:35:36 - amc_manager.services.snowflake_service - INFO - Updated execution exec_82c9f131 Snowflake status to failed
+2025-09-25 14:35:36 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_82c9f131: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:35:36 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_82c9f131 (attempt 1)
+2025-09-25 14:36:07 - amc_manager.services.universal_snowflake_sync_service - INFO - Processing 4 universal Snowflake sync items
+2025-09-25 14:36:08 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_e6c6dc72 to Snowflake table workflow_execution_2025-09-09_e6c6dc72
+2025-09-25 14:36:08 - amc_manager.services.snowflake_service - INFO - Updated execution exec_e6c6dc72 Snowflake status to uploading
+2025-09-25 14:36:08 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:36:08 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:36:08 - amc_manager.services.snowflake_service - INFO - Updated execution exec_e6c6dc72 Snowflake status to failed
+2025-09-25 14:36:08 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_e6c6dc72: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:36:08 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_e6c6dc72 (attempt 3)
+2025-09-25 14:36:09 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_ff8bd984 to Snowflake table workflow_execution_2025-09-09_ff8bd984
+2025-09-25 14:36:09 - amc_manager.services.snowflake_service - INFO - Updated execution exec_ff8bd984 Snowflake status to uploading
+2025-09-25 14:36:09 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:36:09 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:36:09 - amc_manager.services.snowflake_service - INFO - Updated execution exec_ff8bd984 Snowflake status to failed
+2025-09-25 14:36:09 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_ff8bd984: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:36:09 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_ff8bd984 (attempt 3)
+2025-09-25 14:36:10 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_80904af5 to Snowflake table workflow_execution_2025-09-09_80904af5
+2025-09-25 14:36:10 - amc_manager.services.snowflake_service - INFO - Updated execution exec_80904af5 Snowflake status to uploading
+2025-09-25 14:36:10 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:36:10 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:36:10 - amc_manager.services.snowflake_service - INFO - Updated execution exec_80904af5 Snowflake status to failed
+2025-09-25 14:36:10 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_80904af5: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:36:10 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_80904af5 (attempt 2)
+2025-09-25 14:36:10 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_82c9f131 to Snowflake table workflow_execution_2025-09-09_82c9f131
+2025-09-25 14:36:10 - amc_manager.services.snowflake_service - INFO - Updated execution exec_82c9f131 Snowflake status to uploading
+2025-09-25 14:36:10 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:36:10 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:36:11 - amc_manager.services.snowflake_service - INFO - Updated execution exec_82c9f131 Snowflake status to failed
+2025-09-25 14:36:11 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_82c9f131: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:36:11 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_82c9f131 (attempt 2)
+2025-09-25 14:36:41 - amc_manager.services.universal_snowflake_sync_service - INFO - Processing 4 universal Snowflake sync items
+2025-09-25 14:36:41 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_e6c6dc72 to Snowflake table workflow_execution_2025-09-09_e6c6dc72
+2025-09-25 14:36:41 - amc_manager.services.snowflake_service - INFO - Updated execution exec_e6c6dc72 Snowflake status to uploading
+2025-09-25 14:36:41 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:36:41 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:36:41 - amc_manager.services.snowflake_service - INFO - Updated execution exec_e6c6dc72 Snowflake status to failed
+2025-09-25 14:36:41 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_e6c6dc72: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:36:41 - amc_manager.services.universal_snowflake_sync_service - ERROR - Max retries exceeded for execution exec_e6c6dc72
+2025-09-25 14:36:42 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_ff8bd984 to Snowflake table workflow_execution_2025-09-09_ff8bd984
+2025-09-25 14:36:42 - amc_manager.services.snowflake_service - INFO - Updated execution exec_ff8bd984 Snowflake status to uploading
+2025-09-25 14:36:42 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:36:42 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:36:42 - amc_manager.services.snowflake_service - INFO - Updated execution exec_ff8bd984 Snowflake status to failed
+2025-09-25 14:36:42 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_ff8bd984: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:36:42 - amc_manager.services.universal_snowflake_sync_service - ERROR - Max retries exceeded for execution exec_ff8bd984
+2025-09-25 14:36:42 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_80904af5 to Snowflake table workflow_execution_2025-09-09_80904af5
+2025-09-25 14:36:43 - amc_manager.services.snowflake_service - INFO - Updated execution exec_80904af5 Snowflake status to uploading
+2025-09-25 14:36:43 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:36:43 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:36:43 - amc_manager.services.snowflake_service - INFO - Updated execution exec_80904af5 Snowflake status to failed
+2025-09-25 14:36:43 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_80904af5: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:36:43 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_80904af5 (attempt 3)
+2025-09-25 14:36:43 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_82c9f131 to Snowflake table workflow_execution_2025-09-09_82c9f131
+2025-09-25 14:36:43 - amc_manager.services.snowflake_service - INFO - Updated execution exec_82c9f131 Snowflake status to uploading
+2025-09-25 14:36:43 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:36:43 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:36:43 - amc_manager.services.snowflake_service - INFO - Updated execution exec_82c9f131 Snowflake status to failed
+2025-09-25 14:36:43 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_82c9f131: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:36:43 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_82c9f131 (attempt 3)
+2025-09-25 14:37:14 - amc_manager.services.universal_snowflake_sync_service - INFO - Processing 2 universal Snowflake sync items
+2025-09-25 14:37:14 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_80904af5 to Snowflake table workflow_execution_2025-09-09_80904af5
+2025-09-25 14:37:14 - amc_manager.services.snowflake_service - INFO - Updated execution exec_80904af5 Snowflake status to uploading
+2025-09-25 14:37:14 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:37:14 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:37:14 - amc_manager.services.snowflake_service - INFO - Updated execution exec_80904af5 Snowflake status to failed
+2025-09-25 14:37:14 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_80904af5: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:37:14 - amc_manager.services.universal_snowflake_sync_service - ERROR - Max retries exceeded for execution exec_80904af5
+2025-09-25 14:37:15 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_82c9f131 to Snowflake table workflow_execution_2025-09-09_82c9f131
+2025-09-25 14:37:15 - amc_manager.services.snowflake_service - INFO - Updated execution exec_82c9f131 Snowflake status to uploading
+2025-09-25 14:37:15 - amc_manager.services.snowflake_service - ERROR - Error connecting to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:37:15 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:37:15 - amc_manager.services.snowflake_service - INFO - Updated execution exec_82c9f131 Snowflake status to failed
+2025-09-25 14:37:15 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_82c9f131: 'utf-8' codec can't decode byte 0xe8 in position 0: invalid continuation byte
+2025-09-25 14:37:15 - amc_manager.services.universal_snowflake_sync_service - ERROR - Max retries exceeded for execution exec_82c9f131
+2025-09-25 14:42:29 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
+2025-09-25 14:42:30 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 1 successful, 0 failed
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-09-25 14:44:03 - main_supabase - INFO - Shutting down Recom AMP application...
+2025-09-25 14:44:03 - amc_manager.services.token_refresh_service - INFO - Token refresh loop cancelled
+2025-09-25 14:44:03 - amc_manager.services.token_refresh_service - INFO - Token refresh service stopped
+2025-09-25 14:44:03 - amc_manager.services.schedule_executor_service - INFO - Stopping Schedule Executor Service
+2025-09-25 14:44:03 - amc_manager.services.collection_executor_service - INFO - Stopping Collection Executor Service
+2025-09-25 14:44:03 - amc_manager.services.universal_snowflake_sync_service - INFO - Stopping Universal Snowflake Sync Service
+INFO:     Application shutdown complete.
+INFO:     Finished server process [38352]
+2025-09-25 14:44:03 - amc_manager.services.report_backfill_executor_service - INFO - Report Backfill Executor Service stopped
+2025-09-25 14:44:03 - amc_manager.services.report_scheduler_executor_service - INFO - Report Scheduler Executor Service stopped
+2025-09-25 14:44:10 - amc_manager.services.token_service - INFO - Using existing FERNET_KEY from environment
+2025-09-25 14:44:10 - amc_manager.services.token_service - INFO - Fernet encryption initialized successfully
+2025-09-25 14:44:10 - amc_manager.services.amc_execution_service - INFO - AMC Execution Service configured to use REAL AMC API
+2025-09-25 14:44:10 - amc_manager.services.amc_execution_service - INFO - AMC Execution Service configured to use REAL AMC API
+2025-09-25 14:44:11 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+/home/nevermeh/.local/lib/python3.12/site-packages/pydantic/_internal/_fields.py:198: UserWarning: Field name "schema" in "SnowflakeConfigCreate" shadows an attribute in parent "BaseModel"
+  warnings.warn(
+/home/nevermeh/.local/lib/python3.12/site-packages/pydantic/_internal/_fields.py:198: UserWarning: Field name "schema" in "SnowflakeConfigUpdate" shadows an attribute in parent "BaseModel"
+  warnings.warn(
+/home/nevermeh/.local/lib/python3.12/site-packages/pydantic/_internal/_fields.py:198: UserWarning: Field name "schema" in "SnowflakeConfigResponse" shadows an attribute in parent "BaseModel"
+  warnings.warn(
+/home/nevermeh/.local/lib/python3.12/site-packages/pydantic/_internal/_fields.py:198: UserWarning: Field name "schema" in "SnowflakeTestRequest" shadows an attribute in parent "BaseModel"
+  warnings.warn(
+2025-09-25 14:44:12 - __main__ - INFO - All API routers loaded successfully with rate limiting
+2025-09-25 14:44:12 - __main__ - INFO - Frontend static files mounted
+2025-09-25 14:44:12 - main_supabase - INFO - All API routers loaded successfully with rate limiting
+2025-09-25 14:44:12 - main_supabase - INFO - Frontend static files mounted
+INFO:     Started server process [38950]
+INFO:     Waiting for application startup.
+2025-09-25 14:44:12 - main_supabase - INFO - Starting Recom AMP application with Supabase...
+2025-09-25 14:44:13 - main_supabase - INFO - ✓ Supabase connection successful
+2025-09-25 14:44:13 - amc_manager.services.token_refresh_service - INFO - Token refresh service started
+2025-09-25 14:44:13 - main_supabase - INFO - ✓ Token refresh service started
+2025-09-25 14:44:13 - main_supabase - INFO - ✓ Execution status poller started
+2025-09-25 14:44:13 - amc_manager.services.token_service - INFO - Using existing FERNET_KEY from environment
+2025-09-25 14:44:13 - amc_manager.services.token_service - INFO - Fernet encryption initialized successfully
+2025-09-25 14:44:13 - main_supabase - INFO - ✓ Schedule executor service started
+2025-09-25 14:44:13 - main_supabase - INFO - ✓ Collection executor service started
+2025-09-25 14:44:13 - main_supabase - INFO - ✓ Report scheduler executor service started
+2025-09-25 14:44:13 - main_supabase - INFO - ✓ Report backfill executor service started
+2025-09-25 14:44:13 - main_supabase - INFO - ✓ Universal Snowflake sync service started
+2025-09-25 14:44:13 - amc_manager.services.token_refresh_service - INFO - Added user fe841586-7807-48b1-8808-02877834fce0 to token refresh tracking
+2025-09-25 14:44:13 - main_supabase - INFO - ✓ Added 1 users with tokens to refresh tracking (out of 15 total)
+2025-09-25 14:44:13 - amc_manager.services.token_refresh_service - INFO - Starting token refresh service (interval: 600s)
+2025-09-25 14:44:13 - amc_manager.services.token_refresh_service - INFO - Refreshing tokens for 1 users
+2025-09-25 14:44:13 - amc_manager.services.schedule_executor_service - INFO - Starting Schedule Executor Service
+2025-09-25 14:44:13 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-09-25 14:44:13 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-09-25 14:44:13 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-09-25 14:44:13 - amc_manager.services.collection_executor_service - INFO - Starting Collection Executor Service
+2025-09-25 14:44:13 - amc_manager.services.report_scheduler_executor_service - INFO - Starting Report Scheduler Executor Service
+2025-09-25 14:44:13 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-09-25 14:44:13 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-09-25 14:44:13 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-09-25 14:44:14 - amc_manager.services.report_backfill_executor_service - INFO - Starting Report Backfill Executor Service
+2025-09-25 14:44:14 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-09-25 14:44:14 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-09-25 14:44:14 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-09-25 14:44:14 - amc_manager.services.universal_snowflake_sync_service - INFO - Starting Universal Snowflake Sync Service
+INFO:     Application startup complete.
+2025-09-25 14:44:14 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-09-25 14:44:14 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-09-25 14:44:14 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-09-25 14:44:15 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-09-25 14:44:15 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-09-25 14:44:15 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-09-25 14:44:15 - amc_manager.services.token_refresh_service - INFO - Token refresh completed: 1 successful, 0 failed
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+2025-09-25 14:45:46 - amc_manager.services.universal_snowflake_sync_service - INFO - Processing 10 universal Snowflake sync items
+2025-09-25 14:45:46 - amc_manager.services.db_service - INFO - Refreshing Supabase connection...
+2025-09-25 14:45:46 - amc_manager.core.supabase_client - INFO - Created Supabase service role client
+2025-09-25 14:45:46 - amc_manager.services.db_service - INFO - Supabase connection refreshed
+2025-09-25 14:45:47 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_12683a5a to Snowflake table workflow_execution_2025-09-23_12683a5a
+2025-09-25 14:45:47 - amc_manager.services.snowflake_service - INFO - Updated execution exec_12683a5a Snowflake status to uploading
+2025-09-25 14:45:50 - amc_manager.services.snowflake_service - INFO - Successfully connected to Snowflake account: MUMZYBN-CN28961
+2025-09-25 14:45:51 - amc_manager.services.snowflake_service - ERROR - Error creating table AMC_DB.PUBLIC.workflow_execution_2025-09-23_12683a5a: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:45:51 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:45:51 - amc_manager.services.snowflake_service - INFO - Updated execution exec_12683a5a Snowflake status to failed
+2025-09-25 14:45:51 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_12683a5a: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:45:51 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_12683a5a (attempt 1)
+2025-09-25 14:45:51 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_31e5188f to Snowflake table workflow_execution_2025-09-23_31e5188f
+2025-09-25 14:45:52 - amc_manager.services.snowflake_service - INFO - Updated execution exec_31e5188f Snowflake status to uploading
+2025-09-25 14:45:54 - amc_manager.services.snowflake_service - INFO - Successfully connected to Snowflake account: MUMZYBN-CN28961
+2025-09-25 14:45:54 - amc_manager.services.snowflake_service - ERROR - Error creating table AMC_DB.PUBLIC.workflow_execution_2025-09-23_31e5188f: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:45:55 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:45:55 - amc_manager.services.snowflake_service - INFO - Updated execution exec_31e5188f Snowflake status to failed
+2025-09-25 14:45:55 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_31e5188f: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:45:55 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_31e5188f (attempt 1)
+2025-09-25 14:45:55 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_aada1943 to Snowflake table workflow_execution_2025-09-23_aada1943
+2025-09-25 14:45:55 - amc_manager.services.snowflake_service - INFO - Updated execution exec_aada1943 Snowflake status to uploading
+2025-09-25 14:45:58 - amc_manager.services.snowflake_service - INFO - Successfully connected to Snowflake account: MUMZYBN-CN28961
+2025-09-25 14:45:59 - amc_manager.services.snowflake_service - ERROR - Error creating table AMC_DB.PUBLIC.workflow_execution_2025-09-23_aada1943: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:45:59 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:45:59 - amc_manager.services.snowflake_service - INFO - Updated execution exec_aada1943 Snowflake status to failed
+2025-09-25 14:45:59 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_aada1943: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:45:59 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_aada1943 (attempt 1)
+2025-09-25 14:45:59 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_419b2f72 to Snowflake table workflow_execution_2025-09-24_419b2f72
+2025-09-25 14:46:00 - amc_manager.services.snowflake_service - INFO - Updated execution exec_419b2f72 Snowflake status to uploading
+2025-09-25 14:46:02 - amc_manager.services.snowflake_service - INFO - Successfully connected to Snowflake account: MUMZYBN-CN28961
+2025-09-25 14:46:03 - amc_manager.services.snowflake_service - ERROR - Error creating table AMC_DB.PUBLIC.workflow_execution_2025-09-24_419b2f72: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:46:03 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:46:03 - amc_manager.services.snowflake_service - INFO - Updated execution exec_419b2f72 Snowflake status to failed
+2025-09-25 14:46:03 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_419b2f72: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:46:03 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_419b2f72 (attempt 1)
+2025-09-25 14:46:03 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_4fcf9a3a to Snowflake table workflow_execution_2025-09-24_4fcf9a3a
+2025-09-25 14:46:03 - amc_manager.services.snowflake_service - INFO - Updated execution exec_4fcf9a3a Snowflake status to uploading
+2025-09-25 14:46:06 - amc_manager.services.snowflake_service - INFO - Successfully connected to Snowflake account: MUMZYBN-CN28961
+2025-09-25 14:46:06 - amc_manager.services.snowflake_service - ERROR - Error creating table AMC_DB.PUBLIC.workflow_execution_2025-09-24_4fcf9a3a: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:46:07 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:46:07 - amc_manager.services.snowflake_service - INFO - Updated execution exec_4fcf9a3a Snowflake status to failed
+2025-09-25 14:46:07 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_4fcf9a3a: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:46:07 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_4fcf9a3a (attempt 1)
+2025-09-25 14:46:07 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_6d63b8fc to Snowflake table workflow_execution_2025-09-25_6d63b8fc
+2025-09-25 14:46:07 - amc_manager.services.snowflake_service - INFO - Updated execution exec_6d63b8fc Snowflake status to uploading
+2025-09-25 14:46:10 - amc_manager.services.snowflake_service - INFO - Successfully connected to Snowflake account: MUMZYBN-CN28961
+2025-09-25 14:46:11 - amc_manager.services.snowflake_service - ERROR - Error creating table AMC_DB.PUBLIC.workflow_execution_2025-09-25_6d63b8fc: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:46:11 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:46:11 - amc_manager.services.snowflake_service - INFO - Updated execution exec_6d63b8fc Snowflake status to failed
+2025-09-25 14:46:11 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_6d63b8fc: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:46:11 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_6d63b8fc (attempt 1)
+2025-09-25 14:46:11 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_95f6eebd to Snowflake table workflow_execution_2025-09-25_95f6eebd
+2025-09-25 14:46:11 - amc_manager.services.snowflake_service - INFO - Updated execution exec_95f6eebd Snowflake status to uploading
+2025-09-25 14:46:14 - amc_manager.services.snowflake_service - INFO - Successfully connected to Snowflake account: MUMZYBN-CN28961
+2025-09-25 14:46:14 - amc_manager.services.snowflake_service - ERROR - Error creating table AMC_DB.PUBLIC.workflow_execution_2025-09-25_95f6eebd: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:46:14 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:46:15 - amc_manager.services.snowflake_service - INFO - Updated execution exec_95f6eebd Snowflake status to failed
+2025-09-25 14:46:15 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_95f6eebd: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:46:15 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_95f6eebd (attempt 1)
+2025-09-25 14:46:15 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_3c2fd1c3 to Snowflake table workflow_execution_2025-09-23_3c2fd1c3
+2025-09-25 14:46:15 - amc_manager.services.snowflake_service - INFO - Updated execution exec_3c2fd1c3 Snowflake status to uploading
+2025-09-25 14:46:18 - amc_manager.services.snowflake_service - INFO - Successfully connected to Snowflake account: MUMZYBN-CN28961
+2025-09-25 14:46:18 - amc_manager.services.snowflake_service - ERROR - Error creating table AMC_DB.PUBLIC.workflow_execution_2025-09-23_3c2fd1c3: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:46:18 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:46:18 - amc_manager.services.snowflake_service - INFO - Updated execution exec_3c2fd1c3 Snowflake status to failed
+2025-09-25 14:46:18 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_3c2fd1c3: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:46:18 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_3c2fd1c3 (attempt 1)
+2025-09-25 14:46:19 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_f92cddc6 to Snowflake table workflow_execution_2025-09-25_f92cddc6
+2025-09-25 14:46:19 - amc_manager.services.snowflake_service - INFO - Updated execution exec_f92cddc6 Snowflake status to uploading
+2025-09-25 14:46:22 - amc_manager.services.snowflake_service - INFO - Successfully connected to Snowflake account: MUMZYBN-CN28961
+2025-09-25 14:46:22 - amc_manager.services.snowflake_service - ERROR - Error creating table AMC_DB.PUBLIC.workflow_execution_2025-09-25_f92cddc6: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:46:22 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:46:22 - amc_manager.services.snowflake_service - INFO - Updated execution exec_f92cddc6 Snowflake status to failed
+2025-09-25 14:46:22 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_f92cddc6: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:46:22 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_f92cddc6 (attempt 1)
+2025-09-25 14:46:23 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_067bd290 to Snowflake table workflow_execution_2025-09-24_067bd290
+2025-09-25 14:46:23 - amc_manager.services.snowflake_service - INFO - Updated execution exec_067bd290 Snowflake status to uploading
+2025-09-25 14:46:26 - amc_manager.services.snowflake_service - INFO - Successfully connected to Snowflake account: MUMZYBN-CN28961
+2025-09-25 14:46:26 - amc_manager.services.snowflake_service - ERROR - Error creating table AMC_DB.PUBLIC.workflow_execution_2025-09-24_067bd290: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:46:26 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:46:26 - amc_manager.services.snowflake_service - INFO - Updated execution exec_067bd290 Snowflake status to failed
+2025-09-25 14:46:26 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_067bd290: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:46:26 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_067bd290 (attempt 1)
+2025-09-25 14:46:56 - amc_manager.services.universal_snowflake_sync_service - INFO - Processing 10 universal Snowflake sync items
+2025-09-25 14:46:57 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_31e5188f to Snowflake table workflow_execution_2025-09-23_31e5188f
+2025-09-25 14:46:57 - amc_manager.services.snowflake_service - INFO - Updated execution exec_31e5188f Snowflake status to uploading
+2025-09-25 14:47:00 - amc_manager.services.snowflake_service - INFO - Successfully connected to Snowflake account: MUMZYBN-CN28961
+2025-09-25 14:47:00 - amc_manager.services.snowflake_service - ERROR - Error creating table AMC_DB.PUBLIC.workflow_execution_2025-09-23_31e5188f: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:47:01 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:47:01 - amc_manager.services.snowflake_service - INFO - Updated execution exec_31e5188f Snowflake status to failed
+2025-09-25 14:47:01 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_31e5188f: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:47:01 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_31e5188f (attempt 2)
+2025-09-25 14:47:01 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_aada1943 to Snowflake table workflow_execution_2025-09-23_aada1943
+2025-09-25 14:47:01 - amc_manager.services.snowflake_service - INFO - Updated execution exec_aada1943 Snowflake status to uploading
+2025-09-25 14:47:04 - amc_manager.services.snowflake_service - INFO - Successfully connected to Snowflake account: MUMZYBN-CN28961
+2025-09-25 14:47:05 - amc_manager.services.snowflake_service - ERROR - Error creating table AMC_DB.PUBLIC.workflow_execution_2025-09-23_aada1943: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:47:05 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:47:05 - amc_manager.services.snowflake_service - INFO - Updated execution exec_aada1943 Snowflake status to failed
+2025-09-25 14:47:05 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_aada1943: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:47:05 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_aada1943 (attempt 2)
+2025-09-25 14:47:05 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_419b2f72 to Snowflake table workflow_execution_2025-09-24_419b2f72
+2025-09-25 14:47:05 - amc_manager.services.snowflake_service - INFO - Updated execution exec_419b2f72 Snowflake status to uploading
+2025-09-25 14:47:08 - amc_manager.services.snowflake_service - INFO - Successfully connected to Snowflake account: MUMZYBN-CN28961
+2025-09-25 14:47:08 - amc_manager.services.snowflake_service - ERROR - Error creating table AMC_DB.PUBLIC.workflow_execution_2025-09-24_419b2f72: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:47:09 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:47:09 - amc_manager.services.snowflake_service - INFO - Updated execution exec_419b2f72 Snowflake status to failed
+2025-09-25 14:47:09 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_419b2f72: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:47:09 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_419b2f72 (attempt 2)
+2025-09-25 14:47:09 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_4fcf9a3a to Snowflake table workflow_execution_2025-09-24_4fcf9a3a
+2025-09-25 14:47:09 - amc_manager.services.snowflake_service - INFO - Updated execution exec_4fcf9a3a Snowflake status to uploading
+2025-09-25 14:47:12 - amc_manager.services.snowflake_service - INFO - Successfully connected to Snowflake account: MUMZYBN-CN28961
+2025-09-25 14:47:12 - amc_manager.services.snowflake_service - ERROR - Error creating table AMC_DB.PUBLIC.workflow_execution_2025-09-24_4fcf9a3a: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:47:13 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:47:13 - amc_manager.services.snowflake_service - INFO - Updated execution exec_4fcf9a3a Snowflake status to failed
+2025-09-25 14:47:13 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_4fcf9a3a: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:47:13 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_4fcf9a3a (attempt 2)
+2025-09-25 14:47:13 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_6d63b8fc to Snowflake table workflow_execution_2025-09-25_6d63b8fc
+2025-09-25 14:47:13 - amc_manager.services.snowflake_service - INFO - Updated execution exec_6d63b8fc Snowflake status to uploading
+2025-09-25 14:47:16 - amc_manager.services.snowflake_service - INFO - Successfully connected to Snowflake account: MUMZYBN-CN28961
+2025-09-25 14:47:16 - amc_manager.services.snowflake_service - ERROR - Error creating table AMC_DB.PUBLIC.workflow_execution_2025-09-25_6d63b8fc: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:47:16 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:47:17 - amc_manager.services.snowflake_service - INFO - Updated execution exec_6d63b8fc Snowflake status to failed
+2025-09-25 14:47:17 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_6d63b8fc: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:47:17 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_6d63b8fc (attempt 2)
+2025-09-25 14:47:17 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_95f6eebd to Snowflake table workflow_execution_2025-09-25_95f6eebd
+2025-09-25 14:47:17 - amc_manager.services.snowflake_service - INFO - Updated execution exec_95f6eebd Snowflake status to uploading
+2025-09-25 14:47:20 - amc_manager.services.snowflake_service - INFO - Successfully connected to Snowflake account: MUMZYBN-CN28961
+2025-09-25 14:47:21 - amc_manager.services.snowflake_service - ERROR - Error creating table AMC_DB.PUBLIC.workflow_execution_2025-09-25_95f6eebd: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:47:21 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:47:21 - amc_manager.services.snowflake_service - INFO - Updated execution exec_95f6eebd Snowflake status to failed
+2025-09-25 14:47:21 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_95f6eebd: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:47:21 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_95f6eebd (attempt 2)
+2025-09-25 14:47:21 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_3c2fd1c3 to Snowflake table workflow_execution_2025-09-23_3c2fd1c3
+2025-09-25 14:47:21 - amc_manager.services.snowflake_service - INFO - Updated execution exec_3c2fd1c3 Snowflake status to uploading
+2025-09-25 14:47:24 - amc_manager.services.snowflake_service - INFO - Successfully connected to Snowflake account: MUMZYBN-CN28961
+2025-09-25 14:47:24 - amc_manager.services.snowflake_service - ERROR - Error creating table AMC_DB.PUBLIC.workflow_execution_2025-09-23_3c2fd1c3: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:47:24 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:47:24 - amc_manager.services.snowflake_service - INFO - Updated execution exec_3c2fd1c3 Snowflake status to failed
+2025-09-25 14:47:24 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_3c2fd1c3: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:47:24 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_3c2fd1c3 (attempt 2)
+2025-09-25 14:47:25 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_30bbb840 to Snowflake table workflow_execution_2025-09-25_30bbb840
+2025-09-25 14:47:25 - amc_manager.services.snowflake_service - INFO - Updated execution exec_30bbb840 Snowflake status to uploading
+2025-09-25 14:47:27 - amc_manager.services.snowflake_service - INFO - Successfully connected to Snowflake account: MUMZYBN-CN28961
+2025-09-25 14:47:28 - amc_manager.services.snowflake_service - ERROR - Error creating table AMC_DB.PUBLIC.workflow_execution_2025-09-25_30bbb840: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:47:28 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:47:28 - amc_manager.services.snowflake_service - INFO - Updated execution exec_30bbb840 Snowflake status to failed
+2025-09-25 14:47:28 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_30bbb840: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:47:28 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_30bbb840 (attempt 1)
+2025-09-25 14:47:28 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_ab32a765 to Snowflake table workflow_execution_2025-09-25_ab32a765
+2025-09-25 14:47:28 - amc_manager.services.snowflake_service - INFO - Updated execution exec_ab32a765 Snowflake status to uploading
+2025-09-25 14:47:32 - amc_manager.services.snowflake_service - INFO - Successfully connected to Snowflake account: MUMZYBN-CN28961
+2025-09-25 14:47:32 - amc_manager.services.snowflake_service - ERROR - Error creating table AMC_DB.PUBLIC.workflow_execution_2025-09-25_ab32a765: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:47:32 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:47:33 - amc_manager.services.snowflake_service - INFO - Updated execution exec_ab32a765 Snowflake status to failed
+2025-09-25 14:47:33 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_ab32a765: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:47:33 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_ab32a765 (attempt 1)
+2025-09-25 14:47:33 - amc_manager.services.universal_snowflake_sync_service - INFO - Syncing execution exec_b253b8b0 to Snowflake table workflow_execution_2025-09-24_b253b8b0
+2025-09-25 14:47:33 - amc_manager.services.snowflake_service - INFO - Updated execution exec_b253b8b0 Snowflake status to uploading
+2025-09-25 14:47:36 - amc_manager.services.snowflake_service - INFO - Successfully connected to Snowflake account: MUMZYBN-CN28961
+2025-09-25 14:47:36 - amc_manager.services.snowflake_service - ERROR - Error creating table AMC_DB.PUBLIC.workflow_execution_2025-09-24_b253b8b0: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:47:37 - amc_manager.services.snowflake_service - ERROR - Error uploading results to Snowflake: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:47:37 - amc_manager.services.snowflake_service - INFO - Updated execution exec_b253b8b0 Snowflake status to failed
+2025-09-25 14:47:37 - amc_manager.services.universal_snowflake_sync_service - ERROR - Error syncing execution exec_b253b8b0: 001003 (42000): SQL compilation error:
+syntax error line 1 at position 64 unexpected '-'.
+2025-09-25 14:47:37 - amc_manager.services.universal_snowflake_sync_service - INFO - Retrying sync for execution exec_b253b8b0 (attempt 1)
