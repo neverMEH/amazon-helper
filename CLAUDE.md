@@ -519,3 +519,23 @@ docker run -p 8001:8001 --env-file .env recomamp
 - **Monaco Editor**: Full SQL syntax highlighting, same as VS Code
 - **TanStack Query**: Powerful caching, optimistic updates, background refetching
 - **Vite**: Fast HMR, optimized builds, TypeScript support out of the box
+
+### Recent Fixes and Enhancements
+
+#### 2025-09-29 (Auto-Generated Update)
+
+**New Features:**
+- debug: Add comprehensive logging to identify template save issues
+- fix: Add detailed logging to query template creation endpoint
+- fix: Add missing BarChart3 icon to CollectionProgress test mock
+- feat: Create enhanced parameter input components
+  - New files: frontend/src/components/query-library/ASINSelector.tsx, frontend/src/components/query-library/ParameterInputs.tsx, frontend/src/components/query-library/__tests__/ParameterInputs.test.tsx
+- feat: Integrate Query Library with Report Builder
+  - New files: frontend/src/components/report-builder/SaveAsTemplateModal.tsx, frontend/src/components/report-builder/__tests__/ReportBuilder.integration.test.tsx, wsl_venv/bin/python
+
+**Bug Fixes:**
+- fix: Remove unused 'result' variable to fix TypeScript build error
+- fix: Fix 500 error when updating template parameters
+- fix: Remove incorrect validation requiring default values for required parameters
+- fix: Fix campaigns endpoint 422 error by limiting page_size to 100
+- fix: Remove trailing slash from query-templates POST endpoint
