@@ -159,10 +159,12 @@ COMMENT ON COLUMN instance_brand_campaigns.campaign_id IS 'Campaign ID from camp
 -- ============================================================================
 -- Purpose: Speed up queries that filter campaigns by brand_tag
 -- Only index non-null values to save space
+-- Note: This step is optional and will be skipped if campaign_mappings doesn't exist yet
 
-CREATE INDEX IF NOT EXISTS idx_campaign_mappings_brand_tag
-    ON campaign_mappings(brand_tag)
-    WHERE brand_tag IS NOT NULL;
+-- Uncomment the line below if campaign_mappings table exists in your database:
+-- CREATE INDEX IF NOT EXISTS idx_campaign_mappings_brand_tag
+--     ON campaign_mappings(brand_tag)
+--     WHERE brand_tag IS NOT NULL;
 
 COMMIT;
 
