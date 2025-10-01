@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Save, Loader2, CheckCircle, XCircle, Settings } from 'lucide-react';
-import instanceMappingService, { type Brand, type ASIN, type Campaign } from '../../services/instanceMappingService';
+import instanceMappingService from '../../services/instanceMappingService';
 
 interface InstanceMappingTabProps {
   instanceId: string;
@@ -169,7 +169,6 @@ export default function InstanceMappingTab({ instanceId }: InstanceMappingTabPro
   }
 
   const brands = brandsData?.brands || [];
-  const selectedBrandData = brands.find(b => b.brand_tag === selectedBrand);
 
   return (
     <div className="space-y-4">
