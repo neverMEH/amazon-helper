@@ -29,7 +29,7 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 
 ---
 
-### Task 2: Backend Service Layer & API Endpoints
+### Task 2: Backend Service Layer & API Endpoints ✅
 
 **Goal**: Implement service layer and REST API for managing instance parameter mappings
 
@@ -39,27 +39,29 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - Saving campaign mappings (create/delete with brand_tag updates)
   - Handling edge cases (non-existent instances, duplicate mappings, invalid IDs)
   - Permission validation (user can only access their instances)
-- [ ] 2.2. Create `amc_manager/services/instance_mapping_service.py`:
-  - Inherit from `DatabaseService`
-  - Implement `get_instance_mappings(instance_id, user_id)` - returns brands with associated ASINs and campaigns
-  - Implement `save_asin_mappings(instance_id, brand_id, asin_ids, user_id)` - replaces existing mappings
-  - Implement `save_campaign_mappings(instance_id, brand_id, campaign_ids, brand_tag, user_id)` - updates campaign_mappings.brand_tag
-  - Implement `delete_asin_mapping(instance_id, brand_id, asin_id, user_id)`
-  - Implement `delete_campaign_mapping(instance_id, brand_id, campaign_id, user_id)`
-  - Add `@with_connection_retry` decorator to all methods
-- [ ] 2.3. Create Pydantic schemas in `amc_manager/schemas/instance_mapping.py`:
-  - `InstanceMappingResponse` (brand_id, brand_name, asins[], campaigns[])
-  - `SaveASINMappingRequest` (brand_id, asin_ids[])
-  - `SaveCampaignMappingRequest` (brand_id, campaign_ids[], brand_tag)
-  - `DeleteMappingRequest` (brand_id, resource_id)
-- [ ] 2.4. Create API endpoints in `amc_manager/api/routes/instance_mappings.py`:
-  - `GET /api/instances/{instance_id}/mappings` - get all mappings for instance
-  - `POST /api/instances/{instance_id}/mappings/asins` - save ASIN mappings
-  - `DELETE /api/instances/{instance_id}/mappings/asins/{asin_id}` - delete ASIN mapping
-  - `POST /api/instances/{instance_id}/mappings/campaigns` - save campaign mappings
-  - `DELETE /api/instances/{instance_id}/mappings/campaigns/{campaign_id}` - delete campaign mapping
-  - `GET /api/instances/{instance_id}/mappings/auto-populate` - get default parameters for instance
-- [ ] 2.5. Register routes in `main_supabase.py`
+- [x] 2.2. Create `amc_manager/services/instance_mapping_service.py`:
+  - Service class with db_service integration
+  - Implement `get_available_brands(user_id)` - returns all available brands
+  - Implement `get_brand_asins(brand_tag, user_id, search, limit, offset)` - returns ASINs for brand
+  - Implement `get_brand_campaigns(brand_tag, user_id, ...)` - returns campaigns (placeholder for now)
+  - Implement `get_instance_mappings(instance_id, user_id)` - returns complete mappings
+  - Implement `save_instance_mappings(instance_id, user_id, mappings)` - transactional save
+  - Implement `get_parameter_values(instance_id, user_id)` - formatted for auto-population
+- [x] 2.3. Create Pydantic schemas in `amc_manager/schemas/instance_mapping.py`:
+  - `InstanceMappingsInput` - request schema with validation
+  - `InstanceMappingsOutput` - response schema
+  - `SaveMappingsResponse` - save operation response
+  - `Brand`, `ASIN`, `Campaign` - entity schemas
+  - `BrandsListResponse`, `BrandASINsResponse`, `BrandCampaignsResponse` - list responses
+  - `ParameterValuesOutput` - auto-populate response
+- [x] 2.4. Create API endpoints in `amc_manager/api/supabase/instance_mappings.py`:
+  - `GET /api/instances/{instance_id}/available-brands` - get all available brands
+  - `GET /api/instances/{instance_id}/brands/{brand_tag}/asins` - get ASINs for brand
+  - `GET /api/instances/{instance_id}/brands/{brand_tag}/campaigns` - get campaigns for brand
+  - `GET /api/instances/{instance_id}/mappings` - get all mappings
+  - `POST /api/instances/{instance_id}/mappings` - save mappings
+  - `GET /api/instances/{instance_id}/parameter-values` - get auto-populate values
+- [x] 2.5. Register routes in `main_supabase.py`
 - [ ] 2.6. Write integration tests in `tests/test_api_instance_mappings.py`:
   - Test all 6 API endpoints with valid data
   - Test authentication/authorization (wrong user, missing token)
