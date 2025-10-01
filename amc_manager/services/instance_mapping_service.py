@@ -18,17 +18,76 @@ class InstanceMappingService:
 
     def get_available_brands(self, user_id: str) -> List[Dict[str, Any]]:
         """
-        Get all brands available to the user from brand_configurations and campaign_mappings.
+        Get all brands available to the user from campaigns and product_asins tables.
 
         Args:
             user_id: The user ID
 
         Returns:
-            List of brand dictionaries with brand_tag, brand_name, and source
+            List of brand dictionaries with brand_tag, brand_name, asin_count, campaign_count
         """
         try:
-            brands = self.db.get_available_brands_sync(user_id)
-            return brands
+            brands_dict = {}
+
+            # Get unique brands from campaigns table
+            campaigns_result = self.db.supabase.table('campaigns')\
+                .select('brand')\
+                .not_.is_('brand', 'null')\
+                .execute()
+
+            for row in campaigns_result.data:
+                brand = row.get('brand')
+                if brand and brand.strip():
+                    if brand not in brands_dict:
+                        brands_dict[brand] = {
+                            'brand_tag': brand,
+                            'brand_name': brand,  # Use brand tag as name for now
+                            'asin_count': 0,
+                            'campaign_count': 0
+                        }
+
+            # Get unique brands from product_asins table
+            asins_result = self.db.supabase.table('product_asins')\
+                .select('brand')\
+                .eq('active', True)\
+                .not_.is_('brand', 'null')\
+                .execute()
+
+            for row in asins_result.data:
+                brand = row.get('brand')
+                if brand and brand.strip():
+                    if brand not in brands_dict:
+                        brands_dict[brand] = {
+                            'brand_tag': brand,
+                            'brand_name': brand,
+                            'asin_count': 0,
+                            'campaign_count': 0
+                        }
+
+            # Count ASINs and campaigns for each brand
+            for brand in brands_dict.keys():
+                # Count ASINs
+                asin_count_result = self.db.supabase.table('product_asins')\
+                    .select('*', count='exact')\
+                    .eq('brand', brand)\
+                    .eq('active', True)\
+                    .limit(1)\
+                    .execute()
+                brands_dict[brand]['asin_count'] = asin_count_result.count or 0
+
+                # Count campaigns
+                campaign_count_result = self.db.supabase.table('campaigns')\
+                    .select('*', count='exact')\
+                    .eq('brand', brand)\
+                    .limit(1)\
+                    .execute()
+                brands_dict[brand]['campaign_count'] = campaign_count_result.count or 0
+
+            # Convert to list and sort by brand name
+            brands_list = sorted(brands_dict.values(), key=lambda x: x['brand_tag'])
+
+            return brands_list
+
         except Exception as e:
             logger.error(f"Error fetching available brands: {e}")
             return []
@@ -87,9 +146,6 @@ class InstanceMappingService:
         """
         Get all campaigns associated with a specific brand.
 
-        Note: This will return empty for now since campaign_mappings doesn't exist yet.
-        Will be implemented when campaigns table is available.
-
         Args:
             brand_tag: The brand identifier
             user_id: The user ID
@@ -101,15 +157,48 @@ class InstanceMappingService:
         Returns:
             Dict with brand_tag, campaigns list, total count
         """
-        # TODO: Implement once campaign_mappings table exists
-        logger.warning("get_brand_campaigns called but campaign_mappings table doesn't exist yet")
-        return {
-            'brand_tag': brand_tag,
-            'campaigns': [],
-            'total': 0,
-            'limit': limit,
-            'offset': offset
-        }
+        try:
+            # Query campaigns table for this brand
+            query = self.db.supabase.table('campaigns')\
+                .select('campaign_id, name, type, state, brand', count='exact')\
+                .eq('brand', brand_tag)
+
+            # Apply optional filters
+            if search:
+                query = query.ilike('name', f'%{search}%')
+
+            if campaign_type:
+                query = query.eq('type', campaign_type)
+
+            # Apply pagination
+            query = query.range(offset, offset + limit - 1)
+
+            result = query.execute()
+
+            campaigns = [{
+                'campaign_id': row['campaign_id'],
+                'name': row['name'],
+                'type': row.get('type'),
+                'state': row.get('state'),
+                'brand': row['brand']
+            } for row in result.data]
+
+            return {
+                'brand_tag': brand_tag,
+                'campaigns': campaigns,
+                'total': result.count or 0,
+                'limit': limit,
+                'offset': offset
+            }
+        except Exception as e:
+            logger.error(f"Error fetching brand campaigns for {brand_tag}: {e}")
+            return {
+                'brand_tag': brand_tag,
+                'campaigns': [],
+                'total': 0,
+                'limit': limit,
+                'offset': offset
+            }
 
     def get_instance_mappings(self, instance_id: str, user_id: str) -> Dict[str, Any]:
         """
