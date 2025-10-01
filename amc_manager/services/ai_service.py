@@ -112,14 +112,14 @@ class AIService:
             self.anthropic_client = AsyncAnthropic(api_key=self.anthropic_api_key)
             logger.info("Anthropic client initialized")
 
-        # Set primary and fallback providers
+        # Set primary and fallback providers (prefer Anthropic per technical spec)
         self.primary_provider = (
-            AIProvider.OPENAI if self.openai_client
-            else AIProvider.ANTHROPIC
+            AIProvider.ANTHROPIC if self.anthropic_client
+            else AIProvider.OPENAI
         )
         self.fallback_provider = (
-            AIProvider.ANTHROPIC if self.primary_provider == AIProvider.OPENAI and self.anthropic_client
-            else AIProvider.OPENAI if self.openai_client
+            AIProvider.OPENAI if self.primary_provider == AIProvider.ANTHROPIC and self.openai_client
+            else AIProvider.ANTHROPIC if self.anthropic_client
             else None
         )
 
@@ -131,9 +131,9 @@ class AIService:
                 'vision': 'gpt-4-vision-preview'
             },
             AIProvider.ANTHROPIC: {
-                'default': 'claude-3-opus-20240229',
-                'fast': 'claude-3-sonnet-20240229',
-                'vision': 'claude-3-opus-20240229'
+                'default': 'claude-3-5-sonnet-20241022',  # Latest Claude 3.5 Sonnet
+                'fast': 'claude-3-5-sonnet-20241022',
+                'vision': 'claude-3-5-sonnet-20241022'
             }
         }
 
