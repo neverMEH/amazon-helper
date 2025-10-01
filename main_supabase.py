@@ -208,6 +208,7 @@ from amc_manager.api.dashboards import router as dashboards_router
 from amc_manager.api.report_dashboard import router as report_dashboard_router
 from amc_manager.api.snowflake_config import router as snowflake_router
 from amc_manager.api.snowflake_sync_monitoring import router as snowflake_sync_router
+from amc_manager.api.ai_insights import router as ai_insights_router
 
 # Add redirect for misconfigured callback URL (must be before router includes)
 @app.get("/api/auth/callback")
@@ -240,6 +241,7 @@ app.include_router(build_guides_router, prefix="/api", tags=["Build Guides"])
 app.include_router(asin_router, prefix="/api", tags=["ASINs"])
 app.include_router(snowflake_router)  # Already has prefix in router definition
 app.include_router(snowflake_sync_router, prefix="/api", tags=["Snowflake Sync"])
+app.include_router(ai_insights_router)  # Already has /api/ai prefix in router definition
 
 # Apply rate limiting to specific endpoints
 for route in app.routes:

@@ -39,14 +39,14 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 - [x] **T1.3.8**: Verify chart recommendations AI tests pass
 
 #### Task 1.4: AI API Endpoints
-- [ ] **T1.4.1**: Write tests for AI API endpoints
-- [ ] **T1.4.2**: Create `/api/ai/analyze-data` endpoint
-- [ ] **T1.4.3**: Create `/api/ai/recommend-charts` endpoint
-- [ ] **T1.4.4**: Create `/api/ai/generate-insights` endpoint
-- [ ] **T1.4.5**: Add request/response schemas for AI endpoints
-- [ ] **T1.4.6**: Implement proper error handling and validation
-- [ ] **T1.4.7**: Add rate limiting middleware to AI endpoints
-- [ ] **T1.4.8**: Verify AI API endpoint tests pass
+- [x] **T1.4.1**: Write tests for AI API endpoints
+- [x] **T1.4.2**: Create `/api/ai/analyze-data` endpoint
+- [x] **T1.4.3**: Create `/api/ai/recommend-charts` endpoint
+- [x] **T1.4.4**: Create `/api/ai/generate-insights` endpoint
+- [x] **T1.4.5**: Add request/response schemas for AI endpoints
+- [x] **T1.4.6**: Implement proper error handling and validation
+- [x] **T1.4.7**: Add rate limiting middleware to AI endpoints
+- [x] **T1.4.8**: Verify AI API endpoint tests pass
 
 ### Phase 2: Frontend AI Components
 

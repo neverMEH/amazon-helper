@@ -632,7 +632,7 @@ class DataAnalysisAI(DatabaseService):
         prompt += "\n\nProvide insights in JSON format with fields: category, title, description, confidence, impact, recommendation"
 
         # Call AI service
-        ai_response = await self.ai_service.generate_completion(
+        ai_response = await self.ai_service.complete_with_fallback(
             prompt=prompt,
             max_tokens=1500,
             temperature=0.3
