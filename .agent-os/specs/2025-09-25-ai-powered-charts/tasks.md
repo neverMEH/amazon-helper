@@ -60,15 +60,15 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 - [x] **T2.1.7**: Implement insights export options
 - [x] **T2.1.8**: Verify AI analysis panel tests pass
 
-#### Task 2.2: Smart Chart Suggestions Component
-- [ ] **T2.2.1**: Write tests for chart suggestions component
-- [ ] **T2.2.2**: Create `SmartChartSuggestions.tsx` component
-- [ ] **T2.2.3**: Implement chart type recommendation display
-- [ ] **T2.2.4**: Add preview functionality for suggested charts
-- [ ] **T2.2.5**: Create one-click chart application
-- [ ] **T2.2.6**: Add configuration parameter suggestions UI
-- [ ] **T2.2.7**: Implement chart optimization tips display
-- [ ] **T2.2.8**: Verify chart suggestions tests pass
+#### Task 2.2: Smart Chart Suggestions Component ✅
+- [x] **T2.2.1**: Write tests for chart suggestions component
+- [x] **T2.2.2**: Create `SmartChartSuggestions.tsx` component
+- [x] **T2.2.3**: Implement chart type recommendation display
+- [x] **T2.2.4**: Add preview functionality for suggested charts
+- [x] **T2.2.5**: Create one-click chart application
+- [x] **T2.2.6**: Add configuration parameter suggestions UI
+- [x] **T2.2.7**: Implement chart optimization tips display
+- [x] **T2.2.8**: Verify chart suggestions tests pass
 
 #### Task 2.3: AI Query Assistant Component
 - [ ] **T2.3.1**: Write tests for query assistant component
