@@ -2,7 +2,7 @@
 
 ## Context
 
-Global code style rules for Agent OS projects.
+Code style rules for the RecomAMP project (Python backend + React/TypeScript frontend).
 
 <conditional-block context-check="general-formatting">
 IF this General Formatting section already read in current context:
@@ -14,27 +14,89 @@ ELSE:
 ## General Formatting
 
 ### Indentation
-- Use 2 spaces for indentation (never tabs)
+- **Python**: Use 4 spaces for indentation (PEP 8 standard)
+- **TypeScript/React**: Use 2 spaces for indentation
 - Maintain consistent indentation throughout files
 - Align nested structures for readability
 
 ### Naming Conventions
-- **Methods and Variables**: Use snake_case (e.g., `user_profile`, `calculate_total`)
-- **Classes and Modules**: Use PascalCase (e.g., `UserProfile`, `PaymentProcessor`)
-- **Constants**: Use UPPER_SNAKE_CASE (e.g., `MAX_RETRY_COUNT`)
+
+#### Python (Backend)
+- **Functions and Variables**: snake_case (e.g., `get_user_tokens`, `instance_id`)
+- **Classes**: PascalCase (e.g., `TokenService`, `AMCApiClient`)
+- **Constants**: UPPER_SNAKE_CASE (e.g., `MAX_RETRY_ATTEMPTS`, `API_BASE_URL`)
+- **Private Methods**: Prefix with underscore (e.g., `_internal_method`)
+
+#### TypeScript/React (Frontend)
+- **Variables and Functions**: camelCase (e.g., `userId`, `handleClick`)
+- **Components**: PascalCase (e.g., `WorkflowDetail`, `ExecutionModal`)
+- **Interfaces and Types**: PascalCase (e.g., `UserProfile`, `WorkflowProps`)
+- **Constants**: UPPER_SNAKE_CASE (e.g., `API_BASE_URL`, `MAX_ITEMS`)
 
 ### String Formatting
+
+#### Python
+- Use double quotes for strings: `"Hello World"`
+- Use f-strings for interpolation: `f"User {user_id}"`
+- Use triple quotes for docstrings
+
+#### TypeScript
 - Use single quotes for strings: `'Hello World'`
-- Use double quotes only when interpolation is needed
-- Use template literals for multi-line strings or complex interpolation
+- Use template literals for interpolation: `` `User ${userId}` ``
+- Use template literals for multi-line strings
 
 ### Code Comments
 - Add brief comments above non-obvious business logic
 - Document complex algorithms or calculations
-- Explain the "why" behind implementation choices
+- Explain the "why" behind implementation choices, not the "what"
+- **Python**: Use docstrings for functions/classes
+- **TypeScript**: Use JSDoc comments for exported functions (optional)
 - Never remove existing comments unless removing the associated code
 - Update comments when modifying code to maintain accuracy
 - Keep comments concise and relevant
+
+### Import Organization
+
+#### Python
+```python
+# 1. Standard library imports
+import asyncio
+from datetime import datetime
+from typing import Optional, List
+
+# 2. Third-party imports
+from fastapi import APIRouter, HTTPException
+from supabase import Client
+
+# 3. Local application imports
+from amc_manager.services.database_service import DatabaseService
+from amc_manager.core.config import settings
+```
+
+#### TypeScript
+```typescript
+// 1. React and hooks
+import { useState, useEffect } from 'react';
+
+// 2. External libraries
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+
+// 3. Icons
+import { Play, Save, X } from 'lucide-react';
+
+// 4. Utilities
+import { toast } from 'react-hot-toast';
+
+// 5. API/Services
+import api from '../../services/api';
+
+// 6. Components
+import SQLEditor from '../common/SQLEditor';
+
+// 7. Type-only imports
+import type { User, Workflow } from '../types';
+```
 </conditional-block>
 
 <conditional-block task-condition="html-css-tailwind" context-check="html-css-style">
@@ -58,20 +120,34 @@ ELSE:
   SKIP: HTML/CSS style guides not relevant to current task
 </conditional-block>
 
-<conditional-block task-condition="javascript" context-check="javascript-style">
-IF current task involves writing or updating JavaScript:
+<conditional-block task-condition="javascript-typescript" context-check="javascript-style">
+IF current task involves writing or updating JavaScript or TypeScript:
   IF javascript-style.md already in context:
     SKIP: Re-reading this file
-    NOTE: "Using JavaScript style guide already in context"
+    NOTE: "Using JavaScript/TypeScript style guide already in context"
   ELSE:
     <context_fetcher_strategy>
       IF current agent is Claude Code AND context-fetcher agent exists:
         USE: @agent:context-fetcher
-        REQUEST: "Get JavaScript style rules from code-style/javascript-style.md"
+        REQUEST: "Get JavaScript/TypeScript style rules from code-style/javascript-style.md"
         PROCESS: Returned style rules
       ELSE:
         READ: @.agent-os/standards/code-style/javascript-style.md
     </context_fetcher_strategy>
 ELSE:
-  SKIP: JavaScript style guide not relevant to current task
+  SKIP: JavaScript/TypeScript style guide not relevant to current task
+</conditional-block>
+
+<conditional-block task-condition="python" context-check="python-style">
+IF current task involves writing or updating Python:
+  NOTE: Follow PEP 8 style guide
+  KEY POINTS:
+    - 4 spaces for indentation
+    - snake_case for functions and variables
+    - PascalCase for classes
+    - Type hints for function parameters and return values
+    - Async/await for asynchronous operations
+    - Docstrings for public methods and classes
+ELSE:
+  SKIP: Python style guide not relevant to current task
 </conditional-block>

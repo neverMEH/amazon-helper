@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, Code, Calendar, User, Hash, ChevronDown, ChevronRight, RefreshCw, Play, Loader, Table, BarChart3, Maximize2, Edit2, Clock, Settings, Database, Save } from 'lucide-react';
+import { X, Code, Calendar, User, Hash, ChevronDown, ChevronRight, RefreshCw, Play, Loader, Table, BarChart3, Maximize2, Edit2, Clock, Settings, Database, Save, Eye, Sparkles } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
@@ -10,6 +10,9 @@ import DataVisualization from './DataVisualization';
 import SQLEditor from '../common/SQLEditor';
 import ExecutionErrorDetails from './ExecutionErrorDetails';
 import SaveAsTemplateModal from '../report-builder/SaveAsTemplateModal';
+import AIAnalysisPanel from '../ai/AIAnalysisPanel';
+import SmartChartSuggestions from '../ai/SmartChartSuggestions';
+import { replaceParametersInSQL, formatSQLWithParameterComments } from '../../utils/sqlParameterizer';
 
 interface Props {
   instanceId: string;
@@ -23,10 +26,11 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
   const [showQuery, setShowQuery] = useState(false);
   const [showParameters, setShowParameters] = useState(false);
   const [isRerunning, setIsRerunning] = useState(false);
-  const [viewMode, setViewMode] = useState<'table' | 'charts'>('table');
+  const [viewMode, setViewMode] = useState<'table' | 'charts' | 'ai-insights'>('table');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isExpandedSQL, setIsExpandedSQL] = useState(false);
   const [showSaveAsTemplate, setShowSaveAsTemplate] = useState(false);
+  const [showOriginalSQL, setShowOriginalSQL] = useState(false); // Toggle between original and parameterized SQL
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   
@@ -242,19 +246,41 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                           <div className="flex items-center">
                             <Code className="h-5 w-5 text-gray-400 mr-2" />
                             <span className="text-sm font-medium text-gray-900">SQL Query</span>
+                            {execution.executionParameters && Object.keys(execution.executionParameters).length > 0 && (
+                              <span className="ml-2 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                                With Parameters
+                              </span>
+                            )}
                           </div>
                           <div className="flex items-center space-x-2">
                             {showQuery && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setIsExpandedSQL(true);
-                                }}
-                                className="p-1 hover:bg-gray-200 rounded transition-colors"
-                                title="Expand SQL editor"
-                              >
-                                <Maximize2 className="h-4 w-4 text-gray-500" />
-                              </button>
+                              <>
+                                {execution.executionParameters && Object.keys(execution.executionParameters).length > 0 && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setShowOriginalSQL(!showOriginalSQL);
+                                    }}
+                                    className="p-1 hover:bg-gray-200 rounded transition-colors flex items-center space-x-1"
+                                    title={showOriginalSQL ? "Show with actual values" : "Show with placeholders"}
+                                  >
+                                    <Eye className="h-4 w-4 text-gray-500" />
+                                    <span className="text-xs text-gray-600">
+                                      {showOriginalSQL ? 'Placeholders' : 'Values'}
+                                    </span>
+                                  </button>
+                                )}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsExpandedSQL(true);
+                                  }}
+                                  className="p-1 hover:bg-gray-200 rounded transition-colors"
+                                  title="Expand SQL editor"
+                                >
+                                  <Maximize2 className="h-4 w-4 text-gray-500" />
+                                </button>
+                              </>
                             )}
                             {showQuery ? (
                               <ChevronDown className="h-5 w-5 text-gray-400" />
@@ -265,12 +291,36 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                         </button>
                         {showQuery && (
                           <div className="px-4 pb-4">
-                            <SQLEditor 
-                              value={execution.sqlQuery || execution.workflowInfo?.sqlQuery || ''} 
-                              onChange={() => {}} // Read-only, no changes needed
-                              height="300px"
-                              readOnly={true}
-                            />
+                            {execution.executionParameters && Object.keys(execution.executionParameters).length > 0 && !showOriginalSQL ? (
+                              <div className="space-y-2">
+                                <div className="text-xs text-gray-500 mb-2">
+                                  Showing SQL query with actual parameter values used in this execution
+                                </div>
+                                <SQLEditor
+                                  value={replaceParametersInSQL(
+                                    execution.sqlQuery || execution.workflowInfo?.sqlQuery || '',
+                                    execution.executionParameters
+                                  )}
+                                  onChange={() => {}} // Read-only, no changes needed
+                                  height="300px"
+                                  readOnly={true}
+                                />
+                              </div>
+                            ) : (
+                              <div className="space-y-2">
+                                {showOriginalSQL && (
+                                  <div className="text-xs text-gray-500 mb-2">
+                                    Showing original SQL query with parameter placeholders
+                                  </div>
+                                )}
+                                <SQLEditor
+                                  value={execution.sqlQuery || execution.workflowInfo?.sqlQuery || ''}
+                                  onChange={() => {}} // Read-only, no changes needed
+                                  height="300px"
+                                  readOnly={true}
+                                />
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -600,7 +650,7 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                           <div>
                             <div className="flex items-center justify-between mb-4">
                               <h4 className="text-sm font-medium text-gray-900">Results</h4>
-                              
+
                               {/* View Mode Toggle */}
                               <div className="flex rounded-md shadow-sm" role="group">
                                 <button
@@ -618,7 +668,7 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                                 <button
                                   type="button"
                                   onClick={() => setViewMode('charts')}
-                                  className={`px-4 py-2 text-sm font-medium rounded-r-lg border-t border-r border-b ${
+                                  className={`px-4 py-2 text-sm font-medium border-t border-b ${
                                     viewMode === 'charts'
                                       ? 'bg-indigo-600 text-white border-indigo-600 z-10'
                                       : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
@@ -627,12 +677,24 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                                   <BarChart3 className="h-4 w-4 inline-block mr-1" />
                                   Charts
                                 </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setViewMode('ai-insights')}
+                                  className={`px-4 py-2 text-sm font-medium rounded-r-lg border-t border-r border-b ${
+                                    viewMode === 'ai-insights'
+                                      ? 'bg-indigo-600 text-white border-indigo-600 z-10'
+                                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                  }`}
+                                >
+                                  <Sparkles className="h-4 w-4 inline-block mr-1" />
+                                  AI Insights
+                                </button>
                               </div>
                             </div>
 
                             {/* Conditional Rendering based on View Mode */}
                             {viewMode === 'table' ? (
-                              <EnhancedResultsTable 
+                              <EnhancedResultsTable
                                 data={execution.resultData}
                                 instanceInfo={execution.instanceInfo}
                                 brands={execution.brands}
@@ -643,15 +705,42 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                                   endTime: execution.endTime || new Date().toISOString()
                                 }}
                               />
+                            ) : viewMode === 'charts' ? (
+                              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                <div className="lg:col-span-2">
+                                  <DataVisualization
+                                    data={execution.resultData}
+                                    columns={execution.resultData && execution.resultData.length > 0
+                                      ? Object.keys(execution.resultData[0])
+                                      : []
+                                    }
+                                    title="Query Results Visualization"
+                                    brands={execution.brands}
+                                  />
+                                </div>
+                                <div className="lg:col-span-1">
+                                  <SmartChartSuggestions
+                                    data={execution.resultData}
+                                    columns={execution.resultData && execution.resultData.length > 0
+                                      ? Object.keys(execution.resultData[0])
+                                      : []
+                                    }
+                                    onApplyChart={(recommendation) => {
+                                      console.log('Applied chart:', recommendation);
+                                      // TODO: Apply chart configuration to DataVisualization
+                                    }}
+                                  />
+                                </div>
+                              </div>
                             ) : (
-                              <DataVisualization
+                              <AIAnalysisPanel
                                 data={execution.resultData}
-                                columns={execution.resultData && execution.resultData.length > 0 
+                                columns={execution.resultData && execution.resultData.length > 0
                                   ? Object.keys(execution.resultData[0])
                                   : []
                                 }
-                                title="Query Results Visualization"
-                                brands={execution.brands}
+                                isLoading={false}
+                                error={null}
                               />
                             )}
                           </div>
@@ -720,12 +809,37 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                           <span className="font-medium">Query:</span> {execution.workflowInfo?.name || execution.workflowName}
                         </p>
                       )}
+                      {execution.executionParameters && Object.keys(execution.executionParameters).length > 0 && (
+                        <div className="flex items-center space-x-2 pt-2">
+                          <button
+                            onClick={() => setShowOriginalSQL(!showOriginalSQL)}
+                            className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded transition-colors flex items-center space-x-1"
+                          >
+                            <Eye className="h-4 w-4 text-gray-500" />
+                            <span className="text-xs text-gray-600">
+                              {showOriginalSQL ? 'Show with Values' : 'Show with Placeholders'}
+                            </span>
+                          </button>
+                          <span className="text-xs text-gray-500">
+                            {showOriginalSQL ? 'Showing original query with placeholders' : 'Showing query with actual values'}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   )}
-                  
+
                   <div className="border rounded-lg overflow-hidden">
-                    <SQLEditor 
-                      value={execution?.sqlQuery || execution?.workflowInfo?.sqlQuery || ''} 
+                    <SQLEditor
+                      value={
+                        execution?.executionParameters &&
+                        Object.keys(execution.executionParameters).length > 0 &&
+                        !showOriginalSQL
+                          ? replaceParametersInSQL(
+                              execution?.sqlQuery || execution?.workflowInfo?.sqlQuery || '',
+                              execution.executionParameters
+                            )
+                          : execution?.sqlQuery || execution?.workflowInfo?.sqlQuery || ''
+                      }
                       onChange={() => {}}
                       height="calc(80vh - 200px)"
                       readOnly={true}

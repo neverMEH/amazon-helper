@@ -4,7 +4,50 @@
 
 The Query Library is a comprehensive, standalone system that serves as the central hub for AMC query templates with sophisticated parameter handling, seamless integration with workflows/collections/schedules, and automatic report generation. This major redesign transforms the system from simple template storage into a comprehensive query management platform.
 
-## Recent Changes (2025-09-12)
+## Recent Changes (2025-09-25)
+
+### Critical Template System Fixes (2025-09-25)
+
+#### Template Validation Improvements
+- **Fixed Overly Strict Parameter Validation**: Removed incorrect validation that required default values for all required parameters in the TemplateEditor component
+  - **Issue**: Templates like "NTB Gateway ASIN Performance Analysis" couldn't be saved due to validation requiring default values even for required parameters
+  - **Solution**: Modified template validation logic to distinguish between required parameters (which users must provide) and optional parameters (which can have defaults)
+  - **Impact**: Users can now save templates with required parameters that don't have default values, which is the expected behavior
+  - **Files**: `/frontend/src/components/query-library/TemplateEditor.tsx`
+
+#### Template Parameter Management System Fix
+- **Fixed 500 Error on Template Updates**: Resolved server errors when updating template parameters by restructuring parameter management approach
+  - **Root Cause**: Separate parameter API endpoints were causing conflicts when templates were updated, leading to parameter management through both template data and separate parameter endpoints
+  - **Solution**: Consolidated parameter management to use `parameters_schema` field directly in template data instead of separate parameter API calls
+  - **Benefits**: Simplified architecture reduces complexity and prevents parameter synchronization issues between template and parameter endpoints
+  - **Impact**: Public templates and user templates can now be edited without server errors
+  - **Files**: Template parameter management throughout the system
+
+#### TypeScript Build Compatibility Fixes
+- **Fixed Docker Build Failures**: Resolved TypeScript compilation errors that were preventing successful Docker builds and production deployments
+  - **Issues**:
+    - Unused `result` variable in QueryLibrary.tsx causing compilation warnings treated as errors
+    - Various TypeScript strict mode violations
+  - **Solutions**:
+    - Removed unused variables and imports
+    - Fixed type declarations and boolean conversions
+    - Resolved JSX syntax issues
+  - **Impact**: Production builds and Docker deployments now complete successfully
+  - **Files**: `/frontend/src/pages/QueryLibrary.tsx`, various template components
+
+#### API Endpoint Corrections
+- **Fixed Query Templates Endpoint**: Corrected trailing slash inconsistency causing 405 Method Not Allowed errors
+  - **Issue**: Frontend was calling `/api/query-templates` while backend expected `/api/query-templates/` (with trailing slash)
+  - **Solution**: Standardized endpoint paths to match backend route definitions
+  - **Impact**: Template creation and management operations now work reliably
+  - **Files**: `/frontend/src/services/queryTemplateService.ts`
+
+#### Campaign API Parameter Limits Fix
+- **Fixed Campaign Selector 422 Errors**: Corrected page_size parameter from 200 to 100 to comply with API limits
+  - **Issue**: Campaign selector was requesting 200 campaigns per page, exceeding the API's maximum limit of 100
+  - **Solution**: Updated `page_size` parameter to 100 in CampaignSelector components
+  - **Impact**: Campaign selection now works without validation errors, improving user experience in template parameter configuration
+  - **Files**: Campaign selector components throughout the system
 
 ### Smart Context-Aware Parameter Detection and Intelligence (2025-09-12)
 - **Created SQL Parameter Analyzer Utility**: Revolutionary SQL context detection system that understands SQL syntax and parameter usage patterns

@@ -55,7 +55,7 @@ class UniversalSnowflakeSyncService:
         try:
             # Get pending sync items
             response = self.client.table('snowflake_sync_queue')\
-                .select('*, workflow_executions(*), users(id)')\
+                .select('*, users(id)')\
                 .eq('status', 'pending')\
                 .order('created_at')\
                 .limit(10)\
@@ -100,9 +100,15 @@ class UniversalSnowflakeSyncService:
             try:
                 # Update status to processing
                 self._update_sync_status(sync_id, 'processing')
-                
-                # Get execution data
-                execution = sync_item['workflow_executions']
+
+                # Get execution data separately
+                exec_response = self.client.table('workflow_executions')\
+                    .select('*')\
+                    .eq('execution_id', execution_id)\
+                    .single()\
+                    .execute()
+
+                execution = exec_response.data
                 if not execution:
                     raise Exception("Execution not found")
                 
@@ -164,12 +170,83 @@ class UniversalSnowflakeSyncService:
                                            error_message=str(e))
     
     def _generate_table_name(self, execution: Dict[str, Any]) -> str:
-        """Generate a meaningful table name for the execution"""
-        # Use execution ID and date for uniqueness
-        execution_date = execution.get('created_at', datetime.now().isoformat())[:10]
+        """Generate a meaningful table name for the execution
+        Format: instance_workflowname_startdate_enddate
+        """
+        import re
+        import json
+
+        # Get workflow info
+        workflow_response = self.client.table('workflows')\
+            .select('name, instance_id, sql_query')\
+            .eq('id', execution.get('workflow_id'))\
+            .single()\
+            .execute()
+
+        if workflow_response.data:
+            workflow = workflow_response.data
+
+            # Get instance info
+            instance_response = self.client.table('amc_instances')\
+                .select('instance_id')\
+                .eq('id', workflow['instance_id'])\
+                .single()\
+                .execute()
+
+            instance_name = "unknown"
+            if instance_response.data:
+                # Clean instance ID for table name (remove special chars)
+                instance_name = re.sub(r'[^a-zA-Z0-9_]', '_', instance_response.data['instance_id'])
+
+            # Clean workflow name for table name
+            workflow_name = re.sub(r'[^a-zA-Z0-9_]', '_', workflow['name'][:50])  # Limit length
+
+            # Try to extract date range from parameters
+            start_date = "unknown"
+            end_date = "unknown"
+
+            if execution.get('parameters'):
+                try:
+                    params = json.loads(execution['parameters']) if isinstance(execution['parameters'], str) else execution['parameters']
+
+                    # Common parameter names for dates
+                    for start_key in ['startDate', 'start_date', 'from_date', 'fromDate']:
+                        if start_key in params:
+                            start_date = params[start_key][:10].replace('-', '_') if params[start_key] else "unknown"
+                            break
+
+                    for end_key in ['endDate', 'end_date', 'to_date', 'toDate']:
+                        if end_key in params:
+                            end_date = params[end_key][:10].replace('-', '_') if params[end_key] else "unknown"
+                            break
+
+                except Exception as e:
+                    logger.debug(f"Could not parse parameters for date range: {e}")
+
+            # Build table name
+            table_name = f"{instance_name}_{workflow_name}_{start_date}_to_{end_date}"
+
+            # Ensure table name is valid (alphanumeric and underscores only)
+            table_name = re.sub(r'[^a-zA-Z0-9_]', '_', table_name)
+
+            # Remove multiple consecutive underscores
+            table_name = re.sub(r'_{2,}', '_', table_name)
+
+            # Ensure it doesn't start with a number (Snowflake requirement)
+            if table_name[0].isdigit():
+                table_name = f"t_{table_name}"
+
+            # Limit total length to 255 chars (Snowflake limit)
+            if len(table_name) > 255:
+                # Keep instance and dates, truncate workflow name
+                table_name = f"{instance_name}_{workflow_name[:30]}_{start_date}_to_{end_date}"
+
+            return table_name.upper()  # Snowflake prefers uppercase
+
+        # Fallback to simple format if we can't get workflow info
+        execution_date = execution.get('created_at', datetime.now().isoformat())[:10].replace('-', '_')
         execution_id_short = execution.get('execution_id', 'unknown')[-8:]
-        
-        return f"workflow_execution_{execution_date}_{execution_id_short}"
+        return f"WORKFLOW_EXECUTION_{execution_date}_{execution_id_short}".upper()
     
     def _update_sync_status(self, sync_id: str, status: str, 
                           retry_count: int = None, error_message: str = None):

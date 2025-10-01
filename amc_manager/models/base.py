@@ -10,19 +10,22 @@ import uuid
 from ..config import settings
 
 
-# Create engine
-engine = create_engine(
-    settings.database_url,
-    pool_size=10,
-    max_overflow=20,
-    pool_pre_ping=True,
-    echo=settings.debug
-)
+# Create engine (optional - primarily using Supabase)
+engine = None
+SessionLocal = None
 
-# Session factory
-SessionLocal = scoped_session(
-    sessionmaker(autocommit=False, autoflush=False, bind=engine)
-)
+if settings.database_url:
+    engine = create_engine(
+        settings.database_url,
+        pool_size=10,
+        max_overflow=20,
+        pool_pre_ping=True,
+        echo=settings.debug
+    )
+    # Session factory
+    SessionLocal = scoped_session(
+        sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    )
 
 # Base class for models
 Base = declarative_base()
@@ -59,6 +62,8 @@ class BaseModel(Base):
 
 def get_db():
     """Dependency to get database session"""
+    if SessionLocal is None:
+        raise RuntimeError("Database not configured. Set DATABASE_URL environment variable.")
     db = SessionLocal()
     try:
         yield db
@@ -68,4 +73,6 @@ def get_db():
 
 def init_db():
     """Initialize database tables"""
+    if engine is None:
+        raise RuntimeError("Database not configured. Set DATABASE_URL environment variable.")
     Base.metadata.create_all(bind=engine)
