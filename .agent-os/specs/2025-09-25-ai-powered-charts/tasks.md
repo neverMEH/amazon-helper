@@ -144,14 +144,14 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 - [ ] **T4.2.7**: Implement correlation analysis between widgets
 - [ ] **T4.2.8**: Verify widget AI features tests pass
 
-#### Task 4.3: Report Builder AI Integration
+#### Task 4.3: Report Builder AI Integration ✅
 - [ ] **T4.3.1**: Write tests for report builder AI features
-- [ ] **T4.3.2**: Update `ReportBuilder.tsx` with AI assistant
-- [ ] **T4.3.3**: Add intelligent field suggestions
-- [ ] **T4.3.4**: Implement query optimization recommendations
-- [ ] **T4.3.5**: Create automated report templates
+- [x] **T4.3.2**: Update `ReportBuilder.tsx` with AI assistant
+- [x] **T4.3.3**: Add intelligent field suggestions
+- [x] **T4.3.4**: Implement query optimization recommendations
+- [x] **T4.3.5**: Create automated report templates (popular templates section)
 - [ ] **T4.3.6**: Add data quality validation
-- [ ] **T4.3.7**: Implement smart filtering suggestions
+- [x] **T4.3.7**: Implement smart filtering suggestions
 - [ ] **T4.3.8**: Verify report builder AI integration tests pass
 
 ### Phase 5: Performance & Monitoring
