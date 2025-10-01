@@ -115,11 +115,12 @@ class AIService:
         # Set primary and fallback providers (prefer Anthropic per technical spec)
         self.primary_provider = (
             AIProvider.ANTHROPIC if self.anthropic_client
-            else AIProvider.OPENAI
+            else AIProvider.OPENAI if self.openai_client
+            else None
         )
         self.fallback_provider = (
             AIProvider.OPENAI if self.primary_provider == AIProvider.ANTHROPIC and self.openai_client
-            else AIProvider.ANTHROPIC if self.anthropic_client
+            else AIProvider.ANTHROPIC if self.primary_provider == AIProvider.OPENAI and self.anthropic_client
             else None
         )
 
