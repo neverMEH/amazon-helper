@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   TrendingUp,
   AlertTriangle,
@@ -15,6 +15,7 @@ import {
   Info,
   Check
 } from 'lucide-react';
+import { useAIAnalysis } from '../../hooks/useAIAnalysis';
 import type {
   DataInsight,
   AnalyzeDataResponse,
@@ -167,8 +168,13 @@ export default function AIAnalysisPanel({
   onRefresh
 }: AIAnalysisPanelProps) {
   const [expandedInsights, setExpandedInsights] = useState<Set<number>>(new Set());
-  const [analysisData, setAnalysisData] = useState<AnalyzeDataResponse | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const analysisMutation = useAIAnalysis();
+
+  // Prepare request data
+  const requestData = useMemo(() => ({
+    columns,
+    rows: data.map(row => columns.map(col => row[col])),
+  }), [data, columns]);
 
   const toggleInsight = (index: number) => {
     setExpandedInsights(prev => {
@@ -183,62 +189,21 @@ export default function AIAnalysisPanel({
   };
 
   const handleAnalyze = async () => {
-    setIsAnalyzing(true);
-    // TODO: Implement API call to /api/ai/analyze-data
-    // This will be implemented in Task 2.4 (AI Services Integration)
-    setTimeout(() => {
-      // Mock data for now
-      setAnalysisData({
-        insights: [
-          {
-            category: 'trend',
-            title: 'Upward trend in conversions',
-            description: 'Your conversion rate has increased by 15% over the past week, indicating improved campaign performance.',
-            confidence: 0.89,
-            impact: 'high',
-            recommendation: 'Continue current optimization strategy and consider scaling budget by 10-15%.',
-            timestamp: new Date().toISOString(),
-          },
-          {
-            category: 'anomaly',
-            title: 'Unusual spike in cost per click',
-            description: 'CPC increased by 45% on Tuesday, which is significantly higher than the 7-day average.',
-            confidence: 0.92,
-            impact: 'medium',
-            recommendation: 'Review bid adjustments and check for new competitor activity during this period.',
-            timestamp: new Date().toISOString(),
-          },
-          {
-            category: 'optimization',
-            title: 'Opportunity to improve ROAS',
-            description: 'Several keywords are showing strong impression volume but low click-through rates, indicating optimization potential.',
-            confidence: 0.76,
-            impact: 'medium',
-            recommendation: 'Consider testing new ad copy or adjusting keyword match types for these terms.',
-            timestamp: new Date().toISOString(),
-          },
-        ],
-        statistical_summary: {
-          metrics: {},
-          correlations: {},
-          outliers: {},
-          trends: {},
-        },
-        recommendations: [
-          'Focus budget on top-performing campaigns',
-          'Test new creative variations',
-          'Expand to similar audience segments',
-        ],
-        metadata: {
-          analysis_type: 'comprehensive',
-          rows_analyzed: data.length,
-        },
+    try {
+      await analysisMutation.mutateAsync({
+        data: requestData,
+        analysis_type: 'comprehensive',
+        confidence_threshold: 0.7,
+        max_insights: 10,
+        include_forecasting: false,
       });
-      setIsAnalyzing(false);
-    }, 2000);
+    } catch (err) {
+      console.error('Failed to analyze data:', err);
+    }
   };
 
   const handleExport = () => {
+    const analysisData = analysisMutation.data;
     if (!analysisData) return;
     const dataStr = JSON.stringify(analysisData, null, 2);
     const blob = new Blob([dataStr], { type: 'application/json' });
@@ -251,6 +216,11 @@ export default function AIAnalysisPanel({
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
+
+  // Get analysis data from mutation
+  const analysisData = analysisMutation.data;
+  const isAnalyzing = analysisMutation.isPending;
+  const analysisError = analysisMutation.error;
 
   // Group insights by category
   const groupedInsights = analysisData?.insights.reduce((acc, insight, idx) => {
@@ -270,10 +240,19 @@ export default function AIAnalysisPanel({
     );
   }
 
-  if (error) {
+  if (error || analysisError) {
+    const errorMessage = error || analysisError?.message || 'An error occurred during analysis';
     return (
       <div className="bg-red-50 border border-red-200 rounded-md p-4">
-        <p className="text-sm text-red-600">{error}</p>
+        <p className="text-sm text-red-600">{errorMessage}</p>
+        {analysisError && (
+          <button
+            onClick={() => analysisMutation.reset()}
+            className="mt-2 text-xs text-red-700 underline hover:text-red-900"
+          >
+            Dismiss
+          </button>
+        )}
       </div>
     );
   }

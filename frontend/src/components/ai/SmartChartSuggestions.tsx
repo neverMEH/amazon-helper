@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   BarChart3,
   LineChart,
@@ -13,6 +13,7 @@ import {
   ChevronRight,
   RefreshCw,
 } from 'lucide-react';
+import { useChartRecommendations } from '../../hooks/useAIAnalysis';
 import type { ChartRecommendation, ChartType } from '../../types/ai';
 
 interface SmartChartSuggestionsProps {
@@ -252,87 +253,25 @@ export default function SmartChartSuggestions({
     }
   };
 
+  const chartRecommendationsMutation = useChartRecommendations();
+
   const handleGenerate = async () => {
     setIsGenerating(true);
-    // TODO: Implement API call to /api/ai/recommend-charts
-    // This will be implemented in Task 2.4 (AI Services Integration)
-    setTimeout(() => {
-      // Mock recommendations
-      setRecommendations([
-        {
-          chart_type: 'line',
-          confidence_score: 0.92,
-          reasoning:
-            'Time-series data detected with temporal patterns. Line chart effectively shows trends over time and allows easy identification of patterns and anomalies.',
-          suggested_title: 'Performance Metrics Over Time',
-          config: {
-            x_axis: columns.find((c) => c.toLowerCase().includes('date')) || columns[0],
-            y_axis: columns.filter((c) => !c.toLowerCase().includes('date')).slice(0, 2),
-            x_axis_label: 'Date',
-            y_axis_label: 'Value',
-            color_palette: ['#6366f1', '#8b5cf6'],
-            enable_tooltips: true,
-            enable_zoom: true,
-            enable_legend: true,
-            stacked: false,
-            show_grid: true,
-            animation_enabled: true,
-          },
-          optimization_tips: [
-            'Consider aggregating data by week or month for clearer trends',
-            'Enable zoom for detailed exploration of specific time periods',
-          ],
-          warnings: [],
-        },
-        {
-          chart_type: 'bar',
-          confidence_score: 0.85,
-          reasoning:
-            'Multiple categorical values with numeric metrics. Bar charts excel at comparing values across categories and highlighting differences.',
-          suggested_title: 'Comparison by Category',
-          config: {
-            x_axis: columns[0],
-            y_axis: columns.slice(1, 2),
-            x_axis_label: columns[0],
-            y_axis_label: 'Count',
-            color_palette: ['#6366f1'],
-            enable_tooltips: true,
-            enable_zoom: false,
-            enable_legend: true,
-            stacked: false,
-            show_grid: true,
-            animation_enabled: true,
-          },
-          optimization_tips: [
-            'Sort categories by value for easier comparison',
-            'Limit to top 10 categories if many exist',
-          ],
-          warnings: ['Large number of categories may make chart cluttered'],
-        },
-        {
-          chart_type: 'area',
-          confidence_score: 0.78,
-          reasoning:
-            'Continuous data with cumulative patterns. Area charts emphasize volume and accumulation over time.',
-          suggested_title: 'Cumulative Metrics',
-          config: {
-            x_axis: columns[0],
-            y_axis: columns.slice(1, 2),
-            color_palette: ['#6366f1'],
-            enable_tooltips: true,
-            enable_zoom: false,
-            enable_legend: true,
-            stacked: false,
-            show_grid: true,
-            animation_enabled: true,
-          },
-          optimization_tips: ['Use stacked area for multiple series', 'Apply smoothing for cleaner visualization'],
-          warnings: [],
-        },
-      ]);
-      setIsGenerating(false);
+    try {
+      const response = await chartRecommendationsMutation.mutateAsync({
+        data,
+        columns,
+        chart_types: ['line', 'bar', 'pie', 'area', 'scatter'],
+        max_recommendations: 5,
+      });
+      setRecommendations(response.recommendations);
       setExpandedCards(new Set([0])); // Expand first recommendation
-    }, 2000);
+    } catch (err) {
+      console.error('Failed to generate chart recommendations:', err);
+      // Keep existing recommendations or show empty state
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   if (isLoading) {
