@@ -30,7 +30,7 @@ class InstanceMappingService:
             brands_dict = {}
 
             # Get unique brands from campaigns table
-            campaigns_result = self.db.supabase.table('campaigns')\
+            campaigns_result = self.db.client.table('campaigns')\
                 .select('brand')\
                 .not_.is_('brand', 'null')\
                 .execute()
@@ -47,7 +47,7 @@ class InstanceMappingService:
                         }
 
             # Get unique brands from product_asins table
-            asins_result = self.db.supabase.table('product_asins')\
+            asins_result = self.db.client.table('product_asins')\
                 .select('brand')\
                 .eq('active', True)\
                 .not_.is_('brand', 'null')\
@@ -67,7 +67,7 @@ class InstanceMappingService:
             # Count ASINs and campaigns for each brand
             for brand in brands_dict.keys():
                 # Count ASINs
-                asin_count_result = self.db.supabase.table('product_asins')\
+                asin_count_result = self.db.client.table('product_asins')\
                     .select('*', count='exact')\
                     .eq('brand', brand)\
                     .eq('active', True)\
@@ -76,7 +76,7 @@ class InstanceMappingService:
                 brands_dict[brand]['asin_count'] = asin_count_result.count or 0
 
                 # Count campaigns
-                campaign_count_result = self.db.supabase.table('campaigns')\
+                campaign_count_result = self.db.client.table('campaigns')\
                     .select('*', count='exact')\
                     .eq('brand', brand)\
                     .limit(1)\
@@ -109,7 +109,7 @@ class InstanceMappingService:
         """
         try:
             # Query product_asins table for this brand
-            query = self.db.supabase.table('product_asins')\
+            query = self.db.client.table('product_asins')\
                 .select('asin, title, brand, image_url, last_known_price, active', count='exact')\
                 .eq('brand', brand_tag)\
                 .eq('active', True)
@@ -159,7 +159,7 @@ class InstanceMappingService:
         """
         try:
             # Query campaigns table for this brand
-            query = self.db.supabase.table('campaigns')\
+            query = self.db.client.table('campaigns')\
                 .select('campaign_id, name, type, state, brand', count='exact')\
                 .eq('brand', brand_tag)
 
@@ -213,7 +213,7 @@ class InstanceMappingService:
         """
         try:
             # Verify user has access to this instance
-            instance = self.db.supabase.table('amc_instances')\
+            instance = self.db.client.table('amc_instances')\
                 .select('*, amc_accounts!inner(user_id)')\
                 .eq('id', instance_id)\
                 .execute()
@@ -229,7 +229,7 @@ class InstanceMappingService:
                 }
 
             # Get brands
-            brands_result = self.db.supabase.table('instance_brands')\
+            brands_result = self.db.client.table('instance_brands')\
                 .select('brand_tag')\
                 .eq('instance_id', instance_id)\
                 .execute()
@@ -237,7 +237,7 @@ class InstanceMappingService:
             brands = [b['brand_tag'] for b in brands_result.data]
 
             # Get ASINs grouped by brand
-            asins_result = self.db.supabase.table('instance_brand_asins')\
+            asins_result = self.db.client.table('instance_brand_asins')\
                 .select('brand_tag, asin')\
                 .eq('instance_id', instance_id)\
                 .execute()
@@ -250,7 +250,7 @@ class InstanceMappingService:
                 asins_by_brand[brand].append(row['asin'])
 
             # Get campaigns grouped by brand
-            campaigns_result = self.db.supabase.table('instance_brand_campaigns')\
+            campaigns_result = self.db.client.table('instance_brand_campaigns')\
                 .select('brand_tag, campaign_id')\
                 .eq('instance_id', instance_id)\
                 .execute()
@@ -263,14 +263,14 @@ class InstanceMappingService:
                 campaigns_by_brand[brand].append(row['campaign_id'])
 
             # Get most recent update timestamp
-            latest_asin = self.db.supabase.table('instance_brand_asins')\
+            latest_asin = self.db.client.table('instance_brand_asins')\
                 .select('updated_at')\
                 .eq('instance_id', instance_id)\
                 .order('updated_at', desc=True)\
                 .limit(1)\
                 .execute()
 
-            latest_campaign = self.db.supabase.table('instance_brand_campaigns')\
+            latest_campaign = self.db.client.table('instance_brand_campaigns')\
                 .select('updated_at')\
                 .eq('instance_id', instance_id)\
                 .order('updated_at', desc=True)\
@@ -318,7 +318,7 @@ class InstanceMappingService:
         """
         try:
             # Verify user has access
-            instance = self.db.supabase.table('amc_instances')\
+            instance = self.db.client.table('amc_instances')\
                 .select('*, amc_accounts!inner(user_id)')\
                 .eq('id', instance_id)\
                 .execute()
@@ -341,11 +341,11 @@ class InstanceMappingService:
                 }
 
             # Delete existing mappings
-            self.db.supabase.table('instance_brands')\
+            self.db.client.table('instance_brands')\
                 .delete().eq('instance_id', instance_id).execute()
-            self.db.supabase.table('instance_brand_asins')\
+            self.db.client.table('instance_brand_asins')\
                 .delete().eq('instance_id', instance_id).execute()
-            self.db.supabase.table('instance_brand_campaigns')\
+            self.db.client.table('instance_brand_campaigns')\
                 .delete().eq('instance_id', instance_id).execute()
 
             # Insert brand associations
@@ -361,7 +361,7 @@ class InstanceMappingService:
                 })
 
             if brand_records:
-                self.db.supabase.table('instance_brands').insert(brand_records).execute()
+                self.db.client.table('instance_brands').insert(brand_records).execute()
 
             # Insert ASIN mappings
             asin_records = []
@@ -380,7 +380,7 @@ class InstanceMappingService:
                     })
 
             if asin_records:
-                self.db.supabase.table('instance_brand_asins').insert(asin_records).execute()
+                self.db.client.table('instance_brand_asins').insert(asin_records).execute()
 
             # Insert campaign mappings
             campaign_records = []
@@ -399,7 +399,7 @@ class InstanceMappingService:
                     })
 
             if campaign_records:
-                self.db.supabase.table('instance_brand_campaigns').insert(campaign_records).execute()
+                self.db.client.table('instance_brand_campaigns').insert(campaign_records).execute()
 
             return {
                 'success': True,
