@@ -42,6 +42,7 @@ class InstanceMappingService:
                         brands_dict[brand] = {
                             'brand_tag': brand,
                             'brand_name': brand,  # Use brand tag as name for now
+                            'source': 'campaign',
                             'asin_count': 0,
                             'campaign_count': 0
                         }
@@ -60,9 +61,13 @@ class InstanceMappingService:
                         brands_dict[brand] = {
                             'brand_tag': brand,
                             'brand_name': brand,
+                            'source': 'product',
                             'asin_count': 0,
                             'campaign_count': 0
                         }
+                    else:
+                        # If brand already exists from campaigns, update source to indicate both
+                        brands_dict[brand]['source'] = 'both'
 
             # Count ASINs and campaigns for each brand
             for brand in brands_dict.keys():
