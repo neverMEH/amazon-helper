@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { BarChart3, Database, GitBranch, Tag, Sparkles, TrendingUp, AlertTriangle, Lightbulb, ChevronDown, ChevronUp } from 'lucide-react';
+import { BarChart3, Database, GitBranch, Tag, Sparkles, TrendingUp, AlertTriangle, Lightbulb, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
 import api from '../services/api';
 import { useAIAnalysis } from '../hooks/useAIAnalysis';
 import type { DataInsight } from '../types/ai';
@@ -16,6 +16,8 @@ export default function Dashboard() {
   const [showAIInsights, setShowAIInsights] = useState(true);
   const [aiInsights, setAiInsights] = useState<DataInsight[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
 
   const aiAnalysisMutation = useAIAnalysis();
 
@@ -46,27 +48,48 @@ export default function Dashboard() {
     setIsAnalyzing(true);
     try {
       const dashboardData = [
-        { metric: 'AMC Instances', value: stats.totalInstances },
-        { metric: 'Workflows', value: stats.totalWorkflows },
-        { metric: 'Campaigns', value: stats.totalCampaigns },
-        { metric: 'Recent Executions', value: stats.recentExecutions },
+        ['AMC Instances', stats.totalInstances],
+        ['Workflows', stats.totalWorkflows],
+        ['Campaigns', stats.totalCampaigns],
+        ['Recent Executions', stats.recentExecutions],
       ];
 
       const response = await aiAnalysisMutation.mutateAsync({
-        data: dashboardData,
-        columns: ['metric', 'value'],
+        data: {
+          columns: ['metric', 'value'],
+          rows: dashboardData,
+        },
         analysis_type: 'comprehensive',
         confidence_threshold: 0.6,
         max_insights: 5,
       });
 
       setAiInsights(response.insights);
+      setLastRefreshTime(new Date());
     } catch (error) {
       console.error('Failed to generate AI insights:', error);
     } finally {
       setIsAnalyzing(false);
     }
   };
+
+  // Auto-refresh AI insights when enabled
+  useEffect(() => {
+    if (autoRefresh && stats && !isAnalyzing) {
+      const interval = setInterval(() => {
+        handleGenerateInsights();
+      }, 60000); // Refresh every 60 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [autoRefresh, stats, isAnalyzing]);
+
+  // Auto-generate insights on first load if stats are available
+  useEffect(() => {
+    if (stats && aiInsights.length === 0 && !isAnalyzing && autoRefresh) {
+      handleGenerateInsights();
+    }
+  }, [stats]);
 
   const cards = [
     {
@@ -146,8 +169,26 @@ export default function Dashboard() {
                 <div className="flex items-center space-x-2">
                   <Sparkles className="h-5 w-5 text-indigo-600" />
                   <h2 className="text-lg font-semibold text-gray-900">AI Insights</h2>
+                  {lastRefreshTime && (
+                    <span className="text-xs text-gray-500">
+                      Updated {lastRefreshTime.toLocaleTimeString()}
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center space-x-3">
+                  {/* Auto-refresh toggle */}
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={autoRefresh}
+                      onChange={(e) => setAutoRefresh(e.target.checked)}
+                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span className="text-sm text-gray-700 flex items-center">
+                      <RefreshCw className="h-3.5 w-3.5 mr-1" />
+                      Auto-refresh
+                    </span>
+                  </label>
                   <button
                     onClick={handleGenerateInsights}
                     disabled={isAnalyzing}
