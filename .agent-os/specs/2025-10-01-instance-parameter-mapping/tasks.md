@@ -7,25 +7,25 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 
 ## Tasks
 
-### Task 1: Database Schema & Migration
+### Task 1: Database Schema & Migration ✅
 
 **Goal**: Create and apply database schema changes for instance-level parameter mappings
 
-- [ ] 1.1. Write migration script `scripts/apply_instance_parameter_mapping_migration.py` to create:
+- [x] 1.1. Write migration script `scripts/apply_instance_parameter_mapping_migration.py` to create:
   - `instance_brand_asins` table (id, instance_id, brand_id, asin_id, created_at)
   - `instance_brand_campaigns` table (id, instance_id, brand_id, campaign_id, created_at)
   - Add `brand_tag` column to `campaign_mappings` table (nullable VARCHAR)
   - Create indexes on foreign keys and brand_tag
   - Add RLS policies for user access control
-- [ ] 1.2. Write unit tests in `tests/supabase/test_instance_mappings_schema.py` to verify:
+- [x] 1.2. Write unit tests in `tests/supabase/test_instance_parameter_mapping_schema.py` to verify:
   - Tables created with correct columns and types
   - Foreign key constraints work properly
   - Indexes exist and improve query performance
   - RLS policies restrict access appropriately
-- [ ] 1.3. Apply migration to development database
-- [ ] 1.4. Verify schema in Supabase dashboard
-- [ ] 1.5. Seed test data for development (at least 2 instances with brand/ASIN/campaign mappings)
-- [ ] 1.6. Verify all schema tests pass
+- [x] 1.3. Apply migration to development database
+- [x] 1.4. Verify schema in Supabase dashboard
+- [x] 1.5. Seed test data for development (at least 2 instances with brand/ASIN/campaign mappings)
+- [x] 1.6. Verify all schema tests pass
 
 ---
 
