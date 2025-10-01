@@ -29,14 +29,14 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 - [x] **T1.2.8**: Verify data analysis AI tests pass
 
 #### Task 1.3: Chart Recommendations AI Module
-- [ ] **T1.3.1**: Write tests for chart recommendation functionality
-- [ ] **T1.3.2**: Create `chart_recommendations_ai.py` service class
-- [ ] **T1.3.3**: Implement data type detection (categorical, numerical, temporal)
-- [ ] **T1.3.4**: Create chart type recommendation logic
-- [ ] **T1.3.5**: Add visualization best practices validation
-- [ ] **T1.3.6**: Implement configuration parameter suggestions
-- [ ] **T1.3.7**: Create chart optimization recommendations
-- [ ] **T1.3.8**: Verify chart recommendations AI tests pass
+- [x] **T1.3.1**: Write tests for chart recommendation functionality
+- [x] **T1.3.2**: Create `chart_recommendations_ai.py` service class
+- [x] **T1.3.3**: Implement data type detection (categorical, numerical, temporal)
+- [x] **T1.3.4**: Create chart type recommendation logic
+- [x] **T1.3.5**: Add visualization best practices validation
+- [x] **T1.3.6**: Implement configuration parameter suggestions
+- [x] **T1.3.7**: Create chart optimization recommendations
+- [x] **T1.3.8**: Verify chart recommendations AI tests pass
 
 #### Task 1.4: AI API Endpoints
 - [ ] **T1.4.1**: Write tests for AI API endpoints
