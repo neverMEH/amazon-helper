@@ -80,13 +80,13 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 - [x] **T2.3.7**: Implement query validation and error detection
 - [x] **T2.3.8**: Verify query assistant tests pass
 
-#### Task 2.4: AI Services Integration
+#### Task 2.4: AI Services Integration ✅
 - [ ] **T2.4.1**: Write tests for frontend AI service integration
-- [ ] **T2.4.2**: Create `aiService.ts` API client
-- [ ] **T2.4.3**: Implement React Query hooks for AI endpoints
-- [ ] **T2.4.4**: Add error handling and retry logic
-- [ ] **T2.4.5**: Create caching strategies for AI responses
-- [ ] **T2.4.6**: Add loading states management
+- [x] **T2.4.2**: Create `aiService.ts` API client
+- [x] **T2.4.3**: Implement React Query hooks for AI endpoints
+- [x] **T2.4.4**: Add error handling and retry logic
+- [x] **T2.4.5**: Create caching strategies for AI responses
+- [x] **T2.4.6**: Add loading states management
 - [ ] **T2.4.7**: Implement optimistic updates where appropriate
 - [ ] **T2.4.8**: Verify AI services integration tests pass
 
