@@ -11,6 +11,7 @@ import SQLEditor from '../common/SQLEditor';
 import ExecutionErrorDetails from './ExecutionErrorDetails';
 import SaveAsTemplateModal from '../report-builder/SaveAsTemplateModal';
 import AIAnalysisPanel from '../ai/AIAnalysisPanel';
+import SmartChartSuggestions from '../ai/SmartChartSuggestions';
 import { replaceParametersInSQL, formatSQLWithParameterComments } from '../../utils/sqlParameterizer';
 
 interface Props {
@@ -705,15 +706,32 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                                 }}
                               />
                             ) : viewMode === 'charts' ? (
-                              <DataVisualization
-                                data={execution.resultData}
-                                columns={execution.resultData && execution.resultData.length > 0
-                                  ? Object.keys(execution.resultData[0])
-                                  : []
-                                }
-                                title="Query Results Visualization"
-                                brands={execution.brands}
-                              />
+                              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                <div className="lg:col-span-2">
+                                  <DataVisualization
+                                    data={execution.resultData}
+                                    columns={execution.resultData && execution.resultData.length > 0
+                                      ? Object.keys(execution.resultData[0])
+                                      : []
+                                    }
+                                    title="Query Results Visualization"
+                                    brands={execution.brands}
+                                  />
+                                </div>
+                                <div className="lg:col-span-1">
+                                  <SmartChartSuggestions
+                                    data={execution.resultData}
+                                    columns={execution.resultData && execution.resultData.length > 0
+                                      ? Object.keys(execution.resultData[0])
+                                      : []
+                                    }
+                                    onApplyChart={(recommendation) => {
+                                      console.log('Applied chart:', recommendation);
+                                      // TODO: Apply chart configuration to DataVisualization
+                                    }}
+                                  />
+                                </div>
+                              </div>
                             ) : (
                               <AIAnalysisPanel
                                 data={execution.resultData}
