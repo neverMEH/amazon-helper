@@ -50,15 +50,15 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 
 ### Phase 2: Frontend AI Components
 
-#### Task 2.1: AI Analysis Panel Component
-- [ ] **T2.1.1**: Write tests for AI analysis panel component
-- [ ] **T2.1.2**: Create `AIAnalysisPanel.tsx` component structure
-- [ ] **T2.1.3**: Implement loading states and error handling
-- [ ] **T2.1.4**: Add insights display with categorized sections
-- [ ] **T2.1.5**: Create expandable/collapsible insight cards
-- [ ] **T2.1.6**: Add regenerate insights functionality
-- [ ] **T2.1.7**: Implement insights export options
-- [ ] **T2.1.8**: Verify AI analysis panel tests pass
+#### Task 2.1: AI Analysis Panel Component ✅
+- [x] **T2.1.1**: Write tests for AI analysis panel component
+- [x] **T2.1.2**: Create `AIAnalysisPanel.tsx` component structure
+- [x] **T2.1.3**: Implement loading states and error handling
+- [x] **T2.1.4**: Add insights display with categorized sections
+- [x] **T2.1.5**: Create expandable/collapsible insight cards
+- [x] **T2.1.6**: Add regenerate insights functionality
+- [x] **T2.1.7**: Implement insights export options
+- [x] **T2.1.8**: Verify AI analysis panel tests pass
 
 #### Task 2.2: Smart Chart Suggestions Component
 - [ ] **T2.2.1**: Write tests for chart suggestions component
