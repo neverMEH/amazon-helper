@@ -48,7 +48,7 @@ async def get_brand_asins(
     instance_id: str,
     brand_tag: str,
     search: Optional[str] = Query(None, description="Search term for filtering ASINs"),
-    limit: int = Query(100, ge=1, le=500, description="Maximum results to return"),
+    limit: int = Query(100, ge=1, le=5000, description="Maximum results to return"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
     current_user: Dict[str, Any] = Depends(get_current_user)
 ):
@@ -86,7 +86,7 @@ async def get_brand_campaigns(
     brand_tag: str,
     search: Optional[str] = Query(None, description="Search term for filtering campaigns"),
     campaign_type: Optional[str] = Query(None, description="Filter by campaign type (SP, SB, SD, DSP)"),
-    limit: int = Query(100, ge=1, le=500, description="Maximum results to return"),
+    limit: int = Query(100, ge=1, le=5000, description="Maximum results to return"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
     current_user: Dict[str, Any] = Depends(get_current_user)
 ):
