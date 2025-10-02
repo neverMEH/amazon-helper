@@ -34,7 +34,7 @@ class InstanceMappingService:
             batch_size = 1000
             while True:
                 campaigns_result = self.db.client.table('campaigns')\
-                    .select('brand')\
+                    .select('brand, campaign_id')\
                     .not_.is_('brand', 'null')\
                     .range(offset, offset + batch_size - 1)\
                     .execute()
@@ -44,6 +44,12 @@ class InstanceMappingService:
 
                 for row in campaigns_result.data:
                     brand = row.get('brand')
+                    campaign_id = row.get('campaign_id')
+
+                    # Skip coupon/promo IDs (won't work in AMC queries)
+                    if isinstance(campaign_id, str) and campaign_id.startswith(('coupon-', 'promo-')):
+                        continue
+
                     if brand and brand.strip():
                         if brand not in brands_dict:
                             brands_dict[brand] = {
@@ -186,13 +192,16 @@ class InstanceMappingService:
 
             result = query.execute()
 
+            # Filter out coupon/promo IDs (won't work in AMC queries)
             campaigns = [{
                 'campaign_id': row['campaign_id'],
                 'campaign_name': row['name'],
                 'campaign_type': row.get('type'),
                 'state': row.get('state'),
                 'brand': row['brand']
-            } for row in result.data]
+            } for row in result.data
+            if not (isinstance(row['campaign_id'], str) and
+                   row['campaign_id'].startswith(('coupon-', 'promo-')))]
 
             return {
                 'brand_tag': brand_tag,
