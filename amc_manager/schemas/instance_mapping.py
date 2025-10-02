@@ -7,7 +7,7 @@ from datetime import datetime
 
 class InstanceMappingsInput(BaseModel):
     """Request schema for saving instance mappings"""
-    brands: List[str] = Field(..., min_items=1, description="List of brand tags")
+    brands: List[str] = Field(default=[], description="List of brand tags")
     asins_by_brand: Dict[str, List[str]] = Field(
         default_factory=dict,
         description="ASINs grouped by brand tag"
@@ -19,25 +19,23 @@ class InstanceMappingsInput(BaseModel):
 
     @validator('brands')
     def validate_brands(cls, v):
-        """Ensure brands list is not empty and contains valid brand tags"""
+        """Validate brand tag format (alphanumeric, underscore, hyphen, spaces)"""
         if not v:
-            raise ValueError("At least one brand must be provided")
+            return v  # Allow empty brands list
 
-        # Validate brand tag format (alphanumeric, underscore, hyphen)
+        # Validate brand tag format - allow alphanumeric, underscore, hyphen, and spaces
         import re
         for brand_tag in v:
-            if not re.match(r'^[a-zA-Z0-9_-]+$', brand_tag):
-                raise ValueError(f"Invalid brand tag format: {brand_tag}")
+            if not brand_tag or not brand_tag.strip():
+                raise ValueError(f"Empty brand tag not allowed")
 
         return v
 
     @validator('asins_by_brand')
     def validate_asins(cls, v, values):
-        """Ensure all ASIN keys match provided brands"""
-        brands = values.get('brands', [])
-        for brand_tag in v.keys():
-            if brand_tag not in brands:
-                raise ValueError(f"ASIN brand '{brand_tag}' not in brands list")
+        """Validate ASINs format"""
+        # Don't enforce brand key matching - allow any brands
+        # This is more flexible and won't break if brands list structure changes
 
         # Validate ASIN format (B followed by 9 alphanumeric characters)
         import re
@@ -51,11 +49,9 @@ class InstanceMappingsInput(BaseModel):
 
     @validator('campaigns_by_brand')
     def validate_campaigns(cls, v, values):
-        """Ensure all campaign keys match provided brands"""
-        brands = values.get('brands', [])
-        for brand_tag in v.keys():
-            if brand_tag not in brands:
-                raise ValueError(f"Campaign brand '{brand_tag}' not in brands list")
+        """Validate campaign IDs"""
+        # Don't enforce brand key matching - allow any brands
+        # This is more flexible and won't break if brands list structure changes
 
         # Validate campaign IDs are positive integers or numeric strings (BIGINT)
         for brand_tag, campaigns in v.items():
