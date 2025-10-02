@@ -64,19 +64,29 @@ export default function InstanceMappingTab({ instanceId }: InstanceMappingTabPro
   // Save mutation
   const saveMutation = useMutation({
     mutationFn: () => {
-      const selectedBrandsList = mappings?.brands || [];
-
       const asinsByBrand: Record<string, string[]> = {};
       const campaignsByBrand: Record<string, (string | number)[]> = {};
 
-      selectedBrandsList.forEach(brand => {
-        if (selectedASINs[brand]) {
-          asinsByBrand[brand] = Array.from(selectedASINs[brand]);
-        }
-        if (selectedCampaigns[brand]) {
-          campaignsByBrand[brand] = Array.from(selectedCampaigns[brand]);
+      // Build the brands list from actual selections
+      const brandsSet = new Set<string>();
+
+      // Add brands that have ASINs selected
+      Object.entries(selectedASINs).forEach(([brand, asins]) => {
+        if (asins.size > 0) {
+          brandsSet.add(brand);
+          asinsByBrand[brand] = Array.from(asins);
         }
       });
+
+      // Add brands that have campaigns selected
+      Object.entries(selectedCampaigns).forEach(([brand, campaigns]) => {
+        if (campaigns.size > 0) {
+          brandsSet.add(brand);
+          campaignsByBrand[brand] = Array.from(campaigns);
+        }
+      });
+
+      const selectedBrandsList = Array.from(brandsSet);
 
       return instanceMappingService.saveInstanceMappings(instanceId, {
         brands: selectedBrandsList,
