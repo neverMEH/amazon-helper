@@ -12,9 +12,9 @@ class InstanceMappingsInput(BaseModel):
         default_factory=dict,
         description="ASINs grouped by brand tag"
     )
-    campaigns_by_brand: Dict[str, List[int]] = Field(
+    campaigns_by_brand: Dict[str, List[Union[int, str]]] = Field(
         default_factory=dict,
-        description="Campaign IDs grouped by brand tag"
+        description="Campaign IDs grouped by brand tag (BIGINT stored as string in JSON)"
     )
 
     @validator('brands')
@@ -57,11 +57,17 @@ class InstanceMappingsInput(BaseModel):
             if brand_tag not in brands:
                 raise ValueError(f"Campaign brand '{brand_tag}' not in brands list")
 
-        # Validate campaign IDs are positive integers
+        # Validate campaign IDs are positive integers or numeric strings (BIGINT)
         for brand_tag, campaigns in v.items():
             for campaign_id in campaigns:
-                if not isinstance(campaign_id, int) or campaign_id <= 0:
-                    raise ValueError(f"Invalid campaign ID: {campaign_id}")
+                if isinstance(campaign_id, int):
+                    if campaign_id <= 0:
+                        raise ValueError(f"Invalid campaign ID: {campaign_id}")
+                elif isinstance(campaign_id, str):
+                    if not campaign_id.isdigit():
+                        raise ValueError(f"Invalid campaign ID string: {campaign_id}")
+                else:
+                    raise ValueError(f"Campaign ID must be int or str, got {type(campaign_id)}")
 
         return v
 
@@ -71,7 +77,7 @@ class InstanceMappingsOutput(BaseModel):
     instance_id: str
     brands: List[str]
     asins_by_brand: Dict[str, List[str]]
-    campaigns_by_brand: Dict[str, List[int]]
+    campaigns_by_brand: Dict[str, List[Union[int, str]]]  # BIGINT stored as string in JSON
     updated_at: Optional[str]
 
 
