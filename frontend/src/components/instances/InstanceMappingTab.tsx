@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Save, Loader2, CheckCircle, XCircle, Settings } from 'lucide-react';
+import { Save, Loader2, CheckCircle, XCircle, Settings, Search } from 'lucide-react';
 import instanceMappingService from '../../services/instanceMappingService';
 
 interface InstanceMappingTabProps {
@@ -14,6 +14,7 @@ export default function InstanceMappingTab({ instanceId }: InstanceMappingTabPro
   const [selectedCampaigns, setSelectedCampaigns] = useState<Record<string, Set<number>>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [brandSearch, setBrandSearch] = useState('');
 
   // Fetch available brands
   const { data: brandsData, isLoading: brandsLoading } = useQuery({
@@ -170,6 +171,11 @@ export default function InstanceMappingTab({ instanceId }: InstanceMappingTabPro
 
   const brands = brandsData?.brands || [];
 
+  // Filter brands based on search
+  const filteredBrands = brands.filter(brand =>
+    brand.brand_name.toLowerCase().includes(brandSearch.toLowerCase())
+  );
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -220,17 +226,34 @@ export default function InstanceMappingTab({ instanceId }: InstanceMappingTabPro
           <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
             <h3 className="font-medium text-gray-900">Brands</h3>
             <p className="text-xs text-gray-500 mt-1">
-              {mappings?.brands.length || 0} selected
+              {brands.length} total brands
             </p>
+          </div>
+          {/* Search bar */}
+          <div className="px-3 py-2 border-b border-gray-200">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search brands..."
+                value={brandSearch}
+                onChange={(e) => setBrandSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
           </div>
           <div className="flex-1 overflow-y-auto p-2">
             {brands.length === 0 ? (
               <div className="text-center py-8 text-gray-500 text-sm">
                 No brands available
               </div>
+            ) : filteredBrands.length === 0 ? (
+              <div className="text-center py-8 text-gray-500 text-sm">
+                No brands match "{brandSearch}"
+              </div>
             ) : (
               <div className="space-y-1">
-                {brands.map((brand) => (
+                {filteredBrands.map((brand) => (
                   <button
                     key={brand.brand_tag}
                     onClick={() => setSelectedBrand(brand.brand_tag)}
