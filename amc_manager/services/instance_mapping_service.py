@@ -29,64 +29,70 @@ class InstanceMappingService:
         try:
             brands_dict = {}
 
-            # Get unique brands from campaigns table
-            campaigns_result = self.db.client.table('campaigns')\
-                .select('brand')\
-                .not_.is_('brand', 'null')\
-                .execute()
+            # Get ALL campaigns with pagination to avoid hitting the 1000 row limit
+            offset = 0
+            batch_size = 1000
+            while True:
+                campaigns_result = self.db.client.table('campaigns')\
+                    .select('brand')\
+                    .not_.is_('brand', 'null')\
+                    .range(offset, offset + batch_size - 1)\
+                    .execute()
 
-            for row in campaigns_result.data:
-                brand = row.get('brand')
-                if brand and brand.strip():
-                    if brand not in brands_dict:
-                        brands_dict[brand] = {
-                            'brand_tag': brand,
-                            'brand_name': brand,  # Use brand tag as name for now
-                            'source': 'campaign',
-                            'asin_count': 0,
-                            'campaign_count': 0
-                        }
+                if not campaigns_result.data:
+                    break
 
-            # Get unique brands from product_asins table
-            asins_result = self.db.client.table('product_asins')\
-                .select('brand')\
-                .eq('active', True)\
-                .not_.is_('brand', 'null')\
-                .execute()
+                for row in campaigns_result.data:
+                    brand = row.get('brand')
+                    if brand and brand.strip():
+                        if brand not in brands_dict:
+                            brands_dict[brand] = {
+                                'brand_tag': brand,
+                                'brand_name': brand,
+                                'source': 'campaign',
+                                'asin_count': 0,
+                                'campaign_count': 0
+                            }
+                        brands_dict[brand]['campaign_count'] = brands_dict[brand].get('campaign_count', 0) + 1
 
-            for row in asins_result.data:
-                brand = row.get('brand')
-                if brand and brand.strip():
-                    if brand not in brands_dict:
-                        brands_dict[brand] = {
-                            'brand_tag': brand,
-                            'brand_name': brand,
-                            'source': 'product',
-                            'asin_count': 0,
-                            'campaign_count': 0
-                        }
-                    else:
-                        # If brand already exists from campaigns, update source to indicate both
-                        brands_dict[brand]['source'] = 'both'
+                if len(campaigns_result.data) < batch_size:
+                    break
+                offset += batch_size
 
-            # Count ASINs and campaigns for each brand
-            for brand in brands_dict.keys():
-                # Count ASINs
-                asin_count_result = self.db.client.table('product_asins')\
-                    .select('*', count='exact')\
-                    .eq('brand', brand)\
+            # Get ALL ASINs with pagination
+            offset = 0
+            while True:
+                asins_result = self.db.client.table('product_asins')\
+                    .select('brand')\
                     .eq('active', True)\
-                    .limit(1)\
+                    .not_.is_('brand', 'null')\
+                    .range(offset, offset + batch_size - 1)\
                     .execute()
-                brands_dict[brand]['asin_count'] = asin_count_result.count or 0
 
-                # Count campaigns
-                campaign_count_result = self.db.client.table('campaigns')\
-                    .select('*', count='exact')\
-                    .eq('brand', brand)\
-                    .limit(1)\
-                    .execute()
-                brands_dict[brand]['campaign_count'] = campaign_count_result.count or 0
+                if not asins_result.data:
+                    break
+
+                for row in asins_result.data:
+                    brand = row.get('brand')
+                    if brand and brand.strip():
+                        if brand not in brands_dict:
+                            brands_dict[brand] = {
+                                'brand_tag': brand,
+                                'brand_name': brand,
+                                'source': 'product',
+                                'asin_count': 0,
+                                'campaign_count': 0
+                            }
+                        else:
+                            # If brand already exists from campaigns, update source to indicate both
+                            if brands_dict[brand]['source'] == 'campaign':
+                                brands_dict[brand]['source'] = 'both'
+
+                        brands_dict[brand]['asin_count'] = brands_dict[brand].get('asin_count', 0) + 1
+
+                if len(asins_result.data) < batch_size:
+                    break
+                offset += batch_size
 
             # Convert to list and sort by brand name
             brands_list = sorted(brands_dict.values(), key=lambda x: x['brand_tag'])
