@@ -46,8 +46,8 @@ class InstanceMappingService:
                     brand = row.get('brand')
                     campaign_id = row.get('campaign_id')
 
-                    # Skip coupon/promo IDs (won't work in AMC queries)
-                    if isinstance(campaign_id, str) and campaign_id.startswith(('coupon-', 'promo-')):
+                    # Skip promotion IDs (won't work in AMC queries)
+                    if isinstance(campaign_id, str) and campaign_id.startswith(('coupon-', 'promo-', 'percentageoff-', 'amountoff-', 'buyxgety-')):
                         continue
 
                     if brand and brand.strip():
@@ -192,7 +192,7 @@ class InstanceMappingService:
 
             result = query.execute()
 
-            # Filter out coupon/promo IDs (won't work in AMC queries)
+            # Filter out promotion IDs (won't work in AMC queries)
             campaigns = [{
                 'campaign_id': row['campaign_id'],
                 'campaign_name': row['name'],
@@ -201,7 +201,7 @@ class InstanceMappingService:
                 'brand': row['brand']
             } for row in result.data
             if not (isinstance(row['campaign_id'], str) and
-                   row['campaign_id'].startswith(('coupon-', 'promo-')))]
+                   row['campaign_id'].startswith(('coupon-', 'promo-', 'percentageoff-', 'amountoff-', 'buyxgety-')))]
 
             return {
                 'brand_tag': brand_tag,
