@@ -11,7 +11,7 @@ export default function InstanceMappingTab({ instanceId }: InstanceMappingTabPro
   const queryClient = useQueryClient();
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [selectedASINs, setSelectedASINs] = useState<Record<string, Set<string>>>({});
-  const [selectedCampaigns, setSelectedCampaigns] = useState<Record<string, Set<number>>>({});
+  const [selectedCampaigns, setSelectedCampaigns] = useState<Record<string, Set<string | number>>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [brandSearch, setBrandSearch] = useState('');
@@ -31,14 +31,14 @@ export default function InstanceMappingTab({ instanceId }: InstanceMappingTabPro
   // Fetch ASINs for selected brand
   const { data: asinsData, isLoading: asinsLoading } = useQuery({
     queryKey: ['brandASINs', instanceId, selectedBrand],
-    queryFn: () => instanceMappingService.getBrandASINs(instanceId, selectedBrand!, { limit: 100 }),
+    queryFn: () => instanceMappingService.getBrandASINs(instanceId, selectedBrand!, { limit: 1000 }),
     enabled: !!selectedBrand,
   });
 
   // Fetch campaigns for selected brand
   const { data: campaignsData, isLoading: campaignsLoading } = useQuery({
     queryKey: ['brandCampaigns', instanceId, selectedBrand],
-    queryFn: () => instanceMappingService.getBrandCampaigns(instanceId, selectedBrand!, { limit: 100 }),
+    queryFn: () => instanceMappingService.getBrandCampaigns(instanceId, selectedBrand!, { limit: 2000 }),
     enabled: !!selectedBrand,
   });
 
@@ -67,7 +67,7 @@ export default function InstanceMappingTab({ instanceId }: InstanceMappingTabPro
       const selectedBrandsList = mappings?.brands || [];
 
       const asinsByBrand: Record<string, string[]> = {};
-      const campaignsByBrand: Record<string, number[]> = {};
+      const campaignsByBrand: Record<string, (string | number)[]> = {};
 
       selectedBrandsList.forEach(brand => {
         if (selectedASINs[brand]) {
@@ -126,7 +126,7 @@ export default function InstanceMappingTab({ instanceId }: InstanceMappingTabPro
     });
   };
 
-  const toggleCampaign = (brand: string, campaignId: number) => {
+  const toggleCampaign = (brand: string, campaignId: string | number) => {
     setSelectedCampaigns(prev => {
       const newSelections = { ...prev };
       if (!newSelections[brand]) {

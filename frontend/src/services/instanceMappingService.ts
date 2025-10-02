@@ -19,11 +19,13 @@ export interface ASIN {
 }
 
 export interface Campaign {
-  campaign_id: number;
+  campaign_id: string | number;  // BIGINT stored as string in JSON
   campaign_name: string;
   campaign_type: string;
-  marketplace_id: string;
-  profile_id: string;
+  state?: string;
+  brand?: string;
+  marketplace_id?: string;
+  profile_id?: string;
   status?: string;
   created_at?: string;
 }
@@ -32,14 +34,14 @@ export interface InstanceMappings {
   instance_id: string;
   brands: string[];
   asins_by_brand: Record<string, string[]>;
-  campaigns_by_brand: Record<string, number[]>;
+  campaigns_by_brand: Record<string, (string | number)[]>;
   updated_at?: string;
 }
 
 export interface SaveMappingsRequest {
   brands: string[];
   asins_by_brand: Record<string, string[]>;
-  campaigns_by_brand: Record<string, number[]>;
+  campaigns_by_brand: Record<string, (string | number)[]>;
 }
 
 export interface SaveMappingsResponse {
