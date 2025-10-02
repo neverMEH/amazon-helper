@@ -121,7 +121,7 @@ class InstanceMappingService:
         try:
             # Query product_asins table for this brand
             query = self.db.client.table('product_asins')\
-                .select('asin, title, brand, image_url, last_known_price, active', count='exact')\
+                .select('asin, title, brand, last_known_price, active', count='exact')\
                 .eq('brand', brand_tag)\
                 .eq('active', True)
 
@@ -188,8 +188,8 @@ class InstanceMappingService:
 
             campaigns = [{
                 'campaign_id': row['campaign_id'],
-                'name': row['name'],
-                'type': row.get('type'),
+                'campaign_name': row['name'],
+                'campaign_type': row.get('type'),
                 'state': row.get('state'),
                 'brand': row['brand']
             } for row in result.data]
