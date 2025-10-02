@@ -102,10 +102,10 @@ class ASIN(BaseModel):
     """ASIN information schema"""
     asin: str
     title: Optional[str] = None
-    brand: str
+    brand: Optional[str] = None
     image_url: Optional[str] = None
     last_known_price: Optional[float] = None
-    active: bool = True
+    active: Optional[bool] = True
 
 
 class BrandASINsResponse(BaseModel):
