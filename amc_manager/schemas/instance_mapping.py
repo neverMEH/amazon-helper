@@ -53,14 +53,15 @@ class InstanceMappingsInput(BaseModel):
         # Don't enforce brand key matching - allow any brands
         # This is more flexible and won't break if brands list structure changes
 
-        # Validate campaign IDs are positive integers or numeric strings (BIGINT)
+        # Validate campaign IDs are positive integers, numeric strings (BIGINT), or coupon/promo IDs
         for brand_tag, campaigns in v.items():
             for campaign_id in campaigns:
                 if isinstance(campaign_id, int):
                     if campaign_id <= 0:
                         raise ValueError(f"Invalid campaign ID: {campaign_id}")
                 elif isinstance(campaign_id, str):
-                    if not campaign_id.isdigit():
+                    # Allow numeric strings (BIGINT) and coupon/promo IDs (coupon-uuid format)
+                    if not (campaign_id.isdigit() or campaign_id.startswith(('coupon-', 'promo-'))):
                         raise ValueError(f"Invalid campaign ID string: {campaign_id}")
                 else:
                     raise ValueError(f"Campaign ID must be int or str, got {type(campaign_id)}")
