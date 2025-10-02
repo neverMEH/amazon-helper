@@ -46,7 +46,7 @@ export default function InstanceMappingTab({ instanceId }: InstanceMappingTabPro
   useState(() => {
     if (mappings) {
       const asinSelections: Record<string, Set<string>> = {};
-      const campaignSelections: Record<string, Set<number>> = {};
+      const campaignSelections: Record<string, Set<string | number>> = {};
 
       Object.entries(mappings.asins_by_brand).forEach(([brand, asins]) => {
         asinSelections[brand] = new Set(asins);
