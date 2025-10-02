@@ -160,6 +160,21 @@ export default function InstanceMappingTab({ instanceId }: InstanceMappingTabPro
     }));
   };
 
+  const selectAllCampaigns = (brand: string) => {
+    if (!campaignsData) return;
+    setSelectedCampaigns(prev => ({
+      ...prev,
+      [brand]: new Set(campaignsData.campaigns.map(c => c.campaign_id)),
+    }));
+  };
+
+  const deselectAllCampaigns = (brand: string) => {
+    setSelectedCampaigns(prev => ({
+      ...prev,
+      [brand]: new Set(),
+    }));
+  };
+
   if (brandsLoading || mappingsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -349,9 +364,25 @@ export default function InstanceMappingTab({ instanceId }: InstanceMappingTabPro
           <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
             <h3 className="font-medium text-gray-900">Campaigns</h3>
             {selectedBrand && (
-              <p className="text-xs text-gray-500 mt-1">
-                {selectedCampaigns[selectedBrand]?.size || 0} selected
-              </p>
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-xs text-gray-500">
+                  {selectedCampaigns[selectedBrand]?.size || 0} selected
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => selectAllCampaigns(selectedBrand)}
+                    className="text-xs text-blue-600 hover:text-blue-700"
+                  >
+                    Select All
+                  </button>
+                  <button
+                    onClick={() => deselectAllCampaigns(selectedBrand)}
+                    className="text-xs text-gray-600 hover:text-gray-700"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
             )}
           </div>
           <div className="flex-1 overflow-y-auto p-2">
