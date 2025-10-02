@@ -1,7 +1,8 @@
 """Instance Parameter Mapping API endpoints"""
 
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, Request
 from typing import Dict, Any, Optional
+import json
 
 from ...services.instance_mapping_service import instance_mapping_service
 from ...schemas.instance_mapping import (
@@ -156,7 +157,7 @@ async def get_instance_mappings(
 @router.post("/{instance_id}/mappings", response_model=SaveMappingsResponse)
 async def save_instance_mappings(
     instance_id: str,
-    mappings: InstanceMappingsInput,
+    request: Request,
     current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """
@@ -174,6 +175,17 @@ async def save_instance_mappings(
         Success status with operation statistics
     """
     try:
+        # Get raw body for logging
+        body = await request.json()
+        logger.info(f"Received mapping request for {instance_id}: {json.dumps(body)}")
+
+        # Validate with Pydantic
+        try:
+            mappings = InstanceMappingsInput(**body)
+        except Exception as validation_error:
+            logger.error(f"Validation error: {validation_error}")
+            raise HTTPException(status_code=422, detail=str(validation_error))
+
         result = instance_mapping_service.save_instance_mappings(
             instance_id=instance_id,
             user_id=current_user['id'],
