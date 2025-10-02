@@ -1,7 +1,7 @@
 """Instance parameter mapping schemas for request/response validation"""
 
 from pydantic import BaseModel, Field, validator
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Union
 from datetime import datetime
 
 
@@ -119,12 +119,14 @@ class BrandASINsResponse(BaseModel):
 
 class Campaign(BaseModel):
     """Campaign information schema"""
-    campaign_id: int
+    campaign_id: Union[int, str]  # BIGINT stored as string in JSON
     campaign_name: str
-    campaign_type: str  # SP, SB, SD, DSP
-    marketplace_id: str
-    profile_id: str
-    status: Optional[str] = "active"
+    campaign_type: Optional[str] = None  # SP, SB, SD, DSP
+    state: Optional[str] = None
+    brand: Optional[str] = None
+    marketplace_id: Optional[str] = None
+    profile_id: Optional[str] = None
+    status: Optional[str] = None
     created_at: Optional[datetime] = None
 
 
