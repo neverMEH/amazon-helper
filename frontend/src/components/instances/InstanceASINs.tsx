@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, Filter, Package, Grid, List, ExternalLink } from 'lucide-react';
 import instanceMappingService from '../../services/instanceMappingService';
-import asinService, { type ASIN } from '../../services/asinService';
+import asinService, { type ASINDetail } from '../../services/asinService';
 
 interface InstanceASINsProps {
   instanceId: string;
@@ -31,17 +31,24 @@ export default function InstanceASINs({ instanceId }: InstanceASINsProps) {
   }, [mappings]);
 
   // Fetch full ASIN details for all mapped ASINs
-  const { data: asinsData, isLoading: asinsLoading } = useQuery({
+  const { data: asinsData, isLoading: asinsLoading } = useQuery<ASINDetail[]>({
     queryKey: ['instance-asins-details', mappedASINIds],
     queryFn: async () => {
       if (mappedASINIds.length === 0) return [];
 
       // Fetch ASINs in batches to get full details
       const asinPromises = mappedASINIds.map(asinId =>
-        asinService.getASIN(asinId).catch(() => ({
+        asinService.getASIN(asinId).catch((): ASINDetail => ({
           asin: asinId,
           active: true,
-          brand: 'Unknown'
+          brand: 'Unknown',
+          title: undefined,
+          image_url: undefined,
+          last_known_price: undefined,
+          monthly_estimated_units: undefined,
+          marketplace: 'US',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         }))
       );
 
@@ -284,7 +291,7 @@ export default function InstanceASINs({ instanceId }: InstanceASINsProps) {
       {/* Summary */}
       {filteredASINs.length > 0 && (
         <div className="mt-4 text-sm text-gray-500">
-          Showing {filteredASINs.length} of {mappedASINs.length} ASINs
+          Showing {filteredASINs.length} of {mappedASINIds.length} ASINs
         </div>
       )}
     </div>
