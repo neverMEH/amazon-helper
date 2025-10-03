@@ -353,12 +353,8 @@ class InstanceMappingService:
             asins_by_brand = mappings.get('asins_by_brand', {})
             campaigns_by_brand = mappings.get('campaigns_by_brand', {})
 
-            # Validate at least one brand
-            if not brands:
-                return {
-                    'success': False,
-                    'message': 'At least one brand must be provided'
-                }
+            # Allow empty mappings - user might want to clear all mappings
+            # No validation needed here - just proceed with deletion and optional insertion
 
             # Delete existing mappings
             self.db.client.table('instance_brands')\

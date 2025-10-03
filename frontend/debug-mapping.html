@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Instance Mapping Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { background: #f5f5f5; padding: 10px; overflow: auto; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Instance Mapping API Debug Tool</h1>
+
+    <div class="section">
+        <h2>Configuration</h2>
+        <label>API Base URL:</label>
+        <input type="text" id="apiBase" value="http://localhost:8001/api" style="width: 300px;"><br><br>
+        <label>Instance ID:</label>
+        <input type="text" id="instanceId" placeholder="Enter instance UUID" style="width: 300px;"><br><br>
+        <label>Auth Token:</label>
+        <input type="text" id="authToken" placeholder="Bearer token" style="width: 500px;">
+    </div>
+
+    <div class="section">
+        <h2>Test Endpoints</h2>
+        <button onclick="testGetBrands()">1. Get Available Brands</button>
+        <button onclick="testGetMappings()">2. Get Current Mappings</button>
+        <button onclick="testGetASINs()">3. Get Brand ASINs</button>
+        <button onclick="testGetCampaigns()">4. Get Brand Campaigns</button>
+        <button onclick="testSaveMappings()">5. Test Save Mappings</button>
+    </div>
+
+    <div class="section">
+        <h2>Results</h2>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        function getConfig() {
+            return {
+                apiBase: document.getElementById('apiBase').value,
+                instanceId: document.getElementById('instanceId').value,
+                token: document.getElementById('authToken').value
+            };
+        }
+
+        function showResult(title, data) {
+            const results = document.getElementById('results');
+            results.innerHTML = `<h3>${title}</h3><pre>${JSON.stringify(data, null, 2)}</pre>` + results.innerHTML;
+        }
+
+        async function testGetBrands() {
+            const config = getConfig();
+            try {
+                const response = await fetch(`${config.apiBase}/instances/${config.instanceId}/available-brands`, {
+                    headers: { 'Authorization': `Bearer ${config.token}` }
+                });
+                const data = await response.json();
+                showResult(`Get Brands (${response.status})`, data);
+
+                // Auto-fill first brand for subsequent tests
+                if (data.brands && data.brands.length > 0) {
+                    window.testBrand = data.brands[0].brand_tag;
+                }
+            } catch (error) {
+                showResult('Get Brands Error', { error: error.message });
+            }
+        }
+
+        async function testGetMappings() {
+            const config = getConfig();
+            try {
+                const response = await fetch(`${config.apiBase}/instances/${config.instanceId}/mappings`, {
+                    headers: { 'Authorization': `Bearer ${config.token}` }
+                });
+                const data = await response.json();
+                showResult(`Get Mappings (${response.status})`, data);
+            } catch (error) {
+                showResult('Get Mappings Error', { error: error.message });
+            }
+        }
+
+        async function testGetASINs() {
+            const config = getConfig();
+            const brand = window.testBrand || prompt('Enter brand tag:');
+            if (!brand) return;
+
+            try {
+                const response = await fetch(`${config.apiBase}/instances/${config.instanceId}/brands/${brand}/asins?limit=10`, {
+                    headers: { 'Authorization': `Bearer ${config.token}` }
+                });
+                const data = await response.json();
+                showResult(`Get ASINs for ${brand} (${response.status})`, data);
+
+                // Store first ASIN for testing
+                if (data.asins && data.asins.length > 0) {
+                    window.testASIN = data.asins[0].asin;
+                }
+            } catch (error) {
+                showResult('Get ASINs Error', { error: error.message });
+            }
+        }
+
+        async function testGetCampaigns() {
+            const config = getConfig();
+            const brand = window.testBrand || prompt('Enter brand tag:');
+            if (!brand) return;
+
+            try {
+                const response = await fetch(`${config.apiBase}/instances/${config.instanceId}/brands/${brand}/campaigns?limit=10`, {
+                    headers: { 'Authorization': `Bearer ${config.token}` }
+                });
+                const data = await response.json();
+                showResult(`Get Campaigns for ${brand} (${response.status})`, data);
+
+                // Store first campaign for testing
+                if (data.campaigns && data.campaigns.length > 0) {
+                    window.testCampaign = data.campaigns[0].campaign_id;
+                }
+            } catch (error) {
+                showResult('Get Campaigns Error', { error: error.message });
+            }
+        }
+
+        async function testSaveMappings() {
+            const config = getConfig();
+            const brand = window.testBrand || prompt('Enter brand tag:');
+            if (!brand) return;
+
+            // Build test payload
+            const payload = {
+                brands: [brand],
+                asins_by_brand: {},
+                campaigns_by_brand: {}
+            };
+
+            if (window.testASIN) {
+                payload.asins_by_brand[brand] = [window.testASIN];
+            }
+
+            if (window.testCampaign) {
+                payload.campaigns_by_brand[brand] = [window.testCampaign];
+            }
+
+            console.log('Sending payload:', payload);
+
+            try {
+                const response = await fetch(`${config.apiBase}/instances/${config.instanceId}/mappings`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${config.token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                showResult(`Save Mappings (${response.status})`, {
+                    payload,
+                    response: data
+                });
+            } catch (error) {
+                showResult('Save Mappings Error', { error: error.message });
+            }
+        }
+    </script>
+</body>
+</html>

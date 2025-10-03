@@ -94,4 +94,4 @@ final_*.py
 # Markdown summaries and guides (keep only essential docs)
 *_SUMMARY.md
 *_GUIDE.md
-*_COMPLETE.md
+*_COMPLETE.mdnul

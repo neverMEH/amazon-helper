@@ -39,11 +39,12 @@ class InstanceMappingsInput(BaseModel):
 
         # Validate ASIN format (B followed by 9 alphanumeric characters)
         import re
-        asin_pattern = re.compile(r'^B[0-9A-Z]{9}$')
+        asin_pattern = re.compile(r'^B[0-9A-Z]{9}$', re.IGNORECASE)
         for brand_tag, asins in v.items():
             for asin in asins:
-                if not asin_pattern.match(asin.upper()):
-                    raise ValueError(f"Invalid ASIN format: {asin}")
+                # Normalize to uppercase for validation
+                if not asin_pattern.match(asin):
+                    raise ValueError(f"Invalid ASIN format: {asin} (expected format: B followed by 9 alphanumeric characters)")
 
         return v
 

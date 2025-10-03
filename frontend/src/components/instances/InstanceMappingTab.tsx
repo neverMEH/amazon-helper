@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Save, Loader2, CheckCircle, XCircle, Settings, Search } from 'lucide-react';
 import instanceMappingService from '../../services/instanceMappingService';
@@ -43,7 +43,7 @@ export default function InstanceMappingTab({ instanceId }: InstanceMappingTabPro
   });
 
   // Initialize selections from mappings
-  useState(() => {
+  useEffect(() => {
     if (mappings) {
       const asinSelections: Record<string, Set<string>> = {};
       const campaignSelections: Record<string, Set<string | number>> = {};
@@ -59,7 +59,7 @@ export default function InstanceMappingTab({ instanceId }: InstanceMappingTabPro
       setSelectedASINs(asinSelections);
       setSelectedCampaigns(campaignSelections);
     }
-  });
+  }, [mappings]);
 
   // Save mutation
   const saveMutation = useMutation({
@@ -88,11 +88,15 @@ export default function InstanceMappingTab({ instanceId }: InstanceMappingTabPro
 
       const selectedBrandsList = Array.from(brandsSet);
 
-      return instanceMappingService.saveInstanceMappings(instanceId, {
+      const payload = {
         brands: selectedBrandsList,
         asins_by_brand: asinsByBrand,
         campaigns_by_brand: campaignsByBrand,
-      });
+      };
+
+      console.log('Saving instance mappings:', payload);
+
+      return instanceMappingService.saveInstanceMappings(instanceId, payload);
     },
     onSuccess: (data) => {
       setSaveMessage({ type: 'success', text: data.message });
@@ -100,11 +104,28 @@ export default function InstanceMappingTab({ instanceId }: InstanceMappingTabPro
       setTimeout(() => setSaveMessage(null), 3000);
     },
     onError: (error: any) => {
+      console.error('Save mapping error:', error);
+      let errorMessage = 'Failed to save mappings';
+
+      if (error.response?.data?.detail) {
+        // API returned a detailed error message
+        if (typeof error.response.data.detail === 'string') {
+          errorMessage = error.response.data.detail;
+        } else if (Array.isArray(error.response.data.detail)) {
+          // Validation errors from Pydantic
+          errorMessage = error.response.data.detail.map((e: any) =>
+            `${e.loc?.join('.')}: ${e.msg}`
+          ).join(', ');
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       setSaveMessage({
         type: 'error',
-        text: error.response?.data?.detail || 'Failed to save mappings'
+        text: errorMessage
       });
-      setTimeout(() => setSaveMessage(null), 5000);
+      setTimeout(() => setSaveMessage(null), 8000);
     },
   });
 
