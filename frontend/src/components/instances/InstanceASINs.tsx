@@ -39,15 +39,14 @@ export default function InstanceASINs({ instanceId }: InstanceASINsProps) {
       // Fetch ASINs in batches to get full details
       const asinPromises = mappedASINIds.map(asinId =>
         asinService.getASIN(asinId).catch((): ASINDetail => ({
+          id: asinId,
           asin: asinId,
           active: true,
           brand: 'Unknown',
           title: undefined,
-          image_url: undefined,
           last_known_price: undefined,
           monthly_estimated_units: undefined,
           marketplace: 'US',
-          created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }))
       );
@@ -175,17 +174,9 @@ export default function InstanceASINs({ instanceId }: InstanceASINsProps) {
               key={asin.asin}
               className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
             >
-              {/* Image */}
+              {/* Image - Placeholder for now as image_url is not in ASINDetail type */}
               <div className="aspect-square bg-gray-100 flex items-center justify-center">
-                {asin.image_url ? (
-                  <img
-                    src={asin.image_url}
-                    alt={asin.title || asin.asin}
-                    className="w-full h-full object-contain"
-                  />
-                ) : (
-                  <Package className="h-16 w-16 text-gray-400" />
-                )}
+                <Package className="h-16 w-16 text-gray-400" />
               </div>
 
               {/* Content */}
