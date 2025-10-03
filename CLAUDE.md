@@ -142,7 +142,11 @@ amc_schema_fields        -- Field metadata
 query_templates          -- Pre-built query library
 campaigns                -- Campaign data
 instance_brands          -- Brand-instance associations
-asins                    -- ASIN management
+asins                    -- ASIN management (product_asins table)
+
+-- Instance Parameter Mappings (Added 2025-10-03)
+instance_brand_asins     -- ASIN-to-brand mappings per instance
+instance_brand_campaigns -- Campaign-to-brand mappings per instance
 
 -- Build Guides (Added 2025-08-21)
 build_guides             -- Guide metadata and configuration
@@ -356,6 +360,13 @@ POST   /api/build-guides/{guide_id}/favorite
 GET    /api/query-templates/
 GET    /api/query-templates/{id}
 
+# Instance Parameter Mappings (Added 2025-10-03)
+GET    /api/instances/{instance_id}/available-brands
+GET    /api/instances/{instance_id}/brands/{brand_tag}/asins
+GET    /api/instances/{instance_id}/brands/{brand_tag}/campaigns
+GET    /api/instances/{instance_id}/mappings
+POST   /api/instances/{instance_id}/mappings
+GET    /api/instances/{instance_id}/parameter-values
 
 # Data Collections (Phase 3)
 GET    /api/data-collections/
@@ -451,8 +462,58 @@ The repository includes Agent OS configuration for AI-assisted development:
 - `.cursor/rules/` contains MDC rules for Cursor IDE integration
 - Follows structured task execution patterns with pre/post-flight checks
 
+## Instance Parameter Mapping Feature (Added 2025-10-03)
+
+A comprehensive system for mapping brands, ASINs, and campaigns to AMC instances with automatic parameter population in query builders.
+
+### Key Components
+
+**Backend**:
+- `instance_mapping_service.py` - Service layer for managing mappings
+- `instance_mappings.py` (API router) - 6 REST endpoints
+- `instance_mapping.py` (schemas) - Pydantic validation schemas
+- Database tables: `instance_brand_asins`, `instance_brand_campaigns`
+
+**Frontend**:
+- `InstanceMappingTab.tsx` - Three-column mapping UI (Brands | ASINs | Campaigns)
+- `InstanceASINs.tsx` - ASINs tab with advanced filtering
+- `useInstanceMappings.ts` - Custom React hook for fetching/caching mappings
+- `parameterAutoPopulator.ts` - Utility for auto-populating parameters
+
+### Auto-Population
+
+Query parameters automatically populate from instance mappings when an instance is selected:
+
+**Integrated Components**:
+- `WorkflowParameterEditor` - Auto-populates ASIN, brand, campaign parameters
+- `RunReportModal` - Auto-populates report template parameters
+
+**Features**:
+- Green badges/banners indicate auto-populated parameters
+- Toast notifications on successful auto-population
+- Loading spinners while fetching mappings
+- Manual values override auto-populated ones
+- Intelligent type detection (asin, campaign, brand parameters)
+
+### Usage
+
+1. Navigate to Instance → Mappings tab
+2. Select brands and their associated ASINs/campaigns
+3. Click "Save Changes"
+4. When creating workflows or reports, select the instance
+5. Parameters auto-populate if mappings exist
+
+### Critical Details
+
+- Mappings are instance-specific (not global)
+- Campaign IDs with promotion prefixes are excluded (coupon-, promo-, socialmedia-, etc.)
+- View/edit mode prevents accidental changes
+- ASINs tab shows full product details with advanced filtering
+- Auto-population preserves manual overrides
+
 ## Recent Critical Fixes
 
+- **2025-10-03**: Instance Parameter Mapping - Complete feature implementation with auto-population in WorkflowParameterEditor and ReportBuilder
 - **2025-09-11**: Flow Template Removal - Removed unused flow template and visual builder features from codebase (major cleanup)
 - **2025-09-09**: Collection Execution View - Added ability to view individual week executions with proper instance_id passing
 - **2025-09-09**: Fixed instance_id confusion between UUID and AMC string ID in collections
