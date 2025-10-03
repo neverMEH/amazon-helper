@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import instanceMappingService, { type InstanceMappingsOutput } from '../services/instanceMappingService';
+import instanceMappingService, { type InstanceMappings } from '../services/instanceMappingService';
 
 /**
  * Custom hook to fetch and cache instance parameter mappings
@@ -10,7 +10,7 @@ import instanceMappingService, { type InstanceMappingsOutput } from '../services
  * @returns Query result with mappings, loading state, error, and refetch function
  */
 export function useInstanceMappings(instanceId: string | null | undefined, enabled: boolean = true) {
-  return useQuery<InstanceMappingsOutput | null>({
+  return useQuery<InstanceMappings | null>({
     queryKey: ['instanceMappings', instanceId],
     queryFn: async () => {
       if (!instanceId) return null;

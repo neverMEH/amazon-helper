@@ -1,4 +1,4 @@
-import type { InstanceMappingsOutput } from '../services/instanceMappingService';
+import type { InstanceMappings } from '../services/instanceMappingService';
 
 export interface AutoPopulatedParameter {
   value: string | string[];
@@ -20,7 +20,7 @@ export interface ParameterMap {
  * @returns Merged parameters with auto-populate metadata
  */
 export function autoPopulateParameters(
-  mappings: InstanceMappingsOutput | null,
+  mappings: InstanceMappings | null,
   currentParams: Record<string, any> = {},
   parameterNames: {
     brands?: string;
@@ -67,7 +67,7 @@ export function autoPopulateParameters(
     } else {
       // Auto-populate from mappings - collect all ASINs across all brands
       const allAsins: string[] = [];
-      Object.values(mappings.asins_by_brand).forEach((asins) => {
+      Object.values(mappings.asins_by_brand).forEach((asins: string[]) => {
         allAsins.push(...asins);
       });
 
@@ -96,13 +96,13 @@ export function autoPopulateParameters(
       };
     } else {
       // Auto-populate from mappings - collect all campaigns across all brands
-      const allCampaigns: string[] = [];
-      Object.values(mappings.campaigns_by_brand).forEach((campaigns) => {
+      const allCampaigns: (string | number)[] = [];
+      Object.values(mappings.campaigns_by_brand).forEach((campaigns: (string | number)[]) => {
         allCampaigns.push(...campaigns);
       });
 
-      // Remove duplicates
-      const uniqueCampaigns = Array.from(new Set(allCampaigns));
+      // Remove duplicates and convert to strings
+      const uniqueCampaigns = Array.from(new Set(allCampaigns)).map(c => String(c));
 
       result[paramName] = {
         value: uniqueCampaigns,
