@@ -62,8 +62,10 @@ class InstanceMappingsInput(BaseModel):
                         raise ValueError(f"Invalid campaign ID: {campaign_id}")
                 elif isinstance(campaign_id, str):
                     # Allow numeric strings (BIGINT) and promotion IDs (UUID format with prefixes)
+                    # Note: These promotion IDs are excluded from UI but we allow them in validation
+                    # for backwards compatibility with existing selections
                     if not (campaign_id.isdigit() or
-                           campaign_id.startswith(('coupon-', 'promo-', 'percentageoff-', 'amountoff-', 'buyxgety-'))):
+                           campaign_id.startswith(('coupon-', 'promo-', 'percentageoff-', 'amountoff-', 'buyxgety-', 'socialmedia-'))):
                         raise ValueError(f"Invalid campaign ID string: {campaign_id}")
                 else:
                     raise ValueError(f"Campaign ID must be int or str, got {type(campaign_id)}")
