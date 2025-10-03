@@ -8,12 +8,17 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 
 ## Recent Updates (2025-10-03)
 
-✅ **Task 3 Completed**: Frontend mapping UI fully functional with bug fixes
+✅ **Task 3 Completed**: Frontend mapping UI fully functional with bug fixes and enhancements
 - Fixed critical React hook issue (useState→useEffect)
 - Enhanced validation (case-insensitive ASINs, excluded socialmedia- IDs)
 - Improved error handling with detailed messages
 - Created comprehensive debug tools and E2E tests
-- Commits: `4b9f280`, `f023f22`
+- Added view/edit mode toggle with locked state and Edit/Cancel buttons
+- Added brands display on instance list and detail pages
+- Created ASINs tab with table-only view, advanced filtering (Brand, Product Group, Product Type)
+- Fixed ASIN details population by using searchASINs endpoint instead of getASIN
+- Backend now returns full ASIN fields when querying by asin_ids
+- Commits: `4b9f280`, `f023f22`, `62d5209`, `a781906`, `6ecfb75`
 
 ## Tasks
 
