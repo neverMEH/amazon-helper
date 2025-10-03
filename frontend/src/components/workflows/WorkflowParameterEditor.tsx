@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Wand2, Settings } from 'lucide-react';
+import { Wand2, Settings, Link } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { ParameterDetector, ParameterSelectorList } from '../parameter-detection';
 import type { DetectedParameter } from '../../utils/parameterDetection';
 import api from '../../services/api';
+import { useInstanceMappings } from '../../hooks/useInstanceMappings';
+import { autoPopulateParameters, extractParameterValues } from '../../utils/parameterAutoPopulator';
+import toast from 'react-hot-toast';
 
 interface WorkflowParameterEditorProps {
   sqlQuery: string;
@@ -28,6 +31,7 @@ export default function WorkflowParameterEditor({
   const [parameterValues, setParameterValues] = useState<Record<string, any>>(parameters || {});
   const [isAutoDetectEnabled, setIsAutoDetectEnabled] = useState(true);
   const [showManualEdit, setShowManualEdit] = useState(false);
+  const [hasAutoPopulated, setHasAutoPopulated] = useState(false);
 
   // Fetch instance details to get brand information
   const { data: instance } = useQuery({
@@ -39,6 +43,9 @@ export default function WorkflowParameterEditor({
     enabled: !!instanceId,
     staleTime: 5 * 60 * 1000
   });
+
+  // Fetch instance mappings for auto-population
+  const { data: instanceMappings, isLoading: loadingMappings } = useInstanceMappings(instanceId);
 
   // Get brand tag from instance's brands array
   const brandId = instance?.brands?.[0]?.brandTag || instance?.brands?.[0]?.brand_tag || '';
@@ -83,6 +90,50 @@ export default function WorkflowParameterEditor({
       setParameterValues(parameters);
     }
   }, [parameters]);
+
+  // Auto-populate parameters from instance mappings
+  useEffect(() => {
+    if (instanceMappings && detectedParameters.length > 0 && instanceId && !hasAutoPopulated) {
+      // Map parameter names based on detected parameter types
+      const parameterNameMap: { brands?: string; asins?: string; campaigns?: string } = {};
+
+      detectedParameters.forEach(param => {
+        const lowerName = param.name.toLowerCase();
+        if (param.type === 'asin' || lowerName.includes('asin')) {
+          parameterNameMap.asins = param.name;
+        } else if (param.type === 'campaign' || lowerName.includes('campaign')) {
+          parameterNameMap.campaigns = param.name;
+        } else if (lowerName.includes('brand')) {
+          parameterNameMap.brands = param.name;
+        }
+      });
+
+      // Only auto-populate if we have mappings and relevant parameters
+      if (Object.keys(parameterNameMap).length > 0) {
+        const autoPopulated = autoPopulateParameters(instanceMappings, parameterValues, parameterNameMap);
+        const newValues = extractParameterValues(autoPopulated);
+
+        // Check if any values were actually auto-populated
+        const hasNewValues = Object.keys(parameterNameMap).some(key => {
+          const paramName = parameterNameMap[key as keyof typeof parameterNameMap];
+          return paramName && newValues[paramName] && (!parameterValues[paramName] ||
+            (Array.isArray(newValues[paramName]) && newValues[paramName].length > 0));
+        });
+
+        if (hasNewValues) {
+          setParameterValues(newValues);
+          onChange(newValues);
+          setHasAutoPopulated(true);
+          toast.success('Parameters populated from instance mappings', { icon: '🔗' });
+        }
+      }
+    }
+  }, [instanceMappings, detectedParameters, instanceId, hasAutoPopulated, parameterValues, onChange]);
+
+  // Reset auto-populate flag when instance changes
+  useEffect(() => {
+    setHasAutoPopulated(false);
+  }, [instanceId]);
 
   // Toggle between auto-detect and manual modes
   const toggleAutoDetect = () => {
@@ -138,7 +189,7 @@ export default function WorkflowParameterEditor({
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="flex items-start mb-3">
             <Wand2 className="h-5 w-5 text-blue-600 mt-0.5 mr-2" />
-            <div>
+            <div className="flex-1">
               <p className="text-sm font-medium text-blue-900">
                 Auto-detected {detectedParameters.length} parameter{detectedParameters.length !== 1 ? 's' : ''}
               </p>
@@ -146,8 +197,21 @@ export default function WorkflowParameterEditor({
                 Select values from all available options
               </p>
             </div>
+            {hasAutoPopulated && instanceMappings && (
+              <div className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 rounded-md text-xs font-medium">
+                <Link className="h-3 w-3" />
+                Auto-populated
+              </div>
+            )}
           </div>
-          
+
+          {loadingMappings && (
+            <div className="mb-3 text-xs text-blue-600 flex items-center gap-2">
+              <div className="animate-spin h-3 w-3 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+              Loading instance mappings...
+            </div>
+          )}
+
           <ParameterSelectorList
             parameters={detectedParameters}
             values={parameterValues}

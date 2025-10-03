@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X, ChevronLeft, ChevronRight, Play, Clock, Calendar, Database, Code, Library, Search, Tag, GitBranch, BarChart3 } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Play, Clock, Calendar, Database, Code, Library, Search, Tag, GitBranch, BarChart3, Link } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import DynamicParameterForm from './DynamicParameterForm';
 import InstanceSelector from '../query-builder/InstanceSelector';
@@ -13,6 +13,8 @@ import { ParameterDetector } from '../../utils/parameterDetection';
 import { detectParametersWithContext, replaceParametersInSQL, analyzeParameterContext } from '../../utils/sqlParameterAnalyzer';
 import { instanceService } from '../../services/instanceService';
 import { queryTemplateService } from '../../services/queryTemplateService';
+import { useInstanceMappings } from '../../hooks/useInstanceMappings';
+import { autoPopulateParameters, extractParameterValues } from '../../utils/parameterAutoPopulator';
 import toast from 'react-hot-toast';
 import SQLEditor from '../common/SQLEditor';
 import type { QueryTemplate } from '../../types/queryTemplate';
@@ -79,6 +81,10 @@ export default function RunReportModal({
   const [showForkDialog, setShowForkDialog] = useState(false);
   const [showMetrics, setShowMetrics] = useState(false);
   const [templateToFork, setTemplateToFork] = useState<QueryTemplate | null>(null);
+  const [hasAutoPopulated, setHasAutoPopulated] = useState(false);
+
+  // Fetch instance mappings for auto-population
+  const { data: instanceMappings, isLoading: loadingMappings } = useInstanceMappings(selectedInstance, isOpen);
 
   // Snowflake integration state
   const [snowflakeEnabled, setSnowflakeEnabled] = useState(false);
@@ -199,6 +205,49 @@ export default function RunReportModal({
       setDetectedParameters(mergedDetection);
     }
   }, [selectedTemplate, initialTemplate, customSql, templateSelectionMode, isOpen]);
+
+  // Auto-populate parameters from instance mappings
+  useEffect(() => {
+    if (instanceMappings && detectedParameters.length > 0 && selectedInstance && !hasAutoPopulated) {
+      // Map parameter names based on detected parameter types
+      const parameterNameMap: { brands?: string; asins?: string; campaigns?: string } = {};
+
+      detectedParameters.forEach(param => {
+        const lowerName = param.name.toLowerCase();
+        if (param.type === 'asin' || param.type === 'asin_list' || lowerName.includes('asin')) {
+          parameterNameMap.asins = param.name;
+        } else if (param.type === 'campaign' || param.type === 'campaign_list' || lowerName.includes('campaign')) {
+          parameterNameMap.campaigns = param.name;
+        } else if (lowerName.includes('brand')) {
+          parameterNameMap.brands = param.name;
+        }
+      });
+
+      // Only auto-populate if we have mappings and relevant parameters
+      if (Object.keys(parameterNameMap).length > 0) {
+        const autoPopulated = autoPopulateParameters(instanceMappings, parameters, parameterNameMap);
+        const newValues = extractParameterValues(autoPopulated);
+
+        // Check if any values were actually auto-populated
+        const hasNewValues = Object.keys(parameterNameMap).some(key => {
+          const paramName = parameterNameMap[key as keyof typeof parameterNameMap];
+          return paramName && newValues[paramName] && (!parameters[paramName] ||
+            (Array.isArray(newValues[paramName]) && newValues[paramName].length > 0));
+        });
+
+        if (hasNewValues) {
+          setParameters(newValues);
+          setHasAutoPopulated(true);
+          toast.success('Parameters populated from instance mappings', { icon: '🔗' });
+        }
+      }
+    }
+  }, [instanceMappings, detectedParameters, selectedInstance, hasAutoPopulated, parameters]);
+
+  // Reset auto-populate flag when instance changes
+  useEffect(() => {
+    setHasAutoPopulated(false);
+  }, [selectedInstance]);
 
   // Generate preview SQL with context-aware parameter substitution
   const previewSQL = useMemo(() => {
@@ -728,6 +777,20 @@ export default function RunReportModal({
             </div>
 
             <div className="border-t pt-4">
+              {/* Auto-population indicator and loading state */}
+              {loadingMappings && selectedInstance && (
+                <div className="mb-3 text-xs text-blue-600 flex items-center gap-2">
+                  <div className="animate-spin h-3 w-3 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                  Loading instance mappings...
+                </div>
+              )}
+              {hasAutoPopulated && instanceMappings && (
+                <div className="mb-3 flex items-center gap-1 px-3 py-2 bg-green-50 border border-green-200 rounded-md text-sm text-green-800">
+                  <Link className="h-4 w-4" />
+                  Parameters auto-populated from instance mappings
+                </div>
+              )}
+
               {/* If template has predefined parameter definitions, use DynamicParameterForm */}
               {(selectedTemplate || initialTemplate)?.parameter_definitions &&
                Object.keys((selectedTemplate || initialTemplate)?.parameter_definitions || {}).length > 0 ? (
