@@ -31,29 +31,19 @@ export default function InstanceASINs({ instanceId }: InstanceASINsProps) {
     return asinIds;
   }, [mappings]);
 
-  // Fetch full ASIN details for all mapped ASINs
+  // Fetch full ASIN details for all mapped ASINs using search endpoint
   const { data: asinsData, isLoading: asinsLoading } = useQuery<ASINDetail[]>({
     queryKey: ['instance-asins-details', mappedASINIds],
     queryFn: async () => {
       if (mappedASINIds.length === 0) return [];
 
-      // Fetch ASINs in batches to get full details
-      const asinPromises = mappedASINIds.map(asinId =>
-        asinService.getASIN(asinId).catch((): ASINDetail => ({
-          id: asinId,
-          asin: asinId,
-          active: true,
-          brand: 'Unknown',
-          title: undefined,
-          last_known_price: undefined,
-          monthly_estimated_units: undefined,
-          marketplace: 'US',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }))
-      );
+      // Use the search endpoint to get full ASIN details by ASIN IDs
+      const response = await asinService.searchASINs({
+        asin_ids: mappedASINIds,
+        limit: 1000
+      });
 
-      return Promise.all(asinPromises);
+      return response.asins as ASINDetail[];
     },
     enabled: mappedASINIds.length > 0,
   });

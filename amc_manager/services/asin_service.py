@@ -227,19 +227,26 @@ class ASINService(DatabaseService):
                      limit: int = 100) -> Dict[str, Any]:
         """
         Search ASINs for parameter selection in query builder
-        
+
         Args:
             asin_ids: List of specific ASIN IDs to fetch
             brands: List of brands to filter by
             search: Search term for ASIN/title
             limit: Maximum results to return
-            
+
         Returns:
             Dict with asins list and total count
         """
         try:
+            # If fetching specific ASIN IDs, return full details
+            # Otherwise return minimal fields for search/selection
+            if asin_ids:
+                select_fields = '*'
+            else:
+                select_fields = 'asin, title, brand'
+
             query = self.client.table('product_asins')\
-                .select('asin, title, brand')\
+                .select(select_fields)\
                 .eq('active', True)
             
             # Apply filters
