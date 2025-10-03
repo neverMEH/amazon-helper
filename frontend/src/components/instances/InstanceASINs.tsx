@@ -47,6 +47,7 @@ export default function InstanceASINs({ instanceId }: InstanceASINsProps) {
           last_known_price: undefined,
           monthly_estimated_units: undefined,
           marketplace: 'US',
+          created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }))
       );
