@@ -153,10 +153,11 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - Manual parameter changes override auto-populated values
   - Visual indicators show when parameters are auto-populated
   - Works in WorkflowEditor, QueryLibrary, and ReportBuilder
-- [ ] 4.2. Create `frontend/src/hooks/useInstanceMappings.ts`:
-  - Custom hook to fetch and cache instance mappings
-  - Return `{ mappings, isLoading, error, refetch }`
-  - Use TanStack Query for caching with 5-minute stale time
+- [x] 4.2. Create `frontend/src/hooks/useInstanceMappings.ts`:
+  - Custom hook to fetch and cache instance mappings ✅
+  - Return `{ mappings, isLoading, error, refetch }` ✅
+  - Use TanStack Query for caching with 5-minute stale time ✅
+  - Also created useInstanceParameterValues hook for formatted parameter values ✅
 - [ ] 4.3. Update `frontend/src/components/workflows/WorkflowEditor.tsx`:
   - Add useEffect to watch `selectedInstanceId` changes
   - Call `getAutoPopulateDefaults(instanceId)` on instance selection
@@ -173,11 +174,12 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - Auto-populate data collection parameters
   - Show visual indicator for auto-populated fields
   - Handle cases where multiple brands exist (default to first or show selector)
-- [ ] 4.6. Create `frontend/src/utils/parameterAutoPopulator.ts`:
-  - Utility function `autoPopulateParameters(mappings, currentParams)`
-  - Returns merged parameters with auto-populate metadata
-  - Handles conflicts (manual > auto-populated)
-  - Validates parameter types match expected formats
+- [x] 4.6. Create `frontend/src/utils/parameterAutoPopulator.ts`:
+  - Utility function `autoPopulateParameters(mappings, currentParams)` ✅
+  - Returns merged parameters with auto-populate metadata ✅
+  - Handles conflicts (manual > auto-populated) ✅
+  - Validates parameter types match expected formats ✅
+  - Additional helper functions: extractParameterValues, isParameterAutoPopulated, markParameterAsManual ✅
 - [ ] 4.7. Add user feedback:
   - Toast notification on first auto-populate: "Parameters populated from instance mappings"
   - Tooltip on auto-populate indicator explaining the feature
