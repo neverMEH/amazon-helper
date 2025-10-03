@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Save, Loader2, CheckCircle, XCircle, Settings, Search } from 'lucide-react';
+import { Save, Loader2, CheckCircle, XCircle, Settings, Search, Lock, Edit } from 'lucide-react';
 import instanceMappingService from '../../services/instanceMappingService';
 
 interface InstanceMappingTabProps {
@@ -15,6 +15,7 @@ export default function InstanceMappingTab({ instanceId }: InstanceMappingTabPro
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [brandSearch, setBrandSearch] = useState('');
+  const [isEditMode, setIsEditMode] = useState(false);
 
   // Fetch available brands
   const { data: brandsData, isLoading: brandsLoading } = useQuery({
@@ -42,7 +43,7 @@ export default function InstanceMappingTab({ instanceId }: InstanceMappingTabPro
     enabled: !!selectedBrand,
   });
 
-  // Initialize selections from mappings
+  // Initialize selections from mappings and determine if we have existing mappings
   useEffect(() => {
     if (mappings) {
       const asinSelections: Record<string, Set<string>> = {};
@@ -58,6 +59,10 @@ export default function InstanceMappingTab({ instanceId }: InstanceMappingTabPro
 
       setSelectedASINs(asinSelections);
       setSelectedCampaigns(campaignSelections);
+
+      // If there are existing mappings, start in view mode (locked)
+      const hasMappings = mappings.brands && mappings.brands.length > 0;
+      setIsEditMode(!hasMappings);
     }
   }, [mappings]);
 
@@ -101,6 +106,7 @@ export default function InstanceMappingTab({ instanceId }: InstanceMappingTabPro
     onSuccess: (data) => {
       setSaveMessage({ type: 'success', text: data.message });
       queryClient.invalidateQueries({ queryKey: ['instanceMappings', instanceId] });
+      setIsEditMode(false); // Switch back to view mode after successful save
       setTimeout(() => setSaveMessage(null), 3000);
     },
     onError: (error: any) => {
@@ -226,29 +232,95 @@ export default function InstanceMappingTab({ instanceId }: InstanceMappingTabPro
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900">Parameter Mappings</h2>
-          <p className="text-sm text-gray-600">
-            Configure brand, ASIN, and campaign associations for this instance
-          </p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              Parameter Mappings
+              {!isEditMode && mappings?.brands.length > 0 && (
+                <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-md">
+                  <Lock className="h-3 w-3 mr-1" />
+                  Locked
+                </span>
+              )}
+            </h2>
+            <p className="text-sm text-gray-600">
+              {isEditMode
+                ? 'Configure brand, ASIN, and campaign associations for this instance'
+                : 'View your configured mappings. Click Edit to make changes.'}
+            </p>
+          </div>
         </div>
-        <button
-          onClick={handleSave}
-          disabled={isSaving}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isSaving ? (
+        <div className="flex gap-2">
+          {!isEditMode && mappings?.brands.length > 0 ? (
+            <button
+              onClick={() => setIsEditMode(true)}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Mappings
+            </button>
+          ) : isEditMode && mappings?.brands.length > 0 ? (
             <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Saving...
+              <button
+                onClick={() => {
+                  setIsEditMode(false);
+                  // Reset selections to saved state
+                  if (mappings) {
+                    const asinSelections: Record<string, Set<string>> = {};
+                    const campaignSelections: Record<string, Set<string | number>> = {};
+                    Object.entries(mappings.asins_by_brand).forEach(([brand, asins]) => {
+                      asinSelections[brand] = new Set(asins);
+                    });
+                    Object.entries(mappings.campaigns_by_brand).forEach(([brand, campaigns]) => {
+                      campaignSelections[brand] = new Set(campaigns);
+                    });
+                    setSelectedASINs(asinSelections);
+                    setSelectedCampaigns(campaignSelections);
+                  }
+                }}
+                className="flex items-center px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+              >
+                <XCircle className="h-4 w-4 mr-2" />
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Changes
+                  </>
+                )}
+              </button>
             </>
           ) : (
-            <>
-              <Save className="h-4 w-4 mr-2" />
-              Save Changes
-            </>
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Mappings
+                </>
+              )}
+            </button>
           )}
-        </button>
+        </div>
       </div>
 
       {/* Save notification */}
@@ -332,13 +404,15 @@ export default function InstanceMappingTab({ instanceId }: InstanceMappingTabPro
                 <div className="flex gap-2">
                   <button
                     onClick={() => selectAllASINs(selectedBrand)}
-                    className="text-xs text-blue-600 hover:text-blue-700"
+                    disabled={!isEditMode}
+                    className="text-xs text-blue-600 hover:text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Select All
                   </button>
                   <button
                     onClick={() => deselectAllASINs(selectedBrand)}
-                    className="text-xs text-gray-600 hover:text-gray-700"
+                    disabled={!isEditMode}
+                    className="text-xs text-gray-600 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Clear
                   </button>
@@ -361,12 +435,13 @@ export default function InstanceMappingTab({ instanceId }: InstanceMappingTabPro
                 {asinsData.asins.map((asin) => (
                   <label
                     key={asin.asin}
-                    className="flex items-start p-2 hover:bg-gray-50 rounded-md cursor-pointer"
+                    className={`flex items-start p-2 rounded-md ${isEditMode ? 'hover:bg-gray-50 cursor-pointer' : 'cursor-default'}`}
                   >
                     <input
                       type="checkbox"
                       checked={selectedASINs[selectedBrand]?.has(asin.asin) || false}
-                      onChange={() => toggleASIN(selectedBrand, asin.asin)}
+                      onChange={() => isEditMode && toggleASIN(selectedBrand, asin.asin)}
+                      disabled={!isEditMode}
                       className="mt-1 mr-3"
                     />
                     <div className="flex-1 min-w-0">
@@ -402,13 +477,15 @@ export default function InstanceMappingTab({ instanceId }: InstanceMappingTabPro
                 <div className="flex gap-2">
                   <button
                     onClick={() => selectAllCampaigns(selectedBrand)}
-                    className="text-xs text-blue-600 hover:text-blue-700"
+                    disabled={!isEditMode}
+                    className="text-xs text-blue-600 hover:text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Select All
                   </button>
                   <button
                     onClick={() => deselectAllCampaigns(selectedBrand)}
-                    className="text-xs text-gray-600 hover:text-gray-700"
+                    disabled={!isEditMode}
+                    className="text-xs text-gray-600 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Clear
                   </button>
@@ -431,12 +508,13 @@ export default function InstanceMappingTab({ instanceId }: InstanceMappingTabPro
                 {campaignsData.campaigns.map((campaign) => (
                   <label
                     key={campaign.campaign_id}
-                    className="flex items-start p-2 hover:bg-gray-50 rounded-md cursor-pointer"
+                    className={`flex items-start p-2 rounded-md ${isEditMode ? 'hover:bg-gray-50 cursor-pointer' : 'cursor-default'}`}
                   >
                     <input
                       type="checkbox"
                       checked={selectedCampaigns[selectedBrand]?.has(campaign.campaign_id) || false}
-                      onChange={() => toggleCampaign(selectedBrand, campaign.campaign_id)}
+                      onChange={() => isEditMode && toggleCampaign(selectedBrand, campaign.campaign_id)}
+                      disabled={!isEditMode}
                       className="mt-1 mr-3"
                     />
                     <div className="flex-1 min-w-0">

@@ -24,12 +24,9 @@ async def list_instances(
         # Format response with camelCase for frontend and add brands
         formatted_instances = []
         for inst in instances:
-            # Get brands for this instance
-            brands_result = client.table('instance_brands').select('id, brand_tag').eq('instance_id', inst['id']).execute()
-            brands = [{
-                'id': b['id'],
-                'brandTag': b['brand_tag']
-            } for b in brands_result.data] if brands_result.data else []
+            # Get brands for this instance (just the brand tags as strings)
+            brands_result = client.table('instance_brands').select('brand_tag').eq('instance_id', inst['id']).execute()
+            brands = [b['brand_tag'] for b in brands_result.data] if brands_result.data else []
             
             formatted_instances.append({
                 "id": inst['id'],
@@ -70,13 +67,10 @@ async def get_instance(
         if not any(inst['instance_id'] == instance_id for inst in user_instances):
             raise HTTPException(status_code=403, detail="Access denied")
         
-        # Get brands for this instance
+        # Get brands for this instance (just the brand tags as strings)
         client = SupabaseManager.get_client(use_service_role=True)
-        brands_result = client.table('instance_brands').select('id, brand_tag').eq('instance_id', instance['id']).execute()
-        brands = [{
-            'id': b['id'],
-            'brandTag': b['brand_tag']
-        } for b in brands_result.data] if brands_result.data else []
+        brands_result = client.table('instance_brands').select('brand_tag').eq('instance_id', instance['id']).execute()
+        brands = [b['brand_tag'] for b in brands_result.data] if brands_result.data else []
         
         return {
             "id": instance['id'],  # Include internal UUID
