@@ -236,7 +236,7 @@ export default function InstanceMappingTab({ instanceId }: InstanceMappingTabPro
           <div>
             <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
               Parameter Mappings
-              {!isEditMode && mappings?.brands.length > 0 && (
+              {!isEditMode && mappings?.brands && mappings.brands.length > 0 && (
                 <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-md">
                   <Lock className="h-3 w-3 mr-1" />
                   Locked
@@ -251,7 +251,7 @@ export default function InstanceMappingTab({ instanceId }: InstanceMappingTabPro
           </div>
         </div>
         <div className="flex gap-2">
-          {!isEditMode && mappings?.brands.length > 0 ? (
+          {!isEditMode && mappings?.brands && mappings.brands.length > 0 ? (
             <button
               onClick={() => setIsEditMode(true)}
               className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
@@ -259,7 +259,7 @@ export default function InstanceMappingTab({ instanceId }: InstanceMappingTabPro
               <Edit className="h-4 w-4 mr-2" />
               Edit Mappings
             </button>
-          ) : isEditMode && mappings?.brands.length > 0 ? (
+          ) : isEditMode && mappings?.brands && mappings.brands.length > 0 ? (
             <>
               <button
                 onClick={() => {
