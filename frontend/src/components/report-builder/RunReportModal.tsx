@@ -212,22 +212,42 @@ export default function RunReportModal({
       // Map parameter names based on detected parameter types
       const parameterNameMap: { brands?: string; asins?: string; campaigns?: string } = {};
 
+      console.log('[RunReportModal] Auto-population check:', {
+        detectedParameters: detectedParameters.map(p => ({ name: p.name, type: p.type })),
+        instanceMappings,
+      });
+
       detectedParameters.forEach(param => {
         const lowerName = param.name.toLowerCase();
         const paramType = param.type as string;
-        if (paramType === 'asin' || paramType === 'asin_list' || lowerName.includes('asin')) {
+
+        // Check for ASIN parameters - be more flexible with naming
+        if (paramType === 'asin' || paramType === 'asin_list' ||
+            lowerName.includes('asin') || lowerName.includes('tracked')) {
           parameterNameMap.asins = param.name;
-        } else if (paramType === 'campaign' || paramType === 'campaign_list' || lowerName.includes('campaign')) {
+          console.log('[RunReportModal] Matched ASIN parameter:', param.name);
+        }
+        // Check for campaign parameters
+        else if (paramType === 'campaign' || paramType === 'campaign_list' ||
+                 lowerName.includes('campaign')) {
           parameterNameMap.campaigns = param.name;
-        } else if (lowerName.includes('brand')) {
+          console.log('[RunReportModal] Matched campaign parameter:', param.name);
+        }
+        // Check for brand parameters
+        else if (lowerName.includes('brand')) {
           parameterNameMap.brands = param.name;
+          console.log('[RunReportModal] Matched brand parameter:', param.name);
         }
       });
+
+      console.log('[RunReportModal] Parameter name map:', parameterNameMap);
 
       // Only auto-populate if we have mappings and relevant parameters
       if (Object.keys(parameterNameMap).length > 0) {
         const autoPopulated = autoPopulateParameters(instanceMappings, parameters, parameterNameMap);
         const newValues = extractParameterValues(autoPopulated);
+
+        console.log('[RunReportModal] Auto-populated values:', newValues);
 
         // Check if any values were actually auto-populated
         const hasNewValues = Object.keys(parameterNameMap).some(key => {
@@ -240,6 +260,8 @@ export default function RunReportModal({
           setParameters(newValues);
           setHasAutoPopulated(true);
           toast.success('Parameters populated from instance mappings', { icon: '🔗' });
+        } else {
+          console.log('[RunReportModal] No new values to auto-populate');
         }
       }
     }
