@@ -1,6 +1,6 @@
 # RecomAMP Product Roadmap
 
-> Last Updated: 2025-08-26
+> Last Updated: 2025-10-08
 > Version: 2.0.0
 > Status: Production Planning
 
@@ -66,6 +66,7 @@ The following features have been implemented in production:
 - [x] **Campaign/ASIN Management** - Import and filter by brand associations
 - [x] **Build Guides** - Step-by-step tactical AMC use cases
 - [x] **Execution Tracking** - Real-time status polling and history
+- [x] **Instance Parameter Mapping** - Brand, ASIN, and campaign associations with automatic parameter population in query builders (Added 2025-10-03)
 
 ### Backend Infrastructure
 - [x] **Token Refresh Service** - Automatic OAuth token renewal
@@ -98,7 +99,7 @@ The following features have been implemented in production:
 
 ### Phase 4: AI Integration & Insights (Q1 2026)
 **Goal:** Add AI-powered analysis and reporting capabilities
-**Success Criteria:** 
+**Success Criteria:**
 - Enable natural language queries and insights
 - Generate automated reports with AI analysis
 - Support markdown reports and presentation exports
