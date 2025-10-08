@@ -215,6 +215,9 @@ export default function RunReportModal({
       console.log('[RunReportModal] Auto-population check:', {
         detectedParameters: detectedParameters.map(p => ({ name: p.name, type: p.type })),
         instanceMappings,
+        selectedInstance,
+        hasASINs: instanceMappings?.asins_by_brand ? Object.keys(instanceMappings.asins_by_brand).length : 0,
+        hasCampaigns: instanceMappings?.campaigns_by_brand ? Object.keys(instanceMappings.campaigns_by_brand).length : 0,
       });
 
       detectedParameters.forEach(param => {
