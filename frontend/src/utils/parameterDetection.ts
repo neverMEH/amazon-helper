@@ -24,7 +24,8 @@ export class ParameterDetector {
 
   // Keywords that indicate parameter types (case-insensitive)
   private static readonly ASIN_KEYWORDS = [
-    'asin', 'product_asin', 'parent_asin', 'child_asin', 'asins', 'asin_list'
+    'asin', 'product_asin', 'parent_asin', 'child_asin', 'asins', 'asin_list',
+    'tracked', 'tracked_asin', 'tracked_asins'
   ];
 
   private static readonly DATE_KEYWORDS = [
