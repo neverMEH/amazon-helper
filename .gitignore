@@ -57,6 +57,10 @@ htmlcov/
 coverage.xml
 *.cover
 
+# Playwright reports
+frontend/playwright-report/
+frontend/test-results/
+
 # Distribution / packaging
 dist/
 build/
@@ -82,6 +86,8 @@ demo_*.py
 check_*.py
 explore_*.py
 final_*.py
+*-debug.spec.ts
+*-debug.spec.js
 
 # Generated files
 *.csv
