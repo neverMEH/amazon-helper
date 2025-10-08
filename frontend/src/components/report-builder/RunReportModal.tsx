@@ -248,13 +248,37 @@ export default function RunReportModal({
         const newValues = extractParameterValues(autoPopulated);
 
         console.log('[RunReportModal] Auto-populated values:', newValues);
+        console.log('[RunReportModal] Current parameters:', parameters);
 
         // Check if any values were actually auto-populated
         const hasNewValues = Object.keys(parameterNameMap).some(key => {
           const paramName = parameterNameMap[key as keyof typeof parameterNameMap];
-          return paramName && newValues[paramName] && (!parameters[paramName] ||
-            (Array.isArray(newValues[paramName]) && newValues[paramName].length > 0));
+          if (!paramName) return false;
+
+          const newValue = newValues[paramName];
+          const currentValue = parameters[paramName];
+
+          console.log(`[RunReportModal] Checking ${paramName}:`, { newValue, currentValue });
+
+          // Has new value if:
+          // 1. New value exists and current is empty/undefined
+          // 2. New value is array with items and current is empty/undefined
+          if (!currentValue || currentValue === '') {
+            if (Array.isArray(newValue) && newValue.length > 0) {
+              console.log(`[RunReportModal] ✓ ${paramName} has new array values`);
+              return true;
+            }
+            if (newValue && !Array.isArray(newValue)) {
+              console.log(`[RunReportModal] ✓ ${paramName} has new value`);
+              return true;
+            }
+          }
+
+          console.log(`[RunReportModal] ✗ ${paramName} skipped (already has value or no new value)`);
+          return false;
         });
+
+        console.log('[RunReportModal] Has new values to populate?', hasNewValues);
 
         if (hasNewValues) {
           setParameters(newValues);
