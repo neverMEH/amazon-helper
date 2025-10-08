@@ -214,9 +214,10 @@ export default function RunReportModal({
 
       detectedParameters.forEach(param => {
         const lowerName = param.name.toLowerCase();
-        if (param.type === 'asin' || param.type === 'asin_list' || lowerName.includes('asin')) {
+        const paramType = param.type as string;
+        if (paramType === 'asin' || paramType === 'asin_list' || lowerName.includes('asin')) {
           parameterNameMap.asins = param.name;
-        } else if (param.type === 'campaign' || param.type === 'campaign_list' || lowerName.includes('campaign')) {
+        } else if (paramType === 'campaign' || paramType === 'campaign_list' || lowerName.includes('campaign')) {
           parameterNameMap.campaigns = param.name;
         } else if (lowerName.includes('brand')) {
           parameterNameMap.brands = param.name;
