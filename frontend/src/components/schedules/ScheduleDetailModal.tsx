@@ -440,6 +440,21 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({
                       </div>
                     )}
                   </div>
+                  {schedule.lookback_days && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Date Window
+                      </label>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <span className="inline-flex items-center px-2 py-1 rounded text-sm font-medium bg-blue-100 text-blue-800">
+                          {schedule.lookback_days} days
+                        </span>
+                        <span className="ml-2 text-xs text-gray-500">
+                          Rolling window
+                        </span>
+                      </div>
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Next Run

@@ -110,6 +110,28 @@ export default function RunReportModal({
     };
   });
 
+  // Rolling window state
+  const [useRollingWindow, setUseRollingWindow] = useState(false);
+  const [rollingWindowDays, setRollingWindowDays] = useState(30);
+
+  // Update date range when rolling window changes
+  useEffect(() => {
+    if (useRollingWindow) {
+      const today = new Date();
+      const AMC_LAG_DAYS = 14;
+      const endDate = new Date(today);
+      endDate.setDate(endDate.getDate() - AMC_LAG_DAYS);
+
+      const startDate = new Date(endDate);
+      startDate.setDate(startDate.getDate() - rollingWindowDays);
+
+      setDateRange({
+        start: startDate.toISOString().split('T')[0],
+        end: endDate.toISOString().split('T')[0]
+      });
+    }
+  }, [useRollingWindow, rollingWindowDays]);
+
   // Fetch instances
   const { data: instances = [], isLoading: loadingInstances } = useQuery({
     queryKey: ['instances'],
@@ -489,13 +511,15 @@ export default function RunReportModal({
         execution_type: executionType === 'backfill' ? 'backfill' : executionType,
         schedule_config:
           executionType === 'recurring'
-            ? scheduleConfig
+            ? { ...scheduleConfig, lookback_days: useRollingWindow ? rollingWindowDays : undefined }
             : executionType === 'backfill'
             ? { ...scheduleConfig, backfill_period: backfillPeriod }
             : undefined,
         // Add date range for ad-hoc execution
         time_window_start: executionType === 'once' ? dateRange.start : undefined,
         time_window_end: executionType === 'once' ? dateRange.end : undefined,
+        // Add rolling window metadata for once execution
+        ...(executionType === 'once' && useRollingWindow ? { lookback_days: rollingWindowDays } : {}),
         // Snowflake integration options
         snowflake_enabled: snowflakeEnabled,
         snowflake_table_name: snowflakeTableName || undefined,
@@ -517,13 +541,15 @@ export default function RunReportModal({
       execution_type: executionType === 'backfill' ? 'backfill' : executionType,
       schedule_config:
         executionType === 'recurring'
-          ? scheduleConfig
+          ? { ...scheduleConfig, lookback_days: useRollingWindow ? rollingWindowDays : undefined }
           : executionType === 'backfill'
           ? { ...scheduleConfig, backfill_period: backfillPeriod }
           : undefined,
       // Add date range for ad-hoc execution
       time_window_start: executionType === 'once' ? dateRange.start : undefined,
       time_window_end: executionType === 'once' ? dateRange.end : undefined,
+      // Add rolling window metadata for once execution
+      ...(executionType === 'once' && useRollingWindow ? { lookback_days: rollingWindowDays } : {}),
       // Snowflake integration options
       snowflake_enabled: snowflakeEnabled,
       snowflake_table_name: snowflakeTableName || undefined,
@@ -1017,6 +1043,63 @@ export default function RunReportModal({
                 <p className="text-xs text-gray-500 mb-3">
                   Select the date range for this ad-hoc execution. Note: AMC has a 14-day data lag.
                 </p>
+
+                {/* Rolling Window Toggle */}
+                <div className="mb-4 flex items-center">
+                  <input
+                    type="checkbox"
+                    id="use-rolling-window"
+                    checked={useRollingWindow}
+                    onChange={(e) => setUseRollingWindow(e.target.checked)}
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="use-rolling-window" className="ml-2 block text-sm text-gray-900">
+                    Use Rolling Window
+                    <span className="ml-2 text-xs text-gray-500">
+                      (automatically calculates dates accounting for AMC lag)
+                    </span>
+                  </label>
+                </div>
+
+                {/* Rolling Window Size Selector */}
+                {useRollingWindow && (
+                  <div className="mb-4">
+                    <label htmlFor="window-size" className="block text-sm font-medium text-gray-700 mb-2">
+                      Window Size (days)
+                    </label>
+                    <div className="flex gap-2">
+                      {[7, 14, 30, 60, 90].map(days => (
+                        <button
+                          key={days}
+                          type="button"
+                          onClick={() => setRollingWindowDays(days)}
+                          className={`px-3 py-2 text-sm rounded-md border ${
+                            rollingWindowDays === days
+                              ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                              : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                          }`}
+                        >
+                          {days} days
+                        </button>
+                      ))}
+                      <input
+                        type="number"
+                        id="window-size"
+                        min="1"
+                        max="365"
+                        value={rollingWindowDays}
+                        onChange={(e) => setRollingWindowDays(parseInt(e.target.value) || 30)}
+                        className="w-24 px-3 py-2 text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="Custom"
+                      />
+                    </div>
+                    <p className="mt-2 text-xs text-gray-500">
+                      Calculated range: {dateRange.start} to {dateRange.end} (accounting for 14-day lag)
+                    </p>
+                  </div>
+                )}
+
+                {/* Manual Date Pickers */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label htmlFor="start-date" className="block text-sm font-medium text-gray-700">
@@ -1027,7 +1110,10 @@ export default function RunReportModal({
                       id="start-date"
                       value={dateRange.start}
                       onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm sm:text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                      disabled={useRollingWindow}
+                      className={`mt-1 block w-full border-gray-300 rounded-md shadow-sm sm:text-sm focus:ring-indigo-500 focus:border-indigo-500 ${
+                        useRollingWindow ? 'bg-gray-100 cursor-not-allowed' : ''
+                      }`}
                     />
                   </div>
                   <div>
@@ -1040,7 +1126,10 @@ export default function RunReportModal({
                       value={dateRange.end}
                       onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
                       min={dateRange.start}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm sm:text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                      disabled={useRollingWindow}
+                      className={`mt-1 block w-full border-gray-300 rounded-md shadow-sm sm:text-sm focus:ring-indigo-500 focus:border-indigo-500 ${
+                        useRollingWindow ? 'bg-gray-100 cursor-not-allowed' : ''
+                      }`}
                     />
                   </div>
                 </div>

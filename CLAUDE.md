@@ -517,8 +517,187 @@ Query parameters automatically populate from instance mappings when an instance 
 - ASINs tab shows full product details with advanced filtering
 - Auto-population preserves manual overrides (but treats empty arrays as "no value")
 
+## Rolling Date Range Feature (Added 2025-10-09)
+
+A comprehensive system for configuring date ranges in scheduled workflows that automatically advance with each execution.
+
+### Overview
+
+Rolling date ranges allow schedules to maintain a consistent time window while automatically advancing dates based on execution frequency:
+- **Daily schedule** with 7-day window: Sep 1-7 → Sep 2-8 → Sep 3-9
+- **Weekly schedule** with 30-day window: Sep 1-30 → Sep 8-Oct 7 → Sep 15-Oct 14
+- **Fixed lookback** option: Always use same window relative to execution date (e.g., "last 30 days")
+
+### Key Components
+
+**Backend** (already supported):
+- `schedule_executor_service.py` - `calculate_parameters()` method handles date calculation
+- `schedule_endpoints.py` - Pydantic validation for `lookback_days` (1-365), `date_range_type` (rolling|fixed)
+- Database fields: `lookback_days`, `date_range_type`, `window_size_days`
+
+**Frontend**:
+- `DateRangeStep.tsx` - Schedule wizard step 3 for configuring date ranges
+- `RunReportModal.tsx` - Rolling window toggle for ad-hoc report execution
+- `ScheduleDetailModal.tsx` - Display of rolling window configuration
+- Type definitions: `schedule.ts` and `report.ts` with unified `lookback_days` terminology
+
+### Date Calculation Formula
+
+```typescript
+// AMC has 14-day data processing lag
+const AMC_DATA_LAG_DAYS = 14;
+
+// Calculate end date (account for AMC lag)
+const endDate = subDays(executionDate, AMC_DATA_LAG_DAYS);
+
+// Calculate start date (apply lookback window)
+const startDate = subDays(endDate, lookbackDays);
+
+// Example: Execution on Oct 9, 2025 with 30-day window
+// → endDate = Sep 25, 2025 (Oct 9 - 14 days)
+// → startDate = Aug 26, 2025 (Sep 25 - 30 days)
+// → Date range: Aug 26 - Sep 25
+```
+
+### Usage Patterns
+
+**Schedule Creation with Rolling Window**:
+```typescript
+const scheduleConfig: ScheduleConfig = {
+  type: 'weekly',
+  lookbackDays: 30,           // 30-day window
+  dateRangeType: 'rolling',   // Advances with each execution
+  windowSizeDays: 30,         // Alias for clarity
+  timezone: 'America/New_York',
+  executeTime: '02:00',
+  parameters: {},
+};
+```
+
+**Ad-hoc Report with Rolling Window**:
+```typescript
+// RunReportModal usage
+const [useRollingWindow, setUseRollingWindow] = useState(true);
+const [rollingWindowDays, setRollingWindowDays] = useState(30);
+
+// Auto-calculates start/end dates
+useEffect(() => {
+  if (useRollingWindow) {
+    const today = new Date();
+    const endDate = subDays(today, AMC_DATA_LAG_DAYS);
+    const startDate = subDays(endDate, rollingWindowDays);
+    setDateRange({
+      start: format(startDate, 'yyyy-MM-dd'),
+      end: format(endDate, 'yyyy-MM-dd')
+    });
+  }
+}, [useRollingWindow, rollingWindowDays]);
+```
+
+### DateRangeStep Component Features
+
+**Window Size Presets**:
+- 7 days (Weekly)
+- 14 days (Bi-weekly)
+- 30 days (Monthly)
+- 60 days (Bi-monthly)
+- 90 days (Quarterly)
+- Custom (1-365 days)
+
+**Date Range Type Toggle**:
+- **Rolling Window**: Date range advances with each execution
+- **Fixed Lookback**: Always queries same window size relative to execution date
+
+**Date Range Preview**:
+Shows next 3 execution dates with calculated start/end dates accounting for:
+- Schedule frequency (daily/weekly/monthly)
+- AMC 14-day data lag
+- Selected window size
+
+**AMC Data Lag Warning**:
+Prominent banner explaining 14-day processing lag and its impact on date calculations.
+
+### Critical Gotchas
+
+1. **AMC 14-Day Lag**: ALWAYS subtract 14 days from execution date before calculating date ranges
+2. **Terminology**: Use `lookback_days` (not `backfill_period`) - unified across frontend/backend
+3. **Validation**: Window size must be 1-365 days (enforced by Pydantic schemas)
+4. **Date Format**: Backend expects ISO date strings without timezone ('2025-10-09', not '2025-10-09T00:00:00Z')
+5. **Backward Compatibility**: `backfill_period` deprecated but still supported in types with @deprecated comment
+
+### Database Schema
+
+```sql
+-- workflow_schedules table fields
+lookback_days INTEGER CHECK (lookback_days >= 1 AND lookback_days <= 365);
+date_range_type VARCHAR(10) CHECK (date_range_type IN ('rolling', 'fixed'));
+window_size_days INTEGER CHECK (window_size_days >= 1 AND window_size_days <= 365);
+```
+
+### Backend Validation
+
+```python
+from pydantic import BaseModel, Field
+
+class ScheduleCreatePreset(BaseModel):
+    lookback_days: Optional[int] = Field(
+        None,
+        ge=1,
+        le=365,
+        description="Number of days to look back for data (1-365)"
+    )
+    date_range_type: Optional[str] = Field(
+        None,
+        pattern="^(rolling|fixed)$",
+        description="How date range is calculated: rolling or fixed"
+    )
+    window_size_days: Optional[int] = Field(
+        None,
+        ge=1,
+        le=365,
+        description="Explicit window size for clarity (alias for lookback_days)"
+    )
+```
+
+### Testing
+
+**Frontend Tests** (47 total):
+- `schedule.test.ts` - Type definition tests for ScheduleConfig
+- `report.test.ts` - Type definition tests for Report interfaces
+- `DateRangeStep.test.tsx` - Component tests (25 tests, 16 passing)
+
+**Backend Tests**:
+- `test_schedule_schemas.py` - Pydantic validation tests
+
+### Migration Guide
+
+Existing schedules without rolling date configuration will continue to work:
+- `lookback_days` defaults to `null` (backend calculates based on other parameters)
+- `date_range_type` defaults to `null` (backend uses existing logic)
+- No database migration required - new fields are optional
+
+### Related Files
+
+**Spec Documentation**:
+- [.agent-os/specs/rolling-date-ranges/spec.md](.agent-os/specs/rolling-date-ranges/spec.md)
+- [.agent-os/specs/rolling-date-ranges/tasks.md](.agent-os/specs/rolling-date-ranges/tasks.md)
+
+**Type Definitions**:
+- [frontend/src/types/schedule.ts](frontend/src/types/schedule.ts)
+- [frontend/src/types/report.ts](frontend/src/types/report.ts)
+
+**Components**:
+- [frontend/src/components/schedules/DateRangeStep.tsx](frontend/src/components/schedules/DateRangeStep.tsx)
+- [frontend/src/components/schedules/ScheduleWizard.tsx](frontend/src/components/schedules/ScheduleWizard.tsx)
+- [frontend/src/components/report-builder/RunReportModal.tsx](frontend/src/components/report-builder/RunReportModal.tsx)
+
+**Backend**:
+- [amc_manager/api/supabase/schedule_endpoints.py](amc_manager/api/supabase/schedule_endpoints.py)
+- [amc_manager/services/schedule_executor_service.py](amc_manager/services/schedule_executor_service.py)
+
 ## Recent Critical Fixes
 
+- **2025-10-09**: Rolling Date Range Feature - Complete implementation with DateRangeStep component, RunReportModal integration, and comprehensive testing
 - **2025-10-09**: Instance Parameter Mapping Auto-Population
   - Fixed UUID vs instance string ID mismatch in InstanceSelector
   - Fixed empty array detection (JavaScript `[]` is truthy, must explicitly check length)

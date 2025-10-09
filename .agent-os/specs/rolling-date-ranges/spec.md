@@ -172,3 +172,172 @@ Currently, scheduled reports can use dynamic lookback windows (e.g., "last 7 day
 | Incorrect date calculations | High | Extensive testing, logging, and validation |
 | Breaking existing schedules | High | Backward compatibility with default values |
 | AMC lag not visible to users | Medium | Explicit UI indicators and info banners |
+
+## Implementation Examples
+
+### Example 1: Weekly Schedule with 30-Day Rolling Window
+
+**Scenario**: Marketing analyst wants to run a conversion report every Monday morning with the last 30 days of data.
+
+**Configuration**:
+```typescript
+{
+  type: 'weekly',
+  dayOfWeek: 1, // Monday
+  executeTime: '02:00',
+  lookbackDays: 30,
+  dateRangeType: 'rolling',
+  windowSizeDays: 30
+}
+```
+
+**Execution Timeline**:
+- **Oct 7, 2025** (Mon) → Queries **Aug 24 - Sep 23** (Oct 7 - 14 days lag - 30 days)
+- **Oct 14, 2025** (Mon) → Queries **Aug 31 - Sep 30** (Oct 14 - 14 days lag - 30 days)
+- **Oct 21, 2025** (Mon) → Queries **Sep 7 - Oct 7** (Oct 21 - 14 days lag - 30 days)
+
+Each execution gets a consistent 30-day window, automatically advanced.
+
+### Example 2: Daily Schedule with 7-Day Fixed Lookback
+
+**Scenario**: Performance marketer needs daily reports showing "last 7 days" (always relative to execution date).
+
+**Configuration**:
+```typescript
+{
+  type: 'daily',
+  executeTime: '01:00',
+  lookbackDays: 7,
+  dateRangeType: 'fixed',
+  windowSizeDays: 7
+}
+```
+
+**Execution Timeline**:
+- **Oct 9, 2025** → Queries **Sep 18 - Sep 25** (last 7 days with AMC lag)
+- **Oct 10, 2025** → Queries **Sep 19 - Sep 26** (last 7 days with AMC lag)
+- **Oct 11, 2025** → Queries **Sep 20 - Sep 27** (last 7 days with AMC lag)
+
+Each execution queries the most recent 7 days relative to that execution.
+
+### Example 3: Ad-Hoc Report with 60-Day Rolling Window
+
+**Scenario**: Executive wants to quickly run a trend analysis for the last 60 days.
+
+**UI Interaction**:
+1. Click "Run Report" button
+2. Toggle "Use Rolling Window" ✓
+3. Select "60 days" from preset buttons
+4. See calculated dates: **Aug 6 - Oct 5, 2025** (auto-calculated with AMC lag)
+5. Click "Run"
+
+**Backend Receives**:
+```typescript
+{
+  execution_type: 'once',
+  time_window_start: '2025-08-06',
+  time_window_end: '2025-10-05',
+  lookback_days: 60
+}
+```
+
+### Example 4: Monthly Schedule with Quarterly Window
+
+**Scenario**: Quarterly performance review report, run on the 1st of each month.
+
+**Configuration**:
+```typescript
+{
+  type: 'monthly',
+  dayOfMonth: 1,
+  executeTime: '03:00',
+  lookbackDays: 90,
+  dateRangeType: 'rolling',
+  windowSizeDays: 90
+}
+```
+
+**Execution Timeline**:
+- **Nov 1, 2025** → Queries **Jul 4 - Oct 3** (Q3 data)
+- **Dec 1, 2025** → Queries **Aug 3 - Nov 2** (Q3-Q4 transition)
+- **Jan 1, 2026** → Queries **Sep 3 - Dec 2** (Q4 data)
+
+Each execution covers exactly 90 days, rolling forward monthly.
+
+## Usage Guidelines
+
+### When to Use Rolling Window
+✅ **Best for:**
+- Trend analysis requiring consistent time periods
+- Month-over-month or week-over-week comparisons
+- Performance dashboards with historical continuity
+- Reports that need to show "same window size" over time
+
+### When to Use Fixed Lookback
+✅ **Best for:**
+- Real-time performance monitoring ("last 7 days")
+- Dashboards showing "current state" metrics
+- Alert-based reporting (recent performance)
+- Any report needing "freshest available data"
+
+### Date Range Configuration Best Practices
+
+1. **Account for AMC Lag**: Always remember data is 14 days behind. If you need "yesterday's" data, it's not available yet.
+
+2. **Window Size Selection**:
+   - **7 days**: Short-term trends, campaign optimization
+   - **14 days**: Standard reporting period, captures full attribution window
+   - **30 days**: Monthly reporting, seasonal analysis
+   - **60-90 days**: Quarterly trends, strategic planning
+
+3. **Schedule Frequency vs Window Size**:
+   - **Daily + 7-day window**: Smooths out day-to-day volatility
+   - **Weekly + 30-day window**: Monthly trend tracking
+   - **Monthly + 90-day window**: Quarterly business reviews
+
+4. **Validation Rules**:
+   - Window size: 1-365 days (enforced by backend)
+   - Date range type: 'rolling' or 'fixed' only
+   - All dates calculated as ISO strings without timezone
+
+## Testing the Feature
+
+### Manual Testing Checklist
+
+**Schedule Creation**:
+- [ ] Create daily schedule with 7-day rolling window
+- [ ] Create weekly schedule with 30-day rolling window
+- [ ] Create monthly schedule with 90-day rolling window
+- [ ] Verify preview shows correct dates for next 3 executions
+- [ ] Confirm AMC lag warning is visible
+- [ ] Test custom window size input (1-365 days)
+- [ ] Verify validation rejects invalid values (<1 or >365)
+
+**Ad-Hoc Execution**:
+- [ ] Toggle rolling window on/off
+- [ ] Select each preset (7, 14, 30, 60, 90 days)
+- [ ] Enter custom window size
+- [ ] Verify dates update automatically
+- [ ] Confirm manual date pickers are disabled when rolling window is active
+
+**Schedule List & History**:
+- [ ] Verify schedule shows "X days" badge with "Rolling window" label
+- [ ] Check execution history shows actual dates used
+- [ ] Confirm format is clear (e.g., "Sep 1 - Sep 30, 2025")
+
+### Automated Testing
+
+**Type Tests** (47 tests):
+- `schedule.test.ts` - ScheduleConfig interface validation
+- `report.test.ts` - Report and CreateReportRequest validation
+
+**Component Tests** (25 tests):
+- `DateRangeStep.test.tsx` - Window selection, preview, validation
+
+**Backend Tests**:
+- `test_schedule_schemas.py` - Pydantic schema validation (1-365 range)
+
+**Expected Coverage**:
+- Unit tests: 95%+ coverage for date calculation logic
+- Component tests: 80%+ coverage for DateRangeStep
+- Integration tests: E2E schedule creation with rolling dates
