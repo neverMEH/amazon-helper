@@ -25,7 +25,9 @@ class ScheduleCreatePreset(BaseModel):
     name: Optional[str] = Field(None, description="Custom name for the schedule")
     description: Optional[str] = Field(None, description="Description or notes about the schedule")
     interval_days: Optional[int] = Field(None, description="Days for interval type (1, 3, 7, 14, 30, 60, 90)")
-    lookback_days: Optional[int] = Field(None, description="Number of days to look back for data (default based on interval)")
+    lookback_days: Optional[int] = Field(None, ge=1, le=365, description="Number of days to look back for data (1-365)")
+    date_range_type: Optional[str] = Field(None, pattern="^(rolling|fixed)$", description="How date range is calculated: rolling or fixed")
+    window_size_days: Optional[int] = Field(None, ge=1, le=365, description="Explicit window size for clarity (alias for lookback_days)")
     timezone: str = Field("UTC", description="Timezone for schedule")
     execute_time: str = Field("02:00", description="Time of day to execute (HH:MM)")
     parameters: Optional[Dict[str, Any]] = Field(None, description="Default execution parameters")
@@ -65,6 +67,9 @@ class ScheduleResponse(BaseModel):
     description: Optional[str] = None
     schedule_type: Optional[str] = None
     interval_days: Optional[int] = None
+    lookback_days: Optional[int] = None
+    date_range_type: Optional[str] = None
+    window_size_days: Optional[int] = None
     cron_expression: str
     timezone: str
     default_parameters: Optional[Any] = None  # Can be string or dict
@@ -76,7 +81,7 @@ class ScheduleResponse(BaseModel):
     updated_at: Optional[Any] = None
     workflow: Optional[Dict[str, Any]] = None
     brands: Optional[List[str]] = None  # Extracted from workflow.amc_instances.brands
-    
+
     class Config:
         # Allow any field types for flexibility with Supabase responses
         arbitrary_types_allowed = True

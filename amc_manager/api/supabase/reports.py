@@ -58,6 +58,9 @@ class ScheduleCreate(BaseModel):
     schedule_type: str = Field(..., description="Schedule type (daily, weekly, monthly)")
     cron_expression: str = Field(..., description="Cron expression")
     timezone: str = Field("UTC", description="Timezone")
+    lookback_days: Optional[int] = Field(None, ge=1, le=365, description="Number of days to look back for data (1-365)")
+    date_range_type: Optional[str] = Field(None, pattern="^(rolling|fixed)$", description="How date range is calculated: rolling or fixed")
+    window_size_days: Optional[int] = Field(None, ge=1, le=365, description="Explicit window size for clarity (alias for lookback_days)")
     default_parameters: Dict[str, Any] = Field(default_factory=dict, description="Default parameters")
     is_active: bool = Field(True, description="Schedule active status")
 

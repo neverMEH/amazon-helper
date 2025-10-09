@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { X, ChevronRight, Calendar, Clock, Bell, CheckCircle } from 'lucide-react';
+import { X, ChevronRight, Calendar, Clock, Bell, CheckCircle, TrendingUp } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { scheduleService } from '../../services/scheduleService';
 import type { ScheduleConfig, ScheduleCreatePreset } from '../../types/schedule';
 import ScheduleTypeStep from './ScheduleTypeStep';
 import TimingStep from './TimingStep';
+import DateRangeStep from './DateRangeStep';
 import ParametersStep from './ParametersStep';
 import ReviewStep from './ReviewStep';
 
@@ -23,8 +24,9 @@ interface ScheduleWizardProps {
 const steps = [
   { id: 1, name: 'Schedule Type', icon: Calendar },
   { id: 2, name: 'Timing', icon: Clock },
-  { id: 3, name: 'Parameters', icon: Bell },
-  { id: 4, name: 'Review', icon: CheckCircle },
+  { id: 3, name: 'Date Range', icon: TrendingUp },
+  { id: 4, name: 'Parameters', icon: Bell },
+  { id: 5, name: 'Review', icon: CheckCircle },
 ];
 
 const ScheduleWizard: React.FC<ScheduleWizardProps> = ({
@@ -112,6 +114,8 @@ const ScheduleWizard: React.FC<ScheduleWizardProps> = ({
       description: scheduleConfig.description,
       interval_days: scheduleConfig.intervalDays,
       lookback_days: scheduleConfig.lookbackDays,
+      date_range_type: scheduleConfig.dateRangeType,
+      window_size_days: scheduleConfig.windowSizeDays,
       timezone: scheduleConfig.timezone,
       execute_time: scheduleConfig.executeTime,
       parameters: scheduleConfig.parameters,
@@ -149,7 +153,7 @@ const ScheduleWizard: React.FC<ScheduleWizardProps> = ({
         );
       case 3:
         return (
-          <ParametersStep
+          <DateRangeStep
             config={scheduleConfig}
             onChange={setScheduleConfig}
             onNext={handleNext}
@@ -157,6 +161,15 @@ const ScheduleWizard: React.FC<ScheduleWizardProps> = ({
           />
         );
       case 4:
+        return (
+          <ParametersStep
+            config={scheduleConfig}
+            onChange={setScheduleConfig}
+            onNext={handleNext}
+            onBack={handleBack}
+          />
+        );
+      case 5:
         return (
           <ReviewStep
             config={scheduleConfig}

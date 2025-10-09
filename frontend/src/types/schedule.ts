@@ -173,6 +173,8 @@ export interface ScheduleConfig {
   type: 'daily' | 'interval' | 'weekly' | 'monthly' | 'custom';
   intervalDays?: number;
   lookbackDays?: number;  // Custom lookback window
+  dateRangeType?: 'rolling' | 'fixed';  // How date range is calculated
+  windowSizeDays?: number;  // Explicit window size for clarity (alias for lookbackDays)
   timezone: string;
   executeTime: string;
   dayOfWeek?: number; // 0-6 (Sunday-Saturday)

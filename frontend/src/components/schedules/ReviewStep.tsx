@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle, Calendar, Clock, Bell, Settings, AlertCircle } from 'lucide-react';
+import { CheckCircle, Calendar, Clock, Bell, Settings, AlertCircle, TrendingUp } from 'lucide-react';
 import type { ScheduleConfig } from '../../types/schedule';
 import { scheduleService } from '../../services/scheduleService';
 
@@ -112,26 +112,49 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
           <span className="text-sm font-mono text-gray-900">{getCronExpression()}</span>
         </div>
 
-        {/* Data Lookback */}
+        {/* Date Range Configuration */}
+        {config.lookbackDays && (
+          <div className="flex items-center justify-between py-2 border-b">
+            <span className="text-sm text-gray-600">
+              <TrendingUp className="w-4 h-4 inline mr-2" />
+              Date Range Type
+            </span>
+            <span className="text-sm text-gray-900">
+              {config.dateRangeType === 'fixed' ? 'Fixed Lookback' : 'Rolling Window'}
+            </span>
+          </div>
+        )}
+
+        {/* Window Size */}
         <div className="flex items-center justify-between py-2 border-b">
           <span className="text-sm text-gray-600">
             <Clock className="w-4 h-4 inline mr-2" />
-            Data Lookback Period
+            Window Size
           </span>
           <span className="text-sm text-gray-900">
-            {config.lookbackDays 
-              ? `${config.lookbackDays} days`
+            {config.lookbackDays || config.windowSizeDays
+              ? `${config.lookbackDays || config.windowSizeDays} days`
               : config.type === 'interval' && config.intervalDays
-              ? `${config.intervalDays} days`
+              ? `${config.intervalDays} days (default)`
               : config.type === 'weekly'
-              ? '7 days'
+              ? '7 days (default)'
               : config.type === 'monthly'
-              ? '30 days'
+              ? '30 days (default)'
               : config.type === 'daily'
-              ? '7 days'
-              : '7 days'}
+              ? '7 days (default)'
+              : '7 days (default)'}
           </span>
         </div>
+
+        {/* AMC Data Lag Notice */}
+        {config.lookbackDays && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 my-2">
+            <p className="text-xs text-amber-800">
+              <AlertCircle className="w-3 h-3 inline mr-1" />
+              AMC's 14-day data lag is automatically applied to all executions
+            </p>
+          </div>
+        )}
 
         {/* Notifications */}
         <div className="flex items-center justify-between py-2 border-b">

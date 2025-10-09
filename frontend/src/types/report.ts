@@ -23,7 +23,11 @@ export interface ScheduleConfig {
   day_of_week?: number; // 0-6 for weekly
   day_of_month?: number; // 1-31 for monthly
   timezone?: string;
-  backfill_period?: number; // Days to backfill
+  lookback_days?: number; // Number of days to look back for data (unified terminology with schedule.ts)
+  date_range_type?: 'rolling' | 'fixed';  // How date range is calculated
+  window_size_days?: number;  // Explicit window size for clarity (alias for lookback_days)
+  // Deprecated: use lookback_days instead
+  backfill_period?: number; // @deprecated - use lookback_days
 }
 
 export interface ReportExecution {
