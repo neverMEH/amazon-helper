@@ -2,7 +2,8 @@
 
 > Spec: rolling-date-ranges
 > Created: 2025-10-09
-> Status: Planning
+> Status: Complete
+> Completed: 2025-10-09
 
 ## Overview
 

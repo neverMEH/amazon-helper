@@ -3,7 +3,8 @@
 These are the tasks to be completed for the spec detailed in @.agent-os/specs/rolling-date-ranges/spec.md
 
 > Created: 2025-10-09
-> Status: Ready for Implementation
+> Status: Complete
+> Completed: 2025-10-09
 
 ## Tasks
 
