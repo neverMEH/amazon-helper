@@ -226,7 +226,24 @@ export default function RunReportModal({
         selectedInstance,
         hasASINs: instanceMappings?.asins_by_brand ? Object.keys(instanceMappings.asins_by_brand).length : 0,
         hasCampaigns: instanceMappings?.campaigns_by_brand ? Object.keys(instanceMappings.campaigns_by_brand).length : 0,
+        rawMappingsData: JSON.stringify(instanceMappings),
       });
+
+      // Log ASIN details if we have them
+      if (instanceMappings?.asins_by_brand) {
+        console.log('[RunReportModal] ASINs by brand:', instanceMappings.asins_by_brand);
+        Object.entries(instanceMappings.asins_by_brand).forEach(([brand, asins]) => {
+          console.log(`  - ${brand}: ${Array.isArray(asins) ? asins.length : 0} ASINs`);
+        });
+      }
+
+      // Log campaign details if we have them
+      if (instanceMappings?.campaigns_by_brand) {
+        console.log('[RunReportModal] Campaigns by brand:', instanceMappings.campaigns_by_brand);
+        Object.entries(instanceMappings.campaigns_by_brand).forEach(([brand, campaigns]) => {
+          console.log(`  - ${brand}: ${Array.isArray(campaigns) ? campaigns.length : 0} campaigns`);
+        });
+      }
 
       detectedParameters.forEach(param => {
         const lowerName = param.name.toLowerCase();

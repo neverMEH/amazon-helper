@@ -14,7 +14,10 @@ export function useInstanceMappings(instanceId: string | null | undefined, enabl
     queryKey: ['instanceMappings', instanceId],
     queryFn: async () => {
       if (!instanceId) return null;
-      return await instanceMappingService.getInstanceMappings(instanceId);
+      console.log('[useInstanceMappings] Fetching mappings for instance:', instanceId);
+      const result = await instanceMappingService.getInstanceMappings(instanceId);
+      console.log('[useInstanceMappings] API Response:', result);
+      return result;
     },
     enabled: enabled && !!instanceId,
     staleTime: 5 * 60 * 1000, // 5 minutes
