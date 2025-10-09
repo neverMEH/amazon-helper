@@ -84,7 +84,15 @@ export default function RunReportModal({
   const [hasAutoPopulated, setHasAutoPopulated] = useState(false);
 
   // Fetch instance mappings for auto-population
-  const { data: instanceMappings, isLoading: loadingMappings } = useInstanceMappings(selectedInstance, isOpen);
+  const { data: instanceMappings, isLoading: loadingMappings, refetch: refetchMappings } = useInstanceMappings(selectedInstance, isOpen);
+
+  // Refetch mappings when instance changes to get latest data
+  useEffect(() => {
+    if (selectedInstance && isOpen) {
+      console.log('[RunReportModal] Refetching mappings for instance:', selectedInstance);
+      refetchMappings();
+    }
+  }, [selectedInstance, isOpen, refetchMappings]);
 
   // Snowflake integration state
   const [snowflakeEnabled, setSnowflakeEnabled] = useState(false);
