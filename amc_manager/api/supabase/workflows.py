@@ -151,13 +151,17 @@ async def create_workflow(
     try:
         # Verify user has access to the instance
         user_instances = db_service.get_user_instances_sync(current_user['id'])
-        if not any(inst['instance_id'] == workflow.instance_id for inst in user_instances):
-            raise HTTPException(status_code=403, detail="Access denied to instance")
-        
-        # Get the internal instance ID
-        instance = next((inst for inst in user_instances if inst['instance_id'] == workflow.instance_id), None)
+
+        # Support both UUID (from frontend InstanceSelector) and instance_id string (legacy)
+        # Check if workflow.instance_id matches either the UUID (id) or instance string (instance_id)
+        instance = next(
+            (inst for inst in user_instances
+             if inst['id'] == workflow.instance_id or inst['instance_id'] == workflow.instance_id),
+            None
+        )
+
         if not instance:
-            raise HTTPException(status_code=404, detail="Instance not found")
+            raise HTTPException(status_code=403, detail="Access denied to instance")
         
         # Get valid token
         valid_token = await token_service.get_valid_token(current_user['id'])
