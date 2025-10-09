@@ -57,8 +57,16 @@ export function autoPopulateParameters(
     const paramName = parameterNames.asins;
     const manualValue = currentParams[paramName];
 
-    if (manualValue !== undefined && manualValue !== null) {
+    console.log('[autoPopulateParameters] Processing ASINs:', {
+      paramName,
+      manualValue,
+      asins_by_brand: mappings.asins_by_brand,
+    });
+
+    if (manualValue !== undefined && manualValue !== null && manualValue !== '' &&
+        !(Array.isArray(manualValue) && manualValue.length === 0)) {
       // Manual value exists - preserve it
+      console.log('[autoPopulateParameters] Preserving manual ASIN value');
       result[paramName] = {
         value: manualValue,
         isAutoPopulated: false,
@@ -73,6 +81,8 @@ export function autoPopulateParameters(
 
       // Remove duplicates
       const uniqueAsins = Array.from(new Set(allAsins));
+
+      console.log('[autoPopulateParameters] Auto-populating ASINs:', uniqueAsins.length);
 
       result[paramName] = {
         value: uniqueAsins,

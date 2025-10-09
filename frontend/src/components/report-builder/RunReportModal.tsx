@@ -272,7 +272,15 @@ export default function RunReportModal({
 
       // Only auto-populate if we have mappings and relevant parameters
       if (Object.keys(parameterNameMap).length > 0) {
+        console.log('[RunReportModal] Calling autoPopulateParameters with:', {
+          instanceMappings,
+          currentParameters: parameters,
+          parameterNameMap,
+        });
+
         const autoPopulated = autoPopulateParameters(instanceMappings, parameters, parameterNameMap);
+        console.log('[RunReportModal] autoPopulated result:', autoPopulated);
+
         const newValues = extractParameterValues(autoPopulated);
 
         console.log('[RunReportModal] Auto-populated values:', newValues);
