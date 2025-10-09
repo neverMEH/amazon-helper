@@ -296,15 +296,22 @@ export default function RunReportModal({
 
           console.log(`[RunReportModal] Checking ${paramName}:`, { newValue, currentValue });
 
+          // Check if current value is effectively empty
+          const currentIsEmpty = !currentValue ||
+                                currentValue === '' ||
+                                (Array.isArray(currentValue) && currentValue.length === 0);
+
+          console.log(`[RunReportModal]   currentIsEmpty: ${currentIsEmpty}`);
+
           // Has new value if:
-          // 1. New value exists and current is empty/undefined
-          // 2. New value is array with items and current is empty/undefined
-          if (!currentValue || currentValue === '') {
+          // 1. Current is empty AND new value is array with items
+          // 2. Current is empty AND new value is non-empty string/value
+          if (currentIsEmpty) {
             if (Array.isArray(newValue) && newValue.length > 0) {
-              console.log(`[RunReportModal] ✓ ${paramName} has new array values`);
+              console.log(`[RunReportModal] ✓ ${paramName} has new array values (${newValue.length} items)`);
               return true;
             }
-            if (newValue && !Array.isArray(newValue)) {
+            if (newValue && !Array.isArray(newValue) && newValue !== '') {
               console.log(`[RunReportModal] ✓ ${paramName} has new value`);
               return true;
             }
