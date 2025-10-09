@@ -72,8 +72,10 @@ export default function InstanceSelector({
     }
   }, [isOpen]);
 
-  const handleSelect = (instanceId: string) => {
-    onChange(instanceId);
+  const handleSelect = (instance: Instance) => {
+    // Pass the UUID (id) instead of the instance string (instanceId)
+    // The UUID is needed for API calls like fetching mappings
+    onChange(instance.id);
     setIsOpen(false);
     setSearchQuery('');
   };
@@ -164,10 +166,10 @@ export default function InstanceSelector({
                 <button
                   key={instance.id}
                   type="button"
-                  onClick={() => handleSelect(instance.instanceId)}
+                  onClick={() => handleSelect(instance)}
                   className={`
                     w-full px-3 py-2 text-left hover:bg-gray-50 focus:bg-gray-50 focus:outline-none
-                    ${instance.instanceId === value ? 'bg-blue-50' : ''}
+                    ${instance.id === value ? 'bg-blue-50' : ''}
                   `}
                 >
                   <div className="flex items-start gap-2">
@@ -198,7 +200,7 @@ export default function InstanceSelector({
                     </div>
                     
                     {/* Selection indicator */}
-                    {instance.instanceId === value && (
+                    {instance.id === value && (
                       <div className="text-blue-600">
                         <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
