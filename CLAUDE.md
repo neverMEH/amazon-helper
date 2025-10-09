@@ -505,14 +505,25 @@ Query parameters automatically populate from instance mappings when an instance 
 
 ### Critical Details
 
+- **Instance ID Format**: Mappings API expects UUID (from `instance.id`), NOT the instance string (like "amcibersblt")
+  - InstanceSelector should pass `instance.id` (UUID) when selecting instances
+  - The backend API uses UUID to query `instance_brand_asins` and `instance_brand_campaigns` tables
+- **Empty Array Handling**: JavaScript empty arrays `[]` are truthy - explicitly check `Array.isArray(value) && value.length === 0`
+- **Cache Invalidation**: Use `queryClient.invalidateQueries()` after saving mappings to refresh data
+- **Parameter Detection**: The auto-populator looks for parameters with types `asin`, `asin_list`, `campaign`, `campaign_list` OR names containing `asin`, `tracked`, `campaign`, `brand`
 - Mappings are instance-specific (not global)
 - Campaign IDs with promotion prefixes are excluded (coupon-, promo-, socialmedia-, etc.)
 - View/edit mode prevents accidental changes
 - ASINs tab shows full product details with advanced filtering
-- Auto-population preserves manual overrides
+- Auto-population preserves manual overrides (but treats empty arrays as "no value")
 
 ## Recent Critical Fixes
 
+- **2025-10-09**: Instance Parameter Mapping Auto-Population
+  - Fixed UUID vs instance string ID mismatch in InstanceSelector
+  - Fixed empty array detection (JavaScript `[]` is truthy, must explicitly check length)
+  - Added cache refetch when instance changes to get latest mappings
+  - Added "tracked" keyword to ASIN parameter detection
 - **2025-10-03**: Instance Parameter Mapping - Complete feature implementation with auto-population in WorkflowParameterEditor and ReportBuilder
 - **2025-09-11**: Flow Template Removal - Removed unused flow template and visual builder features from codebase (major cleanup)
 - **2025-09-09**: Collection Execution View - Added ability to view individual week executions with proper instance_id passing
