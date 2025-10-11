@@ -1,5 +1,6 @@
 import api from './api';
 import type { Report, CreateReportRequest } from '../types/report';
+import type { ScheduleCreatePreset } from '../types/schedule';
 import { workflowService } from './workflowService';
 import { scheduleService } from './scheduleService';
 
@@ -52,17 +53,32 @@ export const reportService = {
 
     // If it's a recurring report, create a schedule
     if (data.execution_type === 'recurring' && data.schedule_config) {
-      const scheduleData = {
-        instance_id: data.instance_id,
-        frequency: data.schedule_config.frequency,
-        time_of_day: data.schedule_config.time,
+      const scheduleData: ScheduleCreatePreset = {
+        preset_type: data.schedule_config.frequency,  // 'daily' | 'weekly' | 'monthly'
+        name: data.name ? `${data.name} Schedule` : undefined,
+        description: data.description,
+        timezone: data.schedule_config.timezone || 'UTC',
+        execute_time: data.schedule_config.time || '02:00',
         day_of_week: data.schedule_config.day_of_week,
         day_of_month: data.schedule_config.day_of_month,
-        timezone: data.schedule_config.timezone || 'UTC',
-        is_active: true,
-        execution_parameters: data.parameters,
+        parameters: data.parameters,
+        lookback_days: data.schedule_config.lookback_days,
+        date_range_type: data.schedule_config.date_range_type,
+        window_size_days: data.schedule_config.window_size_days,
       };
-      await scheduleService.createSchedulePreset(workflow.id, scheduleData as any);
+
+      try {
+        await scheduleService.createSchedulePreset(workflow.id, scheduleData);
+      } catch (error) {
+        console.error('Failed to create schedule:', error);
+        // Clean up the workflow since schedule creation failed
+        try {
+          await workflowService.deleteWorkflow(workflow.id);
+        } catch (deleteError) {
+          console.error('Failed to clean up workflow after schedule creation failure:', deleteError);
+        }
+        throw new Error('Failed to create schedule for report. Please try again.');
+      }
     }
 
     // If it's a one-time execution, run it immediately with date parameters

@@ -119,9 +119,13 @@ export interface ScheduleCreatePreset {
   name?: string;  // Custom name for the schedule
   description?: string;  // Optional description
   interval_days?: number;
-  lookback_days?: number;  // Custom lookback window
+  lookback_days?: number;  // Custom lookback window (1-365)
+  date_range_type?: 'rolling' | 'fixed';  // How date range is calculated
+  window_size_days?: number;  // Explicit window size (alias for lookback_days)
   timezone: string;
   execute_time: string;
+  day_of_week?: number;  // For weekly schedules (0-6, where 0 = Sunday)
+  day_of_month?: number;  // For monthly schedules (1-31)
   parameters?: Record<string, any>;
   notification_config?: {
     on_success: boolean;
