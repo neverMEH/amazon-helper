@@ -92,11 +92,17 @@ class AMCExecutionService:
             # Log execution parameters for debugging
             logger.info(f"Execution parameters received: {execution_parameters}")
             logger.info(f"Workflow default parameters: {workflow.get('parameters', {})}")
-            
+
+            # Determine which parameters to use
+            params_to_use = execution_parameters or workflow.get('parameters', {})
+            logger.info(f"[CRITICAL DEBUG] Parameters being used for SQL substitution: {params_to_use}")
+            logger.info(f"[CRITICAL DEBUG] Parameter keys: {list(params_to_use.keys() if isinstance(params_to_use, dict) else [])}")
+            logger.info(f"[CRITICAL DEBUG] Parameter type: {type(params_to_use)}")
+
             # Always substitute parameters for the SQL query
             sql_query = self._prepare_sql_query(
                 workflow['sql_query'],
-                execution_parameters or workflow.get('parameters', {})
+                params_to_use
             )
             
             # Log the prepared SQL for debugging (first 500 chars)
