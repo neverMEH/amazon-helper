@@ -542,7 +542,14 @@ class ScheduleExecutorService:
         params = schedule.get('default_parameters', {})
         logger.info(f"[calculate_parameters] Starting with default_parameters: {params}")
         logger.info(f"[calculate_parameters] Parameters type: {type(params)}")
-        
+
+        # CRITICAL FIX: Remove old date parameters from workflow to avoid conflicts
+        # The schedule will calculate fresh rolling dates, so we must remove any fixed dates
+        date_keys_to_remove = ['start_date', 'end_date', 'startDate', 'endDate']
+        for key in date_keys_to_remove:
+            params.pop(key, None)  # Remove if exists, ignore if not
+        logger.info(f"[calculate_parameters] Removed old date parameters, preserved: {list(params.keys())}")
+
         # Account for AMC's 14-day data lag
         end_date = datetime.utcnow() - timedelta(days=14)
         
