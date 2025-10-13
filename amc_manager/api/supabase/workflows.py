@@ -194,6 +194,12 @@ async def create_workflow(
                 logger.info(f"Fetched SQL from template {workflow.template_id}, length: {len(sql_query)}")
             else:
                 logger.warning(f"Template {workflow.template_id} not found or access denied")
+        elif workflow.template_id and sql_query:
+            # CRITICAL FIX: When template_id is provided BUT sql_query is also provided
+            # (e.g., from Report Builder), the sql_query IS the template SQL with placeholders.
+            # We must preserve it BEFORE processing so schedules can use dynamic parameters.
+            sql_template = sql_query
+            logger.info(f"Preserving template SQL with placeholders for dynamic parameter support (length: {len(sql_query)})")
 
         if not sql_query:
             raise HTTPException(status_code=400, detail="SQL query is required")
