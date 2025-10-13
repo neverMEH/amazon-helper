@@ -574,6 +574,11 @@ class ScheduleExecutorService:
                 start_date = end_date - timedelta(days=7)
         
         # Format dates for AMC (no Z suffix)
+        # Use snake_case to match SQL placeholder conventions ({{start_date}}, {{end_date}})
+        params['start_date'] = start_date.strftime('%Y-%m-%dT00:00:00')
+        params['end_date'] = end_date.strftime('%Y-%m-%dT23:59:59')
+
+        # Also support camelCase for backward compatibility with existing queries
         params['startDate'] = start_date.strftime('%Y-%m-%dT00:00:00')
         params['endDate'] = end_date.strftime('%Y-%m-%dT23:59:59')
 
