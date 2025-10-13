@@ -494,6 +494,18 @@ export default function RunReportModal({
 
     const currentTemplate = selectedTemplate || initialTemplate;
 
+    // For recurring schedules, filter out date parameters since they'll be calculated dynamically
+    // Keep only non-date parameters (ASINs, campaigns, brands, etc.)
+    const parametersToSubmit = executionType === 'recurring'
+      ? Object.fromEntries(
+          Object.entries(parameters).filter(([key]) =>
+            !key.toLowerCase().includes('date') &&
+            !key.toLowerCase().includes('start') &&
+            !key.toLowerCase().includes('end')
+          )
+        )
+      : parameters;
+
     // For custom reports without a template
     if (!currentTemplate || currentTemplate.id === 'custom' || templateSelectionMode === 'custom') {
       if (!customSql) {
@@ -507,7 +519,7 @@ export default function RunReportModal({
         template_id: undefined,
         custom_sql: customSql,
         instance_id: selectedInstance,
-        parameters,
+        parameters: parametersToSubmit,
         execution_type: executionType === 'backfill' ? 'backfill' : executionType,
         schedule_config:
           executionType === 'recurring'
@@ -537,7 +549,7 @@ export default function RunReportModal({
       template_id: currentTemplate.id,
       custom_sql: undefined,
       instance_id: selectedInstance,
-      parameters,
+      parameters: parametersToSubmit,
       execution_type: executionType === 'backfill' ? 'backfill' : executionType,
       schedule_config:
         executionType === 'recurring'
