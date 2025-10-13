@@ -54,7 +54,7 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
       
       // Execute with the same parameters, including Snowflake settings if they were enabled
       const requestBody: any = {
-        parameters: execution.executionParameters || {},
+        execution_parameters: execution.executionParameters || {},
         instance_id: instanceId
       };
 

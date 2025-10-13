@@ -105,7 +105,7 @@ export default function ExecutionDetailModal({ isOpen, onClose, executionId }: E
       
       // Execute with the same parameters
       const response = await api.post(`/workflows/${execution.workflow_id}/execute`, {
-        parameters: execution.execution_parameters || {},
+        execution_parameters: execution.execution_parameters || {},
         instance_id: execution.execution_parameters?.instance_id
       });
       
