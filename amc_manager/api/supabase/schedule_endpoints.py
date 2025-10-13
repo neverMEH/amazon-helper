@@ -136,6 +136,7 @@ async def create_schedule_preset(
     try:
         logger.info(f"Creating preset schedule for workflow {workflow_id}")
         logger.info(f"Schedule data received: {schedule_data.dict()}")
+        logger.info(f"Parameters received: {schedule_data.parameters}")
         logger.info(f"Current user: {current_user.get('id', 'Unknown')}")
         
         schedule = schedule_service.create_schedule_from_preset(

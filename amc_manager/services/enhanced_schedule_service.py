@@ -117,6 +117,9 @@ class EnhancedScheduleService(DatabaseService):
                 'next_run_at': next_run_at.isoformat() if next_run_at else None,
                 'created_at': datetime.utcnow().isoformat()
             }
+
+            logger.info(f"Saving schedule with parameters: {parameters}")
+            logger.info(f"default_parameters (JSON): {schedule_data['default_parameters']}")
             
             result = self.client.table('workflow_schedules').insert(schedule_data).execute()
             

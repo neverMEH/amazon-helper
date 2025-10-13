@@ -531,15 +531,17 @@ class ScheduleExecutorService:
     async def calculate_parameters(self, schedule: Dict[str, Any]) -> Dict[str, Any]:
         """
         Calculate dynamic parameters based on schedule frequency
-        
+
         Args:
             schedule: Schedule record
-            
+
         Returns:
             Parameters dictionary
         """
         # Start with default parameters
         params = schedule.get('default_parameters', {})
+        logger.info(f"[calculate_parameters] Starting with default_parameters: {params}")
+        logger.info(f"[calculate_parameters] Parameters type: {type(params)}")
         
         # Account for AMC's 14-day data lag
         end_date = datetime.utcnow() - timedelta(days=14)
@@ -574,11 +576,14 @@ class ScheduleExecutorService:
         # Format dates for AMC (no Z suffix)
         params['startDate'] = start_date.strftime('%Y-%m-%dT00:00:00')
         params['endDate'] = end_date.strftime('%Y-%m-%dT23:59:59')
-        
+
         # Add schedule metadata
         params['_schedule_id'] = schedule.get('id')
         params['_scheduled_execution'] = True
-        
+
+        logger.info(f"[calculate_parameters] Final parameters: {params}")
+        logger.info(f"[calculate_parameters] Non-date parameters preserved: {[k for k in params.keys() if k not in ['startDate', 'endDate', '_schedule_id', '_scheduled_execution']]}")
+
         return params
     
     async def execute_workflow(
