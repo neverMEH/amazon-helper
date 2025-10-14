@@ -37,12 +37,10 @@ limiter = Limiter(
     default_limits=["100 per minute"]
 )
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Application lifespan events"""
-    # Startup
-    logger.info("Starting Recom AMP application with Supabase...")
-    
+async def initialize_services():
+    """Initialize background services after app startup"""
+    logger.info("Initializing background services...")
+
     # Test Supabase connection
     try:
         client = SupabaseManager.get_client()
@@ -51,21 +49,21 @@ async def lifespan(app: FastAPI):
         logger.info("✓ Supabase connection successful")
     except Exception as e:
         logger.error(f"Failed to connect to Supabase: {e}")
-        raise
-    
+        return
+
     # Start token refresh service
     await token_refresh_service.start()
     logger.info("✓ Token refresh service started")
-    
+
     # Start execution status poller
     await execution_status_poller.start()
     logger.info("✓ Execution status poller started")
-    
+
     # Start schedule executor service
     schedule_executor = get_schedule_executor()
     asyncio.create_task(schedule_executor.start())
     logger.info("✓ Schedule executor service started")
-    
+
     # Start collection executor service
     collection_executor = get_collection_executor()
     asyncio.create_task(collection_executor.start())
@@ -96,7 +94,17 @@ async def lifespan(app: FastAPI):
             logger.info(f"✓ Added {users_with_tokens} users with tokens to refresh tracking (out of {len(users_response.data)} total)")
     except Exception as e:
         logger.warning(f"Could not load users for token refresh: {e}")
-    
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan events"""
+    # Startup - minimal initialization
+    logger.info("Starting Recom AMP application with Supabase...")
+
+    # Initialize services in background to avoid blocking startup
+    asyncio.create_task(initialize_services())
+    logger.info("Background service initialization started")
+
     yield
     
     # Shutdown
