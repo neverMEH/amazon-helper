@@ -532,23 +532,55 @@ class ScheduleExecutorService:
         """
         Calculate dynamic parameters based on schedule frequency
 
+        Merges workflow parameters (base) with schedule default_parameters (overrides)
+        to ensure all required query parameters are included in scheduled executions.
+
         Args:
-            schedule: Schedule record
+            schedule: Schedule record with nested workflows data
 
         Returns:
-            Parameters dictionary
+            Parameters dictionary with workflow params + schedule overrides + rolling dates
         """
-        # Start with default parameters
-        params = schedule.get('default_parameters', {})
-        logger.info(f"[calculate_parameters] Starting with default_parameters: {params}")
-        logger.info(f"[calculate_parameters] Parameters type: {type(params)}")
+        # STEP 1: Get workflow parameters as the base
+        workflow = schedule.get('workflows', {})
+        workflow_params = workflow.get('parameters', {})
 
-        # CRITICAL FIX: Remove old date parameters from workflow to avoid conflicts
+        # Parse workflow parameters if they're JSON string
+        if isinstance(workflow_params, str):
+            try:
+                workflow_params = json.loads(workflow_params)
+            except json.JSONDecodeError:
+                logger.warning(f"[calculate_parameters] Failed to parse workflow parameters as JSON: {workflow_params}")
+                workflow_params = {}
+
+        # Start with workflow parameters (contains tracked_asins, campaign_brand, etc.)
+        params = workflow_params.copy() if workflow_params else {}
+        logger.info(f"[calculate_parameters] Starting with workflow parameters: {params}")
+
+        # STEP 2: Overlay schedule's default_parameters (allows custom overrides)
+        schedule_params = schedule.get('default_parameters', {})
+
+        # Parse schedule parameters if they're JSON string
+        if isinstance(schedule_params, str):
+            try:
+                schedule_params = json.loads(schedule_params)
+            except json.JSONDecodeError:
+                logger.warning(f"[calculate_parameters] Failed to parse schedule default_parameters as JSON: {schedule_params}")
+                schedule_params = {}
+
+        # Merge schedule parameters (they override workflow parameters)
+        if schedule_params:
+            params.update(schedule_params)
+            logger.info(f"[calculate_parameters] After merging schedule parameters: {params}")
+
+        logger.info(f"[calculate_parameters] Merged parameters type: {type(params)}")
+
+        # STEP 3: Remove old date parameters to avoid conflicts
         # The schedule will calculate fresh rolling dates, so we must remove any fixed dates
         date_keys_to_remove = ['start_date', 'end_date', 'startDate', 'endDate']
         for key in date_keys_to_remove:
             params.pop(key, None)  # Remove if exists, ignore if not
-        logger.info(f"[calculate_parameters] Removed old date parameters, preserved: {list(params.keys())}")
+        logger.info(f"[calculate_parameters] After removing date parameters, preserved: {list(params.keys())}")
 
         # Account for AMC's 14-day data lag
         end_date = datetime.utcnow() - timedelta(days=14)
@@ -594,7 +626,9 @@ class ScheduleExecutorService:
         params['_scheduled_execution'] = True
 
         logger.info(f"[calculate_parameters] Final parameters: {params}")
-        logger.info(f"[calculate_parameters] Non-date parameters preserved: {[k for k in params.keys() if k not in ['startDate', 'endDate', '_schedule_id', '_scheduled_execution']]}")
+        logger.info(f"[calculate_parameters] Parameter count: {len(params)}")
+        non_date_params = [k for k in params.keys() if k not in ['start_date', 'end_date', 'startDate', 'endDate', '_schedule_id', '_scheduled_execution']]
+        logger.info(f"[calculate_parameters] Non-date parameters preserved ({len(non_date_params)}): {non_date_params}")
 
         return params
     
