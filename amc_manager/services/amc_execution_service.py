@@ -99,6 +99,35 @@ class AMCExecutionService:
             logger.info(f"[CRITICAL DEBUG] Parameter keys: {list(params_to_use.keys() if isinstance(params_to_use, dict) else [])}")
             logger.info(f"[CRITICAL DEBUG] Parameter type: {type(params_to_use)}")
 
+            # Auto-add date parameters if missing (for queries that need them)
+            # Check if the SQL has date placeholders but parameters don't include dates
+            sql_lower = workflow['sql_query'].lower()
+            has_date_placeholders = ('{{start_date}}' in sql_lower or '{{end_date}}' in sql_lower or
+                                    '{{startdate}}' in sql_lower or '{{enddate}}' in sql_lower)
+
+            if has_date_placeholders:
+                # Check if date parameters are missing
+                param_keys = list(params_to_use.keys() if isinstance(params_to_use, dict) else [])
+                has_dates = any(k in param_keys for k in ['start_date', 'end_date', 'startDate', 'endDate'])
+
+                if not has_dates:
+                    # Auto-add default date range (last 30 days, accounting for AMC 14-day lag)
+                    from datetime import datetime, timedelta
+                    end_date = datetime.utcnow() - timedelta(days=14)
+                    start_date = end_date - timedelta(days=30)
+
+                    # Ensure params_to_use is a dict
+                    if not isinstance(params_to_use, dict):
+                        params_to_use = {}
+
+                    # Add date parameters in both formats
+                    params_to_use['start_date'] = start_date.strftime('%Y-%m-%dT00:00:00')
+                    params_to_use['end_date'] = end_date.strftime('%Y-%m-%dT23:59:59')
+                    params_to_use['startDate'] = start_date.strftime('%Y-%m-%dT00:00:00')
+                    params_to_use['endDate'] = end_date.strftime('%Y-%m-%dT23:59:59')
+
+                    logger.info(f"[AUTO-ADDED] Date parameters for manual execution: {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
+
             # Always substitute parameters for the SQL query
             sql_query = self._prepare_sql_query(
                 workflow['sql_query'],
@@ -307,8 +336,10 @@ class AMCExecutionService:
         Returns:
             SQL query with substituted values
         """
-        # Use the shared parameter processor for consistency
-        return ParameterProcessor.process_sql_parameters(sql_template, parameters)
+        # Use validate_all=False to allow partial parameter substitution
+        # This is important because scheduled executions add date parameters later,
+        # and manual executions may not have all parameters defined yet
+        return ParameterProcessor.process_sql_parameters(sql_template, parameters, validate_all=False)
     
     def _is_campaign_or_asin_param(self, param_name: str) -> bool:
         """
