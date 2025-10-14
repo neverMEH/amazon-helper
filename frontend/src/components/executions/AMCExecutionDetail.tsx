@@ -288,22 +288,22 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                             <span className="text-sm font-medium text-gray-900">Execution Parameters</span>
                             {(() => {
                               const params = execution.executionParameters;
-                              const hasDateRange = params.startDate && params.endDate;
-                              if (hasDateRange) {
-                                try {
-                                  const start = format(parseISO(params.startDate), 'MMM d, yyyy');
-                                  const end = format(parseISO(params.endDate), 'MMM d, yyyy');
-                                  return (
-                                    <span className="ml-2 text-xs text-gray-500">
-                                      <Calendar className="inline h-3 w-3 mr-1" />
-                                      {start} - {end}
+                              // Count non-internal parameters
+                              const userParams = Object.keys(params).filter(k =>
+                                !k.startsWith('_')
+                              ).length;
+
+                              return (
+                                <span className="ml-2 text-xs text-gray-500">
+                                  {params._schedule_id && (
+                                    <span className="mr-2">
+                                      <Clock className="inline h-3 w-3 mr-1" />
+                                      Scheduled
                                     </span>
-                                  );
-                                } catch {
-                                  return <span className="ml-2 text-xs text-gray-500">({Object.keys(params).length} parameters)</span>;
-                                }
-                              }
-                              return <span className="ml-2 text-xs text-gray-500">({Object.keys(params).length} parameters)</span>;
+                                  )}
+                                  ({userParams} parameter{userParams !== 1 ? 's' : ''})
+                                </span>
+                              );
                             })()}
                           </div>
                           {showParameters ? (
@@ -315,85 +315,7 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                         {showParameters && (
                           <div className="px-4 pb-4">
                             <div className="space-y-3">
-                              {/* Date Range Section */}
-                              {execution.executionParameters.startDate && execution.executionParameters.endDate && (
-                                <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                                  <div className="flex items-center mb-2">
-                                    <Calendar className="h-4 w-4 text-blue-600 mr-2" />
-                                    <span className="text-sm font-semibold text-blue-900">Lookback Window</span>
-                                  </div>
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                      <div className="text-xs text-blue-700 font-medium mb-1">Start Date</div>
-                                      <div className="text-sm text-blue-900">
-                                        {(() => {
-                                          try {
-                                            return format(parseISO(execution.executionParameters.startDate), 'PPP');
-                                          } catch {
-                                            return execution.executionParameters.startDate;
-                                          }
-                                        })()}
-                                      </div>
-                                    </div>
-                                    <div>
-                                      <div className="text-xs text-blue-700 font-medium mb-1">End Date</div>
-                                      <div className="text-sm text-blue-900">
-                                        {(() => {
-                                          try {
-                                            return format(parseISO(execution.executionParameters.endDate), 'PPP');
-                                          } catch {
-                                            return execution.executionParameters.endDate;
-                                          }
-                                        })()}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  {(() => {
-                                    try {
-                                      const start = parseISO(execution.executionParameters.startDate);
-                                      const end = parseISO(execution.executionParameters.endDate);
-                                      const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-                                      return (
-                                        <div className="mt-2 text-xs text-blue-700">
-                                          <Clock className="inline h-3 w-3 mr-1" />
-                                          {days} day{days !== 1 ? 's' : ''} of data
-                                        </div>
-                                      );
-                                    } catch {
-                                      return null;
-                                    }
-                                  })()}
-                                </div>
-                              )}
-
-                              {/* Other Parameters */}
-                              {(() => {
-                                const otherParams = Object.entries(execution.executionParameters)
-                                  .filter(([key]) => !['startDate', 'endDate', '_schedule_id', '_scheduled_execution', '_schedule_run_id', '_triggered_by'].includes(key));
-                                
-                                if (otherParams.length > 0) {
-                                  return (
-                                    <div className="bg-gray-50 rounded-lg p-3">
-                                      <div className="text-xs font-semibold text-gray-700 mb-2">Additional Parameters</div>
-                                      <div className="space-y-2">
-                                        {otherParams.map(([key, value]) => (
-                                          <div key={key} className="flex justify-between items-start">
-                                            <span className="text-sm font-medium text-gray-600">
-                                              {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:
-                                            </span>
-                                            <span className="text-sm text-gray-900 font-mono ml-2">
-                                              {typeof value === 'string' ? value : JSON.stringify(value)}
-                                            </span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  );
-                                }
-                                return null;
-                              })()}
-
-                              {/* Schedule Information if present */}
+                              {/* Schedule Information if present - show FIRST */}
                               {execution.executionParameters._schedule_id && (
                                 <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
                                   <div className="flex items-center mb-2">
@@ -404,7 +326,7 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                                     {execution.executionParameters._triggered_by && (
                                       <div className="flex justify-between">
                                         <span className="text-purple-700">Triggered By:</span>
-                                        <span className="text-purple-900 font-medium">{execution.executionParameters._triggered_by}</span>
+                                        <span className="text-purple-900 font-medium capitalize">{execution.executionParameters._triggered_by}</span>
                                       </div>
                                     )}
                                     {execution.executionParameters._schedule_run_id && (
@@ -416,6 +338,47 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                                   </div>
                                 </div>
                               )}
+
+                              {/* All Parameters (including dates) */}
+                              {(() => {
+                                const allParams = Object.entries(execution.executionParameters)
+                                  .filter(([key]) => !['_schedule_id', '_scheduled_execution', '_schedule_run_id', '_triggered_by'].includes(key));
+
+                                if (allParams.length > 0) {
+                                  return (
+                                    <div className="bg-gray-50 rounded-lg p-3">
+                                      <div className="text-xs font-semibold text-gray-700 mb-2">Execution Parameters</div>
+                                      <div className="space-y-2">
+                                        {allParams.map(([key, value]) => {
+                                          // Format date values specially
+                                          let displayValue = value;
+                                          if (typeof value === 'string' && (key.toLowerCase().includes('date') || key === 'startDate' || key === 'endDate')) {
+                                            try {
+                                              displayValue = format(parseISO(value as string), 'PPP p');
+                                            } catch {
+                                              displayValue = value;
+                                            }
+                                          } else if (typeof value !== 'string') {
+                                            displayValue = JSON.stringify(value);
+                                          }
+
+                                          return (
+                                            <div key={key} className="flex justify-between items-start">
+                                              <span className="text-sm font-medium text-gray-600">
+                                                {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:
+                                              </span>
+                                              <span className="text-sm text-gray-900 font-mono ml-2">
+                                                {displayValue as string}
+                                              </span>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })()}
                             </div>
                           </div>
                         )}
