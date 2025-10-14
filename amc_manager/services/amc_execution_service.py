@@ -119,9 +119,7 @@ class AMCExecutionService:
                     if not isinstance(params_to_use, dict):
                         params_to_use = {}
 
-                    # Add date parameters in both formats
-                    params_to_use['start_date'] = start_date.strftime('%Y-%m-%dT00:00:00')
-                    params_to_use['end_date'] = end_date.strftime('%Y-%m-%dT23:59:59')
+                    # Add date parameters in camelCase format (standard for JS/TS)
                     params_to_use['startDate'] = start_date.strftime('%Y-%m-%dT00:00:00')
                     params_to_use['endDate'] = end_date.strftime('%Y-%m-%dT23:59:59')
 

@@ -341,15 +341,40 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
 
                               {/* All Parameters (including dates) */}
                               {(() => {
+                                // Filter out internal parameters
                                 const allParams = Object.entries(execution.executionParameters)
                                   .filter(([key]) => !['_schedule_id', '_scheduled_execution', '_schedule_run_id', '_triggered_by'].includes(key));
 
-                                if (allParams.length > 0) {
+                                // Deduplicate date parameters by case-insensitive comparison
+                                // Prefer camelCase (startDate/endDate) over other cases
+                                const seenDateKeys = new Set<string>();
+                                const uniqueParams = allParams.filter(([key]) => {
+                                  const lowerKey = key.toLowerCase();
+                                  // Check if this is a date parameter
+                                  if (lowerKey === 'startdate' || lowerKey === 'enddate' ||
+                                      lowerKey === 'start_date' || lowerKey === 'end_date') {
+                                    // Normalize to "startdate" or "enddate"
+                                    const normalizedKey = lowerKey.replace('_', '');
+
+                                    // If we've already seen this date key, skip it UNLESS it's camelCase
+                                    if (seenDateKeys.has(normalizedKey)) {
+                                      // Keep camelCase version if it appears
+                                      return key === 'startDate' || key === 'endDate';
+                                    }
+
+                                    seenDateKeys.add(normalizedKey);
+                                    // Prefer camelCase, skip other cases
+                                    return key === 'startDate' || key === 'endDate';
+                                  }
+                                  return true; // Keep non-date parameters
+                                });
+
+                                if (uniqueParams.length > 0) {
                                   return (
                                     <div className="bg-gray-50 rounded-lg p-3">
                                       <div className="text-xs font-semibold text-gray-700 mb-2">Execution Parameters</div>
                                       <div className="space-y-2">
-                                        {allParams.map(([key, value]) => {
+                                        {uniqueParams.map(([key, value]) => {
                                           // Format date values specially
                                           let displayValue = value;
                                           if (typeof value === 'string' && (key.toLowerCase().includes('date') || key === 'startDate' || key === 'endDate')) {
