@@ -128,6 +128,10 @@ class AMCExecutionService:
                     logger.info(f"[AUTO-ADDED] Date parameters for manual execution: {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
 
             # Always substitute parameters for the SQL query
+            # Log the parameters being used for debugging
+            logger.info(f"[SUBSTITUTION] Parameters passed to _prepare_sql_query: {list(params_to_use.keys())}")
+            logger.info(f"[SUBSTITUTION] Date parameters: start_date={params_to_use.get('start_date')}, end_date={params_to_use.get('end_date')}")
+
             sql_query = self._prepare_sql_query(
                 workflow['sql_query'],
                 params_to_use
