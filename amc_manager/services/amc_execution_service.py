@@ -112,7 +112,6 @@ class AMCExecutionService:
 
                 if not has_dates:
                     # Auto-add default date range (last 30 days, accounting for AMC 14-day lag)
-                    from datetime import datetime, timedelta
                     end_date = datetime.utcnow() - timedelta(days=14)
                     start_date = end_date - timedelta(days=30)
 
