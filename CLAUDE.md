@@ -157,6 +157,9 @@ build_guide_metrics      -- Metric/dimension definitions
 user_guide_progress      -- User progress tracking
 user_guide_favorites     -- User favorites
 
+-- Instance Templates (Added 2025-10-15)
+instance_templates       -- Instance-scoped SQL query templates
+
 -- Reports & Analytics (Phase 3-4)
 report_data_collections  -- Historical data collection configs
 report_data_weeks       -- Week-by-week execution tracking
@@ -360,6 +363,14 @@ POST   /api/build-guides/{guide_id}/favorite
 GET    /api/query-templates/
 GET    /api/query-templates/{id}
 
+# Instance Templates (Added 2025-10-15)
+GET    /api/instances/{instance_id}/templates
+POST   /api/instances/{instance_id}/templates
+GET    /api/instances/{instance_id}/templates/{template_id}
+PUT    /api/instances/{instance_id}/templates/{template_id}
+DELETE /api/instances/{instance_id}/templates/{template_id}
+POST   /api/instances/{instance_id}/templates/{template_id}/use
+
 # Instance Parameter Mappings (Added 2025-10-03)
 GET    /api/instances/{instance_id}/available-brands
 GET    /api/instances/{instance_id}/brands/{brand_tag}/asins
@@ -439,6 +450,173 @@ Build Guides provide step-by-step tactical guidance for AMC query use cases:
 
 ### Markdown Rendering
 Uses react-markdown with remark-gfm for tables, code blocks, and formatting.
+
+## Instance Templates Feature (Added 2025-10-15)
+
+Instance Templates provide a simplified way to save and reuse SQL queries for specific AMC instances without the complexity of global query templates.
+
+### Overview
+
+Unlike Query Templates (which are global with parameters), Instance Templates are:
+- **Instance-scoped**: Each template is tied to a specific AMC instance
+- **Simplified**: No parameter management - just SQL storage
+- **Quick access**: Replaces the "Workflows" tab on instance detail pages
+- **Pre-population**: "Use Template" button navigates to Query Builder with pre-filled SQL
+
+### Key Components
+
+**Backend**:
+- `instance_template_service.py` - Service layer with CRUD operations and 5-minute caching
+- `instance_templates.py` (API router) - 6 REST endpoints with JWT authentication
+- Pydantic schemas: `InstanceTemplateCreate`, `InstanceTemplateUpdate`, `InstanceTemplateResponse`
+- Database table: `instance_templates` with RLS policies
+
+**Frontend**:
+- `InstanceTemplateEditor.tsx` - Modal for creating/editing templates
+- `InstanceTemplates.tsx` - List view with template cards and CRUD operations
+- `InstanceDetail.tsx` - Updated to show "Templates" tab instead of "Workflows"
+- `QueryBuilder.tsx` - Receives navigation state to pre-populate SQL from templates
+
+### Database Schema
+
+```sql
+CREATE TABLE instance_templates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    template_id TEXT UNIQUE NOT NULL,  -- Format: tpl_inst_<12-char-hex>
+    name TEXT NOT NULL CHECK (char_length(name) > 0 AND char_length(name) <= 255),
+    description TEXT,
+    sql_query TEXT NOT NULL CHECK (char_length(sql_query) > 0),
+    instance_id UUID REFERENCES amc_instances(id) ON DELETE CASCADE NOT NULL,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+    tags JSONB DEFAULT '[]',
+    usage_count INTEGER DEFAULT 0 CHECK (usage_count >= 0),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Performance indexes
+CREATE INDEX idx_instance_templates_instance ON instance_templates(instance_id);
+CREATE INDEX idx_instance_templates_user ON instance_templates(user_id);
+CREATE INDEX idx_instance_templates_template_id ON instance_templates(template_id);
+CREATE INDEX idx_instance_templates_instance_user ON instance_templates(instance_id, user_id);
+
+-- Row Level Security
+ALTER TABLE instance_templates ENABLE ROW LEVEL SECURITY;
+CREATE POLICY instance_templates_user_policy ON instance_templates
+    FOR ALL USING (user_id = auth.uid());
+```
+
+### API Endpoints
+
+```http
+GET    /api/instances/{instance_id}/templates              # List templates for instance
+POST   /api/instances/{instance_id}/templates              # Create new template
+GET    /api/instances/{instance_id}/templates/{template_id} # Get template details
+PUT    /api/instances/{instance_id}/templates/{template_id} # Update template
+DELETE /api/instances/{instance_id}/templates/{template_id} # Delete template
+POST   /api/instances/{instance_id}/templates/{template_id}/use # Increment usage count
+```
+
+### Usage Flow
+
+1. **Navigate**: Go to Instance Detail page → "Templates" tab
+2. **Create**: Click "+ New Template" button
+3. **Fill**: Enter name, description (optional), SQL query, and tags (optional)
+4. **Save**: Template is saved and appears in the card grid
+5. **Use**: Click "Use Template" on any template card
+6. **Pre-fill**: Query Builder opens with SQL, instance ID, and template name pre-populated
+7. **Execute**: Edit if needed, then save as workflow or execute directly
+
+### Template Card Features
+
+- Name and description display
+- Tag badges for categorization
+- Usage count tracking
+- Three action buttons: Edit, Delete, "Use Template"
+- Delete confirmation dialog
+- Hover effects and visual feedback
+
+### Key Differences from Query Templates
+
+| Feature | Instance Templates | Query Templates |
+|---------|-------------------|-----------------|
+| Scope | Single instance | Global (all instances) |
+| Parameters | None | Full parameter system |
+| Sharing | User-only | Can be shared |
+| Location | Instance detail page | Query Library page |
+| Complexity | Simple SQL storage | Advanced with validation |
+| Use Case | Quick personal snippets | Reusable parameterized queries |
+
+### Technical Patterns
+
+**Service Layer with Caching**:
+```python
+class InstanceTemplateService(DatabaseService):
+    def __init__(self):
+        super().__init__()
+        self._cache = {}  # 5-minute TTL cache
+
+    @with_connection_retry
+    def create_template(self, template_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        template_data['template_id'] = f"tpl_inst_{uuid.uuid4().hex[:12]}"
+        template_data['usage_count'] = 0
+        response = self.client.table('instance_templates').insert(template_data).execute()
+        return response.data[0] if response.data else None
+```
+
+**Frontend Navigation State**:
+```typescript
+// In InstanceTemplates.tsx
+const handleUseTemplate = async (template: InstanceTemplate) => {
+  await instanceTemplateService.useTemplate(instanceId, template.templateId);
+  navigate('/query-builder/new', {
+    state: {
+      instanceId,
+      sqlQuery: template.sqlQuery,
+      templateName: template.name
+    }
+  });
+};
+
+// In QueryBuilder.tsx
+useEffect(() => {
+  if (location.state?.sqlQuery && location.state?.instanceId) {
+    setQueryState(prev => ({
+      ...prev,
+      sqlQuery: location.state.sqlQuery,
+      instanceId: location.state.instanceId,
+      name: location.state.templateName ? `From Template: ${location.state.templateName}` : ''
+    }));
+  }
+}, [location.state]);
+```
+
+### Files Created
+
+**Backend**:
+- `amc_manager/services/instance_template_service.py`
+- `amc_manager/api/supabase/instance_templates.py`
+- `tests/services/test_instance_template_service.py`
+
+**Frontend**:
+- `frontend/src/types/instanceTemplate.ts`
+- `frontend/src/services/instanceTemplateService.ts`
+- `frontend/src/components/instances/InstanceTemplateEditor.tsx`
+- `frontend/src/components/instances/InstanceTemplates.tsx`
+
+**Database**:
+- `database/supabase/migrations/05_instance_templates.sql`
+- `database/supabase/migrations/05_instance_templates_rollback.sql`
+
+**Documentation**:
+- `.agent-os/specs/2025-10-15-instance-templates/spec.md`
+- `.agent-os/specs/2025-10-15-instance-templates/tasks.md`
+
+### Related Files
+
+- Updated: [frontend/src/components/instances/InstanceDetail.tsx](frontend/src/components/instances/InstanceDetail.tsx) (tab replacement)
+- Updated: [frontend/src/pages/QueryBuilder.tsx](frontend/src/pages/QueryBuilder.tsx) (navigation state support)
+- Registered: [main_supabase.py](main_supabase.py) (router registration)
 
 ## Reports & Analytics Platform
 
@@ -697,6 +875,7 @@ Existing schedules without rolling date configuration will continue to work:
 
 ## Recent Critical Fixes
 
+- **2025-10-15**: Instance Templates Feature - Complete implementation with instance-scoped SQL template storage, simplified UI replacing "Workflows" tab, navigation state pre-population in Query Builder
 - **2025-10-09**: Rolling Date Range Feature - Complete implementation with DateRangeStep component, RunReportModal integration, and comprehensive testing
 - **2025-10-09**: Instance Parameter Mapping Auto-Population
   - Fixed UUID vs instance string ID mismatch in InstanceSelector

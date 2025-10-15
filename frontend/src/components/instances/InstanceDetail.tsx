@@ -6,7 +6,7 @@ import api from '../../services/api';
 import InstanceOverview from './InstanceOverview';
 import InstanceCampaigns from './InstanceCampaigns';
 import InstanceASINs from './InstanceASINs';
-import InstanceWorkflows from './InstanceWorkflows';
+import InstanceTemplates from './InstanceTemplates';
 import InstanceExecutions from './InstanceExecutions';
 import InstanceMappingTab from './InstanceMappingTab';
 
@@ -36,7 +36,7 @@ interface InstanceDetail {
   };
 }
 
-type TabType = 'overview' | 'campaigns' | 'asins' | 'queries' | 'executions' | 'mappings';
+type TabType = 'overview' | 'campaigns' | 'asins' | 'templates' | 'executions' | 'mappings';
 
 export default function InstanceDetail() {
   const { instanceId } = useParams<{ instanceId: string }>();
@@ -74,7 +74,7 @@ export default function InstanceDetail() {
     { id: 'overview' as TabType, name: 'Overview', icon: Database },
     { id: 'campaigns' as TabType, name: 'Campaigns', icon: Activity },
     { id: 'asins' as TabType, name: 'ASINs', icon: Package },
-    { id: 'queries' as TabType, name: 'Workflows', icon: FileText },
+    { id: 'templates' as TabType, name: 'Templates', icon: FileText },
     { id: 'executions' as TabType, name: 'Executions', icon: History },
     { id: 'mappings' as TabType, name: 'Mapping', icon: Settings },
   ];
@@ -147,7 +147,7 @@ export default function InstanceDetail() {
         {activeTab === 'overview' && <InstanceOverview instance={instance} />}
         {activeTab === 'campaigns' && <InstanceCampaigns instanceId={instance.instanceId} />}
         {activeTab === 'asins' && <InstanceASINs instanceId={instance.id} />}
-        {activeTab === 'queries' && <InstanceWorkflows instanceId={instance.instanceId} />}
+        {activeTab === 'templates' && <InstanceTemplates instanceId={instance.id} />}
         {activeTab === 'executions' && <InstanceExecutions instanceId={instance.instanceId} />}
         {activeTab === 'mappings' && <InstanceMappingTab instanceId={instance.id} />}
       </div>

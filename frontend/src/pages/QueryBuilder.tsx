@@ -159,9 +159,23 @@ export default function QueryBuilder() {
     }
   }, [location.state]);
 
+  // Load from navigation state (for instance templates "Use Template")
+  useEffect(() => {
+    if (location.state?.sqlQuery && location.state?.instanceId) {
+      setQueryState(prev => ({
+        ...prev,
+        sqlQuery: location.state.sqlQuery,
+        instanceId: location.state.instanceId,
+        name: location.state.templateName ? `From Template: ${location.state.templateName}` : '',
+        description: location.state.description || '',
+        parameters: location.state.parameters || {}
+      }));
+    }
+  }, [location.state]);
+
   // Load from sessionStorage if available (for examples from data sources)
   useEffect(() => {
-    if (!templateId && !workflowId) {
+    if (!templateId && !workflowId && !location.state?.sqlQuery) {
       const draft = sessionStorage.getItem('queryBuilderDraft');
       if (draft) {
         try {
