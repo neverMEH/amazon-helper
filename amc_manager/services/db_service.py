@@ -107,14 +107,19 @@ class DatabaseService:
     
     @with_connection_retry
     def user_has_instance_access_sync(self, user_id: str, instance_id: str) -> bool:
-        """Check if user has access to a specific instance - sync version"""
+        """Check if user has access to a specific instance - sync version
+
+        Args:
+            user_id: The user's UUID
+            instance_id: The AMC instance string (like 'amcibersblt'), not the UUID
+        """
         try:
             # Get user's instances
             user_instances = self.get_user_instances_sync(user_id)
-            
+
             # Check if the requested instance_id is in the user's instances
-            # Note: instance_id parameter is the UUID (id field), not the AMC instance_id
-            return any(inst['id'] == instance_id for inst in user_instances)
+            # Compare using AMC instance string (instance_id field)
+            return any(inst['instance_id'] == instance_id for inst in user_instances)
         except Exception as e:
             logger.error(f"Error checking instance access: {e}")
             return False

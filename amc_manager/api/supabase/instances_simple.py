@@ -73,7 +73,7 @@ def get_instance(
 
         # Verify user has access
         user_instances = db_service.get_user_instances_sync(current_user['id'])
-        if not any(inst['id'] == instance_id for inst in user_instances):
+        if not any(inst['instance_id'] == instance_id for inst in user_instances):
             raise HTTPException(status_code=403, detail="Access denied to instance")
         
         # Get stats
@@ -120,7 +120,7 @@ def get_instance_campaigns(
     try:
         # Verify user has access to instance
         user_instances = db_service.get_user_instances_sync(current_user['id'])
-        if not any(inst['id'] == instance_id for inst in user_instances):
+        if not any(inst['instance_id'] == instance_id for inst in user_instances):
             raise HTTPException(status_code=403, detail="Access denied to instance")
         
         # Get instance details to get the internal ID
@@ -200,7 +200,7 @@ def get_instance_workflows(
     try:
         # Verify user has access
         user_instances = db_service.get_user_instances_sync(current_user['id'])
-        if not any(inst['id'] == instance_id for inst in user_instances):
+        if not any(inst['instance_id'] == instance_id for inst in user_instances):
             raise HTTPException(status_code=403, detail="Access denied to instance")
 
         # Get all workflows for user
@@ -268,7 +268,7 @@ def get_instance_brands(
     try:
         # Verify user has access
         user_instances = db_service.get_user_instances_sync(current_user['id'])
-        if not any(inst['id'] == instance_id for inst in user_instances):
+        if not any(inst['instance_id'] == instance_id for inst in user_instances):
             raise HTTPException(status_code=403, detail="Access denied to instance")
 
         # Get brands for this instance
@@ -291,7 +291,7 @@ def update_instance_brands(
     try:
         # Verify user has access
         user_instances = db_service.get_user_instances_sync(current_user['id'])
-        if not any(inst['id'] == instance_id for inst in user_instances):
+        if not any(inst['instance_id'] == instance_id for inst in user_instances):
             raise HTTPException(status_code=403, detail="Access denied to instance")
 
         # Validate brands

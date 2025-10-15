@@ -1432,8 +1432,8 @@ async def cross_reference_executions(
     try:
         # Verify user has access to this instance
         user_instances = db_service.get_user_instances_sync(current_user['id'])
-        # Support both UUID and instance string
-        if not any(inst['id'] == instance_id or inst['instance_id'] == instance_id for inst in user_instances):
+        # Use AMC instance string for comparison
+        if not any(inst['instance_id'] == instance_id for inst in user_instances):
             raise HTTPException(status_code=403, detail="Access denied to this instance")
         
         # Get recent executions from database for this instance

@@ -64,7 +64,7 @@ async def get_instance(
         
         # Verify user has access
         user_instances = await db_service.get_user_instances(current_user['id'])
-        if not any(inst['id'] == instance_id for inst in user_instances):
+        if not any(inst['instance_id'] == instance_id for inst in user_instances):
             raise HTTPException(status_code=403, detail="Access denied")
         
         # Get brands for this instance (just the brand tags as strings)
@@ -190,7 +190,7 @@ async def get_instance_metrics(
         raise HTTPException(status_code=404, detail="Instance not found")
     
     user_instances = await db_service.get_user_instances(current_user['id'])
-    if not any(inst['id'] == instance_id for inst in user_instances):
+    if not any(inst['instance_id'] == instance_id for inst in user_instances):
         raise HTTPException(status_code=403, detail="Access denied")
     
     # TODO: Implement actual metrics fetching from AMC API

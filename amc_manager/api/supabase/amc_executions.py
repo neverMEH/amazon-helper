@@ -136,7 +136,7 @@ async def list_stored_executions(
     try:
         # Verify user has access to this instance
         user_instances = db_service.get_user_instances_sync(current_user['id'])
-        if not any(inst['id'] == instance_id for inst in user_instances):
+        if not any(inst['instance_id'] == instance_id for inst in user_instances):
             raise HTTPException(status_code=403, detail="Access denied to this instance")
 
         # First, try to get executions from our database
@@ -149,7 +149,7 @@ async def list_stored_executions(
             .execute()
         
         # Get instance's internal ID
-        instance_data = next((inst for inst in user_instances if inst['id'] == instance_id), None)
+        instance_data = next((inst for inst in user_instances if inst['instance_id'] == instance_id), None)
         if instance_data:
             # Filter workflows for this instance
             instance_workflows = []
@@ -297,7 +297,7 @@ async def list_amc_executions(
         
         # Check if user has access to this instance
         user_instances = db_service.get_user_instances_sync(current_user['id'])
-        if not any(inst['id'] == instance_id for inst in user_instances):
+        if not any(inst['instance_id'] == instance_id for inst in user_instances):
             raise HTTPException(status_code=403, detail="Access denied to this instance")
 
         # Get valid token
@@ -629,7 +629,7 @@ async def get_amc_execution_details(
         
         # Check if user has access to this instance
         user_instances = db_service.get_user_instances_sync(current_user['id'])
-        if not any(inst['id'] == instance_id for inst in user_instances):
+        if not any(inst['instance_id'] == instance_id for inst in user_instances):
             raise HTTPException(status_code=403, detail="Access denied to this instance")
 
         # Check if this is an internal execution ID (starts with exec_)
