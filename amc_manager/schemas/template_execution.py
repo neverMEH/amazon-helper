@@ -165,8 +165,8 @@ class TemplateExecutionResponse(BaseModel):
         ...,
         description="Execution status: PENDING, RUNNING, COMPLETED, or FAILED"
     )
-    created_at: datetime = Field(
-        ...,
+    created_at: Optional[datetime] = Field(
+        default=None,
         description="Timestamp when the execution was created"
     )
 
