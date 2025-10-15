@@ -123,12 +123,23 @@ export default function InstanceTemplates({ instanceId }: InstanceTemplatesProps
 
   const handleUseTemplate = async (template: InstanceTemplate) => {
     try {
+      console.log('handleUseTemplate called', { template, instanceId, instance });
+
+      // Check if instance data is loaded
+      if (!instance) {
+        console.error('Instance data not loaded');
+        toast.error('Instance data not loaded. Please refresh the page.');
+        return;
+      }
+
       // Increment usage count
       await instanceTemplateService.useTemplate(instanceId, template.templateId);
 
       // Open execution wizard instead of navigating to query builder
       setSelectedTemplateForExecution(template);
       setExecutionWizardOpen(true);
+
+      console.log('Wizard should now be open', { executionWizardOpen: true, selectedTemplateForExecution: template });
     } catch (error) {
       console.error('Failed to use template:', error);
       toast.error('Failed to use template');
@@ -271,32 +282,40 @@ export default function InstanceTemplates({ instanceId }: InstanceTemplatesProps
       )}
 
       {/* Template Execution Wizard */}
-      {executionWizardOpen && selectedTemplateForExecution && instance && (
-        <TemplateExecutionWizard
-          isOpen={executionWizardOpen}
-          onClose={() => {
-            setExecutionWizardOpen(false);
-            setSelectedTemplateForExecution(null);
-          }}
-          template={{
-            templateId: selectedTemplateForExecution.templateId,
-            name: selectedTemplateForExecution.name,
-            sqlQuery: selectedTemplateForExecution.sqlQuery,
-          }}
-          instanceInfo={{
-            id: instance.id,
-            instanceId: instance.instanceId,
-            instanceName: instance.instanceName,
-            brands: instance.brands,
-          }}
-          onComplete={() => {
-            setExecutionWizardOpen(false);
-            setSelectedTemplateForExecution(null);
-            // Refetch templates to update usage count
-            queryClient.invalidateQueries({ queryKey: ['instance-templates', instanceId] });
-          }}
-        />
-      )}
+      {(() => {
+        console.log('Wizard render conditions:', {
+          executionWizardOpen,
+          hasSelectedTemplate: !!selectedTemplateForExecution,
+          hasInstance: !!instance,
+          instanceId,
+        });
+        return executionWizardOpen && selectedTemplateForExecution && instance ? (
+          <TemplateExecutionWizard
+            isOpen={executionWizardOpen}
+            onClose={() => {
+              setExecutionWizardOpen(false);
+              setSelectedTemplateForExecution(null);
+            }}
+            template={{
+              templateId: selectedTemplateForExecution.templateId,
+              name: selectedTemplateForExecution.name,
+              sqlQuery: selectedTemplateForExecution.sqlQuery,
+            }}
+            instanceInfo={{
+              id: instance.id,
+              instanceId: instance.instanceId,
+              instanceName: instance.instanceName,
+              brands: instance.brands,
+            }}
+            onComplete={() => {
+              setExecutionWizardOpen(false);
+              setSelectedTemplateForExecution(null);
+              // Refetch templates to update usage count
+              queryClient.invalidateQueries({ queryKey: ['instance-templates', instanceId] });
+            }}
+          />
+        ) : null;
+      })()}
     </>
   );
 }
