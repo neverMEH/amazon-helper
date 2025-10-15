@@ -70,10 +70,10 @@ def get_instance(
         instance = db_service.get_instance_details_sync(instance_id)
         if not instance:
             raise HTTPException(status_code=404, detail="Instance not found")
-        
+
         # Verify user has access
         user_instances = db_service.get_user_instances_sync(current_user['id'])
-        if not any(inst['instance_id'] == instance_id for inst in user_instances):
+        if not any(inst['id'] == instance_id for inst in user_instances):
             raise HTTPException(status_code=403, detail="Access denied to instance")
         
         # Get stats
@@ -120,7 +120,7 @@ def get_instance_campaigns(
     try:
         # Verify user has access to instance
         user_instances = db_service.get_user_instances_sync(current_user['id'])
-        if not any(inst['instance_id'] == instance_id for inst in user_instances):
+        if not any(inst['id'] == instance_id for inst in user_instances):
             raise HTTPException(status_code=403, detail="Access denied to instance")
         
         # Get instance details to get the internal ID
@@ -200,9 +200,9 @@ def get_instance_workflows(
     try:
         # Verify user has access
         user_instances = db_service.get_user_instances_sync(current_user['id'])
-        if not any(inst['instance_id'] == instance_id for inst in user_instances):
+        if not any(inst['id'] == instance_id for inst in user_instances):
             raise HTTPException(status_code=403, detail="Access denied to instance")
-        
+
         # Get all workflows for user
         workflows = db_service.get_user_workflows_sync(current_user['id'])
         
@@ -268,9 +268,9 @@ def get_instance_brands(
     try:
         # Verify user has access
         user_instances = db_service.get_user_instances_sync(current_user['id'])
-        if not any(inst['instance_id'] == instance_id for inst in user_instances):
+        if not any(inst['id'] == instance_id for inst in user_instances):
             raise HTTPException(status_code=403, detail="Access denied to instance")
-        
+
         # Get brands for this instance
         brands = brand_service.get_instance_brands_sync(instance_id)
         return brands
@@ -291,9 +291,9 @@ def update_instance_brands(
     try:
         # Verify user has access
         user_instances = db_service.get_user_instances_sync(current_user['id'])
-        if not any(inst['instance_id'] == instance_id for inst in user_instances):
+        if not any(inst['id'] == instance_id for inst in user_instances):
             raise HTTPException(status_code=403, detail="Access denied to instance")
-        
+
         # Validate brands
         for brand_tag in brand_tags:
             is_valid, error = brand_service.validate_brand_tag(brand_tag)
