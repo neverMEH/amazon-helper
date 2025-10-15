@@ -566,9 +566,15 @@ class DatabaseService:
     async def get_instance_by_id(self, instance_id: str) -> Optional[Dict[str, Any]]:
         """Get AMC instance by ID (UUID)"""
         try:
+            logger.info(f"Querying for instance with id={instance_id}")
             response = self.client.table('amc_instances').select(
                 '*, amc_accounts(*)'
             ).eq('id', instance_id).execute()
+            logger.info(f"Query returned {len(response.data) if response.data else 0} results")
+            if response.data:
+                logger.info(f"Found instance: {response.data[0].get('instance_name')}")
+            else:
+                logger.warning(f"No instance found with id={instance_id}")
             return response.data[0] if response.data else None
         except Exception as e:
             logger.error(f"Error fetching instance: {e}")
