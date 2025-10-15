@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import SQLEditor from '../common/SQLEditor';
 import DateRangeStep from '../schedules/DateRangeStep';
+import ScheduleTypeStep from '../schedules/ScheduleTypeStep';
+import TimingStep from '../schedules/TimingStep';
 import {
   templateExecutionService,
   generateExecutionName,
@@ -601,16 +603,74 @@ const Step3BScheduleConfig: React.FC<Step3BScheduleConfigProps> = ({
   onChange,
   onNext,
   onBack,
-}) => (
-  <div className="space-y-6">
-    <DateRangeStep
-      config={config}
-      onChange={onChange}
-      onNext={onNext}
-      onBack={onBack}
-    />
-  </div>
-);
+}) => {
+  // Internal sub-step management for schedule configuration
+  const [scheduleSubStep, setScheduleSubStep] = useState<1 | 2 | 3>(1);
+
+  const handleSubStepNext = () => {
+    if (scheduleSubStep < 3) {
+      setScheduleSubStep((prev) => (prev + 1) as 1 | 2 | 3);
+    } else {
+      onNext(); // Go to final review step
+    }
+  };
+
+  const handleSubStepBack = () => {
+    if (scheduleSubStep > 1) {
+      setScheduleSubStep((prev) => (prev - 1) as 1 | 2 | 3);
+    } else {
+      onBack(); // Go back to execution type selection
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Sub-step indicator */}
+      <div className="flex items-center justify-center space-x-2 mb-4">
+        {[1, 2, 3].map((step) => (
+          <div
+            key={step}
+            className={`h-2 w-12 rounded-full transition-colors ${
+              step === scheduleSubStep
+                ? 'bg-indigo-600'
+                : step < scheduleSubStep
+                ? 'bg-green-500'
+                : 'bg-gray-200'
+            }`}
+          />
+        ))}
+      </div>
+
+      {/* Sub-step content */}
+      {scheduleSubStep === 1 && (
+        <ScheduleTypeStep
+          config={config}
+          onChange={onChange}
+          onNext={handleSubStepNext}
+          onBack={handleSubStepBack}
+        />
+      )}
+
+      {scheduleSubStep === 2 && (
+        <TimingStep
+          config={config}
+          onChange={onChange}
+          onNext={handleSubStepNext}
+          onBack={handleSubStepBack}
+        />
+      )}
+
+      {scheduleSubStep === 3 && (
+        <DateRangeStep
+          config={config}
+          onChange={onChange}
+          onNext={handleSubStepNext}
+          onBack={handleSubStepBack}
+        />
+      )}
+    </div>
+  );
+};
 
 // Step 4: Review and submit
 interface Step4ReviewProps {
