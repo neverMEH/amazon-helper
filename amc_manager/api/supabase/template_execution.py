@@ -224,14 +224,9 @@ async def create_template_schedule(
             'instance_id': instance_id,
             'name': request.name,
             'sql_query': template['sql_query'],
-            'description': f"Auto-generated from template: {template['name']}",
+            'description': f"Auto-generated from template: {template['name']} (Template ID: {template_id})",
             'parameters': {},  # Templates don't have parameters
             'status': 'active',
-            'metadata': {
-                'source': 'instance_template',
-                'template_id': template_id,
-                'template_name': template['name'],
-            }
         }
 
         created_workflow = db_service.create_workflow_sync(workflow_data)
