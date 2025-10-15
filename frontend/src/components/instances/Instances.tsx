@@ -393,7 +393,7 @@ export default function Instances() {
               {filteredInstances.map((instance) => (
                 <tr
                   key={instance.id}
-                  onClick={() => navigate(`/instances/${instance.instanceId}`)}
+                  onClick={() => navigate(`/instances/${instance.id}`)}
                   className="hover:bg-gray-50 cursor-pointer"
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
