@@ -564,27 +564,11 @@ class DatabaseService:
             return []
     
     async def get_instance_by_id(self, instance_id: str) -> Optional[Dict[str, Any]]:
-        """Get AMC instance by ID (supports both UUID and AMC instance string)"""
+        """Get AMC instance by ID (AMC instance string like 'amcibersblt')"""
         try:
-            logger.info(f"Querying for instance with id={instance_id}")
-
-            # Try UUID first (new format)
             response = self.client.table('amc_instances').select(
                 '*, amc_accounts(*)'
-            ).eq('id', instance_id).execute()
-
-            # If not found, try AMC instance string (old format for backward compatibility)
-            if not response.data:
-                logger.info(f"UUID lookup failed, trying instance_id string lookup")
-                response = self.client.table('amc_instances').select(
-                    '*, amc_accounts(*)'
-                ).eq('instance_id', instance_id).execute()
-
-            logger.info(f"Query returned {len(response.data) if response.data else 0} results")
-            if response.data:
-                logger.info(f"Found instance: {response.data[0].get('instance_name')}")
-            else:
-                logger.warning(f"No instance found with id={instance_id}")
+            ).eq('instance_id', instance_id).execute()
             return response.data[0] if response.data else None
         except Exception as e:
             logger.error(f"Error fetching instance: {e}")
