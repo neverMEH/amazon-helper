@@ -20,16 +20,21 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { instanceTemplateService } from '../../services/instanceTemplateService';
-import { instanceService } from '../../services/instanceService';
 import InstanceTemplateEditor from './InstanceTemplateEditor';
 import TemplateExecutionWizard from './TemplateExecutionWizard';
 import type { InstanceTemplate } from '../../types/instanceTemplate';
 
 interface InstanceTemplatesProps {
   instanceId: string;
+  instance?: {
+    id: string;
+    instanceId: string;
+    instanceName: string;
+    brands?: string[];
+  };
 }
 
-export default function InstanceTemplates({ instanceId }: InstanceTemplatesProps) {
+export default function InstanceTemplates({ instanceId, instance: instanceProp }: InstanceTemplatesProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -46,12 +51,8 @@ export default function InstanceTemplates({ instanceId }: InstanceTemplatesProps
     enabled: !!instanceId,
   });
 
-  // Fetch instance details for execution wizard
-  const { data: instance } = useQuery({
-    queryKey: ['instance', instanceId],
-    queryFn: () => instanceService.get(instanceId),
-    enabled: !!instanceId,
-  });
+  // Use the instance passed from parent (already loaded in InstanceDetail)
+  const instance = instanceProp;
 
   // Create/Update mutation
   const saveMutation = useMutation({

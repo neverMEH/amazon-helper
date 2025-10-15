@@ -147,7 +147,7 @@ export default function InstanceDetail() {
         {activeTab === 'overview' && <InstanceOverview instance={instance} />}
         {activeTab === 'campaigns' && <InstanceCampaigns instanceId={instance.instanceId} />}
         {activeTab === 'asins' && <InstanceASINs instanceId={instance.id} />}
-        {activeTab === 'templates' && <InstanceTemplates instanceId={instance.id} />}
+        {activeTab === 'templates' && <InstanceTemplates instanceId={instance.id} instance={instance} />}
         {activeTab === 'executions' && <InstanceExecutions instanceId={instance.instanceId} />}
         {activeTab === 'mappings' && <InstanceMappingTab instanceId={instance.id} />}
       </div>
