@@ -296,7 +296,7 @@ class ExecutionMonitorService:
     async def _upload_to_snowflake_if_enabled(self, execution_id: str, results: Dict[str, Any], user_id: str):
         """
         Upload results to Snowflake if enabled for this execution
-        
+
         Args:
             execution_id: Execution ID
             results: Execution results
@@ -306,35 +306,44 @@ class ExecutionMonitorService:
             # Check if Snowflake is enabled for this execution
             client = SupabaseManager.get_client(use_service_role=True)
             response = client.table('workflow_executions')\
-                .select('snowflake_enabled, snowflake_table_name, snowflake_schema_name')\
+                .select('snowflake_enabled, snowflake_table_name, snowflake_schema_name, execution_parameters')\
                 .eq('execution_id', execution_id)\
                 .execute()
-                
+
             if not response.data:
                 logger.warning(f"No execution found with ID {execution_id}")
                 return
-                
+
             execution = response.data[0]
-            
+
             if not execution.get('snowflake_enabled'):
                 logger.info(f"Snowflake upload not enabled for execution {execution_id}")
                 return
-                
+
             # Generate table name if not provided
             table_name = execution.get('snowflake_table_name')
             if not table_name:
                 # Generate table name from execution ID and timestamp
                 timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
                 table_name = f"execution_{execution_id}_{timestamp}"
-                
+
+            # Extract week_start from execution parameters (for template executions)
+            week_start = None
+            execution_parameters = execution.get('execution_parameters', {})
+            if isinstance(execution_parameters, dict):
+                week_start = execution_parameters.get('week_start') or execution_parameters.get('timeWindowStart')
+
             logger.info(f"Uploading execution {execution_id} results to Snowflake table {table_name}")
-            
+            if week_start:
+                logger.info(f"Week start date: {week_start}")
+
             # Upload to Snowflake
             upload_result = self.snowflake_service.upload_execution_results(
                 execution_id=execution_id,
                 results=results,
                 table_name=table_name,
-                user_id=user_id
+                user_id=user_id,
+                week_start=week_start
             )
             
             if upload_result['success']:

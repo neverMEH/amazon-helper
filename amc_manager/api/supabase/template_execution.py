@@ -89,7 +89,17 @@ async def execute_template(
                 detail="No valid authentication token"
             )
 
-        # 4. Create temporary workflow for this execution
+        # 4. Generate consistent Snowflake table name if Snowflake is enabled
+        snowflake_table_name = request.snowflake_table_name
+        if request.snowflake_enabled and not snowflake_table_name:
+            # Generate table name from template: template_{template_name_sanitized}
+            # This ensures all executions of the same template go to the same table
+            import re
+            template_name_sanitized = re.sub(r'[^a-zA-Z0-9]', '_', template['name'].lower())[:50]
+            snowflake_table_name = f"template_{template_name_sanitized}"
+            logger.info(f"Generated Snowflake table name: {snowflake_table_name}")
+
+        # 5. Create temporary workflow for this execution
         # workflow_executions table requires a workflow_id (NOT NULL foreign key)
         logger.info(f"Creating temporary workflow for template execution")
 
@@ -113,7 +123,7 @@ async def execute_template(
                 detail="Failed to create workflow for execution"
             )
 
-        # 5. Create workflow execution via AMC execution service
+        # 6. Create workflow execution via AMC execution service
         # This handles AMC API communication and database record creation properly
         logger.info(f"Creating AMC execution for template {template['name']} on instance {amc_instance_id}")
 
@@ -128,10 +138,14 @@ async def execute_template(
                 'template_id': template_id,
                 'template_name': template['name'],
                 'snowflake_enabled': request.snowflake_enabled,
-                'snowflake_table_name': request.snowflake_table_name,
+                'snowflake_table_name': snowflake_table_name,  # Use auto-generated name
                 'snowflake_schema_name': request.snowflake_schema_name,
+                'week_start': request.timeWindowStart,  # Pass week start for Snowflake column
             },
             triggered_by='template_execution',
+            snowflake_enabled=request.snowflake_enabled,
+            snowflake_table_name=snowflake_table_name,  # Use auto-generated name
+            snowflake_schema_name=request.snowflake_schema_name,
         )
 
         if not execution_result or 'execution_id' not in execution_result:

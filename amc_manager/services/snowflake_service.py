@@ -193,21 +193,23 @@ class SnowflakeService(DatabaseService):
             raise
 
     def upload_execution_results(
-        self, 
-        execution_id: str, 
-        results: Dict[str, Any], 
+        self,
+        execution_id: str,
+        results: Dict[str, Any],
         table_name: str,
-        user_id: str
+        user_id: str,
+        week_start: str = None
     ) -> Dict[str, Any]:
         """
         Upload execution results to Snowflake
-        
+
         Args:
             execution_id: Execution ID
             results: Execution results with columns and rows
             table_name: Target table name in Snowflake
             user_id: User ID for configuration lookup
-            
+            week_start: Week start date for this execution (YYYY-MM-DD format)
+
         Returns:
             Upload result with status and details
         """
@@ -216,28 +218,33 @@ class SnowflakeService(DatabaseService):
             config = self.get_user_snowflake_config(user_id)
             if not config:
                 raise Exception("No active Snowflake configuration found for user")
-            
+
             # Update execution status to uploading
             self._update_execution_snowflake_status(execution_id, 'uploading')
-            
+
             # Create Snowflake connection
             connection = self._get_snowflake_connection(config)
-            
+
             try:
                 # Prepare data for upload
                 columns = results.get('columns', [])
                 rows = results.get('rows', [])
-                
+
                 if not columns or not rows:
                     raise Exception("No data to upload")
-                
+
                 # Create DataFrame
                 df = pd.DataFrame(rows, columns=[col['name'] for col in columns])
-                
+
                 # Add metadata columns
                 df['execution_id'] = execution_id
                 df['uploaded_at'] = datetime.utcnow()
                 df['user_id'] = user_id
+
+                # Add week_start column if provided (for template executions)
+                if week_start:
+                    df['week_start'] = week_start
+                    logger.info(f"Adding week_start column with value: {week_start}")
                 
                 # Create table if it doesn't exist
                 full_table_name = f"{config['database']}.{config['schema']}.{table_name}"
