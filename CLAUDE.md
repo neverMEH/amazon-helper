@@ -1098,6 +1098,17 @@ Existing schedules without rolling date configuration will continue to work:
 
 ## Recent Critical Fixes
 
+- **2025-10-15**: UUID vs AMC Instance String Access Control Fix
+  - **Critical Issue**: After Template Execution Wizard deployment, all instance endpoints returned 403 Forbidden
+  - **Root Cause**: Access control checks across 5 backend files were comparing UUIDs (`inst['id']`) instead of AMC instance strings (`inst['instance_id']`)
+  - **Files Fixed**:
+    - `instances.py` - 2 access control checks
+    - `instances_simple.py` - 5 access control checks
+    - `amc_executions.py` - 4 access control checks
+    - `db_service.py` - `user_has_instance_access_sync()` method
+    - `workflows.py` - Simplified backward compatibility check
+  - **Key Learning**: Instance URLs and API calls use AMC instance strings (like "amcibersblt"), NOT UUIDs. All access control comparisons must use `inst['instance_id']` field.
+  - **Prevention**: When changing instance identification format, grep for ALL `inst['id'] == instance_id` patterns across the entire backend.
 - **2025-10-15**: Template Execution Wizard - Complete 4-step wizard implementation for direct template execution with run-once and recurring schedule options, Snowflake integration, and auto-generated naming
 - **2025-10-15**: Instance Templates Feature - Complete implementation with instance-scoped SQL template storage, simplified UI replacing "Workflows" tab, navigation state pre-population in Query Builder
 - **2025-10-09**: Rolling Date Range Feature - Complete implementation with DateRangeStep component, RunReportModal integration, and comprehensive testing
