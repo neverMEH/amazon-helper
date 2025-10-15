@@ -564,11 +564,11 @@ class DatabaseService:
             return []
     
     async def get_instance_by_id(self, instance_id: str) -> Optional[Dict[str, Any]]:
-        """Get AMC instance by ID"""
+        """Get AMC instance by ID (UUID)"""
         try:
             response = self.client.table('amc_instances').select(
                 '*, amc_accounts(*)'
-            ).eq('instance_id', instance_id).execute()
+            ).eq('id', instance_id).execute()
             return response.data[0] if response.data else None
         except Exception as e:
             logger.error(f"Error fetching instance: {e}")
