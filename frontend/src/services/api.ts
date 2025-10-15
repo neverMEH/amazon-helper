@@ -47,13 +47,11 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Handle 403 Forbidden - user needs to log in
+    // Handle 403 Forbidden - user doesn't have access to this resource
+    // NOTE: 403 means authenticated but not authorized - don't log out!
     if (error.response?.status === 403) {
-      console.error('403 Forbidden - User not authenticated');
-      // Clear local storage and redirect to login
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      console.error('403 Forbidden - Access denied to resource');
+      // Just reject the error without logging out
       return Promise.reject(error);
     }
 
