@@ -89,79 +89,68 @@ async def execute_template(
                 detail="No valid authentication token"
             )
 
-        # 4. Create workflow execution via AMC API
-        logger.info(f"Creating AMC execution for template {template['name']} on instance {amc_instance_id}")
+        # 4. Create temporary workflow for this execution
+        # workflow_executions table requires a workflow_id (NOT NULL foreign key)
+        logger.info(f"Creating temporary workflow for template execution")
 
-        # Use AMC execution service to create execution
-        # This handles AMC API communication and database record creation
-        from ...services.amc_api_client_with_retry import amc_api_client_with_retry
-
-        execution_result = await amc_api_client_with_retry.create_workflow_execution(
-            instance_id=amc_instance_id,
-            user_id=user_id,
-            entity_id=entity_id,
-            sql_query=template['sql_query'],
-            parameter_values={
-                'timeWindowStart': request.timeWindowStart,
-                'timeWindowEnd': request.timeWindowEnd,
-            },
-        )
-
-        if not execution_result:
-            logger.error("AMC API returned empty result")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to create workflow execution in AMC"
-            )
-
-        # 5. Store execution record in database
-        execution_id = f"exec_{uuid.uuid4().hex[:12]}"
-
-        execution_data = {
-            'execution_id': execution_id,
+        workflow_id = f"wf_{uuid.uuid4().hex[:12]}"
+        workflow_data = {
+            'workflow_id': workflow_id,
             'user_id': user_id,
             'instance_id': instance_id,
-            'amc_execution_id': execution_result.get('executionId'),
-            'amc_workflow_id': execution_result.get('workflowId'),
-            'query_text': template['sql_query'],
-            'execution_parameters': {
+            'name': request.name,
+            'sql_query': template['sql_query'],
+            'description': f"Auto-generated from template: {template['name']}",
+            'parameters': {},
+            'status': 'active',
+        }
+
+        created_workflow = db_service.create_workflow_sync(workflow_data)
+        if not created_workflow:
+            logger.error("Failed to create temporary workflow")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create workflow for execution"
+            )
+
+        # 5. Create workflow execution via AMC execution service
+        # This handles AMC API communication and database record creation properly
+        logger.info(f"Creating AMC execution for template {template['name']} on instance {amc_instance_id}")
+
+        execution_result = await amc_execution_service.execute_workflow(
+            workflow_id=created_workflow['id'],  # UUID for database FK
+            user_id=user_id,
+            execution_parameters={
                 'timeWindowStart': request.timeWindowStart,
                 'timeWindowEnd': request.timeWindowEnd,
-            },
-            'status': 'PENDING',
-            'triggered_by': 'template_execution',
-            'metadata': {
+                # Store template metadata in execution_parameters
                 'execution_name': request.name,
                 'template_id': template_id,
                 'template_name': template['name'],
                 'snowflake_enabled': request.snowflake_enabled,
                 'snowflake_table_name': request.snowflake_table_name,
                 'snowflake_schema_name': request.snowflake_schema_name,
-            }
-        }
+            },
+            triggered_by='template_execution',
+        )
 
-        # Insert execution record
-        exec_response = client.table('workflow_executions').insert(execution_data).execute()
-
-        if not exec_response.data:
-            logger.error("Failed to create execution record in database")
+        if not execution_result or 'execution_id' not in execution_result:
+            logger.error("AMC execution service returned invalid result")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to create execution record"
+                detail="Failed to create workflow execution"
             )
-
-        execution_record = exec_response.data[0]
 
         # Increment template usage count
         instance_template_service.increment_usage(template_id)
 
-        logger.info(f"Template execution created successfully: {execution_id}")
+        logger.info(f"Template execution created successfully: {execution_result['execution_id']}")
 
         return TemplateExecutionResponse(
-            workflow_execution_id=execution_record['execution_id'],
-            amc_execution_id=execution_result.get('executionId'),
-            status='PENDING',
-            created_at=execution_record['created_at'],
+            workflow_execution_id=execution_result['execution_id'],
+            amc_execution_id=execution_result.get('amc_execution_id'),
+            status=execution_result.get('status', 'PENDING'),
+            created_at=execution_result.get('created_at'),
         )
 
     except HTTPException:
