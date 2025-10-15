@@ -101,9 +101,10 @@ async def execute_template(
             user_id=user_id,
             entity_id=entity_id,
             sql_query=template['sql_query'],
-            time_window_start=request.timeWindowStart,
-            time_window_end=request.timeWindowEnd,
-            parameters={},  # Templates don't have parameters
+            parameter_values={
+                'timeWindowStart': request.timeWindowStart,
+                'timeWindowEnd': request.timeWindowEnd,
+            },
         )
 
         if not execution_result:
