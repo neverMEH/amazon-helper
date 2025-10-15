@@ -20,7 +20,9 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { instanceTemplateService } from '../../services/instanceTemplateService';
+import { instanceService } from '../../services/instanceService';
 import InstanceTemplateEditor from './InstanceTemplateEditor';
+import TemplateExecutionWizard from './TemplateExecutionWizard';
 import type { InstanceTemplate } from '../../types/instanceTemplate';
 
 interface InstanceTemplatesProps {
@@ -34,11 +36,20 @@ export default function InstanceTemplates({ instanceId }: InstanceTemplatesProps
   const [showEditor, setShowEditor] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<InstanceTemplate | undefined>();
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [executionWizardOpen, setExecutionWizardOpen] = useState(false);
+  const [selectedTemplateForExecution, setSelectedTemplateForExecution] = useState<InstanceTemplate | null>(null);
 
   // Fetch templates
   const { data: templates = [], isLoading } = useQuery({
     queryKey: ['instance-templates', instanceId],
     queryFn: () => instanceTemplateService.listTemplates(instanceId),
+    enabled: !!instanceId,
+  });
+
+  // Fetch instance details for execution wizard
+  const { data: instance } = useQuery({
+    queryKey: ['instance', instanceId],
+    queryFn: () => instanceService.get(instanceId),
     enabled: !!instanceId,
   });
 
@@ -115,14 +126,9 @@ export default function InstanceTemplates({ instanceId }: InstanceTemplatesProps
       // Increment usage count
       await instanceTemplateService.useTemplate(instanceId, template.templateId);
 
-      // Navigate to query builder with pre-filled SQL
-      navigate('/query-builder/new', {
-        state: {
-          instanceId,
-          sqlQuery: template.sqlQuery,
-          templateName: template.name,
-        },
-      });
+      // Open execution wizard instead of navigating to query builder
+      setSelectedTemplateForExecution(template);
+      setExecutionWizardOpen(true);
     } catch (error) {
       console.error('Failed to use template:', error);
       toast.error('Failed to use template');
@@ -262,6 +268,34 @@ export default function InstanceTemplates({ instanceId }: InstanceTemplatesProps
             </div>
           </div>
         </div>
+      )}
+
+      {/* Template Execution Wizard */}
+      {executionWizardOpen && selectedTemplateForExecution && instance && (
+        <TemplateExecutionWizard
+          isOpen={executionWizardOpen}
+          onClose={() => {
+            setExecutionWizardOpen(false);
+            setSelectedTemplateForExecution(null);
+          }}
+          template={{
+            templateId: selectedTemplateForExecution.templateId,
+            name: selectedTemplateForExecution.name,
+            sqlQuery: selectedTemplateForExecution.sqlQuery,
+          }}
+          instanceInfo={{
+            id: instance.id,
+            instanceId: instance.instanceId,
+            instanceName: instance.instanceName,
+            brands: instance.brands,
+          }}
+          onComplete={() => {
+            setExecutionWizardOpen(false);
+            setSelectedTemplateForExecution(null);
+            // Refetch templates to update usage count
+            queryClient.invalidateQueries({ queryKey: ['instance-templates', instanceId] });
+          }}
+        />
       )}
     </>
   );

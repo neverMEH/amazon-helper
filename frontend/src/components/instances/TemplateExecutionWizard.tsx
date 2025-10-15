@@ -1,0 +1,822 @@
+import React, { useState, useEffect } from 'react';
+import { X, ChevronRight, PlayCircle, Calendar, Clock, CheckCircle, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import SQLEditor from '../common/SQLEditor';
+import DateRangeStep from '../schedules/DateRangeStep';
+import {
+  templateExecutionService,
+  generateExecutionName,
+  calculateDefaultDateRange,
+  formatScheduleDescription,
+} from '../../services/templateExecutionService';
+import type {
+  TemplateExecutionWizardProps,
+  ExecutionType,
+  WizardStep,
+  TemplateExecutionRequest,
+  TemplateScheduleRequest,
+  TemplateScheduleConfig,
+} from '../../types/templateExecution';
+import type { ScheduleConfig } from '../../types/schedule';
+
+const steps = [
+  { id: 1 as WizardStep, name: 'Template', icon: Eye },
+  { id: 2 as WizardStep, name: 'Type', icon: PlayCircle },
+  { id: 3 as WizardStep, name: 'Configuration', icon: Calendar },
+  { id: 4 as WizardStep, name: 'Review', icon: CheckCircle },
+];
+
+const TemplateExecutionWizard: React.FC<TemplateExecutionWizardProps> = ({
+  isOpen,
+  onClose,
+  template,
+  instanceInfo,
+  onComplete,
+}) => {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  // Wizard navigation
+  const [currentStep, setCurrentStep] = useState<WizardStep>(1);
+
+  // Execution configuration
+  const [executionType, setExecutionType] = useState<ExecutionType>('once');
+  const [dateRange, setDateRange] = useState(() => calculateDefaultDateRange(30));
+  const [useRollingWindow, setUseRollingWindow] = useState(true);
+  const [rollingWindowDays, setRollingWindowDays] = useState(30);
+
+  // Schedule configuration (reusing types from schedule wizard)
+  const [scheduleConfig, setScheduleConfig] = useState<ScheduleConfig>({
+    type: 'daily',
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    executeTime: '09:00',
+    lookbackDays: 30,
+    dateRangeType: 'rolling',
+    windowSizeDays: 30,
+    parameters: {},
+    notifications: {
+      onSuccess: false,
+      onFailure: true,
+    },
+  });
+
+  // Snowflake configuration (run once only)
+  const [snowflakeEnabled, setSnowflakeEnabled] = useState(false);
+  const [snowflakeTableName, setSnowflakeTableName] = useState('');
+  const [snowflakeSchemaName, setSnowflakeSchemaName] = useState('');
+
+  // Update date range when rolling window changes
+  useEffect(() => {
+    if (useRollingWindow) {
+      const newRange = calculateDefaultDateRange(rollingWindowDays);
+      setDateRange(newRange);
+    }
+  }, [useRollingWindow, rollingWindowDays]);
+
+  // Generate execution/schedule name
+  const executionName = generateExecutionName(
+    instanceInfo.brands?.[0] || instanceInfo.instanceName,
+    template.name,
+    dateRange.start,
+    dateRange.end
+  );
+
+  // Execute template mutation (run once)
+  const executeMutation = useMutation({
+    mutationFn: async (data: TemplateExecutionRequest) => {
+      return templateExecutionService.execute(instanceInfo.id, template.templateId, data);
+    },
+    onSuccess: (result) => {
+      toast.success('Template execution started successfully!');
+      queryClient.invalidateQueries({ queryKey: ['executions'] });
+      queryClient.invalidateQueries({ queryKey: ['instanceTemplates', instanceInfo.id] });
+      onComplete();
+      navigate('/executions');
+    },
+    onError: (error: any) => {
+      console.error('Execution error:', error);
+      toast.error(error.message || 'Failed to start execution');
+    },
+  });
+
+  // Create schedule mutation (recurring)
+  const scheduleMutation = useMutation({
+    mutationFn: async (data: TemplateScheduleRequest) => {
+      return templateExecutionService.createSchedule(instanceInfo.id, template.templateId, data);
+    },
+    onSuccess: (result) => {
+      toast.success('Schedule created successfully!');
+      queryClient.invalidateQueries({ queryKey: ['schedules'] });
+      queryClient.invalidateQueries({ queryKey: ['instanceTemplates', instanceInfo.id] });
+      onComplete();
+      navigate('/schedules');
+    },
+    onError: (error: any) => {
+      console.error('Schedule creation error:', error);
+      toast.error(error.message || 'Failed to create schedule');
+    },
+  });
+
+  const handleNext = () => {
+    if (currentStep < 4) {
+      setCurrentStep((currentStep + 1) as WizardStep);
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep((currentStep - 1) as WizardStep);
+    }
+  };
+
+  const handleSubmit = () => {
+    if (executionType === 'once') {
+      // Run once execution
+      const payload: TemplateExecutionRequest = {
+        name: executionName,
+        timeWindowStart: dateRange.start,
+        timeWindowEnd: dateRange.end,
+        snowflake_enabled: snowflakeEnabled,
+        snowflake_table_name: snowflakeTableName || undefined,
+        snowflake_schema_name: snowflakeSchemaName || undefined,
+      };
+
+      executeMutation.mutate(payload);
+    } else {
+      // Recurring schedule
+      const scheduleConfigPayload: TemplateScheduleConfig = {
+        frequency: scheduleConfig.type as 'daily' | 'weekly' | 'monthly',
+        time: scheduleConfig.executeTime,
+        lookback_days: scheduleConfig.lookbackDays,
+        date_range_type: scheduleConfig.dateRangeType,
+        window_size_days: scheduleConfig.windowSizeDays,
+        timezone: scheduleConfig.timezone,
+        day_of_week: scheduleConfig.dayOfWeek,
+        day_of_month: scheduleConfig.dayOfMonth,
+      };
+
+      const payload: TemplateScheduleRequest = {
+        name: executionName,
+        schedule_config: scheduleConfigPayload,
+      };
+
+      scheduleMutation.mutate(payload);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  const isLoading = executeMutation.isPending || scheduleMutation.isPending;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="px-6 py-4 border-b flex items-center justify-between">
+          <h2 className="text-xl font-semibold">Execute Template</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+            disabled={isLoading}
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Step Indicator */}
+        <div className="px-6 py-4 border-b bg-gray-50">
+          <div className="flex items-center justify-between">
+            {steps.map((step, index) => {
+              const Icon = step.icon;
+              const isActive = step.id === currentStep;
+              const isCompleted = step.id < currentStep;
+
+              return (
+                <React.Fragment key={step.id}>
+                  <div className="flex items-center">
+                    <div
+                      className={`
+                        w-10 h-10 rounded-full flex items-center justify-center transition-colors
+                        ${isActive
+                          ? 'bg-indigo-600 text-white'
+                          : isCompleted
+                          ? 'bg-green-500 text-white'
+                          : 'bg-gray-200 text-gray-400'
+                        }
+                      `}
+                    >
+                      {isCompleted ? (
+                        <CheckCircle className="w-5 h-5" />
+                      ) : (
+                        <Icon className="w-5 h-5" />
+                      )}
+                    </div>
+                    <span
+                      className={`ml-3 text-sm font-medium ${
+                        isActive ? 'text-gray-900' : 'text-gray-500'
+                      }`}
+                    >
+                      {step.name}
+                    </span>
+                  </div>
+                  {index < steps.length - 1 && (
+                    <ChevronRight className="w-5 h-5 text-gray-300 mx-2" />
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Step Content */}
+        <div className="flex-1 overflow-y-auto px-6 py-6">
+          {currentStep === 1 && (
+            <Step1Display
+              template={template}
+              instanceInfo={instanceInfo}
+              onNext={handleNext}
+            />
+          )}
+
+          {currentStep === 2 && (
+            <Step2ExecutionType
+              executionType={executionType}
+              onChange={setExecutionType}
+              onNext={handleNext}
+              onBack={handleBack}
+            />
+          )}
+
+          {currentStep === 3 && executionType === 'once' && (
+            <Step3ADateRange
+              dateRange={dateRange}
+              useRollingWindow={useRollingWindow}
+              rollingWindowDays={rollingWindowDays}
+              onDateRangeChange={setDateRange}
+              onRollingWindowChange={setUseRollingWindow}
+              onRollingWindowDaysChange={setRollingWindowDays}
+              onNext={handleNext}
+              onBack={handleBack}
+            />
+          )}
+
+          {currentStep === 3 && executionType === 'recurring' && (
+            <Step3BScheduleConfig
+              config={scheduleConfig}
+              onChange={setScheduleConfig}
+              onNext={handleNext}
+              onBack={handleBack}
+            />
+          )}
+
+          {currentStep === 4 && (
+            <Step4Review
+              executionType={executionType}
+              executionName={executionName}
+              template={template}
+              instanceInfo={instanceInfo}
+              dateRange={dateRange}
+              scheduleConfig={scheduleConfig}
+              snowflakeEnabled={snowflakeEnabled}
+              snowflakeTableName={snowflakeTableName}
+              snowflakeSchemaName={snowflakeSchemaName}
+              onSnowflakeEnabledChange={setSnowflakeEnabled}
+              onSnowflakeTableNameChange={setSnowflakeTableName}
+              onSnowflakeSchemaNameChange={setSnowflakeSchemaName}
+              onSubmit={handleSubmit}
+              onBack={handleBack}
+              isLoading={isLoading}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Step 1: Display template and instance info
+interface Step1DisplayProps {
+  template: { name: string; sqlQuery: string };
+  instanceInfo: { instanceName: string; brands?: string[] };
+  onNext: () => void;
+}
+
+const Step1Display: React.FC<Step1DisplayProps> = ({ template, instanceInfo, onNext }) => (
+  <div className="space-y-6">
+    <div>
+      <h3 className="text-lg font-medium text-gray-900 mb-2">{template.name}</h3>
+      <div className="flex items-center space-x-2 mb-4">
+        <span className="px-3 py-1 bg-indigo-100 text-indigo-700 text-sm rounded-full">
+          {instanceInfo.instanceName}
+        </span>
+        {instanceInfo.brands && instanceInfo.brands.length > 0 && (
+          <span className="px-3 py-1 bg-purple-100 text-purple-700 text-sm rounded-full">
+            {instanceInfo.brands[0]}
+          </span>
+        )}
+      </div>
+    </div>
+
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-2">SQL Query</label>
+      <div className="border rounded-lg overflow-hidden">
+        <SQLEditor
+          value={template.sqlQuery}
+          onChange={() => {}}
+          height="300px"
+          readOnly
+        />
+      </div>
+      <p className="mt-2 text-sm text-gray-500">
+        This SQL query will be executed with the configuration you specify in the next steps.
+      </p>
+    </div>
+
+    <div className="flex justify-end">
+      <button
+        onClick={onNext}
+        className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+      >
+        Next
+      </button>
+    </div>
+  </div>
+);
+
+// Step 2: Execution type selection
+interface Step2ExecutionTypeProps {
+  executionType: ExecutionType;
+  onChange: (type: ExecutionType) => void;
+  onNext: () => void;
+  onBack: () => void;
+}
+
+const Step2ExecutionType: React.FC<Step2ExecutionTypeProps> = ({
+  executionType,
+  onChange,
+  onNext,
+  onBack,
+}) => (
+  <div className="space-y-6">
+    <div>
+      <h3 className="text-lg font-medium text-gray-900 mb-2">Execution Type</h3>
+      <p className="text-sm text-gray-600 mb-6">
+        Choose how you want to execute this template
+      </p>
+    </div>
+
+    <div className="space-y-4">
+      {/* Run Once Option */}
+      <button
+        onClick={() => onChange('once')}
+        className={`w-full p-6 border-2 rounded-lg text-left transition-all ${
+          executionType === 'once'
+            ? 'border-indigo-600 bg-indigo-50 shadow-md'
+            : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+        }`}
+      >
+        <div className="flex items-start">
+          <div className={`mt-1 ${executionType === 'once' ? 'text-indigo-600' : 'text-gray-400'}`}>
+            <PlayCircle className="w-6 h-6" />
+          </div>
+          <div className="ml-4 flex-1">
+            <h4 className="text-lg font-medium text-gray-900">Run Once</h4>
+            <p className="mt-1 text-sm text-gray-600">
+              Execute immediately with a specific date range. Results will appear in the Executions page.
+            </p>
+          </div>
+        </div>
+      </button>
+
+      {/* Recurring Schedule Option */}
+      <button
+        onClick={() => onChange('recurring')}
+        className={`w-full p-6 border-2 rounded-lg text-left transition-all ${
+          executionType === 'recurring'
+            ? 'border-indigo-600 bg-indigo-50 shadow-md'
+            : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+        }`}
+      >
+        <div className="flex items-start">
+          <div className={`mt-1 ${executionType === 'recurring' ? 'text-indigo-600' : 'text-gray-400'}`}>
+            <Clock className="w-6 h-6" />
+          </div>
+          <div className="ml-4 flex-1">
+            <h4 className="text-lg font-medium text-gray-900">Recurring Schedule</h4>
+            <p className="mt-1 text-sm text-gray-600">
+              Set up automatic execution on a daily, weekly, or monthly basis with rolling date ranges.
+            </p>
+          </div>
+        </div>
+      </button>
+    </div>
+
+    <div className="flex justify-between pt-4">
+      <button
+        onClick={onBack}
+        className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+      >
+        Back
+      </button>
+      <button
+        onClick={onNext}
+        className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+      >
+        Next
+      </button>
+    </div>
+  </div>
+);
+
+// Step 3A: Date range selection for run once
+interface Step3ADateRangeProps {
+  dateRange: { start: string; end: string };
+  useRollingWindow: boolean;
+  rollingWindowDays: number;
+  onDateRangeChange: (range: { start: string; end: string }) => void;
+  onRollingWindowChange: (enabled: boolean) => void;
+  onRollingWindowDaysChange: (days: number) => void;
+  onNext: () => void;
+  onBack: () => void;
+}
+
+const Step3ADateRange: React.FC<Step3ADateRangeProps> = ({
+  dateRange,
+  useRollingWindow,
+  rollingWindowDays,
+  onDateRangeChange,
+  onRollingWindowChange,
+  onRollingWindowDaysChange,
+  onNext,
+  onBack,
+}) => {
+  const windowPresets = [7, 14, 30, 60, 90];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-medium text-gray-900 mb-2">Date Range</h3>
+        <p className="text-sm text-gray-600">
+          Select the time window for your query execution
+        </p>
+      </div>
+
+      {/* AMC Data Lag Warning */}
+      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+        <div className="flex">
+          <AlertCircle className="w-5 h-5 text-yellow-400" />
+          <div className="ml-3">
+            <p className="text-sm text-yellow-700">
+              <strong>AMC Data Lag:</strong> Amazon Marketing Cloud has a 14-day data processing lag.
+              Date ranges are automatically adjusted to account for this.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Rolling Window Toggle */}
+      <div className="flex items-center space-x-3">
+        <input
+          type="checkbox"
+          id="rolling-window"
+          checked={useRollingWindow}
+          onChange={(e) => onRollingWindowChange(e.target.checked)}
+          className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+        />
+        <label htmlFor="rolling-window" className="text-sm font-medium text-gray-700">
+          Use rolling window (automatically calculate dates)
+        </label>
+      </div>
+
+      {useRollingWindow && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            Window Size
+          </label>
+          <div className="grid grid-cols-5 gap-2 mb-3">
+            {windowPresets.map((days) => (
+              <button
+                key={days}
+                onClick={() => onRollingWindowDaysChange(days)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  rollingWindowDays === days
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {days} days
+              </button>
+            ))}
+          </div>
+          <input
+            type="number"
+            min="1"
+            max="365"
+            value={rollingWindowDays}
+            onChange={(e) => onRollingWindowDaysChange(parseInt(e.target.value) || 30)}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            placeholder="Custom days (1-365)"
+          />
+        </div>
+      )}
+
+      {/* Manual Date Selection */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Start Date
+          </label>
+          <input
+            type="date"
+            value={dateRange.start}
+            onChange={(e) => onDateRangeChange({ ...dateRange, start: e.target.value })}
+            disabled={useRollingWindow}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            End Date
+          </label>
+          <input
+            type="date"
+            value={dateRange.end}
+            onChange={(e) => onDateRangeChange({ ...dateRange, end: e.target.value })}
+            disabled={useRollingWindow}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+          />
+        </div>
+      </div>
+
+      {/* Date Range Preview */}
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+        <p className="text-sm font-medium text-gray-700 mb-2">Date Range Preview:</p>
+        <p className="text-lg font-semibold text-gray-900">
+          {dateRange.start} to {dateRange.end}
+        </p>
+        <p className="text-sm text-gray-600 mt-1">
+          ({Math.ceil((new Date(dateRange.end).getTime() - new Date(dateRange.start).getTime()) / (1000 * 60 * 60 * 24))} days)
+        </p>
+      </div>
+
+      <div className="flex justify-between pt-4">
+        <button
+          onClick={onBack}
+          className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+        >
+          Back
+        </button>
+        <button
+          onClick={onNext}
+          className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// Step 3B: Schedule configuration for recurring
+interface Step3BScheduleConfigProps {
+  config: ScheduleConfig;
+  onChange: (config: ScheduleConfig) => void;
+  onNext: () => void;
+  onBack: () => void;
+}
+
+const Step3BScheduleConfig: React.FC<Step3BScheduleConfigProps> = ({
+  config,
+  onChange,
+  onNext,
+  onBack,
+}) => (
+  <div className="space-y-6">
+    <DateRangeStep
+      config={config}
+      onChange={onChange}
+      onNext={onNext}
+      onBack={onBack}
+    />
+  </div>
+);
+
+// Step 4: Review and submit
+interface Step4ReviewProps {
+  executionType: ExecutionType;
+  executionName: string;
+  template: { name: string; sqlQuery: string };
+  instanceInfo: { instanceName: string; brands?: string[] };
+  dateRange: { start: string; end: string };
+  scheduleConfig: ScheduleConfig;
+  snowflakeEnabled: boolean;
+  snowflakeTableName: string;
+  snowflakeSchemaName: string;
+  onSnowflakeEnabledChange: (enabled: boolean) => void;
+  onSnowflakeTableNameChange: (name: string) => void;
+  onSnowflakeSchemaNameChange: (name: string) => void;
+  onSubmit: () => void;
+  onBack: () => void;
+  isLoading: boolean;
+}
+
+const Step4Review: React.FC<Step4ReviewProps> = ({
+  executionType,
+  executionName,
+  template,
+  instanceInfo,
+  dateRange,
+  scheduleConfig,
+  snowflakeEnabled,
+  snowflakeTableName,
+  snowflakeSchemaName,
+  onSnowflakeEnabledChange,
+  onSnowflakeTableNameChange,
+  onSnowflakeSchemaNameChange,
+  onSubmit,
+  onBack,
+  isLoading,
+}) => {
+  const [showSQL, setShowSQL] = useState(false);
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-medium text-gray-900 mb-2">Review & Submit</h3>
+        <p className="text-sm text-gray-600">
+          Review your configuration before {executionType === 'once' ? 'executing' : 'creating the schedule'}
+        </p>
+      </div>
+
+      {/* Execution Details */}
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 space-y-4">
+        <div>
+          <p className="text-sm font-medium text-gray-500 mb-1">Name</p>
+          <p className="text-lg font-semibold text-gray-900">{executionName}</p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-sm font-medium text-gray-500 mb-1">Execution Type</p>
+            <span className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${
+              executionType === 'once'
+                ? 'bg-green-100 text-green-700'
+                : 'bg-blue-100 text-blue-700'
+            }`}>
+              {executionType === 'once' ? 'Run Once' : 'Recurring Schedule'}
+            </span>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-500 mb-1">Instance</p>
+            <p className="text-base font-medium text-gray-900">{instanceInfo.instanceName}</p>
+          </div>
+        </div>
+
+        <div>
+          <p className="text-sm font-medium text-gray-500 mb-1">Template</p>
+          <p className="text-base font-medium text-gray-900">{template.name}</p>
+        </div>
+      </div>
+
+      {/* Date/Schedule Details */}
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+        {executionType === 'once' ? (
+          <div>
+            <p className="text-sm font-medium text-gray-500 mb-2">Date Range</p>
+            <p className="text-lg font-semibold text-gray-900">
+              {dateRange.start} to {dateRange.end}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div>
+              <p className="text-sm font-medium text-gray-500 mb-1">Schedule</p>
+              <p className="text-base font-medium text-gray-900">
+                {formatScheduleDescription({
+                  frequency: scheduleConfig.type,
+                  time: scheduleConfig.executeTime,
+                  day_of_week: scheduleConfig.dayOfWeek,
+                  day_of_month: scheduleConfig.dayOfMonth,
+                  timezone: scheduleConfig.timezone,
+                })}
+              </p>
+            </div>
+            {scheduleConfig.dateRangeType === 'rolling' && scheduleConfig.lookbackDays && (
+              <div>
+                <p className="text-sm font-medium text-gray-500 mb-1">Rolling Window</p>
+                <p className="text-base font-medium text-gray-900">
+                  {scheduleConfig.lookbackDays} days lookback
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* SQL Preview (Collapsible) */}
+      <div className="border border-gray-200 rounded-lg">
+        <button
+          onClick={() => setShowSQL(!showSQL)}
+          className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+        >
+          <span className="text-sm font-medium text-gray-700">SQL Query</span>
+          {showSQL ? <EyeOff className="w-5 h-5 text-gray-400" /> : <Eye className="w-5 h-5 text-gray-400" />}
+        </button>
+        {showSQL && (
+          <div className="border-t border-gray-200 p-4">
+            <div className="border rounded-lg overflow-hidden">
+              <SQLEditor
+                value={template.sqlQuery}
+                onChange={() => {}}
+                height="250px"
+                readOnly
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Snowflake Integration (Run Once Only) */}
+      {executionType === 'once' && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 space-y-4">
+          <div className="flex items-center space-x-3">
+            <input
+              type="checkbox"
+              id="snowflake-enabled"
+              checked={snowflakeEnabled}
+              onChange={(e) => onSnowflakeEnabledChange(e.target.checked)}
+              className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+            />
+            <label htmlFor="snowflake-enabled" className="text-sm font-medium text-gray-700">
+              Upload results to Snowflake after execution
+            </label>
+          </div>
+
+          {snowflakeEnabled && (
+            <div className="space-y-3 pl-7">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Table Name (optional)
+                </label>
+                <input
+                  type="text"
+                  value={snowflakeTableName}
+                  onChange={(e) => onSnowflakeTableNameChange(e.target.value)}
+                  placeholder="Auto-generated if empty"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Schema Name (optional)
+                </label>
+                <input
+                  type="text"
+                  value={snowflakeSchemaName}
+                  onChange={(e) => onSnowflakeSchemaNameChange(e.target.value)}
+                  placeholder="Uses default if empty"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                />
+              </div>
+              <p className="text-xs text-gray-600">
+                Results will be automatically uploaded to Snowflake when the execution completes.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Submit Actions */}
+      <div className="flex justify-between pt-4 border-t">
+        <button
+          onClick={onBack}
+          disabled={isLoading}
+          className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Back
+        </button>
+        <button
+          onClick={onSubmit}
+          disabled={isLoading}
+          className="px-8 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+        >
+          {isLoading ? (
+            <>
+              <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>{executionType === 'once' ? 'Executing...' : 'Creating Schedule...'}</span>
+            </>
+          ) : (
+            <span>{executionType === 'once' ? 'Execute Now' : 'Create Schedule'}</span>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default TemplateExecutionWizard;

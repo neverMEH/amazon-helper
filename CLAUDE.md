@@ -371,6 +371,10 @@ PUT    /api/instances/{instance_id}/templates/{template_id}
 DELETE /api/instances/{instance_id}/templates/{template_id}
 POST   /api/instances/{instance_id}/templates/{template_id}/use
 
+# Template Execution Wizard (Added 2025-10-15)
+POST   /api/instances/{instance_id}/templates/{template_id}/execute   # Immediate execution
+POST   /api/instances/{instance_id}/templates/{template_id}/schedule  # Create recurring schedule
+
 # Instance Parameter Mappings (Added 2025-10-03)
 GET    /api/instances/{instance_id}/available-brands
 GET    /api/instances/{instance_id}/brands/{brand_tag}/asins
@@ -617,6 +621,225 @@ useEffect(() => {
 - Updated: [frontend/src/components/instances/InstanceDetail.tsx](frontend/src/components/instances/InstanceDetail.tsx) (tab replacement)
 - Updated: [frontend/src/pages/QueryBuilder.tsx](frontend/src/pages/QueryBuilder.tsx) (navigation state support)
 - Registered: [main_supabase.py](main_supabase.py) (router registration)
+
+## Template Execution Wizard (Added 2025-10-15)
+
+A streamlined 4-step wizard that enables direct execution of Instance Templates with both ad-hoc (run once) and recurring schedule options, replacing the previous navigation to Query Builder.
+
+### Overview
+
+The Template Execution Wizard provides immediate execution capabilities for instance templates:
+- **Run Once**: Execute immediately with a specific date range and optional Snowflake integration
+- **Recurring Schedule**: Set up automatic execution on daily, weekly, or monthly basis with rolling date ranges
+- **Auto-Naming**: Generates descriptive names in format: `{Brand} - {Template} - {StartDate} - {EndDate}`
+- **Snowflake Integration**: Optional automatic upload of results to Snowflake after execution
+
+### 4-Step Wizard Flow
+
+**Step 1: Template Display**
+- Shows template name, SQL query preview (read-only Monaco editor)
+- Displays instance and brand badges
+- No editing - just confirmation before configuration
+
+**Step 2: Execution Type Selection**
+- Radio card for "Run Once" (immediate execution)
+- Radio card for "Recurring Schedule" (automated)
+- Clean, visual selection UI with descriptions
+
+**Step 3A: Date Range Configuration (Run Once)**
+- AMC 14-day lag warning banner
+- Rolling window toggle with presets (7, 14, 30, 60, 90 days)
+- Manual date pickers (start/end) if rolling disabled
+- Live date range preview with day count
+- Default: Last 30 days accounting for 14-day AMC lag
+
+**Step 3B: Schedule Configuration (Recurring)**
+- Reuses existing `DateRangeStep` component from schedule wizard
+- Daily/Weekly/Monthly frequency options
+- Time picker and timezone selector
+- Rolling date range support (1-365 days lookback)
+- Day of week/month selectors for weekly/monthly schedules
+
+**Step 4: Review & Submit**
+- Auto-generated execution name display
+- Collapsible SQL preview
+- Snowflake integration toggle (run once only):
+  - Optional table name (auto-generated if empty)
+  - Optional schema name (uses default if empty)
+- Submit button with loading state
+- Navigation to Executions page (run once) or Schedules page (recurring)
+
+### API Endpoints
+
+```http
+POST /api/instances/{instance_id}/templates/{template_id}/execute   # Immediate execution
+POST /api/instances/{instance_id}/templates/{template_id}/schedule  # Create recurring schedule
+```
+
+### Key Components
+
+**Backend**:
+- `template_execution.py` (API router) - 2 execution endpoints with JWT authentication
+- `template_execution.py` (Pydantic schemas) - Request/response validation
+- `tests/api/test_template_execution.py` - Unit tests for schemas and cron builder
+
+**Frontend**:
+- `TemplateExecutionWizard.tsx` - Main 4-step wizard component (850+ lines)
+- `templateExecution.ts` (types) - Complete TypeScript interfaces
+- `templateExecutionService.ts` - API service with helper functions
+- `templateExecutionService.test.ts` - 16 passing tests for helper functions
+
+### Helper Functions
+
+**Auto-Naming**:
+```typescript
+generateExecutionName('Nike Brand', 'Top Products', '2025-10-01', '2025-10-31')
+// Returns: "Nike Brand - Top Products - 2025-10-01 - 2025-10-31"
+```
+
+**Date Calculation with AMC Lag**:
+```typescript
+calculateDefaultDateRange(30)
+// If today is Oct 15, 2025:
+// Returns: { start: '2025-09-01', end: '2025-10-01' }
+// (Oct 15 - 14 days AMC lag - 30 days window)
+```
+
+**Schedule Formatting**:
+```typescript
+formatScheduleDescription({
+  frequency: 'weekly',
+  time: '09:00',
+  day_of_week: 1,
+  timezone: 'America/New_York'
+})
+// Returns: "Every Monday at 09:00 America/New_York"
+```
+
+### Usage Flow
+
+1. User navigates to Instance Detail → Templates tab
+2. Clicks "Use Template" on any template card
+3. **Wizard opens** with template SQL pre-filled (Step 1)
+4. **Step 2**: Selects "Run Once" or "Recurring Schedule"
+5. **Step 3**: Configures date range OR schedule frequency
+6. **Step 4**: Reviews configuration, optionally enables Snowflake
+7. **Submits**:
+   - **Run Once**: Execution starts immediately → redirect to `/executions`
+   - **Recurring**: Schedule created → redirect to `/schedules`
+
+### Request/Response Schemas
+
+**Immediate Execution Request**:
+```typescript
+{
+  name: string;                      // Auto-generated
+  timeWindowStart: string;           // YYYY-MM-DD format
+  timeWindowEnd: string;             // YYYY-MM-DD format
+  snowflake_enabled?: boolean;
+  snowflake_table_name?: string;
+  snowflake_schema_name?: string;
+}
+```
+
+**Schedule Creation Request**:
+```typescript
+{
+  name: string;                      // Auto-generated
+  schedule_config: {
+    frequency: 'daily' | 'weekly' | 'monthly';
+    time: string;                    // HH:mm format
+    lookback_days?: number;          // 1-365
+    date_range_type?: 'rolling' | 'fixed';
+    timezone: string;
+    day_of_week?: number;            // 0-6 for weekly
+    day_of_month?: number;           // 1-31 for monthly
+  }
+}
+```
+
+### Technical Patterns
+
+**Cron Expression Builder**:
+```python
+def _build_cron_expression(frequency, time, day_of_week=None, day_of_month=None):
+    hour, minute = time.split(':')
+    if frequency == 'daily':
+        return f"{minute} {hour} * * *"
+    elif frequency == 'weekly':
+        return f"{minute} {hour} * * {day_of_week or 1}"
+    elif frequency == 'monthly':
+        return f"{minute} {hour} {day_of_month or 1} * *"
+```
+
+**Wizard Integration** (InstanceTemplates.tsx):
+```typescript
+const handleUseTemplate = async (template: InstanceTemplate) => {
+  // Increment usage count
+  await instanceTemplateService.useTemplate(instanceId, template.templateId);
+
+  // Open execution wizard instead of navigating to query builder
+  setSelectedTemplateForExecution(template);
+  setExecutionWizardOpen(true);
+};
+```
+
+### Key Features
+
+1. **No Parameters**: Templates execute with saved SQL as-is (no parameter editing)
+2. **AMC Data Lag Handling**: Automatically accounts for 14-day processing lag
+3. **Rolling Window Presets**: Quick selection of common time windows (7, 14, 30, 60, 90 days)
+4. **Snowflake Upload**: Optional integration for run-once executions
+5. **Real-time Validation**: Pydantic schemas validate all inputs server-side
+6. **Error Handling**: Comprehensive error messages with toast notifications
+7. **Cache Invalidation**: Auto-refreshes template usage counts after execution
+8. **Navigation**: Redirects to appropriate page (Executions or Schedules) after creation
+
+### Files Created
+
+**Backend**:
+- `amc_manager/schemas/template_execution.py` - Pydantic schemas
+- `amc_manager/api/supabase/template_execution.py` - FastAPI router with 2 endpoints
+- `tests/api/test_template_execution.py` - Schema and helper function tests
+
+**Frontend**:
+- `frontend/src/types/templateExecution.ts` - TypeScript interfaces
+- `frontend/src/services/templateExecutionService.ts` - API service + helpers
+- `frontend/src/services/templateExecutionService.test.ts` - 16 passing tests
+- `frontend/src/components/instances/TemplateExecutionWizard.tsx` - Main wizard (850+ lines)
+
+**Files Modified**:
+- `main_supabase.py` - Router registration
+- `frontend/src/components/instances/InstanceTemplates.tsx` - Wizard integration
+
+**Spec Documentation**:
+- `.agent-os/specs/2025-10-15-template-execution-wizard/spec.md`
+- `.agent-os/specs/2025-10-15-template-execution-wizard/tasks.md`
+- `.agent-os/specs/2025-10-15-template-execution-wizard/sub-specs/technical-spec.md`
+- `.agent-os/specs/2025-10-15-template-execution-wizard/sub-specs/api-spec.md`
+
+### Testing
+
+**Backend Tests**:
+- ✅ Schema validation (6 tests)
+- ✅ Cron expression builder (6 tests)
+- ✅ Response schema structure (2 tests)
+
+**Frontend Tests**:
+- ✅ Helper functions (16 tests, all passing)
+- ✅ Date calculation with mocked timers
+- ✅ Schedule formatting for all frequencies
+- ✅ Auto-naming convention
+- ✅ TypeScript compilation (0 errors)
+
+### Critical Gotchas
+
+1. **Instance ID Format**: Use UUID (from `instance.id`) for API calls, not AMC instance string
+2. **Date Format**: Use ISO dates without timezone: `YYYY-MM-DD` (not `YYYY-MM-DDTHH:mm:ssZ`)
+3. **AMC 14-Day Lag**: Always subtract 14 days from current date when calculating date ranges
+4. **Template Ownership**: Backend always verifies `template.user_id === user_id` before execution
+5. **Navigation**: Wizard uses React Router's `navigate()` for immediate transitions
+6. **Snowflake Config**: Stored in execution `metadata` JSONB field, not separate columns
 
 ## Reports & Analytics Platform
 
@@ -875,6 +1098,7 @@ Existing schedules without rolling date configuration will continue to work:
 
 ## Recent Critical Fixes
 
+- **2025-10-15**: Template Execution Wizard - Complete 4-step wizard implementation for direct template execution with run-once and recurring schedule options, Snowflake integration, and auto-generated naming
 - **2025-10-15**: Instance Templates Feature - Complete implementation with instance-scoped SQL template storage, simplified UI replacing "Workflows" tab, navigation state pre-population in Query Builder
 - **2025-10-09**: Rolling Date Range Feature - Complete implementation with DateRangeStep component, RunReportModal integration, and comprehensive testing
 - **2025-10-09**: Instance Parameter Mapping Auto-Population

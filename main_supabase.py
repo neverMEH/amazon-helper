@@ -218,6 +218,7 @@ from amc_manager.api.snowflake_config import router as snowflake_router
 from amc_manager.api.snowflake_sync_monitoring import router as snowflake_sync_router
 from amc_manager.api.supabase.instance_mappings import router as instance_mappings_router
 from amc_manager.api.supabase.instance_templates import router as instance_templates_router
+from amc_manager.api.supabase.template_execution import router as template_execution_router
 
 # Add redirect for misconfigured callback URL (must be before router includes)
 @app.get("/api/auth/callback")
@@ -235,6 +236,7 @@ app.include_router(profile_router, prefix="/api/profile", tags=["Profile"])
 app.include_router(instances_router, prefix="/api/instances", tags=["AMC Instances"])
 app.include_router(instance_mappings_router, prefix="/api/instances", tags=["Instance Mappings"])
 app.include_router(instance_templates_router, prefix="/api/instances", tags=["Instance Templates"])
+app.include_router(template_execution_router, prefix="/api", tags=["Template Execution"])
 app.include_router(workflows_router, prefix="/api/workflows", tags=["Workflows"])
 app.include_router(campaigns_router, prefix="/api/campaigns", tags=["Campaigns"])
 app.include_router(query_templates_router, prefix="/api/query-templates", tags=["Query Templates"])
