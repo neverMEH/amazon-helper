@@ -1,14 +1,21 @@
 /**
  * Instance Template Editor Modal
  *
- * Simple modal for creating/editing SQL templates scoped to AMC instances.
- * No parameter management - just SQL storage for quick reuse.
+ * Modal for creating/editing SQL templates with parameter detection and auto-population.
+ * Detects SQL parameters, auto-populates ASINs/campaigns from instance mappings,
+ * and provides a preview of the final SQL.
  */
 
-import { useState, useEffect } from 'react';
-import { Save, X, Tag, AlertCircle } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Save, X, Tag, AlertCircle, Wand2, Link } from 'lucide-react';
 import SQLEditor from '../common/SQLEditor';
 import { toast } from 'react-hot-toast';
+import { ParameterDetector } from '../parameter-detection';
+import type { DetectedParameter } from '../../utils/parameterDetection';
+import { useInstanceMappings } from '../../hooks/useInstanceMappings';
+import { autoPopulateParameters, extractParameterValues } from '../../utils/parameterAutoPopulator';
+import { replaceParametersInSQL } from '../../utils/sqlParameterizer';
+import ParameterPreviewPanel from './ParameterPreviewPanel';
 import type { InstanceTemplate } from '../../types/instanceTemplate';
 
 interface InstanceTemplateEditorProps {
@@ -42,6 +49,31 @@ export default function InstanceTemplateEditor({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
 
+  // Parameter detection state
+  const [detectedParameters, setDetectedParameters] = useState<DetectedParameter[]>([]);
+  const [parameterValues, setParameterValues] = useState<Record<string, any>>({});
+  const [hasAutoPopulated, setHasAutoPopulated] = useState(false);
+
+  // SQL Preview state
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+  // Fetch instance mappings for auto-population
+  const { data: instanceMappings, isLoading: loadingMappings } = useInstanceMappings(instanceId);
+
+  // Generate SQL preview with parameters substituted
+  const previewSQL = useMemo(() => {
+    if (!formData.sqlQuery || detectedParameters.length === 0) {
+      return formData.sqlQuery;
+    }
+
+    try {
+      return replaceParametersInSQL(formData.sqlQuery, parameterValues);
+    } catch (error) {
+      console.error('Error replacing parameters:', error);
+      return formData.sqlQuery;
+    }
+  }, [formData.sqlQuery, parameterValues, detectedParameters.length]);
+
   // Validate form
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -69,10 +101,15 @@ export default function InstanceTemplateEditor({
 
     setIsSaving(true);
     try {
+      // Use preview SQL (with parameters replaced) if we have parameters and values
+      const sqlToSave = detectedParameters.length > 0 && Object.keys(parameterValues).length > 0
+        ? previewSQL
+        : formData.sqlQuery.trim();
+
       await onSave({
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
-        sql_query: formData.sqlQuery.trim(),
+        sql_query: sqlToSave,
         tags: formData.tags.length > 0 ? formData.tags : undefined,
       });
       toast.success('Template saved successfully');
@@ -112,6 +149,74 @@ export default function InstanceTemplateEditor({
       addTag();
     }
   };
+
+  // Handle detected parameters
+  const handleParametersDetected = useCallback((params: DetectedParameter[]) => {
+    setDetectedParameters(params);
+
+    // Initialize values for new parameters
+    const newValues: Record<string, any> = {};
+    params.forEach(param => {
+      if (!(param.name in parameterValues)) {
+        newValues[param.name] = '';
+      }
+    });
+
+    if (Object.keys(newValues).length > 0) {
+      setParameterValues(prev => ({ ...prev, ...newValues }));
+    }
+  }, [parameterValues]);
+
+  // Handle parameter value change
+  const handleParameterChange = useCallback((parameterName: string, value: any) => {
+    setParameterValues(prev => ({
+      ...prev,
+      [parameterName]: value
+    }));
+  }, []);
+
+  // Auto-populate parameters from instance mappings
+  useEffect(() => {
+    if (instanceMappings && detectedParameters.length > 0 && instanceId && !hasAutoPopulated) {
+      // Map parameter names based on detected parameter types
+      const parameterNameMap: { brands?: string; asins?: string; campaigns?: string } = {};
+
+      detectedParameters.forEach(param => {
+        const lowerName = param.name.toLowerCase();
+        if (param.type === 'asin' || lowerName.includes('asin') || lowerName.includes('tracked')) {
+          parameterNameMap.asins = param.name;
+        } else if (param.type === 'campaign' || lowerName.includes('campaign')) {
+          parameterNameMap.campaigns = param.name;
+        } else if (lowerName.includes('brand')) {
+          parameterNameMap.brands = param.name;
+        }
+      });
+
+      // Only auto-populate if we have mappings and relevant parameters
+      if (Object.keys(parameterNameMap).length > 0) {
+        const autoPopulated = autoPopulateParameters(instanceMappings, parameterValues, parameterNameMap);
+        const newValues = extractParameterValues(autoPopulated);
+
+        // Check if any values were actually auto-populated
+        const hasNewValues = Object.keys(parameterNameMap).some(key => {
+          const paramName = parameterNameMap[key as keyof typeof parameterNameMap];
+          return paramName && newValues[paramName] && (!parameterValues[paramName] ||
+            (Array.isArray(newValues[paramName]) && newValues[paramName].length > 0));
+        });
+
+        if (hasNewValues) {
+          setParameterValues(newValues);
+          setHasAutoPopulated(true);
+          toast.success('Parameters auto-populated from instance mappings', { icon: '🔗' });
+        }
+      }
+    }
+  }, [instanceMappings, detectedParameters, instanceId, hasAutoPopulated, parameterValues]);
+
+  // Reset auto-populate flag when instance changes
+  useEffect(() => {
+    setHasAutoPopulated(false);
+  }, [instanceId]);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -206,13 +311,111 @@ export default function InstanceTemplateEditor({
               </p>
             )}
             <p className="mt-2 text-xs text-gray-500">
-              💡 Tip: You can use placeholders like{' '}
+              💡 Tip: Use parameters like{' '}
               <code className="bg-gray-100 px-1 py-0.5 rounded">
                 {'{{start_date}}'}
-              </code>{' '}
-              in your SQL and manually replace them when using the template.
+              </code>
+              , <code className="bg-gray-100 px-1 py-0.5 rounded">:date</code>, or{' '}
+              <code className="bg-gray-100 px-1 py-0.5 rounded">$param</code>
+              {' '}— ASINs and campaigns will auto-populate!
             </p>
           </div>
+
+          {/* Parameter Detection (invisible component) */}
+          {formData.sqlQuery && (
+            <ParameterDetector
+              sqlQuery={formData.sqlQuery}
+              onParametersDetected={handleParametersDetected}
+              debounceMs={500}
+            />
+          )}
+
+          {/* Parameter Detection UI */}
+          {detectedParameters.length > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start mb-3">
+                <Wand2 className="h-5 w-5 text-blue-600 mt-0.5 mr-2" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-blue-900">
+                    Detected {detectedParameters.length} parameter{detectedParameters.length !== 1 ? 's' : ''}
+                  </p>
+                  <p className="text-xs text-blue-700 mt-1">
+                    Fill in the parameter values below. ASINs and campaigns will auto-populate from instance mappings.
+                  </p>
+                </div>
+                {hasAutoPopulated && instanceMappings && (
+                  <div className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 rounded-md text-xs font-medium">
+                    <Link className="h-3 w-3" />
+                    Auto-populated
+                  </div>
+                )}
+              </div>
+
+              {loadingMappings && (
+                <div className="mb-3 text-xs text-blue-600 flex items-center gap-2">
+                  <div className="animate-spin h-3 w-3 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                  Loading instance mappings...
+                </div>
+              )}
+
+              {/* Parameter Inputs */}
+              <div className="space-y-3">
+                {detectedParameters.map((param) => (
+                  <div key={param.name}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {param.name}
+                      <span className="ml-2 text-xs text-gray-500">
+                        ({param.type})
+                      </span>
+                    </label>
+                    {param.type === 'date' ? (
+                      <input
+                        type="date"
+                        value={parameterValues[param.name] || ''}
+                        onChange={(e) => handleParameterChange(param.name, e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder={`Enter ${param.name}`}
+                      />
+                    ) : param.type === 'asin' || param.type === 'campaign' ? (
+                      <textarea
+                        value={
+                          Array.isArray(parameterValues[param.name])
+                            ? parameterValues[param.name].join(', ')
+                            : parameterValues[param.name] || ''
+                        }
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          // Convert comma-separated string to array
+                          const arrayValue = value.split(',').map(v => v.trim()).filter(Boolean);
+                          handleParameterChange(param.name, arrayValue);
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        rows={3}
+                        placeholder={`Enter ${param.name} (comma-separated)`}
+                      />
+                    ) : (
+                      <input
+                        type="text"
+                        value={parameterValues[param.name] || ''}
+                        onChange={(e) => handleParameterChange(param.name, e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder={`Enter ${param.name}`}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* SQL Preview Panel */}
+          {detectedParameters.length > 0 && (
+            <ParameterPreviewPanel
+              sqlQuery={previewSQL}
+              isOpen={isPreviewOpen}
+              onToggle={() => setIsPreviewOpen(!isPreviewOpen)}
+            />
+          )}
 
           {/* Tags */}
           <div>
