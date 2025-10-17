@@ -61,10 +61,10 @@ async def execute_template(
                 detail="Template not found for this instance"
             )
 
-        # 2. Fetch instance with account details for entity_id
+        # 2. Fetch instance with account details for entity_id and brand
         client = SupabaseManager.get_client()
         instance_response = client.table('amc_instances')\
-            .select('*, amc_accounts!inner(*)')\
+            .select('*, amc_accounts!inner(*), instance_brands(brand_tag)')\
             .eq('id', instance_id)\
             .single()\
             .execute()
@@ -80,6 +80,12 @@ async def execute_template(
         entity_id = instance['amc_accounts']['account_id']
         amc_instance_id = instance['instance_id']  # The AMC string ID (e.g., "amcibersblt")
 
+        # Get brand tag from instance_brands relationship
+        brand_tag = 'nobrand'  # Default if no brand mapping
+        if instance.get('instance_brands') and len(instance['instance_brands']) > 0:
+            brand_tag = instance['instance_brands'][0].get('brand_tag', 'nobrand')
+        logger.info(f"Instance brand tag: {brand_tag}")
+
         # 3. Get valid access token
         valid_token = await token_service.get_valid_token(user_id)
         if not valid_token:
@@ -90,13 +96,18 @@ async def execute_template(
             )
 
         # 4. Generate consistent Snowflake table name if Snowflake is enabled
+        # Format: {instance}_{brand}_{template}
+        # This ensures all executions of the same template go to the same table
         snowflake_table_name = request.snowflake_table_name
         if request.snowflake_enabled and not snowflake_table_name:
-            # Generate table name from template: template_{template_name_sanitized}
-            # This ensures all executions of the same template go to the same table
             import re
-            template_name_sanitized = re.sub(r'[^a-zA-Z0-9]', '_', template['name'].lower())[:50]
-            snowflake_table_name = f"template_{template_name_sanitized}"
+            # Sanitize components for table name
+            template_name_sanitized = re.sub(r'[^a-zA-Z0-9]', '_', template['name'].lower())[:30]
+            brand_sanitized = re.sub(r'[^a-zA-Z0-9]', '_', brand_tag.lower())[:20]
+            instance_sanitized = re.sub(r'[^a-zA-Z0-9]', '_', amc_instance_id.lower())[:20]
+
+            # Generate table name: {instance}_{brand}_{template}
+            snowflake_table_name = f"{instance_sanitized}_{brand_sanitized}_{template_name_sanitized}"
             logger.info(f"Generated Snowflake table name: {snowflake_table_name}")
 
         # 5. Create temporary workflow for this execution

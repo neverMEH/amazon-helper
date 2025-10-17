@@ -3,15 +3,19 @@ Snowflake Integration Service
 
 Handles uploading execution results to Snowflake data warehouse.
 Supports both password and key-pair authentication.
+Uses UPSERT (MERGE INTO) to prevent duplicate data.
 """
 
 import json
 import pandas as pd
 import snowflake.connector
 from snowflake.connector import DictCursor
+from snowflake.connector.pandas_tools import write_pandas
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 import logging
+import re
+import uuid
 from cryptography.hazmat.primitives import serialization
 import base64
 
@@ -26,6 +30,48 @@ class SnowflakeService(DatabaseService):
 
     def __init__(self):
         super().__init__()
+
+    def _detect_date_column(self, df: pd.DataFrame) -> Optional[str]:
+        """
+        Detect the primary date column in DataFrame for UPSERT key
+
+        Priority:
+        1. Columns with 'date' in name (date, event_date, purchase_date)
+        2. Columns with 'week' in name (week, week_start, week_ending)
+        3. Columns with 'month' in name (month, month_start)
+        4. Columns with 'period' or 'time' in name
+        5. Any datetime64 dtype column
+
+        Args:
+            df: DataFrame to analyze
+
+        Returns:
+            Column name or None if no date column found
+        """
+        date_patterns = [
+            r'.*date.*',
+            r'.*week.*',
+            r'.*month.*',
+            r'.*period.*',
+            r'.*day.*',
+            r'.*time.*'
+        ]
+
+        # Check for pattern matches (case-insensitive)
+        for pattern in date_patterns:
+            for col in df.columns:
+                if re.match(pattern, str(col), re.IGNORECASE):
+                    logger.info(f"Detected date column by pattern '{pattern}': {col}")
+                    return col
+
+        # Check for datetime types
+        for col_name, dtype in df.dtypes.items():
+            if 'datetime' in str(dtype):
+                logger.info(f"Detected date column by dtype: {col_name} ({dtype})")
+                return col_name
+
+        logger.warning("No date column detected in DataFrame")
+        return None
 
     @with_connection_retry
     def get_user_snowflake_config(self, user_id: str) -> Optional[Dict[str, Any]]:
@@ -282,86 +328,204 @@ class SnowflakeService(DatabaseService):
                 'error': str(e)
             }
 
-    def _create_table_if_not_exists(self, connection: snowflake.connector.SnowflakeConnection, table_name: str, df: pd.DataFrame):
+    def _map_dtype_to_snowflake(self, dtype) -> str:
+        """Map pandas dtype to Snowflake type"""
+        dtype_str = str(dtype)
+        if dtype_str == 'object':
+            return 'VARCHAR(16777216)'  # Max VARCHAR size
+        elif 'int' in dtype_str:
+            return 'INTEGER'
+        elif 'float' in dtype_str:
+            return 'FLOAT'
+        elif dtype_str == 'bool':
+            return 'BOOLEAN'
+        elif 'datetime' in dtype_str:
+            return 'TIMESTAMP_NTZ'
+        else:
+            return 'VARCHAR(16777216)'
+
+    def _create_table_if_not_exists(
+        self,
+        connection: snowflake.connector.SnowflakeConnection,
+        table_name: str,
+        df: pd.DataFrame
+    ):
         """
-        Create table in Snowflake if it doesn't exist
+        Create table in Snowflake if it doesn't exist with dynamic primary key
+        based on detected date column
         """
         try:
             cursor = connection.cursor()
-            
-            # Generate CREATE TABLE statement
+
+            # Detect date column for composite primary key
+            date_column = self._detect_date_column(df)
+
+            # Generate column definitions
             columns = []
             for col_name, dtype in df.dtypes.items():
-                if dtype == 'object':
-                    snowflake_type = 'VARCHAR(16777216)'  # Max VARCHAR size
-                elif dtype in ['int64', 'int32']:
-                    snowflake_type = 'INTEGER'
-                elif dtype in ['float64', 'float32']:
-                    snowflake_type = 'FLOAT'
-                elif dtype == 'bool':
-                    snowflake_type = 'BOOLEAN'
-                elif dtype == 'datetime64[ns]':
-                    snowflake_type = 'TIMESTAMP_NTZ'
-                else:
-                    snowflake_type = 'VARCHAR(16777216)'
-                
+                snowflake_type = self._map_dtype_to_snowflake(dtype)
                 columns.append(f'"{col_name}" {snowflake_type}')
-            
-            # Add primary key constraint
-            columns.append('PRIMARY KEY ("execution_id", "uploaded_at")')
-            
+
+            # Add composite primary key based on detected date column
+            if date_column and date_column in df.columns:
+                pk_clause = f'PRIMARY KEY ("execution_id", "{date_column}")'
+                logger.info(f"Creating table with composite PK: (execution_id, {date_column})")
+            else:
+                pk_clause = 'PRIMARY KEY ("execution_id", "uploaded_at")'
+                logger.info("Creating table with PK: (execution_id, uploaded_at)")
+
+            columns.append(pk_clause)
+
             create_sql = f"""
             CREATE TABLE IF NOT EXISTS {table_name} (
                 {', '.join(columns)}
             )
             """
-            
+
             cursor.execute(create_sql)
             cursor.close()
-            
+
             logger.info(f"Created/verified table {table_name}")
-            
+
         except Exception as e:
             logger.error(f"Error creating table {table_name}: {e}")
             raise
 
-    def _upload_dataframe_to_snowflake(self, connection: snowflake.connector.SnowflakeConnection, df: pd.DataFrame, table_name: str):
+    def _generate_merge_sql(
+        self,
+        target_table: str,
+        source_table: str,
+        df: pd.DataFrame,
+        date_column: Optional[str] = None
+    ) -> str:
         """
-        Upload DataFrame to Snowflake using COPY INTO
+        Generate MERGE INTO SQL with dynamic join condition
+
+        Join keys:
+        - Always: execution_id
+        - If date_column exists: AND date_column
+        - Fallback: execution_id + uploaded_at
+        """
+        columns = [f'"{col}"' for col in df.columns]
+
+        # Build ON clause (join condition)
+        if date_column and date_column in df.columns:
+            # Use execution_id + date_column as composite key
+            on_clause = f'''
+                target."execution_id" = source."execution_id"
+                AND target."{date_column}" = source."{date_column}"
+            '''
+            logger.info(f"Using composite key for UPSERT: (execution_id, {date_column})")
+        else:
+            # Fallback: use execution_id + uploaded_at
+            on_clause = f'''
+                target."execution_id" = source."execution_id"
+                AND target."uploaded_at" = source."uploaded_at"
+            '''
+            logger.warning("No date column found, using (execution_id, uploaded_at) as key")
+
+        # Build UPDATE SET clause (all columns except keys)
+        exclude_from_update = {'execution_id', date_column, 'uploaded_at'} if date_column else {'execution_id', 'uploaded_at'}
+        update_cols = [col for col in df.columns if col not in exclude_from_update]
+        update_set = ', '.join([
+            f'target."{col}" = source."{col}"' for col in update_cols
+        ])
+
+        # Build INSERT clause
+        insert_cols = ', '.join(columns)
+        insert_vals = ', '.join([f'source."{col}"' for col in df.columns])
+
+        merge_sql = f"""
+        MERGE INTO {target_table} AS target
+        USING {source_table} AS source
+        ON {on_clause}
+        WHEN MATCHED THEN
+            UPDATE SET {update_set}
+        WHEN NOT MATCHED THEN
+            INSERT ({insert_cols})
+            VALUES ({insert_vals})
+        """
+
+        return merge_sql
+
+    def _upload_dataframe_to_snowflake(
+        self,
+        connection: snowflake.connector.SnowflakeConnection,
+        df: pd.DataFrame,
+        table_name: str
+    ):
+        """
+        UPSERT DataFrame to Snowflake using MERGE INTO
+
+        This prevents duplicate data by upserting based on execution_id + date column
         """
         try:
-            # Convert DataFrame to CSV string
-            csv_data = df.to_csv(index=False, header=False)
-            
-            # Use COPY INTO for efficient bulk loading
             cursor = connection.cursor()
-            
-            # Create temporary stage (in production, use a persistent stage)
-            stage_name = f"temp_stage_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
-            
+
+            # Auto-detect date column
+            date_column = self._detect_date_column(df)
+            logger.info(f"Using date column for UPSERT: {date_column or 'None (fallback to uploaded_at)'}")
+
+            # Create temp table with unique name
+            temp_table = f"TEMP_{uuid.uuid4().hex[:8].upper()}"
+
             try:
-                # Create temporary stage
-                cursor.execute(f"CREATE TEMPORARY STAGE {stage_name}")
-                
-                # Put CSV data to stage
-                cursor.execute(f"PUT file://{csv_data} @{stage_name}")
-                
-                # Copy from stage to table
-                copy_sql = f"""
-                COPY INTO {table_name}
-                FROM @{stage_name}
-                FILE_FORMAT = (TYPE = 'CSV' FIELD_DELIMITER = ',' SKIP_HEADER = 1)
+                # Generate CREATE TEMP TABLE statement
+                temp_columns = []
+                for col_name, dtype in df.dtypes.items():
+                    snowflake_type = self._map_dtype_to_snowflake(dtype)
+                    temp_columns.append(f'"{col_name}" {snowflake_type}')
+
+                create_temp_sql = f"""
+                CREATE TEMPORARY TABLE {temp_table} (
+                    {', '.join(temp_columns)}
+                )
                 """
-                
-                cursor.execute(copy_sql)
-                
+
+                cursor.execute(create_temp_sql)
+                logger.info(f"Created temporary table: {temp_table}")
+
+                # Insert data into temp table using write_pandas
+                success, nchunks, nrows, _ = write_pandas(
+                    connection,
+                    df,
+                    temp_table,
+                    auto_create_table=False,
+                    quote_identifiers=True
+                )
+
+                logger.info(f"Loaded {nrows} rows into temp table {temp_table}")
+
+                # Generate and execute MERGE statement
+                merge_sql = self._generate_merge_sql(
+                    target_table=table_name,
+                    source_table=temp_table,
+                    df=df,
+                    date_column=date_column
+                )
+
+                logger.info(f"Executing UPSERT to {table_name}")
+                cursor.execute(merge_sql)
+
+                # Get merge statistics
+                merge_result = cursor.fetchone()
+                if merge_result:
+                    logger.info(f"MERGE completed: {merge_result}")
+
+                logger.info(f"Successfully UPSERTed {len(df)} rows to {table_name}")
+
             finally:
-                # Clean up temporary stage
-                cursor.execute(f"DROP STAGE IF EXISTS {stage_name}")
+                # Clean up temporary table
+                try:
+                    cursor.execute(f"DROP TABLE IF EXISTS {temp_table}")
+                    logger.info(f"Dropped temporary table: {temp_table}")
+                except Exception as cleanup_error:
+                    logger.warning(f"Failed to cleanup temp table {temp_table}: {cleanup_error}")
+
                 cursor.close()
-                
+
         except Exception as e:
-            logger.error(f"Error uploading DataFrame to Snowflake: {e}")
+            logger.error(f"Error upserting DataFrame to Snowflake: {e}")
             raise
 
     @with_connection_retry
