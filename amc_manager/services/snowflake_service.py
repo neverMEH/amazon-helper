@@ -7,6 +7,7 @@ Uses UPSERT (MERGE INTO) to prevent duplicate data.
 """
 
 import json
+import os
 import pandas as pd
 import snowflake.connector
 from snowflake.connector import DictCursor
@@ -16,11 +17,12 @@ from datetime import datetime
 import logging
 import re
 import uuid
+from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import serialization
-import base64
 
 from ..services.db_service import DatabaseService, with_connection_retry
 from ..core.logger_simple import get_logger
+from ..config.settings import settings
 
 logger = get_logger(__name__)
 
@@ -30,6 +32,27 @@ class SnowflakeService(DatabaseService):
 
     def __init__(self):
         super().__init__()
+        self.fernet = self._get_fernet()
+
+    def _get_fernet(self) -> Optional[Fernet]:
+        """Get or create Fernet encryption instance (same as TokenService)"""
+        try:
+            # Try both possible environment variable names
+            key = settings.fernet_key or os.getenv('FERNET_KEY') or os.getenv('ENCRYPTION_KEY')
+            if not key:
+                # Generate a new key if none exists
+                key = Fernet.generate_key().decode()
+                logger.warning("Generated new encryption key. Set FERNET_KEY env var for persistence.")
+            else:
+                logger.info("Using existing FERNET_KEY from environment")
+                key = key.encode() if isinstance(key, str) else key
+
+            fernet = Fernet(key)
+            logger.info("Fernet encryption initialized for Snowflake service")
+            return fernet
+        except Exception as e:
+            logger.error(f"Error initializing Fernet encryption: {e}")
+            return None
 
     def _detect_date_column(self, df: pd.DataFrame) -> Optional[str]:
         """
@@ -154,49 +177,46 @@ class SnowflakeService(DatabaseService):
 
     def _encrypt_sensitive_data(self, config_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Encrypt sensitive data (password, private key)
-        In production, use proper encryption libraries like cryptography
+        Encrypt sensitive data (password, private key) using Fernet encryption
         """
+        if not self.fernet:
+            logger.error("Fernet encryption not initialized, cannot encrypt data")
+            raise Exception("Encryption not properly initialized")
+
         encrypted_data = {}
-        
+
         if 'password' in config_data and config_data['password']:
-            # Simple base64 encoding for demo - use proper encryption in production
-            encrypted_data['password_encrypted'] = base64.b64encode(
+            encrypted_data['password_encrypted'] = self.fernet.encrypt(
                 config_data['password'].encode()
             ).decode()
-            
+
         if 'private_key' in config_data and config_data['private_key']:
-            # Simple base64 encoding for demo - use proper encryption in production
-            encrypted_data['private_key_encrypted'] = base64.b64encode(
+            encrypted_data['private_key_encrypted'] = self.fernet.encrypt(
                 config_data['private_key'].encode()
             ).decode()
-            
+
         return encrypted_data
 
     def _decrypt_sensitive_data(self, encrypted_password: str = None, encrypted_key: str = None) -> Dict[str, str]:
         """
-        Decrypt sensitive data with proper error handling
+        Decrypt sensitive data using Fernet encryption
         """
+        if not self.fernet:
+            logger.error("Fernet encryption not initialized, cannot decrypt data")
+            raise Exception("Encryption not properly initialized")
+
         decrypted_data = {}
 
         if encrypted_password:
             try:
-                # Add padding if needed
-                missing_padding = len(encrypted_password) % 4
-                if missing_padding:
-                    encrypted_password += '=' * (4 - missing_padding)
-                decrypted_data['password'] = base64.b64decode(encrypted_password).decode()
+                decrypted_data['password'] = self.fernet.decrypt(encrypted_password.encode()).decode()
             except Exception as e:
                 logger.error(f"Error decrypting password: {e}")
                 raise Exception(f"Failed to decrypt Snowflake password: {e}")
 
         if encrypted_key:
             try:
-                # Add padding if needed
-                missing_padding = len(encrypted_key) % 4
-                if missing_padding:
-                    encrypted_key += '=' * (4 - missing_padding)
-                decrypted_data['private_key'] = base64.b64decode(encrypted_key).decode()
+                decrypted_data['private_key'] = self.fernet.decrypt(encrypted_key.encode()).decode()
             except Exception as e:
                 logger.error(f"Error decrypting private key: {e}")
                 raise Exception(f"Failed to decrypt Snowflake private key: {e}")
