@@ -175,16 +175,32 @@ class SnowflakeService(DatabaseService):
 
     def _decrypt_sensitive_data(self, encrypted_password: str = None, encrypted_key: str = None) -> Dict[str, str]:
         """
-        Decrypt sensitive data
+        Decrypt sensitive data with proper error handling
         """
         decrypted_data = {}
-        
+
         if encrypted_password:
-            decrypted_data['password'] = base64.b64decode(encrypted_password.encode()).decode()
-            
+            try:
+                # Add padding if needed
+                missing_padding = len(encrypted_password) % 4
+                if missing_padding:
+                    encrypted_password += '=' * (4 - missing_padding)
+                decrypted_data['password'] = base64.b64decode(encrypted_password).decode()
+            except Exception as e:
+                logger.error(f"Error decrypting password: {e}")
+                raise Exception(f"Failed to decrypt Snowflake password: {e}")
+
         if encrypted_key:
-            decrypted_data['private_key'] = base64.b64decode(encrypted_key.encode()).decode()
-            
+            try:
+                # Add padding if needed
+                missing_padding = len(encrypted_key) % 4
+                if missing_padding:
+                    encrypted_key += '=' * (4 - missing_padding)
+                decrypted_data['private_key'] = base64.b64decode(encrypted_key).decode()
+            except Exception as e:
+                logger.error(f"Error decrypting private key: {e}")
+                raise Exception(f"Failed to decrypt Snowflake private key: {e}")
+
         return decrypted_data
 
     def _get_snowflake_connection(self, config: Dict[str, Any]) -> snowflake.connector.SnowflakeConnection:
