@@ -74,13 +74,14 @@ class AMCExecutionService:
                 logger.info(f"Found instance: {instance['instance_name']} (id: {instance['id']})")
 
                 # Verify user has access to this instance
-                # IMPORTANT: Always use the UUID for access check, not the AMC instance string
+                # IMPORTANT: user_has_instance_access_sync expects AMC instance string, not UUID
+                amc_instance_string = instance['instance_id']
                 instance_uuid = instance['id']
-                logger.info(f"Checking user {user_id} access to instance UUID: {instance_uuid}")
-                if not self.db.user_has_instance_access_sync(user_id, instance_uuid):
-                    logger.error(f"User {user_id} does not have access to instance {instance['instance_id']} (UUID: {instance_uuid})")
-                    raise ValueError(f"Access denied to instance {instance['instance_id']}")
-                logger.info(f"User has access to instance {instance['instance_id']}")
+                logger.info(f"Checking user {user_id} access to instance {amc_instance_string} (UUID: {instance_uuid})")
+                if not self.db.user_has_instance_access_sync(user_id, amc_instance_string):
+                    logger.error(f"User {user_id} does not have access to instance {amc_instance_string} (UUID: {instance_uuid})")
+                    raise ValueError(f"Access denied to instance {amc_instance_string}")
+                logger.info(f"User has access to instance {amc_instance_string}")
             else:
                 # Use the workflow's default instance
                 instance = workflow.get('amc_instances', {})
@@ -90,13 +91,15 @@ class AMCExecutionService:
                 logger.info(f"Using workflow's default instance: {instance.get('instance_id', 'unknown')}")
 
                 # Verify user has access to workflow's instance
+                # IMPORTANT: user_has_instance_access_sync expects AMC instance string, not UUID
+                amc_instance_string = instance.get('instance_id')
                 instance_uuid = instance.get('id')
-                if instance_uuid:
-                    logger.info(f"Checking user {user_id} access to workflow's instance UUID: {instance_uuid}")
-                    if not self.db.user_has_instance_access_sync(user_id, instance_uuid):
-                        logger.error(f"User {user_id} does not have access to instance {instance.get('instance_id')} (UUID: {instance_uuid})")
-                        raise ValueError(f"Access denied to instance {instance.get('instance_id')}")
-                    logger.info(f"User has access to workflow's instance {instance.get('instance_id')}")
+                if amc_instance_string:
+                    logger.info(f"Checking user {user_id} access to workflow's instance {amc_instance_string} (UUID: {instance_uuid})")
+                    if not self.db.user_has_instance_access_sync(user_id, amc_instance_string):
+                        logger.error(f"User {user_id} does not have access to instance {amc_instance_string} (UUID: {instance_uuid})")
+                        raise ValueError(f"Access denied to instance {amc_instance_string}")
+                    logger.info(f"User has access to workflow's instance {amc_instance_string}")
             
             # Log execution parameters for debugging
             logger.info(f"Execution parameters received: {execution_parameters}")
