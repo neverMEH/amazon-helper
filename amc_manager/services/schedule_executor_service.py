@@ -275,7 +275,7 @@ class ScheduleExecutorService:
                     logger.info(f"Entity ID from account: {instance['amc_accounts']['account_id'] if instance.get('amc_accounts') else 'NOT FOUND'}")
                     logger.info(f"Date parameters: startDate={params.get('startDate')}, endDate={params.get('endDate')}")
                     
-                    # Execute workflow
+                    # Execute workflow (pass schedule for Snowflake config)
                     execution = await self.execute_workflow(
                         workflow_id=workflow['id'],
                         workflow_amc_id=workflow.get('amc_workflow_id'),
@@ -283,7 +283,8 @@ class ScheduleExecutorService:
                         user_id=user_id,
                         parameters=params,
                         schedule_run_id=run_id,
-                        attempt_number=execution_attempts
+                        attempt_number=execution_attempts,
+                        schedule=schedule  # Pass full schedule for Snowflake configuration
                     )
                     
                     # Success! Update next_run_at for regular runs
@@ -482,51 +483,109 @@ class ScheduleExecutorService:
     
     async def ensure_fresh_token(self, user_id: str):
         """
-        Ensure user has a fresh access token
-        
+        Ensure user has a fresh access token with detailed error reporting
+
         Args:
             user_id: User ID
+
+        Raises:
+            ValueError: If token cannot be refreshed with specific error details
         """
         try:
             # Get user's current token
-            user_result = self.db.table('users').select('auth_tokens').eq(
+            user_result = self.db.table('users').select('auth_tokens, email').eq(
                 'id', user_id
             ).single().execute()
-            
+
             if not user_result.data:
-                raise ValueError(f"User {user_id} not found")
-            
+                error_msg = f"User {user_id} not found in database"
+                logger.error(error_msg)
+                raise ValueError(error_msg)
+
+            user_email = user_result.data.get('email', 'unknown')
             auth_tokens = user_result.data.get('auth_tokens')
+
             if not auth_tokens:
-                raise ValueError(f"User {user_id} has no auth tokens")
-            
+                error_msg = f"User {user_email} ({user_id}) has no auth tokens. User needs to authenticate via Amazon OAuth."
+                logger.error(error_msg)
+                raise ValueError(error_msg)
+
             # Parse tokens if they're a string
             if isinstance(auth_tokens, str):
-                auth_tokens = json.loads(auth_tokens)
-            
+                try:
+                    auth_tokens = json.loads(auth_tokens)
+                except json.JSONDecodeError as e:
+                    error_msg = f"User {user_email} has malformed auth tokens (invalid JSON): {e}"
+                    logger.error(error_msg)
+                    raise ValueError(error_msg)
+
+            # Validate token structure
+            if not auth_tokens.get('refresh_token'):
+                error_msg = f"User {user_email} has no refresh token. User needs to re-authenticate via Amazon OAuth."
+                logger.error(error_msg)
+                raise ValueError(error_msg)
+
             # Check if token needs refresh (15 minute buffer)
             expires_at = auth_tokens.get('expires_at')
-            if expires_at:
-                expiry_time = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
-                buffer_time = datetime.utcnow() + timedelta(minutes=15)
-                
-                if expiry_time <= buffer_time:
-                    logger.info(f"Refreshing token for user {user_id} before scheduled execution")
-                    
-                    # Refresh the token
-                    new_tokens = await self.token_service.refresh_access_token(
-                        auth_tokens.get('refresh_token')
+            if not expires_at:
+                logger.warning(f"User {user_email} has no token expiry time, assuming token needs refresh")
+                needs_refresh = True
+            else:
+                try:
+                    expiry_time = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+                    buffer_time = datetime.utcnow() + timedelta(minutes=15)
+                    needs_refresh = expiry_time <= buffer_time
+
+                    if needs_refresh:
+                        time_until_expiry = (expiry_time - datetime.utcnow()).total_seconds() / 60
+                        logger.info(f"Token for user {user_email} expires in {time_until_expiry:.1f} minutes, refreshing...")
+                    else:
+                        time_until_expiry = (expiry_time - datetime.utcnow()).total_seconds() / 60
+                        logger.info(f"Token for user {user_email} is still valid for {time_until_expiry:.1f} minutes")
+                except (ValueError, TypeError) as e:
+                    logger.warning(f"Invalid token expiry format for user {user_email}: {expires_at}. Assuming refresh needed.")
+                    needs_refresh = True
+
+            if needs_refresh:
+                logger.info(f"Refreshing token for user {user_email} ({user_id}) before scheduled execution")
+
+                # Decrypt refresh token if needed
+                refresh_token = auth_tokens.get('refresh_token')
+
+                # Refresh the token with retry logic (max 3 attempts)
+                new_tokens = await self.token_service.refresh_access_token(refresh_token)
+
+                if not new_tokens:
+                    error_msg = (
+                        f"Failed to refresh access token for user {user_email} ({user_id}) after 3 attempts. "
+                        f"This typically means:\n"
+                        f"1. The refresh token is invalid or expired\n"
+                        f"2. Amazon API is experiencing issues\n"
+                        f"3. Network connectivity problems\n"
+                        f"User may need to re-authenticate via Amazon OAuth."
                     )
-                    
-                    if not new_tokens:
-                        raise ValueError("Failed to refresh token")
-                    
-                    # Store the refreshed tokens
-                    await self.token_service.store_tokens(user_id, new_tokens)
-                        
-        except Exception as e:
-            logger.error(f"Error ensuring fresh token for user {user_id}: {e}")
+                    logger.error(error_msg)
+                    raise ValueError(error_msg)
+
+                # Store the refreshed tokens
+                store_success = await self.token_service.store_user_tokens(user_id, new_tokens)
+
+                if not store_success:
+                    error_msg = f"Successfully refreshed token for user {user_email} but failed to store it in database"
+                    logger.error(error_msg)
+                    raise ValueError(error_msg)
+
+                logger.info(f"Successfully refreshed and stored token for user {user_email} ({user_id})")
+            else:
+                logger.debug(f"Token for user {user_email} is still valid, no refresh needed")
+
+        except ValueError:
+            # Re-raise ValueError with detailed messages
             raise
+        except Exception as e:
+            error_msg = f"Unexpected error ensuring fresh token for user {user_id}: {type(e).__name__}: {e}"
+            logger.error(error_msg, exc_info=True)
+            raise ValueError(error_msg)
     
     async def calculate_parameters(self, schedule: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -636,50 +695,69 @@ class ScheduleExecutorService:
         user_id: str,
         parameters: Dict[str, Any],
         schedule_run_id: str,
-        attempt_number: int = 1
+        attempt_number: int = 1,
+        schedule: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         Execute a workflow via AMC API using the existing amc_execution_service
-        
+
         Args:
             workflow_id: Internal workflow ID
             workflow_amc_id: AMC workflow ID (not used anymore, kept for compatibility)
-            instance: Instance record  
+            instance: Instance record
             user_id: User ID
             parameters: Execution parameters
             schedule_run_id: Schedule run ID
             attempt_number: Current attempt number for retries
-            
+            schedule: Full schedule record (optional, for Snowflake config)
+
         Returns:
             Execution record
         """
         try:
             # Import the amc_execution_service
             from .amc_execution_service import amc_execution_service
-            
+
             # Add schedule metadata to parameters
             execution_params = parameters.copy()
             execution_params['_schedule_run_id'] = schedule_run_id
             execution_params['_triggered_by'] = 'schedule'
             execution_params['_attempt_number'] = attempt_number
-            
+
             # Use the amc_execution_service to execute the workflow
             logger.info(f"Executing workflow {workflow_id} via amc_execution_service (attempt {attempt_number})")
-            
+
             # Make sure we have the AMC instance ID
             amc_instance_id = instance.get('instance_id')
             if not amc_instance_id:
                 logger.error(f"No instance_id found in instance data. Instance UUID: {instance.get('id')}, Instance name: {instance.get('instance_name')}")
                 raise ValueError(f"AMC instance ID not found for instance {instance.get('id')}")
-            
+
             logger.info(f"Using AMC instance_id: {amc_instance_id} for scheduled execution")
-            
+
+            # Extract Snowflake configuration from schedule if provided
+            snowflake_enabled = False
+            snowflake_table_name = None
+            snowflake_schema_name = None
+
+            if schedule:
+                snowflake_enabled = schedule.get('snowflake_enabled', False)
+                snowflake_table_name = schedule.get('snowflake_table_name')
+                snowflake_schema_name = schedule.get('snowflake_schema_name')
+
+                if snowflake_enabled:
+                    logger.info(f"Snowflake upload enabled for schedule {schedule.get('schedule_id')}. Table: {snowflake_table_name}, Schema: {snowflake_schema_name}")
+
             result = await amc_execution_service.execute_workflow(
                 workflow_id=workflow_id,
                 user_id=user_id,
                 execution_parameters=execution_params,
                 triggered_by="schedule",
-                instance_id=amc_instance_id  # Pass the AMC instance ID
+                instance_id=amc_instance_id,  # Pass the AMC instance ID
+                # Pass Snowflake configuration from schedule
+                snowflake_enabled=snowflake_enabled,
+                snowflake_table_name=snowflake_table_name,
+                snowflake_schema_name=snowflake_schema_name
             )
             
             # Check if execution was successful

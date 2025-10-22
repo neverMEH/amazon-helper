@@ -105,34 +105,111 @@ class TokenService:
             logger.error(f"Error validating token: {e}")
             return False, f"Network error: {str(e)}"
     
-    async def refresh_access_token(self, refresh_token: str) -> Optional[Dict[str, Any]]:
+    async def refresh_access_token(self, refresh_token: str, max_retries: int = 3) -> Optional[Dict[str, Any]]:
         """
-        Refresh an access token using refresh token
-        
+        Refresh an access token using refresh token with retry logic
+
+        Args:
+            refresh_token: The refresh token to use
+            max_retries: Maximum number of retry attempts (default: 3)
+
         Returns:
-            New token data or None if refresh failed
+            New token data or None if refresh failed after all retries
         """
+        import asyncio
+
         data = {
             'grant_type': 'refresh_token',
             'refresh_token': refresh_token,
             'client_id': settings.amazon_client_id,
             'client_secret': settings.amazon_client_secret
         }
-        
-        try:
-            response = requests.post(self.token_endpoint, data=data, timeout=10)
-            
-            if response.status_code == 200:
-                token_data = response.json()
-                logger.info("Successfully refreshed access token")
-                return token_data
-            else:
-                logger.error(f"Failed to refresh token: {response.status_code} - {response.text}")
-                return None
-                
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Error refreshing token: {e}")
-            return None
+
+        for attempt in range(1, max_retries + 1):
+            try:
+                logger.info(f"Token refresh attempt {attempt}/{max_retries}")
+                response = requests.post(self.token_endpoint, data=data, timeout=15)
+
+                if response.status_code == 200:
+                    token_data = response.json()
+                    logger.info(f"Successfully refreshed access token on attempt {attempt}")
+                    return token_data
+                elif response.status_code == 400:
+                    # Bad request - likely invalid or expired refresh token
+                    # Don't retry these errors
+                    error_data = response.json() if response.text else {}
+                    error_type = error_data.get('error', 'unknown')
+                    error_description = error_data.get('error_description', response.text)
+
+                    logger.error(f"Token refresh failed with 400 Bad Request: {error_type} - {error_description}")
+                    logger.error("This typically means the refresh token is invalid or expired. User needs to re-authenticate.")
+                    return None
+                elif response.status_code == 401:
+                    # Unauthorized - refresh token is invalid/expired
+                    logger.error(f"Token refresh failed with 401 Unauthorized: Refresh token is invalid or expired")
+                    logger.error("User needs to re-authenticate via Amazon OAuth")
+                    return None
+                elif response.status_code in [500, 502, 503, 504]:
+                    # Server errors - retry these
+                    logger.warning(f"Amazon API server error {response.status_code} on attempt {attempt}/{max_retries}")
+                    if attempt < max_retries:
+                        wait_time = min(30, 5 * (2 ** (attempt - 1)))  # 5s, 10s, 20s, max 30s
+                        logger.info(f"Retrying token refresh in {wait_time} seconds...")
+                        await asyncio.sleep(wait_time)
+                        continue
+                    else:
+                        logger.error(f"Token refresh failed after {max_retries} attempts: {response.status_code} - {response.text}")
+                        return None
+                elif response.status_code == 429:
+                    # Rate limited - retry with longer backoff
+                    logger.warning(f"Token refresh rate limited on attempt {attempt}/{max_retries}")
+                    if attempt < max_retries:
+                        wait_time = min(60, 10 * (2 ** (attempt - 1)))  # 10s, 20s, 40s, max 60s
+                        logger.info(f"Rate limited, retrying in {wait_time} seconds...")
+                        await asyncio.sleep(wait_time)
+                        continue
+                    else:
+                        logger.error(f"Token refresh failed due to rate limiting after {max_retries} attempts")
+                        return None
+                else:
+                    # Other errors - log and don't retry
+                    logger.error(f"Token refresh failed with unexpected status {response.status_code}: {response.text}")
+                    return None
+
+            except requests.exceptions.Timeout as e:
+                logger.warning(f"Token refresh timeout on attempt {attempt}/{max_retries}: {e}")
+                if attempt < max_retries:
+                    wait_time = min(30, 5 * (2 ** (attempt - 1)))
+                    logger.info(f"Retrying after timeout in {wait_time} seconds...")
+                    await asyncio.sleep(wait_time)
+                    continue
+                else:
+                    logger.error(f"Token refresh failed due to timeout after {max_retries} attempts")
+                    return None
+            except requests.exceptions.ConnectionError as e:
+                logger.warning(f"Token refresh connection error on attempt {attempt}/{max_retries}: {e}")
+                if attempt < max_retries:
+                    wait_time = min(30, 5 * (2 ** (attempt - 1)))
+                    logger.info(f"Retrying after connection error in {wait_time} seconds...")
+                    await asyncio.sleep(wait_time)
+                    continue
+                else:
+                    logger.error(f"Token refresh failed due to connection error after {max_retries} attempts")
+                    return None
+            except requests.exceptions.RequestException as e:
+                logger.error(f"Token refresh request error on attempt {attempt}/{max_retries}: {type(e).__name__}: {e}")
+                if attempt < max_retries:
+                    wait_time = min(30, 5 * (2 ** (attempt - 1)))
+                    logger.info(f"Retrying after request error in {wait_time} seconds...")
+                    await asyncio.sleep(wait_time)
+                    continue
+                else:
+                    logger.error(f"Token refresh failed after {max_retries} attempts due to: {type(e).__name__}: {e}")
+                    return None
+
+        # Should not reach here, but just in case
+        logger.error(f"Token refresh failed after {max_retries} attempts (unexpected code path)")
+        return None
     
     async def store_user_tokens(self, user_id: str, token_data: Dict[str, Any]) -> bool:
         """

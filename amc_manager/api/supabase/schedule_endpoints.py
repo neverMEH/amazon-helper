@@ -32,6 +32,10 @@ class ScheduleCreatePreset(BaseModel):
     execute_time: str = Field("02:00", description="Time of day to execute (HH:MM)")
     parameters: Optional[Dict[str, Any]] = Field(None, description="Default execution parameters")
     notification_config: Optional[Dict[str, Any]] = Field(None, description="Notification settings")
+    # Snowflake configuration
+    snowflake_enabled: Optional[bool] = Field(False, description="Whether to automatically upload results to Snowflake")
+    snowflake_table_name: Optional[str] = Field(None, description="Target Snowflake table name for result uploads")
+    snowflake_schema_name: Optional[str] = Field(None, description="Target Snowflake schema name (optional)")
 
 
 class ScheduleCreateCustom(BaseModel):
@@ -42,6 +46,10 @@ class ScheduleCreateCustom(BaseModel):
     timezone: str = Field("UTC", description="Timezone for schedule")
     parameters: Optional[Dict[str, Any]] = Field(None, description="Default execution parameters")
     notification_config: Optional[Dict[str, Any]] = Field(None, description="Notification settings")
+    # Snowflake configuration
+    snowflake_enabled: Optional[bool] = Field(False, description="Whether to automatically upload results to Snowflake")
+    snowflake_table_name: Optional[str] = Field(None, description="Target Snowflake table name for result uploads")
+    snowflake_schema_name: Optional[str] = Field(None, description="Target Snowflake schema name (optional)")
 
 
 class ScheduleUpdate(BaseModel):
@@ -56,6 +64,10 @@ class ScheduleUpdate(BaseModel):
     auto_pause_on_failure: Optional[bool] = None
     failure_threshold: Optional[int] = None
     cost_limit: Optional[float] = None
+    # Snowflake configuration
+    snowflake_enabled: Optional[bool] = None
+    snowflake_table_name: Optional[str] = None
+    snowflake_schema_name: Optional[str] = None
 
 
 class ScheduleResponse(BaseModel):
@@ -81,6 +93,10 @@ class ScheduleResponse(BaseModel):
     updated_at: Optional[Any] = None
     workflow: Optional[Dict[str, Any]] = None
     brands: Optional[List[str]] = None  # Extracted from workflow.amc_instances.brands
+    # Snowflake configuration
+    snowflake_enabled: Optional[bool] = None
+    snowflake_table_name: Optional[str] = None
+    snowflake_schema_name: Optional[str] = None
 
     class Config:
         # Allow any field types for flexibility with Supabase responses
@@ -150,7 +166,10 @@ async def create_schedule_preset(
             timezone=schedule_data.timezone,
             execute_time=schedule_data.execute_time,
             parameters=schedule_data.parameters,
-            notification_config=schedule_data.notification_config
+            notification_config=schedule_data.notification_config,
+            snowflake_enabled=schedule_data.snowflake_enabled,
+            snowflake_table_name=schedule_data.snowflake_table_name,
+            snowflake_schema_name=schedule_data.snowflake_schema_name
         )
         
         # Get the full schedule with workflow data

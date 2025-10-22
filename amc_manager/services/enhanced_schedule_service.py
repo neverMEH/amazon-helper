@@ -48,7 +48,10 @@ class EnhancedScheduleService(DatabaseService):
         timezone: str = 'UTC',
         execute_time: str = '02:00',
         parameters: Optional[Dict[str, Any]] = None,
-        notification_config: Optional[Dict[str, Any]] = None
+        notification_config: Optional[Dict[str, Any]] = None,
+        snowflake_enabled: bool = False,
+        snowflake_table_name: Optional[str] = None,
+        snowflake_schema_name: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Create a schedule from a user-friendly preset
@@ -115,7 +118,11 @@ class EnhancedScheduleService(DatabaseService):
                 'notification_config': json.dumps(notification_config or {}),
                 'is_active': True,
                 'next_run_at': next_run_at.isoformat() if next_run_at else None,
-                'created_at': datetime.utcnow().isoformat()
+                'created_at': datetime.utcnow().isoformat(),
+                # Snowflake configuration
+                'snowflake_enabled': snowflake_enabled,
+                'snowflake_table_name': snowflake_table_name,
+                'snowflake_schema_name': snowflake_schema_name
             }
 
             logger.info(f"Saving schedule with parameters: {parameters}")
