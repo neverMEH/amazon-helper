@@ -1,44 +1,49 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
-import Layout from './components/Layout';
-import Login from './components/auth/Login';
-import Dashboard from './components/Dashboard';
-import Instances from './components/instances/Instances';
-import InstanceDetail from './components/instances/InstanceDetail';
-import Campaigns from './components/campaigns/Campaigns';
+
+// Only eagerly load critical components needed for initial render
 import ProtectedRoute from './components/auth/ProtectedRoute';
-import { AuthCallback } from './pages/AuthCallback';
-import Profile from './pages/Profile';
 import ErrorBoundary from './components/ErrorBoundary';
 
-// New Query Builder imports
-import QueryLibrary from './pages/QueryLibrary';
-import QueryBuilder from './pages/QueryBuilder';
-import MyQueries from './pages/MyQueries';
-import Executions from './pages/Executions';
+// Lazy load all route components to reduce initial bundle size
+const Layout = lazy(() => import('./components/Layout'));
+const Login = lazy(() => import('./components/auth/Login'));
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const Instances = lazy(() => import('./components/instances/Instances'));
+const InstanceDetail = lazy(() => import('./components/instances/InstanceDetail'));
+const Campaigns = lazy(() => import('./components/campaigns/Campaigns'));
+const AuthCallback = lazy(() => import('./pages/AuthCallback').then(module => ({ default: module.AuthCallback })));
+const Profile = lazy(() => import('./pages/Profile'));
 
-// Data Sources imports
-import DataSources from './pages/DataSources';
-import DataSourceDetail from './pages/DataSourceDetail';
+// Query Builder pages
+const QueryLibrary = lazy(() => import('./pages/QueryLibrary'));
+const QueryBuilder = lazy(() => import('./pages/QueryBuilder'));
+const MyQueries = lazy(() => import('./pages/MyQueries'));
+const Executions = lazy(() => import('./pages/Executions'));
 
-// Schedule imports
-import ScheduleManager from './pages/ScheduleManager';
+// Data Sources pages
+const DataSources = lazy(() => import('./pages/DataSources'));
+const DataSourceDetail = lazy(() => import('./pages/DataSourceDetail'));
 
-// Build Guides imports
-import BuildGuides from './pages/BuildGuides';
+// Schedule pages
+const ScheduleManager = lazy(() => import('./pages/ScheduleManager'));
 
-// Test imports
-import TestCampaignSelector from './components/test/TestCampaignSelector';
-import TestAllCampaignSelector from './components/test/TestAllCampaignSelector';
-import BuildGuideDetail from './pages/BuildGuideDetail';
+// Build Guides pages
+const BuildGuides = lazy(() => import('./pages/BuildGuides'));
+const BuildGuideDetail = lazy(() => import('./pages/BuildGuideDetail'));
 
-// ASIN Management import
-import ASINManagement from './pages/ASINManagement';
+// Test pages
+const TestCampaignSelector = lazy(() => import('./components/test/TestCampaignSelector'));
+const TestAllCampaignSelector = lazy(() => import('./components/test/TestAllCampaignSelector'));
 
-// Reports & Analytics imports
-import DataCollections from './components/reports/DataCollections';
-import ReportBuilder from './components/report-builder/ReportBuilder';
+// ASIN Management
+const ASINManagement = lazy(() => import('./pages/ASINManagement'));
+
+// Reports & Analytics
+const DataCollections = lazy(() => import('./components/reports/DataCollections'));
+const ReportBuilder = lazy(() => import('./components/report-builder/ReportBuilder'));
 
 
 const queryClient = new QueryClient({
@@ -54,12 +59,25 @@ const queryClient = new QueryClient({
   },
 });
 
+// Loading fallback component for code splitting
+function LoadingFallback() {
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p className="text-gray-600">Loading...</p>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <Router>
-          <Routes>
+          <Suspense fallback={<LoadingFallback />}>
+            <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/auth/success" element={<AuthCallback />} />
           <Route path="/auth/error" element={<AuthCallback />} />
@@ -107,6 +125,7 @@ function App() {
             </Route>
           </Route>
         </Routes>
+          </Suspense>
       </Router>
       <Toaster 
         position="top-right"
