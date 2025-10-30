@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Database, Activity, FileText, History, Settings, Package } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft, Database, Activity, FileText, History, Settings, Package, Power } from 'lucide-react';
+import { instanceService } from '../../services/instanceService';
 import api from '../../services/api';
 import InstanceOverview from './InstanceOverview';
 import InstanceCampaigns from './InstanceCampaigns';
@@ -9,6 +10,7 @@ import InstanceASINs from './InstanceASINs';
 import InstanceTemplates from './InstanceTemplates';
 import InstanceExecutions from './InstanceExecutions';
 import InstanceMappingTab from './InstanceMappingTab';
+import toast from 'react-hot-toast';
 
 interface InstanceDetail {
   id: string;
@@ -41,6 +43,7 @@ type TabType = 'overview' | 'campaigns' | 'asins' | 'templates' | 'executions' |
 export default function InstanceDetail() {
   const { instanceId } = useParams<{ instanceId: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
 
   const { data: instance, isLoading, error } = useQuery<InstanceDetail>({
@@ -50,6 +53,22 @@ export default function InstanceDetail() {
       return response.data;
     },
     enabled: !!instanceId,
+  });
+
+  const statusMutation = useMutation({
+    mutationFn: async (newStatus: 'active' | 'inactive') => {
+      if (!instanceId) throw new Error('Instance ID is required');
+      return instanceService.updateStatus(instanceId, newStatus);
+    },
+    onSuccess: () => {
+      // Invalidate and refetch instance data
+      queryClient.invalidateQueries({ queryKey: ['instance', instanceId] });
+      queryClient.invalidateQueries({ queryKey: ['instances'] });
+      toast.success('Instance status updated successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to update instance status');
+    }
   });
 
   if (isLoading) {
@@ -100,8 +119,8 @@ export default function InstanceDetail() {
           </div>
           <div className="flex items-center space-x-4">
             <span className={`px-3 py-1 text-sm font-medium rounded-full ${
-              instance.type === 'SANDBOX' 
-                ? 'bg-yellow-100 text-yellow-800' 
+              instance.type === 'SANDBOX'
+                ? 'bg-yellow-100 text-yellow-800'
                 : 'bg-blue-100 text-blue-800'
             }`}>
               {instance.type}
@@ -113,6 +132,26 @@ export default function InstanceDetail() {
             }`}>
               {instance.isActive ? 'Active' : 'Inactive'}
             </span>
+            <button
+              onClick={() => {
+                const newStatus = instance.isActive ? 'inactive' : 'active';
+                statusMutation.mutate(newStatus);
+              }}
+              disabled={statusMutation.isPending}
+              className={`inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors ${
+                instance.isActive
+                  ? 'border-red-300 text-red-700 bg-white hover:bg-red-50 focus:ring-red-500'
+                  : 'border-green-300 text-green-700 bg-white hover:bg-green-50 focus:ring-green-500'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+              title={instance.isActive ? 'Mark as Inactive' : 'Mark as Active'}
+            >
+              <Power className={`h-4 w-4 mr-2 ${statusMutation.isPending ? 'animate-pulse' : ''}`} />
+              {statusMutation.isPending
+                ? 'Updating...'
+                : instance.isActive
+                  ? 'Deactivate'
+                  : 'Activate'}
+            </button>
           </div>
         </div>
       </div>

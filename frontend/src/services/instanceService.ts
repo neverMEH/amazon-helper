@@ -7,6 +7,7 @@ export interface AMCInstance {
   region: string;
   accountId: string;
   accountName: string;
+  status: string;
   isActive: boolean;
   type: string;
   createdAt: string;
@@ -61,6 +62,16 @@ class InstanceService {
    */
   async delete(instanceId: string): Promise<void> {
     await api.delete(`/instances/${instanceId}`);
+  }
+
+  /**
+   * Update instance status
+   */
+  async updateStatus(instanceId: string, status: 'active' | 'inactive'): Promise<{ success: boolean; instanceId: string; status: string; isActive: boolean }> {
+    const response = await api.patch(`/instances/${instanceId}/status`, null, {
+      params: { status }
+    });
+    return response.data;
   }
 }
 

@@ -188,11 +188,11 @@ async def get_instance_metrics(
     instance = await db_service.get_instance_by_id(instance_id)
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
-    
+
     user_instances = await db_service.get_user_instances(current_user['id'])
     if not any(inst['instance_id'] == instance_id for inst in user_instances):
         raise HTTPException(status_code=403, detail="Access denied")
-    
+
     # TODO: Implement actual metrics fetching from AMC API
     # For now, return mock data
     return {
@@ -206,3 +206,49 @@ async def get_instance_metrics(
             "last_execution": None
         }
     }
+
+
+@router.patch("/{instance_id}/status")
+async def update_instance_status(
+    instance_id: str,
+    status: str = Query(..., description="New status (active or inactive)"),
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """Update the status of an AMC instance"""
+    try:
+        # Validate status
+        if status not in ['active', 'inactive']:
+            raise HTTPException(status_code=400, detail="Status must be 'active' or 'inactive'")
+
+        # Verify instance exists and user has access
+        instance = await db_service.get_instance_by_id(instance_id)
+        if not instance:
+            raise HTTPException(status_code=404, detail="Instance not found")
+
+        user_instances = await db_service.get_user_instances(current_user['id'])
+        if not any(inst['instance_id'] == instance_id for inst in user_instances):
+            raise HTTPException(status_code=403, detail="Access denied")
+
+        # Update status in database
+        client = SupabaseManager.get_client(use_service_role=True)
+        result = client.table('amc_instances')\
+            .update({'status': status, 'updated_at': 'now()'})\
+            .eq('id', instance['id'])\
+            .execute()
+
+        if not result.data:
+            raise HTTPException(status_code=500, detail="Failed to update instance status")
+
+        logger.info(f"Instance {instance_id} status updated to {status} by user {current_user['id']}")
+
+        return {
+            "success": True,
+            "instanceId": instance_id,
+            "status": status,
+            "isActive": status == 'active'
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating instance status: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update instance status")
