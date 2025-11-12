@@ -14,7 +14,7 @@ import { ParameterDetector } from '../parameter-detection';
 import type { DetectedParameter } from '../../utils/parameterDetection';
 import { useInstanceMappings } from '../../hooks/useInstanceMappings';
 import { autoPopulateParameters, extractParameterValues } from '../../utils/parameterAutoPopulator';
-import { replaceParametersInSQL } from '../../utils/sqlParameterizer';
+import { replaceParametersInSQL } from '../../utils/sqlParameterAnalyzer';
 import ParameterPreviewPanel from './ParameterPreviewPanel';
 import type { InstanceTemplate } from '../../types/instanceTemplate';
 
