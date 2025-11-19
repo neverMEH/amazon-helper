@@ -545,6 +545,77 @@ async def check_poller_health(self) -> dict:
     }
 ```
 
+## Snowflake Upload Integration (Added 2025-11-19)
+
+### Automatic Upload After Successful Execution
+
+The execution monitoring system now includes automatic Snowflake upload functionality that triggers after successful AMC execution completion. This provides seamless data pipeline from AMC to enterprise data warehouse.
+
+**Key Features**:
+- Automatic trigger after execution status becomes 'SUCCESS'
+- Up to 3 retry attempts with exponential backoff
+- Graceful degradation when user has no Snowflake configuration
+- Real-time status tracking with 5 states: pending, uploading, uploaded, failed, skipped
+- Composite UPSERT key prevents duplicate data for same date range
+
+**Implementation in ExecutionMonitorService**:
+```python
+async def _handle_snowflake_upload(self, execution: Dict):
+    """Upload execution results to Snowflake with automatic retry"""
+    snowflake_enabled = execution.get('metadata', {}).get('snowflake_enabled')
+
+    if not snowflake_enabled:
+        return  # Skip if not enabled
+
+    # Check attempt count (max 3)
+    attempt_count = execution.get('snowflake_attempt_count', 0)
+    if attempt_count >= 3:
+        logger.warning(f"Max Snowflake upload attempts reached")
+        return
+
+    try:
+        snowflake_service = SnowflakeService()
+        result = await snowflake_service.upload_execution_results(
+            execution_id=execution['id'],
+            results=execution['result_data'],
+            table_name=execution['metadata']['snowflake_table_name'],
+            user_id=execution['user_id'],
+            execution_parameters={
+                'timeWindowStart': execution.get('time_window_start'),
+                'timeWindowEnd': execution.get('time_window_end')
+            }
+        )
+
+        if result.get('success'):
+            logger.info(f"Snowflake upload successful")
+        elif result.get('skipped'):
+            logger.info(f"Snowflake upload skipped (no user config)")
+        else:
+            raise Exception(result.get('error'))
+
+    except Exception as e:
+        # Increment attempt count and schedule retry
+        self.db.table('workflow_executions').update({
+            'snowflake_attempt_count': attempt_count + 1,
+            'snowflake_status': 'failed',
+            'snowflake_error_message': str(e)
+        }).eq('id', execution['id']).execute()
+```
+
+**Status Tracking Fields** (added to `workflow_executions` table):
+- `snowflake_status`: pending | uploading | uploaded | failed | skipped
+- `snowflake_attempt_count`: Number of upload attempts (0-3)
+- `snowflake_error_message`: Error details for failed uploads
+- `snowflake_uploaded_at`: Timestamp of successful upload
+
+**UI Integration**:
+- Color-coded status badges in execution list
+- Manual retry button in execution detail modal
+- Detailed error messages and attempt count display
+- Timestamp display for successful uploads
+
+For complete documentation, see [Snowflake Integration](./snowflake-integration.md).
+
 ## Testing and Debugging
 
 ### Execution Simulation

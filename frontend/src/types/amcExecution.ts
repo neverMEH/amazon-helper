@@ -16,6 +16,13 @@ export interface AMCExecution {
   durationSeconds?: number;
   createdAt?: string;
   completedAt?: string;
+  // Snowflake upload status
+  snowflakeEnabled?: boolean;
+  snowflake_enabled?: boolean;
+  snowflakeStatus?: string;
+  snowflake_status?: string;
+  snowflakeAttemptCount?: number;
+  snowflake_attempt_count?: number;
 }
 
 export interface AMCErrorDetails {

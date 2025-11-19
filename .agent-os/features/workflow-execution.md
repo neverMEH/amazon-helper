@@ -173,6 +173,54 @@ async def test_full_execution_flow():
 - Instance-level throttling to respect AMC limits
 - Queue management for high-volume executions
 
+## Snowflake Integration (Added 2025-11-19)
+
+### Automatic Data Warehouse Upload
+
+Workflow executions now support automatic upload to Snowflake data warehouse after successful AMC execution. This feature enables seamless data pipeline from AMC queries to enterprise analytics platforms.
+
+**Configuration**:
+- Users configure Snowflake credentials in Settings page (encrypted storage)
+- Schedule wizard includes Snowflake configuration step
+- Template execution wizard includes Snowflake toggle for recurring schedules
+- Optional per-execution: Enable/disable, custom table name, schema override
+
+**Execution Flow with Snowflake**:
+```
+AMC Execution Complete (SUCCESS)
+    ↓
+ExecutionMonitorService triggers Snowflake upload
+    ↓
+Check if snowflake_enabled in execution metadata
+    ↓
+Verify user has Snowflake configuration
+    ↓
+    ├─ No config → Mark as 'skipped', continue
+    │
+    └─ Config exists
+        ↓
+    Upload results with composite UPSERT key
+        ↓
+    Success?
+        ├─ Yes → Update status to 'uploaded'
+        └─ No → Retry up to 3 times with exponential backoff
+```
+
+**Composite UPSERT Key**:
+To prevent duplicate data in recurring schedules, Snowflake upload uses composite primary key:
+- `execution_id` + `time_window_start` + `time_window_end`
+
+This allows same query to be re-run for different date ranges without creating duplicates.
+
+**Key Benefits**:
+- Automatic upload with zero manual intervention
+- Retry logic handles transient network issues
+- AMC execution succeeds even if Snowflake upload fails
+- Real-time status tracking in UI
+- Manual retry available for failed uploads
+
+For complete documentation, see [Snowflake Integration](./snowflake-integration.md).
+
 ## Monitoring and Debugging
 
 ### Execution Tracking

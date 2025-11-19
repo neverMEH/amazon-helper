@@ -40,6 +40,26 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
 
   const execution = data?.execution;
 
+  // Retry Snowflake upload mutation
+  const retrySnowflakeMutation = useMutation({
+    mutationFn: async () => {
+      const { default: api } = await import('../../services/api');
+      // Retry Snowflake upload for this execution
+      const response = await api.post(`/amc-executions/${executionId}/retry-snowflake`);
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success('Snowflake upload retry initiated');
+      refetch(); // Refresh to get updated status
+    },
+    onError: (error: unknown) => {
+      const errorMessage = error && typeof error === 'object' && 'response' in error
+        ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail
+        : 'Failed to retry Snowflake upload';
+      toast.error(errorMessage || 'Failed to retry Snowflake upload');
+    }
+  });
+
   // Rerun mutation
   const rerunMutation = useMutation({
     mutationFn: async () => {
@@ -48,10 +68,10 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
       if (!workflowId) {
         throw new Error('Workflow ID not found');
       }
-      
+
       // Import api service
       const { default: api } = await import('../../services/api');
-      
+
       // Execute with the same parameters, including Snowflake settings if they were enabled
       const requestBody: any = {
         execution_parameters: execution.executionParameters || {},
@@ -66,7 +86,7 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
       }
 
       const response = await api.post(`/workflows/${workflowId}/execute`, requestBody);
-      
+
       return response.data;
     },
     onSuccess: (data) => {
@@ -445,16 +465,38 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                                 <dd className="mt-1 text-sm space-y-1">
                                   <div className="flex items-center space-x-2">
                                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                      ${(execution.snowflake_status || execution.snowflakeStatus) === 'completed' ? 'bg-green-100 text-green-800' :
+                                      ${(execution.snowflake_status || execution.snowflakeStatus) === 'completed' || (execution.snowflake_status || execution.snowflakeStatus) === 'uploaded' ? 'bg-green-100 text-green-800' :
                                         (execution.snowflake_status || execution.snowflakeStatus) === 'failed' ? 'bg-red-100 text-red-800' :
                                         (execution.snowflake_status || execution.snowflakeStatus) === 'uploading' ? 'bg-blue-100 text-blue-800' :
-                                        'bg-gray-100 text-gray-800'}`}>
+                                        (execution.snowflake_status || execution.snowflakeStatus) === 'skipped' ? 'bg-gray-100 text-gray-600' :
+                                        'bg-yellow-100 text-yellow-800'}`}>
                                       {execution.snowflake_status || execution.snowflakeStatus || 'Pending'}
                                     </span>
                                     {(execution.snowflake_row_count || execution.snowflakeRowCount) && (
                                       <span className="text-xs text-gray-600">
                                         ({(execution.snowflake_row_count || execution.snowflakeRowCount || 0).toLocaleString()} rows)
                                       </span>
+                                    )}
+                                    {/* Retry button for failed uploads */}
+                                    {(execution.snowflake_status || execution.snowflakeStatus) === 'failed' && (
+                                      <button
+                                        onClick={() => retrySnowflakeMutation.mutate()}
+                                        disabled={retrySnowflakeMutation.isPending}
+                                        className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded border border-red-300 text-red-700 bg-white hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        title="Retry Snowflake upload"
+                                      >
+                                        {retrySnowflakeMutation.isPending ? (
+                                          <>
+                                            <Loader className="h-3 w-3 mr-1 animate-spin" />
+                                            Retrying...
+                                          </>
+                                        ) : (
+                                          <>
+                                            <RefreshCw className="h-3 w-3 mr-1" />
+                                            Retry Upload
+                                          </>
+                                        )}
+                                      </button>
                                     )}
                                   </div>
                                   {(execution.snowflake_table_name || execution.snowflakeTableName) && (
@@ -468,8 +510,14 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                                     </div>
                                   )}
                                   {(execution.snowflake_error || execution.snowflakeError) && (
-                                    <div className="text-xs text-red-600 mt-1">
-                                      Error: {execution.snowflake_error || execution.snowflakeError}
+                                    <div className="text-xs text-red-600 mt-1 bg-red-50 p-2 rounded border border-red-200">
+                                      <strong>Error:</strong> {execution.snowflake_error || execution.snowflakeError}
+                                    </div>
+                                  )}
+                                  {/* Show attempt count if failed */}
+                                  {(execution.snowflake_status || execution.snowflakeStatus) === 'failed' && (execution.snowflake_attempt_count || execution.snowflakeAttemptCount) && (
+                                    <div className="text-xs text-gray-600">
+                                      Attempts: {execution.snowflake_attempt_count || execution.snowflakeAttemptCount}/3
                                     </div>
                                   )}
                                 </dd>

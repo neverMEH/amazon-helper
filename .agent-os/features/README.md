@@ -23,6 +23,7 @@ This directory contains detailed technical documentation for each feature and sy
 - [Campaign Management](./campaign-management.md) - Campaign import and filtering
 - [ASIN Management](./asin-management.md) - Product tracking and analysis
 - [Database Schema](./database-schema.md) - Supabase tables and relationships
+- [Snowflake Integration](./snowflake-integration.md) - Automatic data warehouse uploads with UPSERT logic
 
 ### User Experience
 - [Build Guides](./build-guides.md) - Step-by-step query tutorials

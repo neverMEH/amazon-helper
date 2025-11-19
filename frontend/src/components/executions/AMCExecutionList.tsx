@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
+import {
+  CheckCircle,
+  XCircle,
+  Clock,
   AlertCircle,
   ChevronRight,
   RefreshCw,
@@ -11,7 +11,10 @@ import {
   Filter,
   Server,
   Cloud,
-  Loader
+  Loader,
+  Database,
+  Upload,
+  AlertTriangle
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { amcExecutionService } from '../../services/amcExecutionService';
@@ -137,6 +140,55 @@ export default function AMCExecutionList({ instanceId, workflowId, showInstanceB
     if (query.includes('overlap')) return 'Overlap';
     if (query.includes('performance')) return 'Performance';
     return 'Analysis';
+  };
+
+  const getSnowflakeBadge = (execution: any) => {
+    const enabled = execution.snowflakeEnabled || execution.snowflake_enabled;
+    const status = execution.snowflakeStatus || execution.snowflake_status;
+    const attemptCount = execution.snowflakeAttemptCount || execution.snowflake_attempt_count || 0;
+
+    if (!enabled) return null;
+
+    // Determine badge color and icon based on status
+    switch (status) {
+      case 'uploaded':
+      case 'completed':
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800" title="Snowflake upload completed">
+            <Database className="h-3 w-3 mr-1" />
+            Uploaded
+          </span>
+        );
+      case 'uploading':
+      case 'pending':
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800" title="Snowflake upload in progress">
+            <Upload className="h-3 w-3 mr-1 animate-pulse" />
+            Uploading
+          </span>
+        );
+      case 'failed':
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800" title={`Snowflake upload failed (${attemptCount}/3 attempts)`}>
+            <AlertTriangle className="h-3 w-3 mr-1" />
+            Upload Failed {attemptCount > 0 ? `(${attemptCount}/3)` : ''}
+          </span>
+        );
+      case 'skipped':
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600" title="Snowflake upload skipped (no config)">
+            <Database className="h-3 w-3 mr-1" />
+            Skipped
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800" title="Snowflake upload pending">
+            <Clock className="h-3 w-3 mr-1" />
+            Pending Upload
+          </span>
+        );
+    }
   };
 
   // Filter and search executions
@@ -409,6 +461,7 @@ export default function AMCExecutionList({ instanceId, workflowId, showInstanceB
                                 {execWithInstance.instanceInfo.name}
                               </span>
                             )}
+                            {getSnowflakeBadge(execution)}
                           </div>
                           <p className="text-xs text-gray-500 mt-1">
                             ID: {execution.workflowExecutionId}
