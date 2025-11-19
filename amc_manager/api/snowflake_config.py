@@ -143,6 +143,20 @@ async def create_snowflake_config(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
+@router.get("/config/check")
+async def check_snowflake_config(
+    current_user: dict = Depends(get_current_user)
+) -> bool:
+    """Check if user has active Snowflake configuration"""
+    try:
+        snowflake_service = SnowflakeService()
+        config = snowflake_service.get_user_snowflake_config(current_user["id"])
+        return config is not None
+    except Exception as e:
+        logger.error(f"Error checking Snowflake configuration: {str(e)}")
+        return False
+
+
 @router.get("/config", response_model=Optional[SnowflakeConfigResponse])
 async def get_snowflake_config(
     current_user: dict = Depends(get_current_user)
@@ -151,10 +165,10 @@ async def get_snowflake_config(
     try:
         snowflake_service = SnowflakeService()  # Lazy initialization
         config = snowflake_service.get_user_snowflake_config(current_user["id"])
-        
+
         if not config:
             return None
-            
+
         return SnowflakeConfigResponse(
             id=config["id"],
             user_id=config["user_id"],
