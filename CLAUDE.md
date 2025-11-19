@@ -841,6 +841,321 @@ const handleUseTemplate = async (template: InstanceTemplate) => {
 5. **Navigation**: Wizard uses React Router's `navigate()` for immediate transitions
 6. **Snowflake Config**: Stored in execution `metadata` JSONB field, not separate columns
 
+## Snowflake Integration (Added 2025-11-19)
+
+A comprehensive system for automatically uploading AMC execution results to Snowflake data warehouse with composite UPSERT keys, automatic retry logic, and graceful handling of configuration.
+
+### Overview
+
+The Snowflake integration enables automatic export of all AMC execution results (both run-once and scheduled) to a Snowflake data warehouse for long-term storage, analysis, and cross-platform reporting:
+
+- **Automatic Upload**: All executions can optionally upload results to Snowflake after completion
+- **Composite UPSERT Key**: Prevents duplicate data using `execution_id + time_window_start + time_window_end`
+- **Retry Logic**: Automatic retry up to 3 attempts with exponential backoff
+- **User Configuration**: Per-user Snowflake credentials stored encrypted in database
+- **Graceful Degradation**: Executions succeed even if Snowflake upload fails
+- **Status Tracking**: Real-time status badges and detailed error messages
+
+### Key Features
+
+#### 1. Composite Date Range UPSERT Key
+
+**Problem**: Recurring schedules with the same query run weekly, monthly, etc. Traditional single-column UPSERT keys (execution_id only) would create duplicate data for overlapping date ranges.
+
+**Solution**: Use composite primary key based on execution context:
+
+```sql
+-- For scheduled executions with date ranges
+PRIMARY KEY (execution_id, time_window_start, time_window_end)
+
+-- For templates with detected date column
+PRIMARY KEY (execution_id, detected_date_column)
+
+-- Fallback for queries without dates
+PRIMARY KEY (execution_id, uploaded_at)
+```
+
+**Benefits**:
+- Same schedule can upload results for different date ranges without conflicts
+- Re-running failed executions overwrites old data instead of creating duplicates
+- Historical backfill doesn't interfere with ongoing schedule uploads
+
+#### 2. Automatic Retry with Attempt Counting
+
+**Problem**: Temporary Snowflake outages or network issues should not permanently fail executions.
+
+**Solution**: Retry logic with exponential backoff (max 3 attempts):
+
+```python
+# ExecutionMonitorService retry logic
+attempt_count = execution.get('snowflake_attempt_count', 0)
+
+if attempt_count >= 3:
+    logger.error(f"Max attempts reached (3/3)")
+    return  # Stop retrying
+
+# Upload attempt
+result = upload_to_snowflake()
+
+if result['success']:
+    # Reset attempt count on success
+    update({'snowflake_attempt_count': 0})
+else:
+    # Increment attempt count on failure
+    new_count = attempt_count + 1
+    update({'snowflake_attempt_count': new_count})
+```
+
+**Status Transitions**:
+- `pending` → `uploading` → `uploaded` (success)
+- `pending` → `uploading` → `failed` (retry up to 3 times)
+- `failed` → Manual retry button in UI
+
+#### 3. User Snowflake Configuration
+
+**Storage**: User credentials stored in `snowflake_configurations` table with Fernet encryption:
+
+```sql
+CREATE TABLE snowflake_configurations (
+    id UUID PRIMARY KEY,
+    user_id UUID REFERENCES users(id),
+    account_identifier TEXT NOT NULL,  -- Snowflake account
+    warehouse TEXT NOT NULL,
+    database TEXT NOT NULL,
+    schema TEXT,
+    role TEXT,
+    username TEXT,
+    password_encrypted TEXT,           -- Fernet encrypted
+    private_key_encrypted TEXT,        -- For key-pair auth
+    is_active BOOLEAN DEFAULT true
+);
+```
+
+**Configuration UI**: Settings page (`/profile`) has dedicated Snowflake Configuration section:
+- Account, warehouse, database, schema, role fields
+- Password authentication (encrypted before storage)
+- Test Connection button (validates credentials)
+- Save/Delete buttons with confirmation
+
+**Validation**: Upload skips gracefully if user has no active Snowflake configuration:
+
+```python
+config = get_user_snowflake_config(user_id)
+if not config:
+    update_status(execution_id, 'skipped')
+    return {'success': False, 'skipped': True}
+```
+
+### Architecture Components
+
+**Backend Services**:
+- `SnowflakeService` - Core upload logic, MERGE SQL generation, encryption
+- `ExecutionMonitorService` - Retry orchestration, attempt counting
+- `snowflake_config.py` (API) - User configuration CRUD endpoints
+
+**Frontend Components**:
+- `SnowflakeConfigStep.tsx` - Schedule wizard step for Snowflake config
+- `Profile.tsx` - User settings Snowflake configuration section
+- `AMCExecutionList.tsx` - Status badges (uploaded, uploading, failed, skipped)
+- `AMCExecutionDetail.tsx` - Detailed status and manual retry button
+
+**Database Fields** (in `workflow_executions`):
+- `snowflake_enabled` - Boolean flag to enable upload
+- `snowflake_status` - Current status (pending, uploading, uploaded, failed, skipped)
+- `snowflake_table_name` - Target Snowflake table
+- `snowflake_schema_name` - Target Snowflake schema (optional)
+- `snowflake_attempt_count` - Number of retry attempts (0-3)
+- `snowflake_strategy` - Upload strategy (default: 'upsert_date_range')
+- `snowflake_uploaded_at` - Timestamp of successful upload
+- `snowflake_row_count` - Number of rows uploaded
+- `snowflake_error_message` - Error details if failed
+
+### Usage Patterns
+
+#### Schedule with Snowflake Upload
+
+```typescript
+// ScheduleWizard.tsx - Step 5: Snowflake Configuration
+const scheduleConfig: ScheduleConfig = {
+  type: 'weekly',
+  lookbackDays: 30,
+  dateRangeType: 'rolling',
+  timezone: 'America/New_York',
+  executeTime: '02:00',
+
+  // Snowflake configuration
+  snowflakeEnabled: true,
+  snowflakeTableName: 'weekly_campaign_metrics',
+  snowflakeSchemaName: 'analytics',  // Optional, uses user's default if empty
+};
+```
+
+#### Template Execution with Snowflake
+
+```typescript
+// TemplateExecutionWizard.tsx - Step 4: Review
+const executionRequest = {
+  name: 'Nike Brand - Top Products - 2025-01-01 - 2025-01-31',
+  timeWindowStart: '2025-01-01',
+  timeWindowEnd: '2025-01-31',
+
+  // Optional Snowflake upload
+  snowflake_enabled: true,
+  snowflake_table_name: 'nike_monthly_products',  // Auto-generated or custom
+  snowflake_schema_name: '',  // Uses user's default schema
+};
+```
+
+#### Manual Retry from UI
+
+```typescript
+// AMCExecutionDetail.tsx
+const retrySnowflakeMutation = useMutation({
+  mutationFn: async () => {
+    return api.post(`/amc-executions/${executionId}/retry-snowflake`);
+  },
+  onSuccess: () => {
+    toast.success('Snowflake upload retry initiated');
+    refetch();  // Refresh execution status
+  },
+});
+
+// Retry button only visible when status is 'failed' and attempts < 3
+{snowflakeStatus === 'failed' && attemptCount < 3 && (
+  <button onClick={() => retrySnowflakeMutation.mutate()}>
+    <RefreshCw /> Retry Upload ({attemptCount}/3)
+  </button>
+)}
+```
+
+### Date Column Detection
+
+SnowflakeService automatically detects date columns for UPSERT key generation:
+
+```python
+def _detect_date_column(self, df: pd.DataFrame) -> Optional[str]:
+    """
+    Priority order:
+    1. Columns with 'date' in name (date, event_date, purchase_date)
+    2. Columns with 'week' in name (week, week_start, week_ending)
+    3. Columns with 'month' in name (month, month_start)
+    4. Columns with 'period' or 'time' in name
+    5. Any datetime64 dtype column
+    """
+    date_patterns = [r'.*date.*', r'.*week.*', r'.*month.*', r'.*period.*', r'.*time.*']
+    for pattern in date_patterns:
+        for col in df.columns:
+            if re.match(pattern, str(col), re.IGNORECASE):
+                return col
+    return None
+```
+
+### MERGE SQL Generation
+
+Prevents duplicates by upserting based on composite key:
+
+```sql
+MERGE INTO target_table AS target
+USING temp_table AS source
+ON target."execution_id" = source."execution_id"
+   AND target."time_window_start" = source."time_window_start"
+   AND target."time_window_end" = source."time_window_end"
+WHEN MATCHED THEN
+    UPDATE SET
+        target."campaign_id" = source."campaign_id",
+        target."impressions" = source."impressions",
+        target."clicks" = source."clicks"
+WHEN NOT MATCHED THEN
+    INSERT (execution_id, time_window_start, time_window_end, campaign_id, impressions, clicks)
+    VALUES (source.execution_id, source.time_window_start, ...)
+```
+
+**Key Exclusions**: Primary key columns (`execution_id`, `time_window_start`, `time_window_end`) are excluded from UPDATE SET clause to maintain referential integrity.
+
+### Status Badges (Frontend)
+
+**AMCExecutionList.tsx** displays color-coded status badges:
+
+```typescript
+const getSnowflakeBadge = (execution: AMCExecution) => {
+  switch (execution.snowflake_status) {
+    case 'uploaded':
+    case 'completed':
+      return <Badge color="green">Uploaded</Badge>;
+    case 'uploading':
+    case 'pending':
+      return <Badge color="blue" animate>Uploading</Badge>;
+    case 'failed':
+      return <Badge color="red">Upload Failed ({attemptCount}/3)</Badge>;
+    case 'skipped':
+      return <Badge color="gray">Skipped</Badge>;
+    default:
+      return <Badge color="yellow">Pending Upload</Badge>;
+  }
+};
+```
+
+### Testing
+
+**Backend Tests** (`test_snowflake_service_unit.py`):
+- ✅ 20/20 tests passing
+- Date column detection (5 tests)
+- MERGE SQL generation with composite keys (4 tests)
+- Dtype mapping (6 tests)
+- Encryption/decryption (5 tests)
+
+```bash
+pytest tests/services/test_snowflake_service_unit.py -v
+# ===================== 20 passed in 1.50s =====================
+```
+
+### API Endpoints
+
+```http
+# Snowflake Configuration
+GET    /api/snowflake/config              # Get user's active config
+POST   /api/snowflake/config              # Create new config
+PUT    /api/snowflake/config/{id}         # Update config
+DELETE /api/snowflake/config/{id}         # Delete config
+POST   /api/snowflake/config/test         # Test connection
+
+# Manual Retry
+POST   /api/amc-executions/{execution_id}/retry-snowflake
+```
+
+### Critical Notes
+
+1. **Encryption Required**: `FERNET_KEY` environment variable must be set for encrypting passwords
+2. **Graceful Degradation**: Executions succeed even if Snowflake upload fails (status: 'skipped' or 'failed')
+3. **Max 3 Retries**: After 3 failed attempts, manual retry required via UI
+4. **No Config = Skipped**: Users without Snowflake config have uploads automatically skipped
+5. **Composite Key Priority**: Date range params > detected date column > uploaded_at timestamp
+6. **Table Auto-Creation**: Snowflake tables are created automatically on first upload with detected schema
+7. **Password Security**: Passwords never returned from API, encrypted in database, optional on update
+
+### Files Modified
+
+**Backend**:
+- `amc_manager/services/snowflake_service.py` - Enhanced with composite UPSERT key
+- `amc_manager/services/execution_monitor_service.py` - Added retry logic
+- `amc_manager/api/snowflake_config.py` - User configuration endpoints
+- `amc_manager/schemas/template_execution.py` - Snowflake config fields
+- Database migration - Added `snowflake_strategy`, `snowflake_attempt_count` columns
+
+**Frontend**:
+- `frontend/src/components/schedules/SnowflakeConfigStep.tsx` - New wizard step
+- `frontend/src/components/schedules/ScheduleWizard.tsx` - Integrated Snowflake step
+- `frontend/src/components/instances/TemplateExecutionWizard.tsx` - Snowflake toggle
+- `frontend/src/components/executions/AMCExecutionList.tsx` - Status badges
+- `frontend/src/components/executions/AMCExecutionDetail.tsx` - Retry button
+- `frontend/src/pages/Profile.tsx` - Configuration UI section
+- `frontend/src/types/amcExecution.ts` - Snowflake fields
+
+### Related Specifications
+
+- `.agent-os/specs/snowflake-integration/spec.md` - Full feature specification
+- `.agent-os/specs/snowflake-integration/tasks.md` - Implementation checklist
+
 ## Reports & Analytics Platform
 
 ### Phase 3: Historical Data Collection (Complete)
