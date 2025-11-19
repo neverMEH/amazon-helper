@@ -280,7 +280,8 @@ class SnowflakeService(DatabaseService):
         results: Dict[str, Any],
         table_name: str,
         user_id: str,
-        week_start: str = None
+        week_start: str = None,
+        execution_parameters: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         Upload execution results to Snowflake
@@ -291,15 +292,26 @@ class SnowflakeService(DatabaseService):
             table_name: Target table name in Snowflake
             user_id: User ID for configuration lookup
             week_start: Week start date for this execution (YYYY-MM-DD format)
+            execution_parameters: Execution parameters including timeWindowStart and timeWindowEnd
 
         Returns:
             Upload result with status and details
         """
         try:
-            # Get user's Snowflake configuration
+            # Validate user has Snowflake configuration
             config = self.get_user_snowflake_config(user_id)
             if not config:
-                raise Exception("No active Snowflake configuration found for user")
+                logger.warning(f"Snowflake enabled but no configuration found for user {user_id}")
+                self._update_execution_snowflake_status(
+                    execution_id,
+                    status='skipped',
+                    error_message='User has no Snowflake configuration'
+                )
+                return {
+                    'success': False,
+                    'skipped': True,
+                    'error': 'User has no Snowflake configuration'
+                }
 
             # Update execution status to uploading
             self._update_execution_snowflake_status(execution_id, 'uploading')
@@ -327,13 +339,22 @@ class SnowflakeService(DatabaseService):
                 if week_start:
                     df['week_start'] = week_start
                     logger.info(f"Adding week_start column with value: {week_start}")
-                
+
+                # Add date range columns for UPSERT key (from execution parameters)
+                if execution_parameters:
+                    if 'timeWindowStart' in execution_parameters:
+                        df['time_window_start'] = execution_parameters['timeWindowStart']
+                        logger.info(f"Adding time_window_start column: {execution_parameters['timeWindowStart']}")
+                    if 'timeWindowEnd' in execution_parameters:
+                        df['time_window_end'] = execution_parameters['timeWindowEnd']
+                        logger.info(f"Adding time_window_end column: {execution_parameters['timeWindowEnd']}")
+
                 # Create table if it doesn't exist
                 full_table_name = f"{config['database']}.{config['schema']}.{table_name}"
-                self._create_table_if_not_exists(connection, full_table_name, df)
-                
-                # Upload data
-                self._upload_dataframe_to_snowflake(connection, df, full_table_name)
+                self._create_table_if_not_exists(connection, full_table_name, df, execution_parameters)
+
+                # Upload data with execution parameters for composite key
+                self._upload_dataframe_to_snowflake(connection, df, full_table_name, execution_parameters)
                 
                 # Update execution status to completed
                 self._update_execution_snowflake_status(
@@ -384,17 +405,15 @@ class SnowflakeService(DatabaseService):
         self,
         connection: snowflake.connector.SnowflakeConnection,
         table_name: str,
-        df: pd.DataFrame
+        df: pd.DataFrame,
+        execution_parameters: Optional[Dict[str, Any]] = None
     ):
         """
         Create table in Snowflake if it doesn't exist with dynamic primary key
-        based on detected date column
+        based on detected date column or date range (timeWindowStart + timeWindowEnd)
         """
         try:
             cursor = connection.cursor()
-
-            # Detect date column for composite primary key
-            date_column = self._detect_date_column(df)
 
             # Generate column definitions
             columns = []
@@ -402,13 +421,24 @@ class SnowflakeService(DatabaseService):
                 snowflake_type = self._map_dtype_to_snowflake(dtype)
                 columns.append(f'"{col_name}" {snowflake_type}')
 
-            # Add composite primary key based on detected date column
-            if date_column and date_column in df.columns:
-                pk_clause = f'PRIMARY KEY ("execution_id", "{date_column}")'
-                logger.info(f"Creating table with composite PK: (execution_id, {date_column})")
+            # Determine primary key based on execution parameters
+            if execution_parameters and 'timeWindowStart' in execution_parameters and 'timeWindowEnd' in execution_parameters:
+                # Use composite date range key for schedules
+                if 'time_window_start' in df.columns and 'time_window_end' in df.columns:
+                    pk_clause = 'PRIMARY KEY ("execution_id", "time_window_start", "time_window_end")'
+                    logger.info("Creating table with composite date range PK: (execution_id, time_window_start, time_window_end)")
+                else:
+                    pk_clause = 'PRIMARY KEY ("execution_id", "uploaded_at")'
+                    logger.warning("Date range columns not found, falling back to: (execution_id, uploaded_at)")
             else:
-                pk_clause = 'PRIMARY KEY ("execution_id", "uploaded_at")'
-                logger.info("Creating table with PK: (execution_id, uploaded_at)")
+                # Detect date column for single-date templates
+                date_column = self._detect_date_column(df)
+                if date_column and date_column in df.columns:
+                    pk_clause = f'PRIMARY KEY ("execution_id", "{date_column}")'
+                    logger.info(f"Creating table with composite PK: (execution_id, {date_column})")
+                else:
+                    pk_clause = 'PRIMARY KEY ("execution_id", "uploaded_at")'
+                    logger.info("Creating table with PK: (execution_id, uploaded_at)")
 
             columns.append(pk_clause)
 
@@ -432,36 +462,55 @@ class SnowflakeService(DatabaseService):
         target_table: str,
         source_table: str,
         df: pd.DataFrame,
-        date_column: Optional[str] = None
+        date_column: Optional[str] = None,
+        execution_parameters: Optional[Dict[str, Any]] = None
     ) -> str:
         """
         Generate MERGE INTO SQL with dynamic join condition
 
-        Join keys:
-        - Always: execution_id
-        - If date_column exists: AND date_column
-        - Fallback: execution_id + uploaded_at
+        Join keys (priority order):
+        1. If execution_parameters has timeWindowStart + timeWindowEnd: composite date range key
+        2. If date_column exists: execution_id + date_column
+        3. Fallback: execution_id + uploaded_at
         """
         columns = [f'"{col}"' for col in df.columns]
 
         # Build ON clause (join condition)
-        if date_column and date_column in df.columns:
+        if execution_parameters and 'timeWindowStart' in execution_parameters and 'timeWindowEnd' in execution_parameters:
+            # Use composite date range key for schedules
+            if 'time_window_start' in df.columns and 'time_window_end' in df.columns:
+                on_clause = '''
+                    target."execution_id" = source."execution_id"
+                    AND target."time_window_start" = source."time_window_start"
+                    AND target."time_window_end" = source."time_window_end"
+                '''
+                logger.info("Using composite date range key for UPSERT: (execution_id, time_window_start, time_window_end)")
+                exclude_from_update = {'execution_id', 'time_window_start', 'time_window_end', 'uploaded_at'}
+            else:
+                on_clause = '''
+                    target."execution_id" = source."execution_id"
+                    AND target."uploaded_at" = source."uploaded_at"
+                '''
+                logger.warning("Date range columns not found, using (execution_id, uploaded_at) as key")
+                exclude_from_update = {'execution_id', 'uploaded_at'}
+        elif date_column and date_column in df.columns:
             # Use execution_id + date_column as composite key
             on_clause = f'''
                 target."execution_id" = source."execution_id"
                 AND target."{date_column}" = source."{date_column}"
             '''
             logger.info(f"Using composite key for UPSERT: (execution_id, {date_column})")
+            exclude_from_update = {'execution_id', date_column, 'uploaded_at'}
         else:
             # Fallback: use execution_id + uploaded_at
-            on_clause = f'''
+            on_clause = '''
                 target."execution_id" = source."execution_id"
                 AND target."uploaded_at" = source."uploaded_at"
             '''
             logger.warning("No date column found, using (execution_id, uploaded_at) as key")
+            exclude_from_update = {'execution_id', 'uploaded_at'}
 
         # Build UPDATE SET clause (all columns except keys)
-        exclude_from_update = {'execution_id', date_column, 'uploaded_at'} if date_column else {'execution_id', 'uploaded_at'}
         update_cols = [col for col in df.columns if col not in exclude_from_update]
         update_set = ', '.join([
             f'target."{col}" = source."{col}"' for col in update_cols
@@ -488,19 +537,26 @@ class SnowflakeService(DatabaseService):
         self,
         connection: snowflake.connector.SnowflakeConnection,
         df: pd.DataFrame,
-        table_name: str
+        table_name: str,
+        execution_parameters: Optional[Dict[str, Any]] = None
     ):
         """
         UPSERT DataFrame to Snowflake using MERGE INTO
 
-        This prevents duplicate data by upserting based on execution_id + date column
+        This prevents duplicate data by upserting based on:
+        - execution_id + time_window_start + time_window_end (for schedules)
+        - execution_id + date_column (for templates)
+        - execution_id + uploaded_at (fallback)
         """
         try:
             cursor = connection.cursor()
 
-            # Auto-detect date column
+            # Auto-detect date column (for templates without date range params)
             date_column = self._detect_date_column(df)
-            logger.info(f"Using date column for UPSERT: {date_column or 'None (fallback to uploaded_at)'}")
+            if execution_parameters and 'timeWindowStart' in execution_parameters:
+                logger.info("Using date range from execution parameters for UPSERT key")
+            else:
+                logger.info(f"Using date column for UPSERT: {date_column or 'None (fallback to uploaded_at)'}")
 
             # Create temp table with unique name
             temp_table = f"TEMP_{uuid.uuid4().hex[:8].upper()}"
@@ -537,7 +593,8 @@ class SnowflakeService(DatabaseService):
                     target_table=table_name,
                     source_table=temp_table,
                     df=df,
-                    date_column=date_column
+                    date_column=date_column,
+                    execution_parameters=execution_parameters
                 )
 
                 logger.info(f"Executing UPSERT to {table_name}")

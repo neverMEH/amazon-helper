@@ -53,6 +53,14 @@ export interface TemplateScheduleRequest {
   name: string;
   /** Schedule configuration details */
   schedule_config: TemplateScheduleConfig;
+  /** Whether to upload results to Snowflake after execution */
+  snowflake_enabled?: boolean;
+  /** Snowflake table name (auto-generated if empty) */
+  snowflake_table_name?: string;
+  /** Snowflake schema name (uses default if empty) */
+  snowflake_schema_name?: string;
+  /** Snowflake upload strategy (always 'upsert' for schedules) */
+  snowflake_strategy?: 'upsert' | 'append' | 'replace' | 'create_new';
 }
 
 /**

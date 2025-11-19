@@ -446,12 +446,214 @@ async def test_multi_instance_operations():
     # Test cross-instance functionality
 ```
 
+## Instance Templates System (Added 2025-10-15)
+
+### Overview
+Instance Templates provide a simplified way to save and reuse SQL queries for specific AMC instances without the complexity of global query templates.
+
+**Key Features**:
+- Instance-scoped SQL template storage
+- Quick access via "Templates" tab on instance detail pages
+- Parameter detection and auto-population from instance mappings
+- Direct execution via Template Execution Wizard
+- Usage count tracking
+
+### Core Components
+
+**Backend**:
+- `/amc_manager/services/instance_template_service.py` - Service layer with CRUD operations and 5-minute caching
+- `/amc_manager/api/supabase/instance_templates.py` - 6 REST endpoints with JWT authentication
+- Database table: `instance_templates` with RLS policies
+
+**Frontend**:
+- `/frontend/src/components/instances/InstanceTemplateEditor.tsx` - Modal for creating/editing templates
+- `/frontend/src/components/instances/InstanceTemplates.tsx` - List view with template cards
+- `/frontend/src/components/instances/TemplateExecutionWizard.tsx` - 4-step execution wizard
+
+### Recent Changes (2025-11-19)
+
+#### Critical Cache Invalidation Fix
+Fixed critical bug where updated templates would show old SQL when executing through the Template Execution Wizard.
+
+**Backend Fix** (`instance_template_service.py`):
+- **Problem**: After invalidating cache, `update_template()` method called `get_template()` for ownership check, which re-cached OLD data before the database update happened
+- **Solution**: Now fetches directly from database without caching for ownership check
+- **Enhancement**: Invalidates cache both BEFORE and AFTER the update to ensure fresh data
+- **Impact**: Backend cache always contains latest template data after updates
+
+**Frontend Fix** (`TemplateExecutionWizard.tsx`):
+- **Problem**: Wizard received template as a prop from parent component, displaying old data from memory even after template was updated
+- **Solution**: Added `useQuery` hook to fetch fresh template data when wizard opens (with `staleTime: 0` to always fetch)
+- **Enhancement**: Added loading indicator while fetching fresh template data
+- **Impact**: Wizard now always displays the latest template SQL from database
+
+**Bug Impact**: This was a critical UX bug affecting users who:
+1. Created a template
+2. Updated the template's SQL
+3. Clicked "Use Template" to execute it
+→ Would see the OLD SQL in the execution wizard instead of the updated version
+
+**Files Modified**:
+- `/amc_manager/services/instance_template_service.py` - Backend cache invalidation logic
+- `/frontend/src/components/instances/TemplateExecutionWizard.tsx` - Frontend data fetching
+
+**Related Commit**: `61353d0` (2025-11-19)
+
+### Technical Implementation
+
+**Service Layer with Caching**:
+```python
+class InstanceTemplateService(DatabaseService):
+    def __init__(self):
+        super().__init__()
+        self._cache = {}  # 5-minute TTL cache
+
+    @with_connection_retry
+    def update_template(self, template_id: str, template_data: Dict[str, Any], user_id: str) -> Optional[Dict[str, Any]]:
+        """Update instance template with proper cache invalidation"""
+
+        # Invalidate cache BEFORE ownership check to prevent re-caching old data
+        self._invalidate_cache(template_id)
+
+        # Fetch directly from DB for ownership check (without caching)
+        existing = self.client.table('instance_templates')\
+            .select('user_id')\
+            .eq('template_id', template_id)\
+            .execute()
+
+        if not existing.data or existing.data[0]['user_id'] != user_id:
+            return None
+
+        # Perform update
+        template_data['updated_at'] = datetime.utcnow().isoformat()
+        response = self.client.table('instance_templates')\
+            .update(template_data)\
+            .eq('template_id', template_id)\
+            .execute()
+
+        # Invalidate cache AFTER update to ensure fresh data on next fetch
+        self._invalidate_cache(template_id)
+
+        return response.data[0] if response.data else None
+```
+
+**Frontend Fresh Data Fetching**:
+```typescript
+const TemplateExecutionWizard: React.FC<Props> = ({ template, onClose, onSuccess }) => {
+  // Fetch fresh template data when wizard opens (ignore prop)
+  const { data: freshTemplate, isLoading } = useQuery({
+    queryKey: ['instance-template', template.instanceId, template.templateId],
+    queryFn: () => instanceTemplateService.getTemplate(template.instanceId, template.templateId),
+    staleTime: 0,  // Always fetch fresh data
+    enabled: true
+  });
+
+  const templateToUse = freshTemplate || template;
+
+  if (isLoading) {
+    return <div>Loading template...</div>;
+  }
+
+  // Rest of wizard implementation uses fresh template data
+};
+```
+
+### Database Schema
+```sql
+CREATE TABLE instance_templates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    template_id TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    sql_query TEXT NOT NULL,
+    instance_id UUID REFERENCES amc_instances(id) ON DELETE CASCADE NOT NULL,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+    tags JSONB DEFAULT '[]',
+    usage_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+### API Endpoints
+```http
+GET    /api/instances/{instance_id}/templates              # List templates
+POST   /api/instances/{instance_id}/templates              # Create template
+GET    /api/instances/{instance_id}/templates/{template_id} # Get template
+PUT    /api/instances/{instance_id}/templates/{template_id} # Update template
+DELETE /api/instances/{instance_id}/templates/{template_id} # Delete template
+POST   /api/instances/{instance_id}/templates/{template_id}/use # Increment usage
+POST   /api/instances/{instance_id}/templates/{template_id}/execute # Execute template
+POST   /api/instances/{instance_id}/templates/{template_id}/schedule # Create schedule
+```
+
+### Template Execution Wizard (Added 2025-10-15)
+
+A streamlined 4-step wizard for direct execution of Instance Templates:
+
+**Step 1: Template Display**
+- Shows template SQL preview (read-only Monaco editor)
+- Displays instance and brand badges
+- No editing - just confirmation
+
+**Step 2: Execution Type Selection**
+- "Run Once" (immediate execution)
+- "Recurring Schedule" (automated)
+
+**Step 3: Configuration**
+- **Run Once**: Date range with AMC 14-day lag warning, rolling window toggle
+- **Recurring**: Frequency (daily/weekly/monthly), time, timezone, rolling date range
+
+**Step 4: Review & Submit**
+- Auto-generated execution name: `{Brand} - {Template} - {StartDate} - {EndDate}`
+- Optional Snowflake integration (run once only)
+- Submit creates execution or schedule
+
+### Parameter Injection (Added 2025-10-16)
+
+Automatic parameter detection and substitution in Instance Template Editor:
+
+**Features**:
+- **Auto-Detection**: Detects parameters in SQL (`{{param}}`, `:param`, `$param`)
+- **Auto-Population**: ASINs and campaigns auto-populate from instance mappings
+- **Live Preview**: SQL preview with parameters replaced (Monaco Editor, 400px)
+- **Smart Saving**: Saves complete SQL with parameters replaced (no placeholders)
+
+**Parameter Types**:
+- `date` → Date picker
+- `asin`/`asins` → Textarea (auto-populated from mappings)
+- `campaign` → Textarea (auto-populated from mappings)
+- Other → Text input
+
+**Preview Panel**:
+```typescript
+<ParameterPreviewPanel
+  sqlQuery={previewSQL}      // SQL with parameters replaced
+  isOpen={isPreviewOpen}
+  onToggle={() => setIsPreviewOpen(!isPreviewOpen)}
+/>
+```
+
+### Critical Gotchas
+
+1. **Cache Invalidation**: Always invalidate cache BEFORE and AFTER updates to prevent stale data
+2. **Fresh Data Fetching**: Use `staleTime: 0` in React Query when data must be fresh (e.g., wizards)
+3. **Prop vs Query Data**: Don't rely on props for data that can change - fetch fresh when needed
+4. **Parameters Replaced**: Templates store complete SQL (parameters already substituted), not placeholders
+5. **Instance ID Format**: Use UUID (`instance.id`) for API calls, not AMC instance string
+
+### Related Documentation
+- Main feature documentation: `/mnt/c/Users/Aeciu/Projects/amazon-helper-2/CLAUDE.md` (Instance Templates section)
+- Technical spec: `.agent-os/specs/2025-10-15-instance-templates/spec.md`
+- Execution wizard spec: `.agent-os/specs/2025-10-15-template-execution-wizard/spec.md`
+- Parameter injection spec: `.agent-os/specs/2025-10-16-template-parameter-injection/spec.md`
+
 ## Monitoring and Analytics
 
 ### Instance Usage Metrics
 ```sql
 -- Track instance utilization
-SELECT 
+SELECT
   i.name,
   i.instance_id,
   COUNT(w.id) as total_workflows,

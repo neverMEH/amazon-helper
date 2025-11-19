@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ChevronRight, Calendar, Clock, Bell, CheckCircle, TrendingUp } from 'lucide-react';
+import { X, ChevronRight, Calendar, Clock, Bell, CheckCircle, TrendingUp, Database } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { scheduleService } from '../../services/scheduleService';
@@ -8,6 +8,7 @@ import ScheduleTypeStep from './ScheduleTypeStep';
 import TimingStep from './TimingStep';
 import DateRangeStep from './DateRangeStep';
 import ParametersStep from './ParametersStep';
+import SnowflakeConfigStep from './SnowflakeConfigStep';
 import ReviewStep from './ReviewStep';
 
 interface ScheduleWizardProps {
@@ -26,7 +27,8 @@ const steps = [
   { id: 2, name: 'Timing', icon: Clock },
   { id: 3, name: 'Date Range', icon: TrendingUp },
   { id: 4, name: 'Parameters', icon: Bell },
-  { id: 5, name: 'Review', icon: CheckCircle },
+  { id: 5, name: 'Snowflake', icon: Database },
+  { id: 6, name: 'Review', icon: CheckCircle },
 ];
 
 const ScheduleWizard: React.FC<ScheduleWizardProps> = ({
@@ -124,11 +126,16 @@ const ScheduleWizard: React.FC<ScheduleWizardProps> = ({
         on_failure: scheduleConfig.notifications.onFailure,
         email: scheduleConfig.notifications.email,
       },
+      // Snowflake configuration
+      snowflake_enabled: scheduleConfig.snowflakeEnabled,
+      snowflake_table_name: scheduleConfig.snowflakeTableName,
+      snowflake_schema_name: scheduleConfig.snowflakeSchemaName,
+      snowflake_strategy: scheduleConfig.snowflakeStrategy,
     };
 
     console.log('Sending schedule data:', scheduleData);
     console.log('Workflow ID:', workflowId);
-    
+
     createScheduleMutation.mutate(scheduleData);
   };
 
@@ -170,6 +177,17 @@ const ScheduleWizard: React.FC<ScheduleWizardProps> = ({
           />
         );
       case 5:
+        return (
+          <SnowflakeConfigStep
+            config={scheduleConfig}
+            workflowName={workflowName}
+            instanceInfo={instanceInfo}
+            onChange={setScheduleConfig}
+            onNext={handleNext}
+            onBack={handleBack}
+          />
+        );
+      case 6:
         return (
           <ReviewStep
             config={scheduleConfig}

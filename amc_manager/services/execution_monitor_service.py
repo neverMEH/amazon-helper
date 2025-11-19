@@ -295,7 +295,8 @@ class ExecutionMonitorService:
 
     async def _upload_to_snowflake_if_enabled(self, execution_id: str, results: Dict[str, Any], user_id: str):
         """
-        Upload results to Snowflake if enabled for this execution
+        Upload results to Snowflake if enabled for this execution.
+        Includes retry logic with exponential backoff (max 3 attempts).
 
         Args:
             execution_id: Execution ID
@@ -306,7 +307,7 @@ class ExecutionMonitorService:
             # Check if Snowflake is enabled for this execution
             client = SupabaseManager.get_client(use_service_role=True)
             response = client.table('workflow_executions')\
-                .select('snowflake_enabled, snowflake_table_name, snowflake_schema_name, execution_parameters')\
+                .select('snowflake_enabled, snowflake_table_name, snowflake_schema_name, execution_parameters, snowflake_attempt_count, snowflake_status')\
                 .eq('execution_id', execution_id)\
                 .execute()
 
@@ -320,6 +321,19 @@ class ExecutionMonitorService:
                 logger.info(f"Snowflake upload not enabled for execution {execution_id}")
                 return
 
+            # Check retry attempts
+            attempt_count = execution.get('snowflake_attempt_count', 0)
+            snowflake_status = execution.get('snowflake_status', 'pending')
+
+            if snowflake_status == 'failed' and attempt_count >= 3:
+                logger.error(f"Execution {execution_id} has reached maximum Snowflake upload attempts (3)")
+                return
+
+            # Only retry if status is 'pending' or 'failed' (with attempts < 3)
+            if snowflake_status not in ['pending', 'failed', None]:
+                logger.info(f"Execution {execution_id} already has Snowflake status: {snowflake_status}")
+                return
+
             # Generate table name if not provided
             table_name = execution.get('snowflake_table_name')
             if not table_name:
@@ -327,32 +341,73 @@ class ExecutionMonitorService:
                 timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
                 table_name = f"execution_{execution_id}_{timestamp}"
 
-            # Extract week_start from execution parameters (for template executions)
-            week_start = None
+            # Extract execution parameters for date range UPSERT key
             execution_parameters = execution.get('execution_parameters', {})
-            if isinstance(execution_parameters, dict):
-                week_start = execution_parameters.get('week_start') or execution_parameters.get('timeWindowStart')
+            if not isinstance(execution_parameters, dict):
+                execution_parameters = {}
 
-            logger.info(f"Uploading execution {execution_id} results to Snowflake table {table_name}")
+            # Extract week_start from execution parameters (for template executions)
+            week_start = execution_parameters.get('week_start') or execution_parameters.get('timeWindowStart')
+
+            logger.info(f"Uploading execution {execution_id} results to Snowflake table {table_name} (attempt {attempt_count + 1}/3)")
             if week_start:
                 logger.info(f"Week start date: {week_start}")
+            if 'timeWindowStart' in execution_parameters and 'timeWindowEnd' in execution_parameters:
+                logger.info(f"Date range: {execution_parameters['timeWindowStart']} to {execution_parameters['timeWindowEnd']}")
 
-            # Upload to Snowflake
+            # Upload to Snowflake (with execution_parameters for composite date range key)
             upload_result = self.snowflake_service.upload_execution_results(
                 execution_id=execution_id,
                 results=results,
                 table_name=table_name,
                 user_id=user_id,
-                week_start=week_start
+                week_start=week_start,
+                execution_parameters=execution_parameters
             )
-            
-            if upload_result['success']:
-                logger.info(f"Successfully uploaded {upload_result['row_count']} rows to Snowflake")
+
+            # Handle upload result
+            if upload_result.get('success'):
+                logger.info(f"Successfully uploaded {upload_result.get('row_count', 0)} rows to Snowflake")
+                # Reset attempt count on success
+                client.table('workflow_executions')\
+                    .update({'snowflake_attempt_count': 0})\
+                    .eq('execution_id', execution_id)\
+                    .execute()
+            elif upload_result.get('skipped'):
+                logger.warning(f"Snowflake upload skipped: {upload_result.get('error')}")
+                # Don't increment attempts for skipped uploads (no config)
             else:
-                logger.error(f"Failed to upload to Snowflake: {upload_result['error']}")
-                
+                # Increment attempt count on failure
+                new_attempt_count = attempt_count + 1
+                logger.error(f"Failed to upload to Snowflake (attempt {new_attempt_count}/3): {upload_result.get('error')}")
+
+                client.table('workflow_executions')\
+                    .update({'snowflake_attempt_count': new_attempt_count})\
+                    .eq('execution_id', execution_id)\
+                    .execute()
+
+                # Log final failure
+                if new_attempt_count >= 3:
+                    logger.error(f"Execution {execution_id} reached maximum Snowflake upload attempts. Manual retry required.")
+
         except Exception as e:
-            logger.error(f"Error uploading to Snowflake: {e}")
+            logger.error(f"Error in Snowflake upload logic: {e}")
+            # Increment attempt count even on exception
+            try:
+                client = SupabaseManager.get_client(use_service_role=True)
+                response = client.table('workflow_executions')\
+                    .select('snowflake_attempt_count')\
+                    .eq('execution_id', execution_id)\
+                    .execute()
+
+                if response.data:
+                    current_attempts = response.data[0].get('snowflake_attempt_count', 0)
+                    client.table('workflow_executions')\
+                        .update({'snowflake_attempt_count': current_attempts + 1})\
+                        .eq('execution_id', execution_id)\
+                        .execute()
+            except Exception as update_error:
+                logger.error(f"Failed to update attempt count: {update_error}")
 
 
 # Singleton instance

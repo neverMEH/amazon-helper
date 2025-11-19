@@ -51,6 +51,11 @@ export interface Schedule {
     };
   };
   brands?: string[];  // Extracted/flattened brand list for easier display
+  // Snowflake configuration
+  snowflake_enabled?: boolean;
+  snowflake_table_name?: string;
+  snowflake_schema_name?: string;
+  snowflake_strategy?: 'upsert' | 'append' | 'replace' | 'create_new';
 }
 
 export interface ScheduleRun {
@@ -132,6 +137,11 @@ export interface ScheduleCreatePreset {
     on_failure: boolean;
     email?: string;
   };
+  // Snowflake configuration
+  snowflake_enabled?: boolean;
+  snowflake_table_name?: string;
+  snowflake_schema_name?: string;
+  snowflake_strategy?: 'upsert' | 'append' | 'replace' | 'create_new';
 }
 
 export interface ScheduleCreateCustom {
@@ -194,4 +204,9 @@ export interface ScheduleConfig {
   };
   autoPauseOnFailure?: boolean;
   costLimit?: number;
+  // Snowflake configuration
+  snowflakeEnabled?: boolean;
+  snowflakeTableName?: string;
+  snowflakeSchemaName?: string;
+  snowflakeStrategy?: 'upsert' | 'append' | 'replace' | 'create_new';
 }

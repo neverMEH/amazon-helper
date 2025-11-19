@@ -133,6 +133,25 @@ class TemplateScheduleRequest(BaseModel):
         ...,
         description="Schedule configuration details"
     )
+    snowflake_enabled: Optional[bool] = Field(
+        default=False,
+        description="Whether to upload execution results to Snowflake"
+    )
+    snowflake_table_name: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="Snowflake table name (auto-generated if empty)"
+    )
+    snowflake_schema_name: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="Snowflake schema name (uses default if empty)"
+    )
+    snowflake_strategy: Optional[str] = Field(
+        default='upsert',
+        pattern=r'^(upsert|append|replace|create_new)$',
+        description="Upload strategy: upsert (default for schedules), append, replace, or create_new"
+    )
 
     class Config:
         json_schema_extra = {
@@ -145,7 +164,11 @@ class TemplateScheduleRequest(BaseModel):
                     "date_range_type": "rolling",
                     "timezone": "America/New_York",
                     "day_of_week": 1
-                }
+                },
+                "snowflake_enabled": True,
+                "snowflake_table_name": "amc_nike_top_products",
+                "snowflake_schema_name": "analytics",
+                "snowflake_strategy": "upsert"
             }
         }
 

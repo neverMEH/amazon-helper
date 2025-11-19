@@ -262,6 +262,21 @@ async def create_template_schedule(
             schedule_config.day_of_month
         )
 
+        # Auto-generate Snowflake table name if enabled but not provided
+        snowflake_table_name = request.snowflake_table_name
+        if request.snowflake_enabled and not snowflake_table_name:
+            # Fetch instance and brand info for auto-naming
+            instance_info = db_service.get_instance_by_uuid_sync(instance_id)
+            if instance_info:
+                # Sanitize instance name for table naming
+                instance_name = instance_info.get('instance_id', 'unknown').lower().replace('-', '_')
+                template_name_sanitized = template['name'].lower().replace(' ', '_').replace('-', '_')
+                # Remove special characters
+                import re
+                template_name_sanitized = re.sub(r'[^a-z0-9_]', '', template_name_sanitized)
+                snowflake_table_name = f"amc_{instance_name}_{template_name_sanitized}"
+                logger.info(f"Auto-generated Snowflake table name: {snowflake_table_name}")
+
         schedule_data = {
             'schedule_id': schedule_id,
             'workflow_id': created_workflow['id'],  # Use UUID, not workflow_id string
@@ -279,6 +294,11 @@ async def create_template_schedule(
             'auto_pause_on_failure': False,
             'failure_threshold': 3,
             'consecutive_failures': 0,
+            # Snowflake configuration
+            'snowflake_enabled': request.snowflake_enabled,
+            'snowflake_table_name': snowflake_table_name,
+            'snowflake_schema_name': request.snowflake_schema_name,
+            'snowflake_strategy': request.snowflake_strategy or 'upsert',
         }
 
         # Add day-specific fields if provided
