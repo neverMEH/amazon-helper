@@ -144,23 +144,37 @@ class InstanceTemplateService(DatabaseService):
             Updated template dict or None on error/access denied
         """
         try:
-            # Invalidate cache
-            self._invalidate_cache(f"{template_id}:{user_id}")
+            # Invalidate cache BEFORE any operations
+            cache_key = f"{template_id}:{user_id}"
+            self._invalidate_cache(cache_key)
 
-            # First check ownership
-            template = self.get_template(template_id, user_id)
-            if not template or template['user_id'] != user_id:
+            # Check ownership WITHOUT caching (fetch directly from DB)
+            response = self.client.table('instance_templates')\
+                .select('*')\
+                .eq('template_id', template_id)\
+                .execute()
+
+            if not response.data:
+                logger.warning(f"Template {template_id} not found")
+                return None
+
+            template = response.data[0]
+            if template['user_id'] != user_id:
                 logger.warning(f"User {user_id} cannot update template {template_id}")
                 return None
 
-            response = self.client.table('instance_templates')\
+            # Perform the update
+            update_response = self.client.table('instance_templates')\
                 .update(updates)\
                 .eq('template_id', template_id)\
                 .execute()
 
-            if response.data:
+            if update_response.data:
+                updated_template = update_response.data[0]
                 logger.info(f"Updated instance template: {template_id}")
-                return response.data[0]
+                # Invalidate cache again to ensure fresh data on next fetch
+                self._invalidate_cache(cache_key)
+                return updated_template
 
             return None
         except Exception as e:

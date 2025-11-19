@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { X, ChevronRight, PlayCircle, Calendar, Clock, CheckCircle, Eye, EyeOff, AlertCircle } from 'lucide-react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import SQLEditor from '../common/SQLEditor';
 import DateRangeStep from '../schedules/DateRangeStep';
 import ScheduleTypeStep from '../schedules/ScheduleTypeStep';
 import TimingStep from '../schedules/TimingStep';
+import { instanceTemplateService } from '../../services/instanceTemplateService';
 import {
   templateExecutionService,
   generateExecutionName,
@@ -39,6 +40,17 @@ const TemplateExecutionWizard: React.FC<TemplateExecutionWizardProps> = ({
 }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  // Fetch fresh template data to avoid showing stale SQL after updates
+  const { data: freshTemplate, isLoading: isLoadingTemplate } = useQuery({
+    queryKey: ['instance-template', instanceInfo.id, template.templateId],
+    queryFn: () => instanceTemplateService.getTemplate(instanceInfo.id, template.templateId),
+    enabled: isOpen && !!template.templateId && !!instanceInfo.id,
+    staleTime: 0, // Always fetch fresh data
+  });
+
+  // Use fresh template data if available, fallback to prop
+  const currentTemplate = freshTemplate || template;
 
   // Wizard navigation
   const [currentStep, setCurrentStep] = useState<WizardStep>(1);
@@ -79,11 +91,11 @@ const TemplateExecutionWizard: React.FC<TemplateExecutionWizardProps> = ({
     const brandTag = instanceInfo.brands?.[0]?.toLowerCase().replace(/[^a-z0-9]/g, '_') || 'nobrand';
 
     // Sanitize template name
-    const templateSanitized = template.name.toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, 30);
+    const templateSanitized = currentTemplate.name.toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, 30);
 
     // Format: {instance}_{brand}_{template}
     return `${instanceId.substring(0, 20)}_${brandTag.substring(0, 20)}_${templateSanitized}`;
-  }, [template.name, instanceInfo]);
+  }, [currentTemplate.name, instanceInfo]);
 
   // Update date range when rolling window changes
   useEffect(() => {
@@ -96,7 +108,7 @@ const TemplateExecutionWizard: React.FC<TemplateExecutionWizardProps> = ({
   // Generate execution/schedule name
   const executionName = generateExecutionName(
     instanceInfo.brands?.[0] || instanceInfo.instanceName,
-    template.name,
+    currentTemplate.name,
     dateRange.start,
     dateRange.end
   );
@@ -204,6 +216,18 @@ const TemplateExecutionWizard: React.FC<TemplateExecutionWizardProps> = ({
           </button>
         </div>
 
+        {/* Loading state while fetching fresh template data */}
+        {isLoadingTemplate ? (
+          <div className="flex-1 flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading template data...</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Rest of the wizard content */}
+
         {/* Step Indicator */}
         <div className="px-6 py-4 border-b bg-gray-50">
           <div className="flex items-center justify-between">
@@ -253,7 +277,7 @@ const TemplateExecutionWizard: React.FC<TemplateExecutionWizardProps> = ({
         <div className="flex-1 overflow-y-auto px-6 py-6">
           {currentStep === 1 && (
             <Step1Display
-              template={template}
+              template={currentTemplate}
               instanceInfo={instanceInfo}
               onNext={handleNext}
             />
@@ -294,7 +318,7 @@ const TemplateExecutionWizard: React.FC<TemplateExecutionWizardProps> = ({
             <Step4Review
               executionType={executionType}
               executionName={executionName}
-              template={template}
+              template={currentTemplate}
               instanceInfo={instanceInfo}
               dateRange={dateRange}
               scheduleConfig={scheduleConfig}
@@ -311,6 +335,8 @@ const TemplateExecutionWizard: React.FC<TemplateExecutionWizardProps> = ({
             />
           )}
         </div>
+          </>
+        )}
       </div>
     </div>
   );
