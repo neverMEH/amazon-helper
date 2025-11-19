@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { User, Mail, Calendar, Shield, RefreshCw, AlertCircle, CheckCircle, Key, Building } from 'lucide-react';
+import { User, Mail, Calendar, Shield, RefreshCw, AlertCircle, CheckCircle, Key, Building, Database, Eye, EyeOff, TestTube } from 'lucide-react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 
@@ -20,9 +20,32 @@ interface UserProfile {
   }[];
 }
 
+interface SnowflakeConfig {
+  account: string;
+  username: string;
+  password: string;
+  warehouse: string;
+  database: string;
+  schema?: string;
+  role?: string;
+}
+
 export default function Profile() {
   const queryClient = useQueryClient();
   const [isReAuthenticating, setIsReAuthenticating] = useState(false);
+
+  // Snowflake configuration state
+  const [showPassword, setShowPassword] = useState(false);
+  const [snowflakeConfig, setSnowflakeConfig] = useState<SnowflakeConfig>({
+    account: '',
+    username: '',
+    password: '',
+    warehouse: '',
+    database: '',
+    schema: '',
+    role: '',
+  });
+  const [isEditingSnowflake, setIsEditingSnowflake] = useState(false);
 
   // Check for reauth success on component mount
   useEffect(() => {
@@ -44,6 +67,99 @@ export default function Profile() {
       return response.data;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Fetch Snowflake configuration
+  const { data: snowflakeConfigData, isLoading: snowflakeLoading } = useQuery({
+    queryKey: ['snowflake-config'],
+    queryFn: async () => {
+      try {
+        const response = await api.get('/snowflake/config');
+        return response.data;
+      } catch (error: any) {
+        if (error.response?.status === 404) {
+          return null; // No config exists yet
+        }
+        throw error;
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Load Snowflake config into state when fetched
+  useEffect(() => {
+    if (snowflakeConfigData && !isEditingSnowflake) {
+      setSnowflakeConfig({
+        account: snowflakeConfigData.account || '',
+        username: snowflakeConfigData.username || '',
+        password: '', // Never populate password from server
+        warehouse: snowflakeConfigData.warehouse || '',
+        database: snowflakeConfigData.database || '',
+        schema: snowflakeConfigData.schema || '',
+        role: snowflakeConfigData.role || '',
+      });
+    }
+  }, [snowflakeConfigData, isEditingSnowflake]);
+
+  // Save Snowflake configuration
+  const saveSnowflakeMutation = useMutation({
+    mutationFn: async (config: SnowflakeConfig) => {
+      const response = await api.post('/snowflake/config', config);
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success('Snowflake configuration saved successfully');
+      setIsEditingSnowflake(false);
+      queryClient.invalidateQueries({ queryKey: ['snowflake-config'] });
+      queryClient.invalidateQueries({ queryKey: ['snowflake-config-check'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to save Snowflake configuration');
+    },
+  });
+
+  // Test Snowflake connection
+  const testSnowflakeMutation = useMutation({
+    mutationFn: async (config: SnowflakeConfig) => {
+      const response = await api.post('/snowflake/config/test', config);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        toast.success('Snowflake connection test successful!');
+      } else {
+        toast.error(data.error || 'Connection test failed');
+      }
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to test connection');
+    },
+  });
+
+  // Delete Snowflake configuration
+  const deleteSnowflakeMutation = useMutation({
+    mutationFn: async () => {
+      const response = await api.delete('/snowflake/config');
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success('Snowflake configuration deleted');
+      setSnowflakeConfig({
+        account: '',
+        username: '',
+        password: '',
+        warehouse: '',
+        database: '',
+        schema: '',
+        role: '',
+      });
+      setIsEditingSnowflake(false);
+      queryClient.invalidateQueries({ queryKey: ['snowflake-config'] });
+      queryClient.invalidateQueries({ queryKey: ['snowflake-config-check'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to delete configuration');
+    },
   });
 
   // Re-authenticate with Amazon
@@ -301,6 +417,249 @@ export default function Profile() {
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Snowflake Configuration Section */}
+      <div className="bg-white shadow rounded-lg mb-6" id="snowflake">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h2 className="text-lg font-medium text-gray-900 flex items-center gap-2">
+            <Database className="h-5 w-5" />
+            Snowflake Configuration
+          </h2>
+        </div>
+        <div className="px-6 py-4 space-y-4">
+          {/* Status Banner */}
+          {snowflakeConfigData ? (
+            <div className="bg-green-50 border border-green-200 rounded-md p-3">
+              <div className="flex items-center">
+                <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                <div>
+                  <p className="text-sm font-medium text-green-800">Snowflake Connected</p>
+                  <p className="text-xs text-green-700 mt-1">
+                    {snowflakeConfigData.account} • {snowflakeConfigData.database}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+              <div className="flex items-center">
+                <AlertCircle className="h-5 w-5 text-blue-500 mr-2" />
+                <div>
+                  <p className="text-sm font-medium text-blue-800">No Snowflake Configuration</p>
+                  <p className="text-xs text-blue-700 mt-1">
+                    Configure Snowflake to enable automatic upload of execution results to your data warehouse.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Configuration Form */}
+          {(isEditingSnowflake || !snowflakeConfigData) && (
+            <div className="space-y-4 pt-4 border-t">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="sf-account" className="block text-sm font-medium text-gray-700">
+                    Account <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="sf-account"
+                    value={snowflakeConfig.account}
+                    onChange={(e) => setSnowflakeConfig({...snowflakeConfig, account: e.target.value})}
+                    placeholder="myorg-account123"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">Your Snowflake account identifier</p>
+                </div>
+
+                <div>
+                  <label htmlFor="sf-username" className="block text-sm font-medium text-gray-700">
+                    Username <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="sf-username"
+                    value={snowflakeConfig.username}
+                    onChange={(e) => setSnowflakeConfig({...snowflakeConfig, username: e.target.value})}
+                    placeholder="username"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="sf-password" className="block text-sm font-medium text-gray-700">
+                  Password <span className="text-red-500">*</span>
+                </label>
+                <div className="mt-1 relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    id="sf-password"
+                    value={snowflakeConfig.password}
+                    onChange={(e) => setSnowflakeConfig({...snowflakeConfig, password: e.target.value})}
+                    placeholder={snowflakeConfigData ? 'Enter new password to update' : 'Password'}
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4 text-gray-400" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-gray-400" />
+                    )}
+                  </button>
+                </div>
+                {snowflakeConfigData && !snowflakeConfig.password && (
+                  <p className="mt-1 text-xs text-gray-500">Leave blank to keep existing password</p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="sf-warehouse" className="block text-sm font-medium text-gray-700">
+                    Warehouse <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="sf-warehouse"
+                    value={snowflakeConfig.warehouse}
+                    onChange={(e) => setSnowflakeConfig({...snowflakeConfig, warehouse: e.target.value})}
+                    placeholder="COMPUTE_WH"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="sf-database" className="block text-sm font-medium text-gray-700">
+                    Database <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="sf-database"
+                    value={snowflakeConfig.database}
+                    onChange={(e) => setSnowflakeConfig({...snowflakeConfig, database: e.target.value})}
+                    placeholder="ANALYTICS"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="sf-schema" className="block text-sm font-medium text-gray-700">
+                    Schema (optional)
+                  </label>
+                  <input
+                    type="text"
+                    id="sf-schema"
+                    value={snowflakeConfig.schema}
+                    onChange={(e) => setSnowflakeConfig({...snowflakeConfig, schema: e.target.value})}
+                    placeholder="PUBLIC"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">Defaults to PUBLIC if not specified</p>
+                </div>
+
+                <div>
+                  <label htmlFor="sf-role" className="block text-sm font-medium text-gray-700">
+                    Role (optional)
+                  </label>
+                  <input
+                    type="text"
+                    id="sf-role"
+                    value={snowflakeConfig.role}
+                    onChange={(e) => setSnowflakeConfig({...snowflakeConfig, role: e.target.value})}
+                    placeholder="ACCOUNTADMIN"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-between pt-4 border-t">
+                <button
+                  type="button"
+                  onClick={() => testSnowflakeMutation.mutate(snowflakeConfig)}
+                  disabled={testSnowflakeMutation.isPending || !snowflakeConfig.account || !snowflakeConfig.username || !snowflakeConfig.password}
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {testSnowflakeMutation.isPending ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Testing...
+                    </>
+                  ) : (
+                    <>
+                      <TestTube className="h-4 w-4 mr-2" />
+                      Test Connection
+                    </>
+                  )}
+                </button>
+
+                <div className="flex items-center space-x-2">
+                  {snowflakeConfigData && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEditingSnowflake(false);
+                        setSnowflakeConfig({
+                          account: snowflakeConfigData.account || '',
+                          username: snowflakeConfigData.username || '',
+                          password: '',
+                          warehouse: snowflakeConfigData.warehouse || '',
+                          database: snowflakeConfigData.database || '',
+                          schema: snowflakeConfigData.schema || '',
+                          role: snowflakeConfigData.role || '',
+                        });
+                      }}
+                      className="px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => saveSnowflakeMutation.mutate(snowflakeConfig)}
+                    disabled={saveSnowflakeMutation.isPending || !snowflakeConfig.account || !snowflakeConfig.username || !snowflakeConfig.warehouse || !snowflakeConfig.database}
+                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {saveSnowflakeMutation.isPending ? 'Saving...' : 'Save Configuration'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* View Mode Actions */}
+          {!isEditingSnowflake && snowflakeConfigData && (
+            <div className="flex items-center justify-between pt-4 border-t">
+              <button
+                type="button"
+                onClick={() => setIsEditingSnowflake(true)}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              >
+                Edit Configuration
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('Are you sure you want to delete your Snowflake configuration? This will disable automatic uploads.')) {
+                    deleteSnowflakeMutation.mutate();
+                  }
+                }}
+                disabled={deleteSnowflakeMutation.isPending}
+                className="inline-flex items-center px-3 py-2 border border-red-300 shadow-sm text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deleteSnowflakeMutation.isPending ? 'Deleting...' : 'Delete Configuration'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
