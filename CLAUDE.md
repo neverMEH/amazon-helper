@@ -1655,3 +1655,20 @@ docker run -p 8001:8001 --env-file .env recomamp
 - **Monaco Editor**: Full SQL syntax highlighting, same as VS Code
 - **TanStack Query**: Powerful caching, optimistic updates, background refetching
 - **Vite**: Fast HMR, optimized builds, TypeScript support out of the box
+
+### Recent Fixes and Enhancements
+
+#### 2025-11-24 (Auto-Generated Update)
+
+**New Features:**
+- fix: Add missing Snowflake config check endpoint for template wizard
+- docs: Add comprehensive Snowflake integration feature documentation
+  - New files: .agent-os/features/snowflake-integration.md
+- feat: Add Snowflake configuration UI to Profile/Settings page
+- docs: Add comprehensive Snowflake integration documentation to CLAUDE.md
+- test: Add comprehensive Snowflake service unit tests (20/20 passing)
+  - New files: tests/services/test_snowflake_service_unit.py
+
+**Bug Fixes:**
+- chore: Trigger Railway deployment for Snowflake config check fix
+- fix: Fix template update cache bug causing stale SQL in execution wizard
