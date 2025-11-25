@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, Code, Calendar, User, Hash, ChevronDown, ChevronRight, RefreshCw, Play, Loader, Table, BarChart3, Maximize2, Edit2, Clock, Settings, Database, Save } from 'lucide-react';
+import { X, Code, Calendar, User, Hash, ChevronDown, ChevronRight, RefreshCw, Play, Loader, Table, BarChart3, Maximize2, Edit2, Clock, Settings, Database, Save, CalendarPlus } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
@@ -10,6 +10,8 @@ import DataVisualization from './DataVisualization';
 import SQLEditor from '../common/SQLEditor';
 import ExecutionErrorDetails from './ExecutionErrorDetails';
 import SaveAsTemplateModal from '../report-builder/SaveAsTemplateModal';
+import CreateScheduleFromExecutionModal from './CreateScheduleFromExecutionModal';
+import type { AMCExecutionDetail as AMCExecutionDetailType } from '../../types/amcExecution';
 
 interface Props {
   instanceId: string;
@@ -27,6 +29,7 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isExpandedSQL, setIsExpandedSQL] = useState(false);
   const [showSaveAsTemplate, setShowSaveAsTemplate] = useState(false);
+  const [showCreateSchedule, setShowCreateSchedule] = useState(false);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   
@@ -200,6 +203,18 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                   >
                     <Save className="h-4 w-4 mr-1" />
                     Save as Template
+                  </button>
+                )}
+                {/* Create Schedule button - only show for successful executions with a workflow */}
+                {execution?.status === 'SUCCEEDED' && (execution?.workflowId || execution?.workflowInfo?.id) && (
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateSchedule(true)}
+                    className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                    title={`Create a recurring schedule${(execution?.snowflake_enabled || execution?.snowflakeEnabled) ? ' with Snowflake export' : ''}`}
+                  >
+                    <CalendarPlus className="h-4 w-4 mr-1" />
+                    Create Schedule
                   </button>
                 )}
                 <button
@@ -799,6 +814,19 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
             toast.success('Template saved successfully!');
             // Optionally navigate to the template editor
             // navigate(`/query-library/templates/${templateId}`);
+          }}
+        />
+      )}
+
+      {/* Create Schedule from Execution Modal */}
+      {showCreateSchedule && execution && (
+        <CreateScheduleFromExecutionModal
+          isOpen={showCreateSchedule}
+          onClose={() => setShowCreateSchedule(false)}
+          execution={execution as AMCExecutionDetailType}
+          onSuccess={() => {
+            // Close the execution detail modal as well since we're navigating away
+            onClose();
           }}
         />
       )}
