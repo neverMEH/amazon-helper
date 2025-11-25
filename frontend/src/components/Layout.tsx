@@ -8,15 +8,16 @@ import AppLogo from './common/AppLogo';
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'AMC Instances', href: '/instances', icon: Database },
-  { name: 'Campaigns', href: '/campaigns', icon: Tag },
-  { name: 'ASINs', href: '/asins', icon: Package },
-  { name: 'Data Sources', href: '/data-sources', icon: Book },
-  { name: 'Build Guides', href: '/build-guides', icon: GraduationCap },
-  { name: 'Query Library', href: '/query-library', icon: BookOpen },
   { name: 'Schedules', href: '/schedules', icon: CalendarClock },
   { name: 'Executions', href: '/executions', icon: History },
-  { name: 'Data Collections', href: '/data-collections', icon: Calendar },
-  { name: 'Report Builder', href: '/report-builder', icon: BarChart3 },
+  // Hidden pages - still accessible via direct URL:
+  // { name: 'Campaigns', href: '/campaigns', icon: Tag },
+  // { name: 'ASINs', href: '/asins', icon: Package },
+  // { name: 'Data Sources', href: '/data-sources', icon: Book },
+  // { name: 'Build Guides', href: '/build-guides', icon: GraduationCap },
+  // { name: 'Query Library', href: '/query-library', icon: BookOpen },
+  // { name: 'Data Collections', href: '/data-collections', icon: Calendar },
+  // { name: 'Report Builder', href: '/report-builder', icon: BarChart3 },
 ];
 
 export default function Layout() {
