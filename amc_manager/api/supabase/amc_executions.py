@@ -860,6 +860,10 @@ async def get_amc_execution_details(
                 'startedAt': db_execution.get('started_at'),
                 'completedAt': db_execution.get('completed_at'),
                 'errorMessage': db_execution.get('error_message'),
+                # Add execution IDs for schedule creation
+                'executionId': db_execution.get('execution_id'),  # e.g., "exec_db67423d"
+                'workflowExecutionId': db_execution.get('execution_id'),  # Same, for compatibility
+                'localExecutionId': db_execution.get('id'),  # UUID
                 # Add Snowflake export fields
                 'snowflake_enabled': db_execution.get('snowflake_enabled'),
                 'snowflake_status': db_execution.get('snowflake_status'),
