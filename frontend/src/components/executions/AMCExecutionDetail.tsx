@@ -206,7 +206,7 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                   </button>
                 )}
                 {/* Create Schedule button - show for all successful executions */}
-                {execution?.status === 'SUCCEEDED' && (
+                {(execution?.status === 'SUCCEEDED' || execution?.amcStatus === 'SUCCEEDED') && (
                   <button
                     type="button"
                     onClick={() => setShowCreateSchedule(true)}
