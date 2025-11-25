@@ -110,6 +110,57 @@ def get_instance(
         raise HTTPException(status_code=500, detail="Failed to fetch instance")
 
 
+@router.patch("/{instance_id}/status")
+def update_instance_status(
+    instance_id: str,
+    status_update: Dict[str, Any],
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """Update instance active status (activate/deactivate)"""
+    try:
+        # Verify user has access to instance
+        user_instances = db_service.get_user_instances_sync(current_user['id'])
+        if not any(inst['instance_id'] == instance_id for inst in user_instances):
+            raise HTTPException(status_code=403, detail="Access denied to instance")
+
+        # Get instance details
+        instance = db_service.get_instance_details_sync(instance_id)
+        if not instance:
+            raise HTTPException(status_code=404, detail="Instance not found")
+
+        # Extract is_active from request body
+        is_active = status_update.get('is_active')
+        if is_active is None:
+            raise HTTPException(status_code=400, detail="is_active field is required")
+
+        # Update instance status in database
+        from ...core.supabase_client import SupabaseManager
+        client = SupabaseManager.get_client(use_service_role=True)
+
+        new_status = 'active' if is_active else 'inactive'
+        result = client.table('amc_instances').update({
+            'status': new_status
+        }).eq('instance_id', instance_id).execute()
+
+        if not result.data:
+            raise HTTPException(status_code=500, detail="Failed to update instance status")
+
+        logger.info(f"Instance {instance_id} status updated to {new_status} by user {current_user['id']}")
+
+        return {
+            "instanceId": instance_id,
+            "status": new_status,
+            "isActive": is_active,
+            "message": f"Instance {'activated' if is_active else 'deactivated'} successfully"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating instance status {instance_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update instance status")
+
+
 @router.get("/{instance_id}/campaigns")
 def get_instance_campaigns(
     instance_id: str,
