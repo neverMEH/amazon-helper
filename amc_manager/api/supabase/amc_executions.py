@@ -965,16 +965,25 @@ async def create_schedule_from_execution(
         client = SupabaseManager.get_client(use_service_role=True)
 
         # Step 1: Get execution with all related data
+        # Try to find by execution_id first, then by id (UUID)
         exec_response = client.table('workflow_executions')\
             .select('*, workflows!inner(id, workflow_id, name, sql_query, parameters, instance_id, user_id, amc_instances(id, instance_id, instance_name))')\
             .eq('execution_id', execution_id)\
-            .single()\
             .execute()
+
+        # If not found by execution_id, try by id (UUID)
+        if not exec_response.data:
+            logger.info(f"Execution not found by execution_id, trying by id: {execution_id}")
+            exec_response = client.table('workflow_executions')\
+                .select('*, workflows!inner(id, workflow_id, name, sql_query, parameters, instance_id, user_id, amc_instances(id, instance_id, instance_name))')\
+                .eq('id', execution_id)\
+                .execute()
 
         if not exec_response.data:
             raise HTTPException(status_code=404, detail="Execution not found")
 
-        execution = exec_response.data
+        # Get the first (and should be only) result
+        execution = exec_response.data[0] if isinstance(exec_response.data, list) else exec_response.data
         workflow_data = execution.get('workflows', {})
 
         # Verify ownership
