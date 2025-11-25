@@ -3,16 +3,37 @@
 Note: The AMC API /workflows endpoint returns workflow executions (historical runs),
 not workflow definitions. Each execution represents a past run of a workflow."""
 
-from fastapi import APIRouter, Depends, HTTPException
-from typing import Dict, Any, List
+from fastapi import APIRouter, Depends, HTTPException, Body
+from pydantic import BaseModel, Field
+from typing import Dict, Any, List, Optional
 import logging
+import uuid
 
 from ...services.amc_execution_service import amc_execution_service
 from ...services.db_service import db_service
 from ...services.token_service import token_service
 from ...services.data_analysis_service import data_analysis_service
+from ...services.enhanced_schedule_service import EnhancedScheduleService
 from ...core.supabase_client import SupabaseManager
 from .auth import get_current_user
+
+
+# Pydantic model for schedule-from-execution request
+class ScheduleFromExecutionRequest(BaseModel):
+    """Request model for creating a schedule from an execution"""
+    preset_type: str = Field(..., description="Schedule type: daily, weekly, monthly")
+    name: str = Field(..., description="Name for the schedule")
+    description: Optional[str] = Field(None, description="Description of the schedule")
+    timezone: str = Field("UTC", description="Timezone for schedule execution")
+    execute_time: str = Field("02:00", description="Time of day to execute (HH:MM)")
+    day_of_week: Optional[int] = Field(None, ge=0, le=6, description="Day of week for weekly (0=Sun)")
+    day_of_month: Optional[int] = Field(None, ge=1, le=31, description="Day of month for monthly")
+    lookback_days: int = Field(30, ge=1, le=365, description="Number of days to look back")
+    date_range_type: str = Field("rolling", description="Date range type: rolling or fixed")
+    snowflake_enabled: bool = Field(False, description="Enable Snowflake upload")
+    snowflake_table_name: Optional[str] = Field(None, description="Snowflake table name")
+    snowflake_schema_name: Optional[str] = Field(None, description="Snowflake schema name")
+    snowflake_strategy: Optional[str] = Field("upsert", description="Upload strategy")
 
 logger = logging.getLogger(__name__)
 
@@ -915,4 +936,141 @@ async def analyze_execution_data(
         raise
     except Exception as e:
         logger.error(f"Error analyzing execution data: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/{execution_id}/schedule")
+async def create_schedule_from_execution(
+    execution_id: str,
+    request: ScheduleFromExecutionRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Create a workflow and schedule from an ad-hoc execution.
+
+    This endpoint:
+    1. Fetches the execution details (SQL, parameters, instance, Snowflake config)
+    2. Creates a new workflow from the execution's SQL
+    3. Creates a schedule attached to that workflow
+
+    Args:
+        execution_id: The execution ID to create schedule from
+        request: Schedule configuration
+        current_user: The authenticated user
+
+    Returns:
+        Created workflow and schedule details
+    """
+    try:
+        client = SupabaseManager.get_client(use_service_role=True)
+
+        # Step 1: Get execution with all related data
+        exec_response = client.table('workflow_executions')\
+            .select('*, workflows!inner(id, workflow_id, name, sql_query, parameters, instance_id, user_id, amc_instances(id, instance_id, instance_name))')\
+            .eq('execution_id', execution_id)\
+            .single()\
+            .execute()
+
+        if not exec_response.data:
+            raise HTTPException(status_code=404, detail="Execution not found")
+
+        execution = exec_response.data
+        workflow_data = execution.get('workflows', {})
+
+        # Verify ownership
+        if workflow_data.get('user_id') != current_user['id']:
+            raise HTTPException(status_code=403, detail="Access denied")
+
+        # Extract data for new workflow
+        sql_query = workflow_data.get('sql_query')
+        instance_id = workflow_data.get('instance_id')  # UUID
+        execution_parameters = execution.get('execution_parameters', {})
+        instance_info = workflow_data.get('amc_instances', {})
+
+        if not sql_query:
+            raise HTTPException(status_code=400, detail="Execution has no SQL query")
+
+        if not instance_id:
+            raise HTTPException(status_code=400, detail="Execution has no instance")
+
+        # Step 2: Create a new workflow from the execution
+        workflow_name = request.name or f"Scheduled Query - {instance_info.get('instance_name', 'Unknown')}"
+
+        new_workflow_data = {
+            'id': str(uuid.uuid4()),
+            'workflow_id': f"wf_{uuid.uuid4().hex[:8]}",
+            'name': workflow_name,
+            'description': request.description or f"Created from execution {execution_id}",
+            'instance_id': instance_id,
+            'sql_query': sql_query,
+            'parameters': execution_parameters,
+            'user_id': current_user['id'],
+            'status': 'active',
+            'is_synced_to_amc': False,
+            'tags': ['from-execution', 'scheduled'],
+        }
+
+        workflow_result = client.table('workflows').insert(new_workflow_data).execute()
+
+        if not workflow_result.data:
+            raise HTTPException(status_code=500, detail="Failed to create workflow")
+
+        created_workflow = workflow_result.data[0]
+        logger.info(f"Created workflow {created_workflow['workflow_id']} from execution {execution_id}")
+
+        # Step 3: Create schedule for the new workflow
+        schedule_service = EnhancedScheduleService()
+
+        # Determine interval_days for certain preset types
+        interval_days = None
+        if request.preset_type == 'interval':
+            interval_days = request.lookback_days
+
+        schedule = schedule_service.create_schedule_from_preset(
+            workflow_id=created_workflow['workflow_id'],
+            preset_type=request.preset_type,
+            user_id=current_user['id'],
+            name=request.name,
+            description=request.description,
+            interval_days=interval_days,
+            lookback_days=request.lookback_days,
+            timezone=request.timezone,
+            execute_time=request.execute_time,
+            parameters=execution_parameters,
+            snowflake_enabled=request.snowflake_enabled,
+            snowflake_table_name=request.snowflake_table_name,
+            snowflake_schema_name=request.snowflake_schema_name
+        )
+
+        logger.info(f"Created schedule {schedule.get('schedule_id')} for workflow {created_workflow['workflow_id']}")
+
+        return {
+            "success": True,
+            "message": "Schedule created successfully",
+            "workflow": {
+                "id": created_workflow['id'],
+                "workflow_id": created_workflow['workflow_id'],
+                "name": created_workflow['name']
+            },
+            "schedule": {
+                "id": schedule.get('id'),
+                "schedule_id": schedule.get('schedule_id'),
+                "name": schedule.get('name'),
+                "next_run_at": schedule.get('next_run_at'),
+                "cron_expression": schedule.get('cron_expression'),
+                "timezone": schedule.get('timezone'),
+                "snowflake_enabled": schedule.get('snowflake_enabled'),
+                "snowflake_table_name": schedule.get('snowflake_table_name')
+            }
+        }
+
+    except HTTPException:
+        raise
+    except ValueError as e:
+        logger.error(f"Validation error creating schedule from execution: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error creating schedule from execution: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))

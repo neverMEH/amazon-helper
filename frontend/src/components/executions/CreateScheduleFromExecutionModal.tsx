@@ -66,14 +66,15 @@ export default function CreateScheduleFromExecutionModal({
     { id: 4, name: 'Review', icon: CheckCircle },
   ];
 
-  // Create schedule mutation
+  // Create schedule mutation - uses new endpoint that creates workflow + schedule
   const createScheduleMutation = useMutation({
     mutationFn: async (payload: ScheduleCreateFromExecutionPayload) => {
-      if (!executionData?.workflowId) {
-        throw new Error('Workflow ID not found');
+      if (!executionData?.executionId) {
+        throw new Error('Execution ID not found');
       }
+      // Use the new endpoint that creates workflow + schedule from execution
       const response = await api.post(
-        `/workflows/${executionData.workflowId}/schedules`,
+        `/amc-executions/${executionData.executionId}/schedule`,
         payload
       );
       return response.data;
@@ -188,7 +189,7 @@ export default function CreateScheduleFromExecutionModal({
             <h3 className="text-lg font-medium">Cannot Create Schedule</h3>
           </div>
           <p className="text-gray-600 mb-4">
-            This execution does not have an associated workflow. A workflow is required to create a schedule.
+            This execution does not have the required data to create a schedule. Please try again with a different execution.
           </p>
           <button
             onClick={onClose}

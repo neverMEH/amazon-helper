@@ -19,8 +19,11 @@ export type SnowflakeStrategy = 'upsert' | 'append' | 'replace' | 'create_new';
  * Data extracted from an execution for pre-populating the schedule wizard
  */
 export interface ExecutionScheduleData {
-  // Required - schedule needs a workflow to run
-  workflowId: string;
+  // Execution ID - used for the new API endpoint
+  executionId: string;
+
+  // Optional workflow ID (may not exist for ad-hoc executions)
+  workflowId?: string;
 
   // For display/context
   workflowName?: string;
@@ -111,11 +114,15 @@ export interface ScheduleCreateFromExecutionPayload {
  * Helper to extract schedule data from an execution
  */
 export function extractExecutionScheduleData(execution: AMCExecutionDetail): ExecutionScheduleData | null {
-  const workflowId = execution.workflowId || execution.workflowInfo?.id;
+  // Get executionId - this is required for the new API endpoint
+  const executionId = execution.executionId || execution.workflowExecutionId;
 
-  if (!workflowId) {
+  if (!executionId) {
     return null;
   }
+
+  // workflowId is now optional (may not exist for ad-hoc executions)
+  const workflowId = execution.workflowId || execution.workflowInfo?.id;
 
   // Extract date range from execution parameters
   const params = execution.executionParameters || {};
@@ -126,6 +133,7 @@ export function extractExecutionScheduleData(execution: AMCExecutionDetail): Exe
   const lookbackDays = calculateLookbackDays(startDate, endDate);
 
   return {
+    executionId,
     workflowId,
     workflowName: execution.workflowName || execution.workflowInfo?.name,
     sqlQuery: execution.sqlQuery || execution.workflowInfo?.sqlQuery,

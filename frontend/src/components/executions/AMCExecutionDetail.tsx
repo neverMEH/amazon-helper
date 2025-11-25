@@ -205,8 +205,8 @@ export default function AMCExecutionDetail({ instanceId, executionId, isOpen, on
                     Save as Template
                   </button>
                 )}
-                {/* Create Schedule button - only show for successful executions with a workflow */}
-                {execution?.status === 'SUCCEEDED' && (execution?.workflowId || execution?.workflowInfo?.id) && (
+                {/* Create Schedule button - show for all successful executions */}
+                {execution?.status === 'SUCCEEDED' && (
                   <button
                     type="button"
                     onClick={() => setShowCreateSchedule(true)}
