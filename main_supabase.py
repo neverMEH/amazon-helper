@@ -219,6 +219,7 @@ from amc_manager.api.snowflake_sync_monitoring import router as snowflake_sync_r
 from amc_manager.api.supabase.instance_mappings import router as instance_mappings_router
 from amc_manager.api.supabase.instance_templates import router as instance_templates_router
 from amc_manager.api.supabase.template_execution import router as template_execution_router
+from amc_manager.api.supabase.stats import router as stats_router
 
 # Add redirect for misconfigured callback URL (must be before router includes)
 @app.get("/api/auth/callback")
@@ -254,6 +255,7 @@ app.include_router(build_guides_router, prefix="/api", tags=["Build Guides"])
 app.include_router(asin_router, prefix="/api", tags=["ASINs"])
 app.include_router(snowflake_router)  # Already has prefix in router definition
 app.include_router(snowflake_sync_router, prefix="/api", tags=["Snowflake Sync"])
+app.include_router(stats_router, prefix="/api", tags=["Dashboard Stats"])
 
 # Apply rate limiting to specific endpoints
 for route in app.routes:

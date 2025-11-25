@@ -13,21 +13,11 @@ export default function Dashboard() {
   const { data: stats, isLoading } = useQuery<DashboardStats>({
     queryKey: ['dashboard-stats'],
     queryFn: async () => {
-      // For now, we'll use placeholder data
-      // TODO: Create a dedicated stats endpoint
-      const [instances, workflows, campaigns] = await Promise.all([
-        api.get('/instances'),
-        api.get('/workflows'),
-        api.get('/campaigns'),
-      ]);
-      
-      return {
-        totalInstances: instances.data.length || 0,
-        totalWorkflows: workflows.data.length || 0,
-        totalCampaigns: campaigns.data.length || 0,
-        recentExecutions: 0,
-      };
+      // Use dedicated stats endpoint for faster loading
+      const response = await api.get('/stats');
+      return response.data;
     },
+    staleTime: 2 * 60 * 1000, // 2 minutes - dashboard stats don't need frequent updates
   });
 
   const cards = [

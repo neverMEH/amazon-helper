@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Database, CheckCircle, XCircle, ChevronRight, RefreshCw, Search, Filter, X, ChevronDown } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import api from '../../services/api';
 
 interface AMCInstance {
@@ -148,6 +148,18 @@ export default function Instances() {
     setSelectedBrand('all');
     setSearchQuery('');
   };
+
+  // Prefetch instance details on hover for faster navigation
+  const handleInstanceHover = useCallback((instanceId: string) => {
+    queryClient.prefetchQuery({
+      queryKey: ['instance', instanceId],
+      queryFn: async () => {
+        const response = await api.get(`/instances/${instanceId}`);
+        return response.data;
+      },
+      staleTime: 60000, // Cache for 1 minute
+    });
+  }, [queryClient]);
 
   return (
     <div className="p-6">
@@ -394,6 +406,7 @@ export default function Instances() {
                 <tr
                   key={instance.id}
                   onClick={() => navigate(`/instances/${instance.instanceId}`)}
+                  onMouseEnter={() => handleInstanceHover(instance.instanceId)}
                   className="hover:bg-gray-50 cursor-pointer"
                 >
                   <td className="px-6 py-4 whitespace-nowrap">

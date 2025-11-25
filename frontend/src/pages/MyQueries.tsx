@@ -435,6 +435,18 @@ export default function MyQueries() {
     navigate(`/query-builder/copy/${workflowId}`);
   };
 
+  // Prefetch workflow details on hover for faster navigation
+  const handleWorkflowHover = useCallback((workflowId: string) => {
+    queryClient.prefetchQuery({
+      queryKey: ['workflow', workflowId],
+      queryFn: async () => {
+        const response = await api.get(`/workflows/${workflowId}`);
+        return response.data;
+      },
+      staleTime: 60000, // Cache for 1 minute
+    });
+  }, [queryClient]);
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'active':
@@ -567,9 +579,10 @@ export default function MyQueries() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {processedWorkflows.map((workflow) => (
-                <tr 
-                  key={workflow.id} 
+                <tr
+                  key={workflow.id}
                   className="hover:bg-gray-50 cursor-pointer"
+                  onMouseEnter={() => handleWorkflowHover(workflow.workflowId)}
                   onClick={(e) => {
                     // Don't navigate if clicking on action buttons
                     const target = e.target as HTMLElement;

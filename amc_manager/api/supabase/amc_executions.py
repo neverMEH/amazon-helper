@@ -47,89 +47,100 @@ async def list_all_stored_executions(
 ) -> Dict[str, Any]:
     """
     List all workflow executions for a user from local database.
-    This is much more efficient than calling AMC API for each instance.
-    
+    Uses a single efficient JOIN query instead of N+1 queries.
+
     Args:
         limit: Maximum number of executions to return
         instance_ids: Optional comma-separated list of instance IDs to filter
         current_user: The authenticated user
-        
+
     Returns:
         List of all executions from database across all user's instances
     """
     try:
         client = SupabaseManager.get_client(use_service_role=True)
-        
-        # Get all workflows for the user with instance information
-        workflows_response = client.table('workflows')\
-            .select('id, workflow_id, name, amc_workflow_id, instance_id, amc_instances(instance_id, instance_name)')\
-            .eq('user_id', current_user['id'])\
-            .execute()
-        
+
+        # Single efficient query: Join executions with workflows and instances
+        # This replaces the N+1 pattern of querying each workflow separately
+        query = client.table('workflow_executions')\
+            .select('''
+                execution_id,
+                status,
+                started_at,
+                completed_at,
+                triggered_by,
+                amc_execution_id,
+                row_count,
+                error_message,
+                snowflake_enabled,
+                snowflake_status,
+                snowflake_attempt_count,
+                workflows!inner(
+                    id,
+                    workflow_id,
+                    name,
+                    amc_workflow_id,
+                    instance_id,
+                    user_id,
+                    amc_instances(instance_id, instance_name)
+                )
+            ''')\
+            .eq('workflows.user_id', current_user['id'])\
+            .order('started_at', desc=True)\
+            .limit(limit)
+
         # Filter by instance IDs if provided
-        instance_filter = []
         if instance_ids:
             instance_filter = instance_ids.split(',')
-        
-        # Get executions for all workflows
+            query = query.in_('workflows.amc_instances.instance_id', instance_filter)
+
+        executions_response = query.execute()
+
+        # Transform to API response format
         all_executions = []
-        for workflow in workflows_response.data:
-            # Skip if instance filter is applied and this instance is not in the filter
-            if instance_filter and workflow.get('amc_instances', {}).get('instance_id') not in instance_filter:
-                continue
-            
-            # Get executions for this workflow
-            executions_response = client.table('workflow_executions')\
-                .select('*')\
-                .eq('workflow_id', workflow['id'])\
-                .order('started_at', desc=True)\
-                .limit(20)\
-                .execute()  # Limit per workflow to avoid too much data
-            
-            for execution in executions_response.data:
-                # Map database status to AMC-style status for consistency
-                db_status = execution.get('status', 'pending').lower()
-                amc_status = {
-                    'pending': 'PENDING',
-                    'running': 'RUNNING',
-                    'completed': 'SUCCEEDED',  # Map completed to SUCCEEDED for AMC compatibility
-                    'failed': 'FAILED',
-                    'cancelled': 'CANCELLED'
-                }.get(db_status, db_status.upper())
-                
-                all_executions.append({
-                    'workflowExecutionId': execution.get('execution_id'),
-                    'workflowId': workflow.get('amc_workflow_id') or workflow.get('workflow_id'),
-                    'workflowName': workflow.get('name'),
-                    'status': amc_status,  # Use mapped status
-                    'startTime': execution.get('started_at'),
-                    'endTime': execution.get('completed_at'),
-                    'sqlQuery': execution.get('sql_query'),
-                    'triggeredBy': execution.get('triggered_by', 'manual'),
-                    'amcExecutionId': execution.get('amc_execution_id'),
-                    'rowCount': execution.get('row_count'),
-                    'errorMessage': execution.get('error_message'),
-                    'instanceInfo': {
-                        'id': workflow.get('amc_instances', {}).get('instance_id'),
-                        'name': workflow.get('amc_instances', {}).get('instance_name')
-                    } if workflow.get('amc_instances') else None,
-                    'isStoredLocally': True
-                })
-        
-        # Sort all executions by start time
-        all_executions.sort(key=lambda x: x.get('startTime', ''), reverse=True)
-        
-        # Apply overall limit
-        all_executions = all_executions[:limit]
-        
+        for execution in executions_response.data:
+            workflow = execution.get('workflows', {})
+            instance = workflow.get('amc_instances', {})
+
+            # Map database status to AMC-style status for consistency
+            db_status = execution.get('status', 'pending').lower()
+            amc_status = {
+                'pending': 'PENDING',
+                'running': 'RUNNING',
+                'completed': 'SUCCEEDED',
+                'failed': 'FAILED',
+                'cancelled': 'CANCELLED'
+            }.get(db_status, db_status.upper())
+
+            all_executions.append({
+                'workflowExecutionId': execution.get('execution_id'),
+                'workflowId': workflow.get('amc_workflow_id') or workflow.get('workflow_id'),
+                'workflowName': workflow.get('name'),
+                'status': amc_status,
+                'startTime': execution.get('started_at'),
+                'endTime': execution.get('completed_at'),
+                'triggeredBy': execution.get('triggered_by', 'manual'),
+                'amcExecutionId': execution.get('amc_execution_id'),
+                'rowCount': execution.get('row_count'),
+                'errorMessage': execution.get('error_message'),
+                'snowflakeEnabled': execution.get('snowflake_enabled'),
+                'snowflakeStatus': execution.get('snowflake_status'),
+                'snowflakeAttemptCount': execution.get('snowflake_attempt_count'),
+                'instanceInfo': {
+                    'id': instance.get('instance_id'),
+                    'name': instance.get('instance_name')
+                } if instance else None,
+                'isStoredLocally': True
+            })
+
         return {
             'success': True,
             'executions': all_executions,
             'total': len(all_executions),
             'source': 'database',
-            'message': 'Fetched from local database for better performance'
+            'message': 'Fetched from local database with optimized single query'
         }
-        
+
     except Exception as e:
         logger.error(f"Error listing all stored executions: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -144,13 +155,14 @@ async def list_stored_executions(
     """
     List AMC workflow executions from local database first.
     Only syncs with AMC API if no data exists or explicitly requested.
-    
+    Uses a single efficient JOIN query instead of N+1 queries.
+
     Args:
         instance_id: The AMC instance ID
         limit: Maximum number of executions to return
         sync_if_empty: Whether to sync from AMC if no local data exists
         current_user: The authenticated user
-        
+
     Returns:
         List of executions from database, potentially synced from AMC
     """
@@ -160,71 +172,78 @@ async def list_stored_executions(
         if not any(inst['instance_id'] == instance_id for inst in user_instances):
             raise HTTPException(status_code=403, detail="Access denied to this instance")
 
-        # First, try to get executions from our database
-        client = SupabaseManager.get_client(use_service_role=True)
-        
-        # Get workflows for this instance that belong to the user
-        workflows_response = client.table('workflows')\
-            .select('id, workflow_id, name, amc_workflow_id')\
-            .eq('user_id', current_user['id'])\
-            .execute()
-        
-        # Get instance's internal ID
+        # Get instance's internal ID for filtering
         instance_data = next((inst for inst in user_instances if inst['instance_id'] == instance_id), None)
-        if instance_data:
-            # Filter workflows for this instance
-            instance_workflows = []
-            for workflow in workflows_response.data:
-                # Check if workflow belongs to this instance
-                workflow_instance = client.table('workflows')\
-                    .select('instance_id')\
-                    .eq('id', workflow['id'])\
-                    .execute()
-                
-                if workflow_instance.data and workflow_instance.data[0].get('instance_id') == instance_data.get('id'):
-                    instance_workflows.append(workflow)
-        else:
-            instance_workflows = []
-        
-        # Get all executions for these workflows
+        if not instance_data:
+            return {
+                'success': True,
+                'executions': [],
+                'total': 0,
+                'source': 'local'
+            }
+
+        client = SupabaseManager.get_client(use_service_role=True)
+
+        # Single efficient query: Join executions with workflows, filter by instance
+        executions_response = client.table('workflow_executions')\
+            .select('''
+                execution_id,
+                status,
+                started_at,
+                completed_at,
+                triggered_by,
+                amc_execution_id,
+                row_count,
+                error_message,
+                snowflake_enabled,
+                snowflake_status,
+                snowflake_attempt_count,
+                workflows!inner(
+                    id,
+                    workflow_id,
+                    name,
+                    amc_workflow_id,
+                    instance_id,
+                    user_id
+                )
+            ''')\
+            .eq('workflows.user_id', current_user['id'])\
+            .eq('workflows.instance_id', instance_data['id'])\
+            .order('started_at', desc=True)\
+            .limit(limit)\
+            .execute()
+
+        # Transform to API response format
         all_executions = []
-        for workflow in instance_workflows:
-            executions_response = client.table('workflow_executions')\
-                .select('*')\
-                .eq('workflow_id', workflow['id'])\
-                .order('started_at', desc=True)\
-                .limit(limit)\
-                .execute()
-            
-            for execution in executions_response.data:
-                # Map database status to AMC-style status for consistency
-                db_status = execution.get('status', 'pending').lower()
-                amc_status = {
-                    'pending': 'PENDING',
-                    'running': 'RUNNING',
-                    'completed': 'SUCCEEDED',  # Map completed to SUCCEEDED for AMC compatibility
-                    'failed': 'FAILED',
-                    'cancelled': 'CANCELLED'
-                }.get(db_status, db_status.upper())
-                
-                # Format execution data
-                all_executions.append({
-                    'workflowExecutionId': execution.get('execution_id'),
-                    'workflowId': workflow.get('amc_workflow_id') or workflow.get('workflow_id'),
-                    'workflowName': workflow.get('name'),
-                    'status': amc_status,  # Use mapped status
-                    'startTime': execution.get('started_at'),
-                    'endTime': execution.get('completed_at'),
-                    'sqlQuery': execution.get('sql_query'),
-                    'triggeredBy': execution.get('triggered_by', 'manual'),
-                    'amcExecutionId': execution.get('amc_execution_id'),
-                    'rowCount': execution.get('row_count'),
-                    'errorMessage': execution.get('error_message'),
-                    'isStoredLocally': True
-                })
-        
-        # Sort by start time
-        all_executions.sort(key=lambda x: x.get('startTime', ''), reverse=True)
+        for execution in executions_response.data:
+            workflow = execution.get('workflows', {})
+
+            # Map database status to AMC-style status for consistency
+            db_status = execution.get('status', 'pending').lower()
+            amc_status = {
+                'pending': 'PENDING',
+                'running': 'RUNNING',
+                'completed': 'SUCCEEDED',
+                'failed': 'FAILED',
+                'cancelled': 'CANCELLED'
+            }.get(db_status, db_status.upper())
+
+            all_executions.append({
+                'workflowExecutionId': execution.get('execution_id'),
+                'workflowId': workflow.get('amc_workflow_id') or workflow.get('workflow_id'),
+                'workflowName': workflow.get('name'),
+                'status': amc_status,
+                'startTime': execution.get('started_at'),
+                'endTime': execution.get('completed_at'),
+                'triggeredBy': execution.get('triggered_by', 'manual'),
+                'amcExecutionId': execution.get('amc_execution_id'),
+                'rowCount': execution.get('row_count'),
+                'errorMessage': execution.get('error_message'),
+                'snowflakeEnabled': execution.get('snowflake_enabled'),
+                'snowflakeStatus': execution.get('snowflake_status'),
+                'snowflakeAttemptCount': execution.get('snowflake_attempt_count'),
+                'isStoredLocally': True
+            })
         
         # If no local data and sync requested, fetch from AMC
         if not all_executions and sync_if_empty:

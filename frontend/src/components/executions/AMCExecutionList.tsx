@@ -79,7 +79,22 @@ export default function AMCExecutionList({ instanceId, workflowId, showInstanceB
         }
       }
     },
-    refetchInterval: 30000
+  });
+
+  // Smart polling: only poll when there are pending/running executions
+  const hasPendingExecutions = useMemo(() => {
+    const executions = data?.executions || [];
+    return executions.some((exec: any) =>
+      ['RUNNING', 'PENDING', 'IN_QUEUE', 'CREATED'].includes(exec.status)
+    );
+  }, [data?.executions]);
+
+  // Use a separate query for polling to avoid re-running the main query logic
+  useQuery({
+    queryKey: ['amc-executions-poll', instanceId, workflowId],
+    queryFn: () => refetch(),
+    refetchInterval: hasPendingExecutions ? 15000 : false, // Poll every 15s only when needed
+    enabled: hasPendingExecutions,
   });
 
   const getStatusIcon = (status: AMCExecution['status']) => {
