@@ -58,17 +58,27 @@ async def get_dashboard_stats(
         workflows_count = workflows_result.count if workflows_result.count is not None else 0
 
         # Get execution stats (last 7 days with status breakdown)
+        # Note: workflow_executions doesn't have user_id, need to join through workflows
         seven_days_ago = (datetime.utcnow() - timedelta(days=7)).isoformat()
         twenty_four_hours_ago = (datetime.utcnow() - timedelta(hours=24)).isoformat()
 
-        executions_result = client.table('workflow_executions')\
-            .select('id, status, started_at, completed_at')\
+        # Get user's workflow IDs first
+        user_workflows = client.table('workflows')\
+            .select('id')\
             .eq('user_id', user_id)\
-            .gte('started_at', seven_days_ago)\
-            .order('started_at', desc=True)\
             .execute()
+        user_workflow_ids = [w['id'] for w in user_workflows.data] if user_workflows.data else []
 
-        executions_data = executions_result.data or []
+        executions_data = []
+        if user_workflow_ids:
+            executions_result = client.table('workflow_executions')\
+                .select('id, status, started_at, completed_at')\
+                .in_('workflow_id', user_workflow_ids)\
+                .gte('started_at', seven_days_ago)\
+                .order('started_at', desc=True)\
+                .execute()
+            executions_data = executions_result.data or []
+
         total_executions_7d = len(executions_data)
 
         # Calculate status breakdown
@@ -116,31 +126,33 @@ async def get_dashboard_stats(
                     pass
 
         # Get recent executions for activity feed (last 10)
-        recent_executions_result = client.table('workflow_executions')\
-            .select('''
-                execution_id,
-                status,
-                started_at,
-                completed_at,
-                workflows!inner(name, amc_instances(instance_name))
-            ''')\
-            .eq('user_id', user_id)\
-            .order('started_at', desc=True)\
-            .limit(10)\
-            .execute()
-
+        # Join through workflows to filter by user and get workflow/instance names
         recent_activity = []
-        for ex in (recent_executions_result.data or []):
-            workflow = ex.get('workflows') or {}
-            instance = workflow.get('amc_instances') or {}
-            recent_activity.append({
-                'executionId': ex.get('execution_id'),
-                'workflowName': workflow.get('name', 'Unknown'),
-                'instanceName': instance.get('instance_name', 'Unknown'),
-                'status': (ex.get('status') or 'pending').upper(),
-                'startedAt': ex.get('started_at'),
-                'completedAt': ex.get('completed_at'),
-            })
+        if user_workflow_ids:
+            recent_executions_result = client.table('workflow_executions')\
+                .select('''
+                    execution_id,
+                    status,
+                    started_at,
+                    completed_at,
+                    workflows!inner(name, instance_id, amc_instances(instance_name))
+                ''')\
+                .in_('workflow_id', user_workflow_ids)\
+                .order('started_at', desc=True)\
+                .limit(10)\
+                .execute()
+
+            for ex in (recent_executions_result.data or []):
+                workflow = ex.get('workflows') or {}
+                instance = workflow.get('amc_instances') or {}
+                recent_activity.append({
+                    'executionId': ex.get('execution_id'),
+                    'workflowName': workflow.get('name', 'Unknown'),
+                    'instanceName': instance.get('instance_name', 'Unknown'),
+                    'status': (ex.get('status') or 'pending').upper(),
+                    'startedAt': ex.get('started_at'),
+                    'completedAt': ex.get('completed_at'),
+                })
 
         return {
             # Instance metrics
