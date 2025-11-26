@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { Lock, Mail, AlertCircle } from 'lucide-react';
 import { authService } from '../../services/auth';
 import type { LoginCredentials } from '../../services/auth';
+import AppLogo from '../common/AppLogo';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="flex flex-col items-center">
-          <div className="text-4xl font-bold text-indigo-600 mb-2">RecomAMP</div>
+          <AppLogo variant="icon" height={80} className="mb-4" />
           <p className="mt-3 text-center text-sm text-gray-600">
             Sign in to your account
           </p>

@@ -34,8 +34,9 @@ export default function Layout() {
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
       <div className="fixed inset-y-0 left-0 w-64 bg-gray-900">
-        <div className="flex h-16 items-center px-6">
-          <AppLogo className="text-xl font-semibold text-white" height={24} />
+        <div className="flex h-16 items-center px-6 gap-3">
+          <AppLogo variant="icon" height={32} />
+          <AppLogo variant="wordmark" height={20} />
         </div>
 
         <nav className="mt-6 px-3">
