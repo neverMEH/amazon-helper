@@ -2,7 +2,6 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   Database,
-  GitBranch,
   Activity,
   Calendar,
   CheckCircle,
@@ -14,9 +13,8 @@ import {
   ArrowRight,
   RefreshCw,
   Loader,
-  BarChart3,
 } from 'lucide-react';
-import { formatDistanceToNow, format } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 import api from '../services/api';
 
 interface DashboardStats {
@@ -361,23 +359,12 @@ export default function Dashboard() {
                 </button>
 
                 <button
-                  onClick={() => navigate('/query-builder/new')}
+                  onClick={() => navigate('/executions')}
                   className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <GitBranch className="w-5 h-5 text-indigo-600" />
-                    <span className="text-sm font-medium text-gray-700">Create New Query</span>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-gray-400" />
-                </button>
-
-                <button
-                  onClick={() => navigate('/query-library')}
-                  className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <BarChart3 className="w-5 h-5 text-indigo-600" />
-                    <span className="text-sm font-medium text-gray-700">Browse Query Library</span>
+                    <Activity className="w-5 h-5 text-indigo-600" />
+                    <span className="text-sm font-medium text-gray-700">View All Executions</span>
                   </div>
                   <ArrowRight className="w-4 h-4 text-gray-400" />
                 </button>
