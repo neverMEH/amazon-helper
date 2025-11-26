@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Plus,
   Calendar,
   Clock,
   Power,
@@ -26,7 +25,6 @@ import { toast } from 'react-hot-toast';
 import { format, parseISO } from 'date-fns';
 import { scheduleService } from '../services/scheduleService';
 import type { Schedule } from '../types/schedule';
-import ScheduleWizard from '../components/schedules/ScheduleWizard';
 import ScheduleDetailModal from '../components/schedules/ScheduleDetailModal';
 import ScheduleRunModal from '../components/schedules/ScheduleRunModal';
 
@@ -35,7 +33,6 @@ type ViewMode = 'grid' | 'list' | 'calendar';
 const ScheduleManager: React.FC = () => {
   const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState<ViewMode>('list');
-  const [showCreateWizard, setShowCreateWizard] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showScheduleRunModal, setShowScheduleRunModal] = useState(false);
@@ -511,13 +508,6 @@ const ScheduleManager: React.FC = () => {
               <RefreshCw className="h-4 w-4" />
             )}
           </button>
-          <button
-            onClick={() => setShowCreateWizard(true)}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            New Schedule
-          </button>
         </div>
       </div>
 
@@ -679,25 +669,10 @@ const ScheduleManager: React.FC = () => {
         <div className="text-center py-12">
           <CalendarDays className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No schedules yet</h3>
-          <p className="text-gray-600 mb-4">Create your first schedule to automate workflow execution</p>
-          <button
-            onClick={() => setShowCreateWizard(true)}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Create Schedule
-          </button>
+          <p className="text-gray-600 mb-4">
+            To create a schedule, first run a template from an instance, then create a schedule from the successful execution.
+          </p>
         </div>
-      )}
-
-      {/* Create Wizard Modal */}
-      {showCreateWizard && (
-        <ScheduleWizard
-          workflowId="" // This will need to be handled differently
-          workflowName=""
-          onComplete={() => setShowCreateWizard(false)}
-          onCancel={() => setShowCreateWizard(false)}
-        />
       )}
 
       {/* Schedule Detail Modal */}
