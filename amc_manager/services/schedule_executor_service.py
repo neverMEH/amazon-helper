@@ -549,8 +549,26 @@ class ScheduleExecutorService:
             if needs_refresh:
                 logger.info(f"Refreshing token for user {user_email} ({user_id}) before scheduled execution")
 
-                # Decrypt refresh token if needed
-                refresh_token = auth_tokens.get('refresh_token')
+                # Get encrypted refresh token from database
+                encrypted_refresh_token = auth_tokens.get('refresh_token')
+
+                if not encrypted_refresh_token:
+                    error_msg = f"User {user_email} has no refresh token stored. User needs to re-authenticate via Amazon OAuth."
+                    logger.error(error_msg)
+                    raise ValueError(error_msg)
+
+                # Decrypt refresh token before using it
+                try:
+                    refresh_token = self.token_service.decrypt_token(encrypted_refresh_token)
+                    logger.debug(f"Successfully decrypted refresh token for user {user_email}")
+                except ValueError as e:
+                    error_msg = (
+                        f"Failed to decrypt refresh token for user {user_email} ({user_id}): {e}. "
+                        f"This usually means the encryption key (FERNET_KEY) has changed. "
+                        f"User needs to re-authenticate via Amazon OAuth."
+                    )
+                    logger.error(error_msg)
+                    raise ValueError(error_msg)
 
                 # Refresh the token with retry logic (max 3 attempts)
                 new_tokens = await self.token_service.refresh_access_token(refresh_token)
