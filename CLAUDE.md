@@ -1655,3 +1655,25 @@ docker run -p 8001:8001 --env-file .env recomamp
 - **Monaco Editor**: Full SQL syntax highlighting, same as VS Code
 - **TanStack Query**: Powerful caching, optimistic updates, background refetching
 - **Vite**: Fast HMR, optimized builds, TypeScript support out of the box
+
+### Recent Fixes and Enhancements
+
+#### 2025-12-01 (Auto-Generated Update)
+
+**New Features:**
+- feat: Update branding with new RecomAMP logo and lettering
+  - New files: RecomAMP Lettering.png, RecomAMP Logo.png
+- feat: Add instance/brand tabs to Executions page
+- feat: Redesign dashboard with comprehensive metrics and activity feed
+- feat: Filter instances to Recommerce Brands, add favorites and activate/deactivate
+- feat: Add search and instance filtering to Schedule Manager
+
+**Bug Fixes:**
+- fix: Decrypt refresh token before refreshing in schedule executor
+- fix: Fix dashboard stats queries - join through workflows table
+- fix: Include execution_id in execution detail response for schedule creation
+- fix: Try both execution_id and id (UUID) when looking up execution
+- fix: Check both status and amcStatus for Create Schedule button visibility
+
+**Performance Improvements:**
+- perf: Comprehensive page load optimizations
